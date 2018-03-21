@@ -1,0 +1,28 @@
+{
+    "name": "dw/html5",
+    "description": "Parses HTML5 text into a php DOMDocument",
+    "type": "library",
+    "require": {
+        "php": "^7.0",
+        "ext-intl": "*",
+        "ext-mcrypt": "*",
+        "ext-hash": "*"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Dustin Wilson",
+            "email": "dustin@dustinwilson.com",
+            "homepage": "https://dustinwilson.com/"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "dW\\HTML5\\": "lib/"
+        },
+        "classmap": ["lib/Token.php"]
+    },
+    "autoload-dev": {
+        "files": ["lib/Token.php"]
+    }
+}
