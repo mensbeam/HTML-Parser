@@ -5,7 +5,8 @@
     "require": {
         "php": "^7.0",
         "ext-intl": "*",
-        "ext-mcrypt": "*",
+        "ext-mbstring": "*",
+        "ext-ctype": "*",
         "ext-hash": "*"
     },
     "license": "MIT",
