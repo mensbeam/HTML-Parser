@@ -43,7 +43,7 @@ class Stack implements \ArrayAccess {
         return array_pop($this->storage);
     }
 
-    public static function search(mixed $needle): int {
+    public function search(mixed $needle): int {
         if (!$needle) {
             return false;
         }
