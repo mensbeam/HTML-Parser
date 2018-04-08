@@ -41,6 +41,30 @@ class DOM {
         return ($returnNode === true) ? null : false;
     }
 
+    public static function isMathMLTextIntegrationPoint(\DOMElement $node): bool {
+        return (
+            $node->namespaceURI === Parser::MATHML_NAMESPACE && (
+                $node->nodeName === 'mi' || $node->nodeName === 'mo' || $node->nodeName === 'mn' || $node->nodeName === 'ms' || $node->nodeName === 'mtext'
+            )
+        );
+    }
+
+    public static function isHTMLIntegrationPoint(\DOMElement $node): bool {
+        $encoding = strtolower($node->getAttribute('encoding'));
+
+        return ((
+                $node->namespaceURI === Parser::MATHML_NAMESPACE &&
+                $node->nodeName === 'annotation-xml' && (
+                    $encoding === 'text/html' || $encoding === 'application/xhtml+xml'
+                )
+            ) || (
+                $node->namespaceURI === Parser::SVG_NAMESPACE && (
+                    $node->nodeName === 'foreignObject' || $node->nodeName === 'desc' || $node->nodeName === 'title'
+                )
+            )
+        );
+    }
+
     protected static function ancestor(mixed $needle, \DOMElement $context, bool $returnNode = true) {
         while ($context = $context->parentNode) {
             $result = static::compare($needle, $context);

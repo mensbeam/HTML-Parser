@@ -24,7 +24,7 @@ class Stack implements \ArrayAccess {
     }
 
     public function offsetUnset($offset) {
-        if ($offset < 0) {
+        if ($offset < 0 || $offset > count($this->$storage) - 1) {
             throw new Exception(Exception::STACK_INVALID_INDEX);
         }
 
@@ -32,7 +32,7 @@ class Stack implements \ArrayAccess {
     }
 
     public function offsetGet($offset) {
-        if ($offset < 0) {
+        if ($offset < 0 || $offset > count($this->$storage) - 1) {
             throw new Exception(Exception::STACK_INVALID_INDEX);
         }
 
@@ -83,6 +83,8 @@ class Stack implements \ArrayAccess {
             case 'currentNodeName':
                 $currentNode = $this->currentNode;
                 return ($currentNode && $currentNode->nodeType) ? $currentNode->nodeName : null;
+            break;
+            case 'currentNodeNamespace': return (!is_null($this->currentNode)) ? $this->currentNode->namespaceURI : null;
             break;
             default: return null;
         }

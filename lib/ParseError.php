@@ -17,6 +17,7 @@ class ParseError {
     const UNEXPECTED_DOCTYPE = 7;
     const INVALID_DOCTYPE = 8;
     const INVALID_CONTROL_OR_NONCHARACTERS = 9;
+    const INVALID_XMLNS_ATTRIBUTE_VALUE = 10;
 
     protected static $messages = ['Tag name expected; found %s',
                                   'Unexpected end-of-file; %s expected',
@@ -27,7 +28,8 @@ class ParseError {
                                   'Unexpected %s end tag; %s expected',
                                   'Unexpected DOCTYPE; %s expected',
                                   'Invalid DOCTYPE',
-                                  'Invalid Control or Non-character; removing'];
+                                  'Invalid Control or Non-character; removing',
+                                  'Invalid xmlns attribute value; %s expected'];
 
     public static function errorHandler($code, $message, $file, $line, array $context) {
         if ($code === E_USER_WARNING) {

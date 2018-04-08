@@ -20,6 +20,8 @@ class Parser {
     public $formElement;
     // Flag that shows whether the content that's being parsed is a fragment or not
     public $fragmentCase = false;
+    // Flag used to determine whether elements are okay to be used in framesets or not
+    public $framesetOk = true;
     // Once a head element has been parsed (whether implicitly or explicitly) the head
     // element pointer gets set to point to this node
     public $headElement;
@@ -3239,11 +3241,67 @@ class Parser {
                     }
                 }
             }
-
         }
     }
 
-    protected function emitToken($token) {
+    protected function emitToken(Token $token) {
+        # 8.2.5 Tree construction
+        #
+        # As each token is emitted from the tokenizer, the user agent must follow the
+        # appropriate steps from the following list:
+        #
+        # If there is no current node
+        $currentNode = $this->stack->currentNode;
+        if (is_null($currentNode)) {
+            # Process the token according to the rules given in the section corresponding to
+            # the current insertion mode in HTML content.
+            $this->parseTokenInHTMLContent($token);
+        } else {
+            $currentNodeName = $this->stack->currentNodeName;
+            $currentNodeNamespace = $this->stack->currentNodeNamespace;
+            # If the current node is an element in the HTML namespace
+            if ($currentNodeNamespace === static::HTML_NAMESPACE || (
+                    # If the current node is a MathML text integration point and the token is a
+                    # start tag whose tag name is neither "mglyph" nor "malignmark"
+                    # If the current node is a MathML text integration point and the token is a
+                    # character token
+                    DOM::isMathMLTextIntegrationPoint($currentNode) && ((
+                            $token instanceof StartTagToken && (
+                                $token->name !== 'mglyph' && $token->name !== 'malignmark'
+                            ) ||
+                            $token instanceof CharacterToken
+                        )
+                    )
+                ) || (
+                    # If the current node is an annotation-xml element in the MathML namespace and
+                    # the token is a start tag whose tag name is "svg"
+                    $currentNodeNamespace === static::MATHML_NAMESPACE &&
+                    $currentNodeName === 'annotation-xml' &&
+                    $token instanceof StartTagToken &&
+                    $token->name === 'svg'
+                ) || (
+                    # If the current node is an HTML integration point and the token is a start tag
+                    # If the current node is an HTML integration point and the token is a character
+                    # token
+                    DOM::isHTMLIntegrationPoint($currentNode) && (
+                        $token instanceof StartTagToken || $token instanceof CharacterToken
+                    )
+                ) ||
+                # If the token is an end-of-file token
+                $token instanceof EOFToken
+            ) {
+                # Process the token according to the rules given in the section corresponding to
+                # the current insertion mode in HTML content.
+                $this->parseTokenInHTMLContent($token);
+            }
+        }
+
+        # Otherwise
+        # Process the token according to the rules given in the section for parsing
+        # tokens in foreign content.
+        $this->parseTokenInForeignContent($token);
+
+        // TEMPORARY
         $quirksMode = false;
 
         var_export($token);
@@ -3256,4 +3314,405 @@ class Parser {
         }
     }
 
+    protected function parseTokenInHTMLContent(Token $token, $insertionMode = null) {
+
+    }
+
+    protected function parseTokenInForeignContent(Token $token) {
+        $currentNode = $this->stack->currentNode;
+        $currentNodeName = $this->stack->currentNodeName;
+        $currentNodeNamespace = $this->stack->currentNodeNamespace;
+        # 8.2.5.5 The rules for parsing tokens in foreign content
+        #
+        # When the user agent is to apply the rules for parsing tokens in foreign
+        # content, the user agent must handle the token as follows:
+        #
+        if ($token instanceof CharacterToken) {
+            # A character token that is one of U+0009 CHARACTER TABULATION, "LF" (U+000A),
+            # "FF" (U+000C), "CR" (U+000D), or U+0020 SPACE
+            # Any other character token
+            // OPTIMIZATION: Will check for multiple space characters at once as character
+            // tokens can contain more than one character.
+            if (strspn($token->data, "\t\n\x0c\x0d ") !== strlen($token->data)) {
+                # Set the frameset-ok flag to "not ok".
+                $this->$framesetOk = false;
+            }
+
+            # Insert the token's character into the current node.
+            $currentNode->appendChild($this->DOM->createTextElement($token->data));
+        }
+        # A comment token
+        elseif ($token instanceof CommentToken) {
+            # Append a Comment node to the current node with the data attribute set to the
+            # data given in the comment token.
+            $currentNode->appendChild($this->DOM->createComment($token->data));
+        }
+        # A DOCTYPE token
+        elseif ($token instanceof DOCTYPEToken) {
+            # Parse error. Ignore the token.
+            ParseError::trigger(ParseError::UNEXPECTED_DOCTYPE, 'Character, Comment, Start Tag, or End Tag');
+        }
+        elseif ($token instanceof StartTagToken) {
+            # A start tag whose tag name is one of: "b", "big", "blockquote", "body", "br",
+            # "center", "code", "dd", "div", "dl", "dt", "em", "embed", "h1", "h2", "h3",
+            # "h4", "h5", "h6", "head", "hr", "i", "img", "li", "listing", "menu", "meta",
+            # "nobr", "ol", "p", "pre", "ruby", "s", "small", "span", "strong", "strike",
+            # "sub", "sup", "table", "tt", "u", "ul", "var"
+            # A start tag whose tag name is "font", if the token has any attributes named
+            # "color", "face", or "size"
+            if ($token->name === 'b' || $token->name === 'big' || $token->name === 'blockquote' || $token->name === 'body' || $token->name === 'br' || $token->name === 'center' || $token->name === 'code' || $token->name === 'dd' || $token->name === 'div' || $token->name === 'dl' || $token->name === 'dt' || $token->name === 'em' || $token->name === 'embed' || $token->name === 'h1' || $token->name === 'h2' || $token->name === 'h3' || $token->name === 'h4' || $token->name === 'h5' || $token->name === 'h6' || $token->name === 'head' || $token->name === 'hr' || $token->name === 'i' || $token->name === 'img' || $token->name === 'li' || $token->name === 'listing' || $token->name === 'menu' || $token->name === 'meta' || $token->name === 'nobr' || $token->name === 'ol' || $token->name === 'p' || $token->name === 'pre' || $token->name === 'ruby' || $token->name === 's' || $token->name === 'small' || $token->name === 'span' || $token->name === 'strong' || $token->name === 'strike' || $token->name === 'sub' || $token->name === 'sup' || $token->name === 'table' || $token->name === 'tt' || $token->name === 'u' || $token->name === 'var' || (
+                    $token->name === 'font' && (
+                        $token->hasAttribute('color') || $token->hasAttribute('face') || $token->hasAttribute('size')
+                    )
+                )
+            ) {
+                # Parse error.
+                ParseError::trigger(ParseError::UNEXPECTED_START_TAG, $token->name, 'Non-HTML start tag');
+
+                # Pop an element from the stack of open elements, and then keep popping more
+                # elements from the stack of open elements until the current node is a MathML
+                # text integration point, an HTML integration point, or an element in the HTML
+                # namespace.
+                do {
+                    $popped = $this->stack->pop();
+                } while (!is_null($popped) && (
+                        !DOM::isMathMLTextIntegrationPoint($this->stack->currentNode) &&
+                        !DOM::isHTMLIntegrationPoint($this->stack->currentNode) &&
+                        $this->stack->currentNode->namespaceURI !== static::HTML_NAMESPACE
+                    )
+                );
+
+                # Then, reprocess the token.
+                $this->emitToken($token);
+            }
+            # Any other start tag
+            else {
+                $tokenName = $token->name;
+                # If the current node is an element in the SVG namespace, and the token's tag
+                # name is one of the ones in the first column of the following table, change the
+                # tag name to the name given in the corresponding cell in the second column.
+                # (This fixes the case of SVG elements that are not all lowercase.)
+                if ($currentNode->namespaceURI === static::SVG_NAMESPACE) {
+                    switch ($tokenName) {
+                        case 'altglyph': $tokenName = 'altGlyph';
+                        break;
+                        case 'altglyphdef': $tokenName = 'altGlyphDef';
+                        break;
+                        case 'altglyphitem': $tokenName = 'altGlyphItem';
+                        break;
+                        case 'animatecolor': $tokenName = 'animateColor';
+                        break;
+                        case 'animatemotion': $tokenName = 'animateMotion';
+                        break;
+                        case 'animatetransform': $tokenName = 'animateTransform';
+                        break;
+                        case 'clippath': $tokenName = 'clipPath';
+                        break;
+                        case 'feblend': $tokenName = 'feBlend';
+                        break;
+                        case 'fecolormatrix': $tokenName = 'feColorMatrix';
+                        break;
+                        case 'fecomponenttransfer': $tokenName = 'feComponentTransfer';
+                        break;
+                        case 'fecomposite': $tokenName = 'feComposite';
+                        break;
+                        case 'feconvolvematrix': $tokenName = 'feConvolveMatrix';
+                        break;
+                        case 'fediffuselighting': $tokenName = 'feDiffuseLighting';
+                        break;
+                        case 'fedisplacementmap': $tokenName = 'feDisplacementMap';
+                        break;
+                        case 'fedistantlight': $tokenName = 'feDistantLight';
+                        break;
+                        case 'feflood': $tokenName = 'feFlood';
+                        break;
+                        case 'fefunca': $tokenName = 'feFuncA';
+                        break;
+                        case 'fefuncb': $tokenName = 'feFuncB';
+                        break;
+                        case 'fefuncg': $tokenName = 'feFuncG';
+                        break;
+                        case 'fefuncr': $tokenName = 'feFuncR';
+                        break;
+                        case 'fegaussianblur': $tokenName = 'feGaussianBlur';
+                        break;
+                        case 'feimage': $tokenName = 'feImage';
+                        break;
+                        case 'femerge': $tokenName = 'feMerge';
+                        break;
+                        case 'femergenode': $tokenName = 'feMergeNode';
+                        break;
+                        case 'femorphology': $tokenName = 'feMorphology';
+                        break;
+                        case 'feoffset': $tokenName = 'feOffset';
+                        break;
+                        case 'fepointlight': $tokenName = 'fePointLight';
+                        break;
+                        case 'fespecularlighting': $tokenName = 'feSpecularLighting';
+                        break;
+                        case 'fespotlight': $tokenName = 'feSpotLight';
+                        break;
+                        case 'fetile': $tokenName = 'feTile';
+                        break;
+                        case 'feturbulence': $tokenName = 'feTurbulence';
+                        break;
+                        case 'foreignobject': $tokenName = 'foreignObject';
+                        break;
+                        case 'glyphref': $tokenName = 'glyphRef';
+                        break;
+                        case 'lineargradient': $tokenName = 'linearGradient';
+                        break;
+                        case 'radialgradient': $tokenName = 'radialGradient';
+                        break;
+                        case 'textpath': $tokenName = 'textPath';
+                    }
+                }
+
+                $node = $this->DOM->createElementNS($currentNodeNamespace, $tokenName);
+
+                foreach ($token->attributes as $name => $value) {
+                    # If the current node is an element in the MathML namespace, adjust MathML
+                    # attributes for the token. (This fixes the case of MathML attributes that are
+                    # not all lowercase.)
+                    if ($currentNodeNamespace === static::MATHML_NAMESPACE && $name === 'definitionurl') {
+                        $name === 'definitionURL';
+                    }
+                    # If the current node is an element in the SVG namespace, adjust SVG attributes
+                    # for the token. (This fixes the case of SVG attributes that are not all
+                    # lowercase.)
+                    elseif ($currentNodeNamespace === static::SVG_NAMESPACE) {
+                        switch ($name) {
+                            case 'attributename': $name = 'attributeName';
+                            break;
+                            case 'attributetype': $name = 'attributeType';
+                            break;
+                            case 'basefrequency': $name = 'baseFrequency';
+                            break;
+                            case 'baseprofile': $name = 'baseProfile';
+                            break;
+                            case 'calcmode': $name = 'calcMode';
+                            break;
+                            case 'clippathunits': $name = 'clipPathUnits';
+                            break;
+                            case 'contentscripttype': $name = 'contentScriptType';
+                            break;
+                            case 'contentstyletype': $name = 'contentStyleType';
+                            break;
+                            case 'diffuseconstant': $name = 'diffuseConstant';
+                            break;
+                            case 'edgemode': $name = 'edgeMode';
+                            break;
+                            case 'externalresourcesrequired': $name = 'externalResourcesRequired';
+                            break;
+                            case 'filterres': $name = 'filterRes';
+                            break;
+                            case 'filterunits': $name = 'filterUnits';
+                            break;
+                            case 'glyphref': $name = 'glyphRef';
+                            break;
+                            case 'gradienttransform': $name = 'gradientTransform';
+                            break;
+                            case 'gradientunits': $name = 'gradientUnits';
+                            break;
+                            case 'kernelmatrix': $name = 'kernelMatrix';
+                            break;
+                            case 'kernelunitlength': $name = 'kernelUnitLength';
+                            break;
+                            case 'keypoints': $name = 'keyPoints';
+                            break;
+                            case 'keysplines': $name = 'keySplines';
+                            break;
+                            case 'keytimes': $name = 'keyTimes';
+                            break;
+                            case 'lengthadjust': $name = 'lengthAdjust';
+                            break;
+                            case 'limitingconeangle': $name = 'limitingConeAngle';
+                            break;
+                            case 'markerheight': $name = 'markerHeight';
+                            break;
+                            case 'markerunits': $name = 'markerUnits';
+                            break;
+                            case 'markerwidth': $name = 'markerWidth';
+                            break;
+                            case 'maskcontentunits': $name = 'maskContentUnits';
+                            break;
+                            case 'maskunits': $name = 'maskUnits';
+                            break;
+                            case 'numoctaves': $name = 'numOctaves';
+                            break;
+                            case 'pathlength': $name = 'pathLength';
+                            break;
+                            case 'patterncontentunits': $name = 'patternContentUnits';
+                            break;
+                            case 'patterntransform': $name = 'patternTransform';
+                            break;
+                            case 'patternunits': $name = 'patternUnits';
+                            break;
+                            case 'pointsatx': $name = 'pointsAtX';
+                            break;
+                            case 'pointsaty': $name = 'pointsAtY';
+                            break;
+                            case 'pointsatz': $name = 'pointsAtZ';
+                            break;
+                            case 'preservealpha': $name = 'preserveAlpha';
+                            break;
+                            case 'preserveaspectratio': $name = 'preserveAspectRatio';
+                            break;
+                            case 'primitiveunits': $name = 'primitiveUnits';
+                            break;
+                            case 'refx': $name = 'refX';
+                            break;
+                            case 'refy': $name = 'refY';
+                            break;
+                            case 'repeatcount': $name = 'repeatCount';
+                            break;
+                            case 'repeatdur': $name = 'repeatDur';
+                            break;
+                            case 'requiredextensions': $name = 'requiredExtensions';
+                            break;
+                            case 'requiredfeatures': $name = 'requiredFeatures';
+                            break;
+                            case 'specularconstant': $name = 'specularConstant';
+                            break;
+                            case 'specularexponent': $name = 'specularExponent';
+                            break;
+                            case 'spreadmethod': $name = 'spreadMethod';
+                            break;
+                            case 'startoffset': $name = 'startOffset';
+                            break;
+                            case 'stddeviation': $name = 'stdDeviation';
+                            break;
+                            case 'stitchtiles': $name = 'stitchTiles';
+                            break;
+                            case 'surfacescale': $name = 'surfaceScale';
+                            break;
+                            case 'systemlanguage': $name = 'systemLanguage';
+                            break;
+                            case 'tablevalues': $name = 'tableValues';
+                            break;
+                            case 'targetx': $name = 'targetX';
+                            break;
+                            case 'targety': $name = 'targetY';
+                            break;
+                            case 'textlength': $name = 'textLength';
+                            break;
+                            case 'viewbox': $name = 'viewBox';
+                            break;
+                            case 'viewtarget': $name = 'viewTarget';
+                            break;
+                            case 'xchannelselector': $name = 'xChannelSelector';
+                            break;
+                            case 'ychannelselector': $name = 'yChannelSelector';
+                            break;
+                            case 'zoomandpan': $name = 'zoomAndPan';
+                        }
+                    }
+
+                    # Adjust foreign attributes for the token. (This fixes the use of namespaced
+                    # attributes, in particular XLink in SVG.)
+                    # When the steps below require the user agent to adjust foreign attributes for a
+                    # token, then, if any of the attributes on the token match the strings given in
+                    # the first column of the following table, let the attribute be a namespaced
+                    # attribute, with the prefix being the string given in the corresponding cell in
+                    # the second column, the local name being the string given in the corresponding
+                    # cell in the third column, and the namespace being the namespace given in the
+                    # corresponding cell in the fourth column. (This fixes the use of namespaced
+                    # attributes, in particular lang attributes in the XML namespace.)
+                    switch($name) {
+                        case 'xlink:actuate':
+                        case 'xlink:arcrole':
+                        case 'xlink:href':
+                        case 'xlink:role':
+                        case 'xlink:show':
+                        case 'xlink:title':
+                        case 'xlink:type': $node->setAttributeNS(static::XLINK_NAMESPACE, $name, $value);
+                        break;
+                        case 'xml:base':
+                        case 'xml:lang':
+                        case 'xml:space': $node->setAttributeNS(static::XML_NAMESPACE, $name, $value);
+                        break;
+                        case 'xmlns':
+                            $node->setAttributeNS(static::XMLNS_NAMESPACE, $name, $value);
+
+                            # If the newly created element has an xmlns attribute in the XMLNS namespace
+                            # whose value is not exactly the same as the element's namespace, that is a
+                            # parse error.
+                            if ($value !== $node->namespaceURI) {
+                                ParseError::trigger(ParseError::INVALID_XMLNS_ATTRIBUTE_VALUE, $node->namespaceURI);
+                            }
+                        break;
+                        case 'xmlns:xlink':
+                            $node->setAttributeNS(static::XMLNS_NAMESPACE, $name, $value);
+
+                            # Similarly, if the newly created element has an xmlns:xlink attribute in the
+                            # XMLNS namespace whose value is not the XLink Namespace, that is a parse error.
+                            if ($value !== static::XLINK_NAMESPACE) {
+                                ParseError::trigger(ParseError::INVALID_XMLNS_ATTRIBUTE_VALUE, static::XLINK_NAMESPACE);
+                            }
+                        break;
+                        default: $node->setAttribute($name, $value);
+                    }
+                }
+
+                # Insert a foreign element for the token, in the same namespace as the current
+                # node.
+                # When the steps below require the UA to insert a foreign element for a token,
+                # the UA must first create an element for the token in the given namespace, and
+                # then append this node to the current node, and push it onto the stack of open
+                # elements so that it is the new current node.
+                $currentNode->appendChild($node);
+                # If the token has its self-closing flag set, pop the current node off the stack
+                # of open elements and acknowledge the token's self-closing flag.
+                // OPTIMIZATION: Not adding it to the stack unless it's not self-closing.
+                if (!$token->selfClosing) {
+                    $this->stack[] = $node;
+                }
+            }
+        }
+        # An end tag whose tag name is "script", if the current node is a script element
+        # in the SVG namespace
+        // DEVIATION: This implementation does not support scripting, so script elements
+        // aren't processed differently.
+
+        # Any other end tag
+        elseif ($token instanceof EndTagToken) {
+            # Run these steps:
+            #
+            # 1. Initialize node to be the current node (the bottommost node of the stack).
+            $node = $currentNode;
+            $nodeName = $currentNodeName;
+            # 2. If node is not an element with the same tag name as the token, then this is
+            # a parse error.
+            if ($nodeName !== $token->name) {
+                ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $token->name, $nodeName);
+            }
+            # 3. Loop: If node's tag name, converted to ASCII lowercase, is the same as the tag name of the token, pop elements from the stack of open elements until node has been popped from the stack, and then abort these steps.
+            $count = $this->stack->length - 1;
+            while (true) {
+                if (strtolower($nodeName) === $token->name) {
+                    do {
+                        $popped = $this->stack->pop();
+                    } while ($popped !== $node && !is_null($popped));
+
+                    break;
+                }
+
+                # 4. Set node to the previous entry in the stack of open elements.
+                $node = $this->stack[--$count];
+                $nodeName = $node->nodeName;
+                $nodeNamespace = $node->namespaceURI;
+
+                # 5. If node is not an element in the HTML namespace, return to the step labeled
+                # loop.
+                if ($nodeNamespace !== static::HTML_NAMESPACE) {
+                    continue;
+                }
+
+                # 6. Otherwise, process the token according to the rules given in the section
+                # corresponding to the current insertion mode in HTML content.
+                $this->processTokenInHTMLContent($token, $this->insertionMode);
+                break;
+            }
+        }
+    }
 }

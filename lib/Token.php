@@ -49,7 +49,7 @@ class StartTagToken extends TagToken {
 
     protected $_attributes;
 
-    public function __construct($name, bool $selfClosing = false, string $namespace = \dW\HTML5\Parser::HTML_NAMESPACE) {
+    public function __construct($name, bool $selfClosing = false, string $namespace = Parser::HTML_NAMESPACE) {
         $this->selfClosing = $selfClosing;
         $this->namespace = $namespace;
         parent::__construct($name);
