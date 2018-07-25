@@ -19,28 +19,6 @@ class DOM {
         return static::descendant($needle, $context, false);
     }
 
-    public static function descendant(mixed $needle, \DOMElement $context, bool $returnNode = true): \DOMNode {
-        if ($context->hasChildNodes() === false) {
-            return ($returnNode === true) ? null : false;
-        }
-
-        $context = $context->firstChild;
-
-        do {
-            $result = static::compare($needle, $context);
-            if (!is_null($result)) {
-                return ($returnNode === true) ? $result : true;
-            }
-
-            $result = static::descendant($needle, $context);
-            if (!is_null($result)) {
-                return ($returnNode === true) ? $result : true;
-            }
-        } while ($context = $context->nextSibling);
-
-        return ($returnNode === true) ? null : false;
-    }
-
     public static function isMathMLTextIntegrationPoint(\DOMElement $node): bool {
         return (
             $node->namespaceURI === Parser::MATHML_NAMESPACE && (
@@ -94,5 +72,27 @@ class DOM {
         }
 
         return null;
+    }
+
+    protected static function descendant(mixed $needle, \DOMElement $context, bool $returnNode = true): \DOMNode {
+        if ($context->hasChildNodes() === false) {
+            return ($returnNode === true) ? null : false;
+        }
+
+        $context = $context->firstChild;
+
+        do {
+            $result = static::compare($needle, $context);
+            if (!is_null($result)) {
+                return ($returnNode === true) ? $result : true;
+            }
+
+            $result = static::descendant($needle, $context);
+            if (!is_null($result)) {
+                return ($returnNode === true) ? $result : true;
+            }
+        } while ($context = $context->nextSibling);
+
+        return ($returnNode === true) ? null : false;
     }
 }

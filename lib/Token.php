@@ -46,8 +46,7 @@ class CommentToken extends DataToken {
 class StartTagToken extends TagToken {
     public $namespace;
     public $selfClosing;
-
-    protected $_attributes;
+    public $attributes;
 
     public function __construct($name, bool $selfClosing = false, string $namespace = Parser::HTML_NAMESPACE) {
         $this->selfClosing = $selfClosing;
@@ -55,29 +54,53 @@ class StartTagToken extends TagToken {
         parent::__construct($name);
     }
 
-    public function getAttribute(string $name): \DOMAttr {
-         return ($this->_attributes[$name]) ? $this->_attributes[$name] : null;
+     public function getAttribute(string $name) {
+         $key = $this->getAttributeKey($name);
+
+         return (isset($this->attributes[$key])) ? $this->attributes[$key] : null;
      }
 
      public function hasAttribute(string $name): bool {
-         return (isset($this->_attributes[$name]));
+         return (!is_null($this->_getAttributeKey($name)));
      }
 
      public function removeAttribute(string $name) {
-         unset($this->_attributes[$name]);
+         unset($this->attributes[$this->getAttributeKey($name)]);
      }
 
-     public function setAttribute($name, $value) {
-         $this->_attributes[(string)$name] = (string)$value;
+     public function setAttribute($name, $value, $namespace = Parser::HTML_NAMESPACE) {
+         $key = $this->_getAttributeKey($name);
+         $attribute = new TokenAttr($name, $value, $namespace);
+
+         if (is_null($key)) {
+             $this->attributes[] = $attribute;
+         } else {
+             $this->attributes[$key] = $attribute;
+         }
      }
 
-     public function __get($property) {
-         if ($property === 'attributes') {
-             return $this->_attributes;
+     private function _getAttributeKey($name) {
+         $key = null;
+         foreach ($this->attributes as $key => $a) {
+             if ($a->name === $name) {
+                 break;
+             }
          }
 
-         return null;
+         return $key;
      }
 }
 
 class EndTagToken extends TagToken {}
+
+class TokenAttr {
+    public $name;
+    public $value;
+    public $namespace;
+
+    public function __construct(string $name, string $value, string $namespace = Parser::HTML_NAMESPACE) {
+        $this->name = $name;
+        $this->value = $value;
+        $this->namespace = $namespace;
+    }
+}

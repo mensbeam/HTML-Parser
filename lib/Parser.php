@@ -31,8 +31,6 @@ class Parser {
     public $tokenizerState;
     // Treebuilder insertion mode
     public $insertionMode;
-    // Current token that's being constructed
-    public $currentToken;
     // Used to check if the document is in quirks mode
     public $quirksMode;
 
@@ -183,7 +181,7 @@ class Parser {
 
         static::$self->tokenize();
         //return static::$self->fixDOM();
-        return 'OOK!';
+        return static::$self->DOM;
     }
 
     public static function parseFragment(string $data, \DOMDocument $dom = null, \DOMElement $context = null, bool $file = false): \DOMDocument {
@@ -278,7 +276,6 @@ class Parser {
 
         // Fix id attributes so they may be selected by the DOM. Fix the PHP id attribute
         // bug. Allows DOMDocument->getElementById() to work on id attributes.
-
         if (!static::$self->fragmentCase) {
             $dom->relaxNGValidateSource('<grammar xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
  <start>
@@ -315,7 +312,7 @@ class Parser {
         // DEVIATION: The tokenizer spec has it work around NULL characters.
         // HTML5DataStream removes all NULL characters from the document instead. There
         // isn't a need to work around them when there isn't any scripting in this
-        // implementation. the HTML5DataStream class removes them and triggers parse errors
+        // implementation. When the HTML5DataStream class removes them it triggers parse errors
         // then instead. So, all mentions of "U+0000 NULL" in the spec are ignored.
 
         while (true) {
@@ -2767,6 +2764,7 @@ class Parser {
                     # Parse error. Set the DOCTYPE token's force-quirks flag to on. Switch to the data
                     # state. Emit that DOCTYPE token.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $this->data, '>', 'DOCTYPE public identifier');
+                    $token->forceQuirks = true;
                     $this->tokenizerState = static::DATA_STATE;
                     $this->emitToken($token);
                 }
@@ -3245,27 +3243,24 @@ class Parser {
     }
 
     protected function emitToken(Token $token) {
+        $adjustedCurrentNode = $this->stack->adjustedCurrentNode;
+        $adjustedCurrentNodeName = $this->stack->adjustedCurrentNodeName;
+        $adjustedCurrentNodeNamespace = $this->stack->adjustedCurrentNodeNamespace;
+
         # 8.2.5 Tree construction
         #
         # As each token is emitted from the tokenizer, the user agent must follow the
-        # appropriate steps from the following list:
+        # appropriate steps from the following list, known as the tree construction dispatcher:
         #
-        # If there is no current node
-        $currentNode = $this->stack->currentNode;
-        if (is_null($currentNode)) {
-            # Process the token according to the rules given in the section corresponding to
-            # the current insertion mode in HTML content.
-            $this->parseTokenInHTMLContent($token);
-        } else {
-            $currentNodeName = $this->stack->currentNodeName;
-            $currentNodeNamespace = $this->stack->currentNodeNamespace;
-            # If the current node is an element in the HTML namespace
-            if ($currentNodeNamespace === static::HTML_NAMESPACE || (
-                    # If the current node is a MathML text integration point and the token is a
+        # If the stack of open elements is empty
+        if ($this->stack->length === 0 ||
+            # If the adjusted current node is an element in the HTML namespace
+            $adjustedCurrentNodeNamespace === static::HTML_NAMESPACE || (
+                    # If the adjusted current node is a MathML text integration point and the token is a
                     # start tag whose tag name is neither "mglyph" nor "malignmark"
-                    # If the current node is a MathML text integration point and the token is a
+                    # If the adjusted current node is a MathML text integration point and the token is a
                     # character token
-                    DOM::isMathMLTextIntegrationPoint($currentNode) && ((
+                    DOM::isMathMLTextIntegrationPoint($adjustedCurrentNode) && ((
                             $token instanceof StartTagToken && (
                                 $token->name !== 'mglyph' && $token->name !== 'malignmark'
                             ) ||
@@ -3273,37 +3268,33 @@ class Parser {
                         )
                     )
                 ) || (
-                    # If the current node is an annotation-xml element in the MathML namespace and
+                    # If the adjusted current node is an annotation-xml element in the MathML namespace and
                     # the token is a start tag whose tag name is "svg"
-                    $currentNodeNamespace === static::MATHML_NAMESPACE &&
-                    $currentNodeName === 'annotation-xml' &&
+                    $adjustedCurrentNodeNamespace === static::MATHML_NAMESPACE &&
+                    $adjustedCurrentNodeName === 'annotation-xml' &&
                     $token instanceof StartTagToken &&
                     $token->name === 'svg'
                 ) || (
-                    # If the current node is an HTML integration point and the token is a start tag
-                    # If the current node is an HTML integration point and the token is a character
+                    # If the adjusted current node is an HTML integration point and the token is a start tag
+                    # If the adjusted current node is an HTML integration point and the token is a character
                     # token
-                    DOM::isHTMLIntegrationPoint($currentNode) && (
+                    DOM::isHTMLIntegrationPoint($adjustedCurrentNode) && (
                         $token instanceof StartTagToken || $token instanceof CharacterToken
                     )
                 ) ||
                 # If the token is an end-of-file token
-                $token instanceof EOFToken
-            ) {
-                # Process the token according to the rules given in the section corresponding to
-                # the current insertion mode in HTML content.
-                $this->parseTokenInHTMLContent($token);
-            }
+                $token instanceof EOFToken) {
+            # Process the token according to the rules given in the section corresponding to
+            # the current insertion mode in HTML content.
+            $this->parseTokenInHTMLContent($token);
+        }
+        # Otherwise
+        else {
+            # Process the token according to the rules given in the section for parsing tokens in foreign content.
+            $this->parseTokenInForeignContent($token);
         }
 
-        # Otherwise
-        # Process the token according to the rules given in the section for parsing
-        # tokens in foreign content.
-        $this->parseTokenInForeignContent($token);
-
-        // TEMPORARY
-        $quirksMode = false;
-
+        # TEMPORARY
         var_export($token);
         echo "\n\n";
 
@@ -3314,7 +3305,7 @@ class Parser {
         }
     }
 
-    protected function parseTokenInHTMLContent(Token $token, $insertionMode = null) {
+    protected function parseTokenInHTMLContent(Token $token, int $insertionMode = null) {
 
     }
 
@@ -3338,19 +3329,18 @@ class Parser {
                 $this->$framesetOk = false;
             }
 
-            # Insert the token's character into the current node.
-            $currentNode->appendChild($this->DOM->createTextElement($token->data));
+            # Insert the token's character.
+            $this->insertTextNode($token);
         }
         # A comment token
         elseif ($token instanceof CommentToken) {
-            # Append a Comment node to the current node with the data attribute set to the
-            # data given in the comment token.
-            $currentNode->appendChild($this->DOM->createComment($token->data));
+            # Insert a comment.
+            $this->insertCommentNode($token);
         }
         # A DOCTYPE token
         elseif ($token instanceof DOCTYPEToken) {
-            # Parse error. Ignore the token.
-            ParseError::trigger(ParseError::UNEXPECTED_DOCTYPE, 'Character, Comment, Start Tag, or End Tag');
+            # Parse error.
+            ParseError::trigger(ParseError::UNEXPECTED_DOCTYPE, $this->data, 'Character, Comment, Start Tag, or End Tag');
         }
         elseif ($token instanceof StartTagToken) {
             # A start tag whose tag name is one of: "b", "big", "blockquote", "body", "br",
@@ -3367,8 +3357,18 @@ class Parser {
                 )
             ) {
                 # Parse error.
-                ParseError::trigger(ParseError::UNEXPECTED_START_TAG, $token->name, 'Non-HTML start tag');
+                ParseError::trigger(ParseError::UNEXPECTED_START_TAG, $this->data, $token->name, 'Non-HTML start tag');
 
+                # If the parser was originally created for the HTML fragment parsing algorithm,
+                # then act as described in the "any other start tag" entry below. (fragment
+                # case)
+                if ($this->fragmentCase === true) {
+                    // ¡TEMPORARY!
+                    goto foreignContentAnyOtherStartTag;
+                }
+
+                # Otherwise:
+                #
                 # Pop an element from the stack of open elements, and then keep popping more
                 # elements from the stack of open elements until the current node is a MathML
                 # text integration point, an HTML integration point, or an element in the HTML
@@ -3387,224 +3387,224 @@ class Parser {
             }
             # Any other start tag
             else {
-                $tokenName = $token->name;
-                # If the current node is an element in the SVG namespace, and the token's tag
-                # name is one of the ones in the first column of the following table, change the
-                # tag name to the name given in the corresponding cell in the second column.
-                # (This fixes the case of SVG elements that are not all lowercase.)
+                foreignContentAnyOtherStartTag:
+
+                # If the adjusted current node is an element in the SVG namespace, and the
+                # token’s tag name is one of the ones in the first column of the following
+                # table, change the tag name to the name given in the corresponding cell in the
+                # second column. (This fixes the case of SVG elements that are not all
+                # lowercase.)
                 if ($currentNode->namespaceURI === static::SVG_NAMESPACE) {
-                    switch ($tokenName) {
-                        case 'altglyph': $tokenName = 'altGlyph';
+                    switch ($token->name) {
+                        case 'altglyph': $token->name = 'altGlyph';
                         break;
-                        case 'altglyphdef': $tokenName = 'altGlyphDef';
+                        case 'altglyphdef': $token->name = 'altGlyphDef';
                         break;
-                        case 'altglyphitem': $tokenName = 'altGlyphItem';
+                        case 'altglyphitem': $token->name = 'altGlyphItem';
                         break;
-                        case 'animatecolor': $tokenName = 'animateColor';
+                        case 'animatecolor': $token->name = 'animateColor';
                         break;
-                        case 'animatemotion': $tokenName = 'animateMotion';
+                        case 'animatemotion': $token->name = 'animateMotion';
                         break;
-                        case 'animatetransform': $tokenName = 'animateTransform';
+                        case 'animatetransform': $token->name = 'animateTransform';
                         break;
-                        case 'clippath': $tokenName = 'clipPath';
+                        case 'clippath': $token->name = 'clipPath';
                         break;
-                        case 'feblend': $tokenName = 'feBlend';
+                        case 'feblend': $token->name = 'feBlend';
                         break;
-                        case 'fecolormatrix': $tokenName = 'feColorMatrix';
+                        case 'fecolormatrix': $token->name = 'feColorMatrix';
                         break;
-                        case 'fecomponenttransfer': $tokenName = 'feComponentTransfer';
+                        case 'fecomponenttransfer': $token->name = 'feComponentTransfer';
                         break;
-                        case 'fecomposite': $tokenName = 'feComposite';
+                        case 'fecomposite': $token->name = 'feComposite';
                         break;
-                        case 'feconvolvematrix': $tokenName = 'feConvolveMatrix';
+                        case 'feconvolvematrix': $token->name = 'feConvolveMatrix';
                         break;
-                        case 'fediffuselighting': $tokenName = 'feDiffuseLighting';
+                        case 'fediffuselighting': $token->name = 'feDiffuseLighting';
                         break;
-                        case 'fedisplacementmap': $tokenName = 'feDisplacementMap';
+                        case 'fedisplacementmap': $token->name = 'feDisplacementMap';
                         break;
-                        case 'fedistantlight': $tokenName = 'feDistantLight';
+                        case 'fedistantlight': $token->name = 'feDistantLight';
                         break;
-                        case 'feflood': $tokenName = 'feFlood';
+                        case 'feflood': $token->name = 'feFlood';
                         break;
-                        case 'fefunca': $tokenName = 'feFuncA';
+                        case 'fefunca': $token->name = 'feFuncA';
                         break;
-                        case 'fefuncb': $tokenName = 'feFuncB';
+                        case 'fefuncb': $token->name = 'feFuncB';
                         break;
-                        case 'fefuncg': $tokenName = 'feFuncG';
+                        case 'fefuncg': $token->name = 'feFuncG';
                         break;
-                        case 'fefuncr': $tokenName = 'feFuncR';
+                        case 'fefuncr': $token->name = 'feFuncR';
                         break;
-                        case 'fegaussianblur': $tokenName = 'feGaussianBlur';
+                        case 'fegaussianblur': $token->name = 'feGaussianBlur';
                         break;
-                        case 'feimage': $tokenName = 'feImage';
+                        case 'feimage': $token->name = 'feImage';
                         break;
-                        case 'femerge': $tokenName = 'feMerge';
+                        case 'femerge': $token->name = 'feMerge';
                         break;
-                        case 'femergenode': $tokenName = 'feMergeNode';
+                        case 'femergenode': $token->name = 'feMergeNode';
                         break;
-                        case 'femorphology': $tokenName = 'feMorphology';
+                        case 'femorphology': $token->name = 'feMorphology';
                         break;
-                        case 'feoffset': $tokenName = 'feOffset';
+                        case 'feoffset': $token->name = 'feOffset';
                         break;
-                        case 'fepointlight': $tokenName = 'fePointLight';
+                        case 'fepointlight': $token->name = 'fePointLight';
                         break;
-                        case 'fespecularlighting': $tokenName = 'feSpecularLighting';
+                        case 'fespecularlighting': $token->name = 'feSpecularLighting';
                         break;
-                        case 'fespotlight': $tokenName = 'feSpotLight';
+                        case 'fespotlight': $token->name = 'feSpotLight';
                         break;
-                        case 'fetile': $tokenName = 'feTile';
+                        case 'fetile': $token->name = 'feTile';
                         break;
-                        case 'feturbulence': $tokenName = 'feTurbulence';
+                        case 'feturbulence': $token->name = 'feTurbulence';
                         break;
-                        case 'foreignobject': $tokenName = 'foreignObject';
+                        case 'foreignobject': $token->name = 'foreignObject';
                         break;
-                        case 'glyphref': $tokenName = 'glyphRef';
+                        case 'glyphref': $token->name = 'glyphRef';
                         break;
-                        case 'lineargradient': $tokenName = 'linearGradient';
+                        case 'lineargradient': $token->name = 'linearGradient';
                         break;
-                        case 'radialgradient': $tokenName = 'radialGradient';
+                        case 'radialgradient': $token->name = 'radialGradient';
                         break;
-                        case 'textpath': $tokenName = 'textPath';
+                        case 'textpath': $token->name = 'textPath';
                     }
                 }
 
-                $node = $this->DOM->createElementNS($currentNodeNamespace, $tokenName);
-
-                foreach ($token->attributes as $name => $value) {
+                foreach ($token->attributes as &$a) {
                     # If the current node is an element in the MathML namespace, adjust MathML
                     # attributes for the token. (This fixes the case of MathML attributes that are
                     # not all lowercase.)
-                    if ($currentNodeNamespace === static::MATHML_NAMESPACE && $name === 'definitionurl') {
-                        $name === 'definitionURL';
+                    if ($currentNodeNamespace === static::MATHML_NAMESPACE && $a->name === 'definitionurl') {
+                        $a->name = 'definitionURL';
                     }
                     # If the current node is an element in the SVG namespace, adjust SVG attributes
                     # for the token. (This fixes the case of SVG attributes that are not all
                     # lowercase.)
                     elseif ($currentNodeNamespace === static::SVG_NAMESPACE) {
-                        switch ($name) {
-                            case 'attributename': $name = 'attributeName';
+                        switch ($a->name) {
+                            case 'attributename': $a->name = 'attributeName';
                             break;
-                            case 'attributetype': $name = 'attributeType';
+                            case 'attributetype': $a->name = 'attributeType';
                             break;
-                            case 'basefrequency': $name = 'baseFrequency';
+                            case 'basefrequency': $a->name = 'baseFrequency';
                             break;
-                            case 'baseprofile': $name = 'baseProfile';
+                            case 'baseprofile': $a->name = 'baseProfile';
                             break;
-                            case 'calcmode': $name = 'calcMode';
+                            case 'calcmode': $a->name = 'calcMode';
                             break;
-                            case 'clippathunits': $name = 'clipPathUnits';
+                            case 'clippathunits': $a->name = 'clipPathUnits';
                             break;
-                            case 'contentscripttype': $name = 'contentScriptType';
+                            case 'contentscripttype': $a->name = 'contentScriptType';
                             break;
-                            case 'contentstyletype': $name = 'contentStyleType';
+                            case 'contentstyletype': $a->name = 'contentStyleType';
                             break;
-                            case 'diffuseconstant': $name = 'diffuseConstant';
+                            case 'diffuseconstant': $a->name = 'diffuseConstant';
                             break;
-                            case 'edgemode': $name = 'edgeMode';
+                            case 'edgemode': $a->name = 'edgeMode';
                             break;
-                            case 'externalresourcesrequired': $name = 'externalResourcesRequired';
+                            case 'externalresourcesrequired': $a->name = 'externalResourcesRequired';
                             break;
-                            case 'filterres': $name = 'filterRes';
+                            case 'filterres': $a->name = 'filterRes';
                             break;
-                            case 'filterunits': $name = 'filterUnits';
+                            case 'filterunits': $a->name = 'filterUnits';
                             break;
-                            case 'glyphref': $name = 'glyphRef';
+                            case 'glyphref': $a->name = 'glyphRef';
                             break;
-                            case 'gradienttransform': $name = 'gradientTransform';
+                            case 'gradienttransform': $a->name = 'gradientTransform';
                             break;
-                            case 'gradientunits': $name = 'gradientUnits';
+                            case 'gradientunits': $a->name = 'gradientUnits';
                             break;
-                            case 'kernelmatrix': $name = 'kernelMatrix';
+                            case 'kernelmatrix': $a->name = 'kernelMatrix';
                             break;
-                            case 'kernelunitlength': $name = 'kernelUnitLength';
+                            case 'kernelunitlength': $a->name = 'kernelUnitLength';
                             break;
-                            case 'keypoints': $name = 'keyPoints';
+                            case 'keypoints': $a->name = 'keyPoints';
                             break;
-                            case 'keysplines': $name = 'keySplines';
+                            case 'keysplines': $a->name = 'keySplines';
                             break;
-                            case 'keytimes': $name = 'keyTimes';
+                            case 'keytimes': $a->name = 'keyTimes';
                             break;
-                            case 'lengthadjust': $name = 'lengthAdjust';
+                            case 'lengthadjust': $a->name = 'lengthAdjust';
                             break;
-                            case 'limitingconeangle': $name = 'limitingConeAngle';
+                            case 'limitingconeangle': $a->name = 'limitingConeAngle';
                             break;
-                            case 'markerheight': $name = 'markerHeight';
+                            case 'markerheight': $a->name = 'markerHeight';
                             break;
-                            case 'markerunits': $name = 'markerUnits';
+                            case 'markerunits': $a->name = 'markerUnits';
                             break;
-                            case 'markerwidth': $name = 'markerWidth';
+                            case 'markerwidth': $a->name = 'markerWidth';
                             break;
-                            case 'maskcontentunits': $name = 'maskContentUnits';
+                            case 'maskcontentunits': $a->name = 'maskContentUnits';
                             break;
-                            case 'maskunits': $name = 'maskUnits';
+                            case 'maskunits': $a->name = 'maskUnits';
                             break;
-                            case 'numoctaves': $name = 'numOctaves';
+                            case 'numoctaves': $a->name = 'numOctaves';
                             break;
-                            case 'pathlength': $name = 'pathLength';
+                            case 'pathlength': $a->name = 'pathLength';
                             break;
-                            case 'patterncontentunits': $name = 'patternContentUnits';
+                            case 'patterncontentunits': $a->name = 'patternContentUnits';
                             break;
-                            case 'patterntransform': $name = 'patternTransform';
+                            case 'patterntransform': $a->name = 'patternTransform';
                             break;
-                            case 'patternunits': $name = 'patternUnits';
+                            case 'patternunits': $a->name = 'patternUnits';
                             break;
-                            case 'pointsatx': $name = 'pointsAtX';
+                            case 'pointsatx': $a->name = 'pointsAtX';
                             break;
-                            case 'pointsaty': $name = 'pointsAtY';
+                            case 'pointsaty': $a->name = 'pointsAtY';
                             break;
-                            case 'pointsatz': $name = 'pointsAtZ';
+                            case 'pointsatz': $a->name = 'pointsAtZ';
                             break;
-                            case 'preservealpha': $name = 'preserveAlpha';
+                            case 'preservealpha': $a->name = 'preserveAlpha';
                             break;
-                            case 'preserveaspectratio': $name = 'preserveAspectRatio';
+                            case 'preserveaspectratio': $a->name = 'preserveAspectRatio';
                             break;
-                            case 'primitiveunits': $name = 'primitiveUnits';
+                            case 'primitiveunits': $a->name = 'primitiveUnits';
                             break;
-                            case 'refx': $name = 'refX';
+                            case 'refx': $a->name = 'refX';
                             break;
-                            case 'refy': $name = 'refY';
+                            case 'refy': $a->name = 'refY';
                             break;
-                            case 'repeatcount': $name = 'repeatCount';
+                            case 'repeatcount': $a->name = 'repeatCount';
                             break;
-                            case 'repeatdur': $name = 'repeatDur';
+                            case 'repeatdur': $a->name = 'repeatDur';
                             break;
-                            case 'requiredextensions': $name = 'requiredExtensions';
+                            case 'requiredextensions': $a->name = 'requiredExtensions';
                             break;
-                            case 'requiredfeatures': $name = 'requiredFeatures';
+                            case 'requiredfeatures': $a->name = 'requiredFeatures';
                             break;
-                            case 'specularconstant': $name = 'specularConstant';
+                            case 'specularconstant': $a->name = 'specularConstant';
                             break;
-                            case 'specularexponent': $name = 'specularExponent';
+                            case 'specularexponent': $a->name = 'specularExponent';
                             break;
-                            case 'spreadmethod': $name = 'spreadMethod';
+                            case 'spreadmethod': $a->name = 'spreadMethod';
                             break;
-                            case 'startoffset': $name = 'startOffset';
+                            case 'startoffset': $a->name = 'startOffset';
                             break;
-                            case 'stddeviation': $name = 'stdDeviation';
+                            case 'stddeviation': $a->name = 'stdDeviation';
                             break;
-                            case 'stitchtiles': $name = 'stitchTiles';
+                            case 'stitchtiles': $a->name = 'stitchTiles';
                             break;
-                            case 'surfacescale': $name = 'surfaceScale';
+                            case 'surfacescale': $a->name = 'surfaceScale';
                             break;
-                            case 'systemlanguage': $name = 'systemLanguage';
+                            case 'systemlanguage': $a->name = 'systemLanguage';
                             break;
-                            case 'tablevalues': $name = 'tableValues';
+                            case 'tablevalues': $a->name = 'tableValues';
                             break;
-                            case 'targetx': $name = 'targetX';
+                            case 'targetx': $a->name = 'targetX';
                             break;
-                            case 'targety': $name = 'targetY';
+                            case 'targety': $a->name = 'targetY';
                             break;
-                            case 'textlength': $name = 'textLength';
+                            case 'textlength': $a->name = 'textLength';
                             break;
-                            case 'viewbox': $name = 'viewBox';
+                            case 'viewbox': $a->name = 'viewBox';
                             break;
-                            case 'viewtarget': $name = 'viewTarget';
+                            case 'viewtarget': $a->name = 'viewTarget';
                             break;
-                            case 'xchannelselector': $name = 'xChannelSelector';
+                            case 'xchannelselector': $a->name = 'xChannelSelector';
                             break;
-                            case 'ychannelselector': $name = 'yChannelSelector';
+                            case 'ychannelselector': $a->name = 'yChannelSelector';
                             break;
-                            case 'zoomandpan': $name = 'zoomAndPan';
+                            case 'zoomandpan': $a->name = 'zoomAndPan';
                         }
                     }
 
@@ -3618,55 +3618,47 @@ class Parser {
                     # cell in the third column, and the namespace being the namespace given in the
                     # corresponding cell in the fourth column. (This fixes the use of namespaced
                     # attributes, in particular lang attributes in the XML namespace.)
-                    switch($name) {
+
+                    // DOMElement::setAttributeNS requires the prefix and local name be in one
+                    // string, so there is no need to separate the prefix and the local name here.
+                    switch($a->name) {
                         case 'xlink:actuate':
                         case 'xlink:arcrole':
                         case 'xlink:href':
                         case 'xlink:role':
                         case 'xlink:show':
                         case 'xlink:title':
-                        case 'xlink:type': $node->setAttributeNS(static::XLINK_NAMESPACE, $name, $value);
+                        case 'xlink:type': $a->namespace = static::XLINK_NAMESPACE;
                         break;
                         case 'xml:base':
                         case 'xml:lang':
-                        case 'xml:space': $node->setAttributeNS(static::XML_NAMESPACE, $name, $value);
+                        case 'xml:space': $a->namespace = static::XML_NAMESPACE;
                         break;
-                        case 'xmlns':
-                            $node->setAttributeNS(static::XMLNS_NAMESPACE, $name, $value);
-
-                            # If the newly created element has an xmlns attribute in the XMLNS namespace
-                            # whose value is not exactly the same as the element's namespace, that is a
-                            # parse error.
-                            if ($value !== $node->namespaceURI) {
-                                ParseError::trigger(ParseError::INVALID_XMLNS_ATTRIBUTE_VALUE, $node->namespaceURI);
-                            }
+                        case 'xmlns': $a->namespace = static::XMLNS_NAMESPACE;
                         break;
-                        case 'xmlns:xlink':
-                            $node->setAttributeNS(static::XMLNS_NAMESPACE, $name, $value);
-
-                            # Similarly, if the newly created element has an xmlns:xlink attribute in the
-                            # XMLNS namespace whose value is not the XLink Namespace, that is a parse error.
-                            if ($value !== static::XLINK_NAMESPACE) {
-                                ParseError::trigger(ParseError::INVALID_XMLNS_ATTRIBUTE_VALUE, static::XLINK_NAMESPACE);
-                            }
+                        case 'xmlns:xlink': $a->namespace = static::XLINK_NAMESPACE;
                         break;
-                        default: $node->setAttribute($name, $value);
+                        //default: $node->setAttribute($name, $value);
                     }
                 }
 
-                # Insert a foreign element for the token, in the same namespace as the current
-                # node.
-                # When the steps below require the UA to insert a foreign element for a token,
-                # the UA must first create an element for the token in the given namespace, and
-                # then append this node to the current node, and push it onto the stack of open
-                # elements so that it is the new current node.
-                $currentNode->appendChild($node);
-                # If the token has its self-closing flag set, pop the current node off the stack
-                # of open elements and acknowledge the token's self-closing flag.
-                // OPTIMIZATION: Not adding it to the stack unless it's not self-closing.
-                if (!$token->selfClosing) {
-                    $this->stack[] = $node;
-                }
+                # Insert a foreign element for the token, in the same namespace as the adjusted
+                # current node.
+                $this->createAndInsertElement($token, $adjustedCurrentNode->namespaceURI);
+
+                # If the token has its self-closing flag set, then run the appropriate steps
+                # from the following list:
+                #
+                # If the token’s tag name is "script", and the new current node is in the SVG
+                # namespace
+                # Acknowledge the token’s *self-closing flag*, and then act as described in the
+                # steps for a "script" end tag below.
+                // DEVIATION: Unnecessary because there is no scripting in this implementation.
+
+                # Otherwise
+                # Pop the current node off the stack of open elements and acknowledge the
+                # token’s *self-closing flag*.
+                // OPTIMIZATION: Nope. The self-closing flag is checked when inserting.
             }
         }
         # An end tag whose tag name is "script", if the current node is a script element
@@ -3675,6 +3667,7 @@ class Parser {
         // aren't processed differently.
 
         # Any other end tag
+        // ¡STOPPED HERE!
         elseif ($token instanceof EndTagToken) {
             # Run these steps:
             #
@@ -3684,9 +3677,11 @@ class Parser {
             # 2. If node is not an element with the same tag name as the token, then this is
             # a parse error.
             if ($nodeName !== $token->name) {
-                ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $token->name, $nodeName);
+                ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $this->data, $token->name, $nodeName);
             }
-            # 3. Loop: If node's tag name, converted to ASCII lowercase, is the same as the tag name of the token, pop elements from the stack of open elements until node has been popped from the stack, and then abort these steps.
+            # 3. Loop: If node's tag name, converted to ASCII lowercase, is the same as the
+            # tag name of the token, pop elements from the stack of open elements until node
+            # has been popped from the stack, and then abort these steps.
             $count = $this->stack->length - 1;
             while (true) {
                 if (strtolower($nodeName) === $token->name) {
@@ -3700,19 +3695,305 @@ class Parser {
                 # 4. Set node to the previous entry in the stack of open elements.
                 $node = $this->stack[--$count];
                 $nodeName = $node->nodeName;
-                $nodeNamespace = $node->namespaceURI;
 
                 # 5. If node is not an element in the HTML namespace, return to the step labeled
                 # loop.
-                if ($nodeNamespace !== static::HTML_NAMESPACE) {
+                if ($node->namespaceURI !== static::HTML_NAMESPACE) {
                     continue;
                 }
 
                 # 6. Otherwise, process the token according to the rules given in the section
                 # corresponding to the current insertion mode in HTML content.
-                $this->processTokenInHTMLContent($token, $this->insertionMode);
+                $this->parseTokenInHTMLContent($token, $this->insertionMode);
                 break;
             }
         }
+    }
+
+    protected function appropriatePlaceForInsertingNode(Token $token, \DOMElement $overrideTarget = null) {
+        $insertBefore = false;
+
+        # 8.2.5.1. Creating and inserting nodes
+        #
+        # While the parser is processing a token, it can enable or disable foster
+        # parenting. This affects the following algorithm.
+        #
+        # The appropriate place for inserting a node, optionally using a particular
+        # override target, is the position in an element returned by running the
+        # following steps:
+
+        # 1. If there was an override target specified, then let target be the override
+        # target.
+        $target = (!is_null($overrideTarget)) ? $overrideTarget : $this->stack->currentNode;
+
+        # 2. Determine the adjusted insertion location using the first matching steps
+        # from the following list: If foster parenting is enabled and target is a table,
+        # tbody, tfoot, thead, or tr element
+        $targetNodeName = $target->nodeName;
+        if ($this->fosterParenting && ($targetNodeName === 'table' || $targetNodeName === 'tbody' || $targetNodeName === 'tfoot' || $targetNodeName === 'thead' || $targetNodeName === 'tr')) {
+            # Run these substeps:
+            #
+            # 1. Let last template be the last template element in the stack of open
+            # elements, if any.
+            $lastTemplateKey = $this->stack->search('template');
+            $lastTemplate = $this->stack[$lastTemplateKey];
+
+            # 2. Let last table be the last table element in the stack of open elements, if
+            # any.
+            $lastTableKey = $this->stack->search('table');
+            $lastTable = $this->stack[$lastTableKey];
+
+            # 3. If there is a last template and either there is no last table, or there is
+            # one, but last template is lower (more recently added) than last table in the
+            # stack of open elements, then: let adjusted insertion location be inside last
+            # template’s template contents, after its last child (if any), and abort these
+            # substeps.
+            if ($lastTemplate && (!$lastTable || $lastTable && $lastTemplateKey > $lastTableKey)) {
+                $insertionLocation = $lastTemplate;
+                // Abort!
+            }
+
+            # 4. If there is no last table, then let adjusted insertion location be inside
+            # the first element in the stack of open elements (the html element), after its
+            # last child (if any), and abort these substeps. (fragment case)
+            elseif (!$lastTable) {
+                $insertionLocation = $this->stack[0];
+                // Abort!
+            }
+
+            # 5. If last table has a parent node, then let adjusted insertion location be
+            # inside last table’s parent node, immediately before last table, and abort
+            # these substeps.
+            elseif ($lastTable->parentNode) {
+                $insertionLocation = $lastTable;
+                $insertBefore = true;
+                // Abort!
+            }
+            else {
+                # 6. Let previous element be the element immediately above last table in the
+                # stack of open elements.
+                $previousElement = $this->stack[$lastTableKey - 1];
+
+                # 7. Let adjusted insertion location be inside previous element, after its last
+                # child (if any).
+                $insertionLocation = $previousElement;
+            }
+        }
+        # Otherwise let adjusted insertion location be inside target, after its last
+        # child (if any).
+        else {
+            $insertionLocation = $target;
+        }
+
+        # 3. If the adjusted insertion location is inside a template element, let it
+        # instead be inside the template element’s template contents, after its last
+        # child (if any).
+        if ($insertionLocation->nodeName === 'template') {
+            $insertionLocation = $insertionLocation->contents;
+        }
+
+        # 4. Return the adjusted insertion location.
+        return [
+            'node' => $insertionLocation,
+            'insert before' => $insertBefore
+        ];
+    }
+
+    protected function insertTextNode(CharacterToken $token) {
+        # 1. Let data be the characters passed to the algorithm, or, if no characters
+        # were explicitly specified, the character of the character token being
+        # processed.
+        // Already provided through the token object.
+
+        # 2. Let the adjusted insertion location be the appropriate place for inserting
+        # a node.
+        $location = $this->appropriatePlaceForInsertingNode($token);
+        $adjustedInsertionLocation = $location['node'];
+        $insertBefore = $location['insert before'];
+
+        # 3. If the adjusted insertion location is in a Document node, then abort these
+        # steps.
+        if ((($insertBefore === false) ? $adjustedInsertionLocation : $adjustedInsertionLocation->parentNode) instanceof DOMDocument) {
+            return;
+        }
+
+        # 4. If there is a Text node immediately before the adjusted insertion location,
+        # then append data to that Text node’s data.
+        $previousSibling = ($insertBefore === false) ? $adjustedInsertionLocation->lastChild : $adjustedInsertionLocation->previousSibling;
+        if ($previousSibling instanceof DOMText) {
+            $previousSibling->data .= $token->data;
+            return;
+        }
+
+        # Otherwise, create a new Text node whose data is data and whose node document
+        # is the same as that of the element in which the adjusted insertion location
+        # finds itself, and insert the newly created node at the adjusted insertion
+        # location.
+        $textNode = $adjustedInsertionLocation->ownerDocument->createTextNode($token->data);
+
+        if ($insertBefore === false) {
+            $adjustedInsertionLocation->appendChild($textNode);
+        } else {
+            $adjustedInsertionLocation->parentNode->insertBefore($textNode, $adjustedInsertionLocation);
+        }
+    }
+
+    protected function insertCommentNode(CommentToken $token, DOMNode $position = null) {
+        # When the steps below require the user agent to insert a comment while
+        # processing a comment token, optionally with an explicitly insertion position
+        # position, the user agent must run the following steps:
+
+        # 1. Let data be the data given in the comment token being processed.
+        // Already provided through the token object.
+
+        # 2. If position was specified, then let the adjusted insertion location be
+        # position. Otherwise, let adjusted insertion location be the appropriate place
+        # for inserting a node.
+        if (!is_null($position)) {
+            $adjustedInsertionLocation = $position;
+            $insertBefore = false;
+        } else {
+            $location = $this->appropriatePlaceForInsertingNode($token);
+            $adjustedInsertionLocation = $location['node'];
+            $insertBefore = $location['insert before'];
+        }
+
+        # 3. Create a Comment node whose data attribute is set to data and whose node
+        # document is the same as that of the node in which the adjusted insertion
+        # location finds itself.
+        $commentNode = $adjustedInsertionLocation->ownerDocument->createComment($data);
+
+        # 4. Insert the newly created node at the adjusted insertion location.
+        if ($insertBefore === false) {
+            $adjustedInsertionLocation->appendChild($commentNode);
+        } else {
+            $adjustedInsertionLocation->parentNode->insertBefore($commentNode, $adjustedInsertionLocation);
+        }
+    }
+
+    protected function createAndInsertElement(StartTagToken $token, string $namespace = null) {
+        $location = $this->appropriatePlaceForInsertingNode($token);
+        $adjustedInsertionLocation = $location['node'];
+        $insertBefore = $location['insert before'];
+        $intendedParent = ($insertBefore === false) ? $adjustedInsertionLocation : $adjustedInsertionLocation->parentNode;
+
+        if (!is_null($namespace)) {
+            $token->namespace = $namespace;
+        }
+
+        # When the steps below require the UA to create an element for a token in a
+        # particular given namespace and with a particular intended parent, the UA must
+        # run the following steps:
+
+        # 1. Let document be intended parent’s node document.
+        $document = $intendedParent['location']->ownerDocument;
+
+        # 2. Let local name be the tag name of the token.
+        $localName = $token->name;
+
+        // DEVIATION: Steps three through six are unnecessary because there is no scripting in this implementation.
+
+        # 7. Let element be the result of creating an element given document, local
+        # name, given namespace, null, and is. If will execute script is true, set the
+        # synchronous custom elements flag; otherwise, leave it unset.
+        // DEVIATION: There is no point to setting the synchronous custom elements flag; there is no scripting in this implementation.
+        // DEVIATION: There is no point to looking up a custom element definition; there is no scripting in this implementation.
+        if ($token->namespace === static::HTML_NAMESPACE) {
+            $element = $document->createElement($token->name);
+        } else {
+            $element = $document->createElementNS($token->namespace, $token->name);
+        }
+
+        # 8. Append each attribute in the given token to element.
+        foreach ($token->attributes as $a) {
+            if ($a->namespace === static::HTML_NAMESPACE) {
+                $element->setAttribute($a->name, $a->value);
+            } else {
+                $element->setAttributeNS($a->namespace, $a->name, $a->value);
+            }
+        }
+
+        # 9. If will execute script is true, then:
+        # - 1. Let queue be the result of popping the current element queue from the custom element reactions stack. (This will be the same element queue as was pushed above.)
+        # - 2. Invoke custom element reactions in queue.
+        # - 3. Decrement document’s throw-on-dynamic-markup-insertion counter.
+        // DEVIATION: These steps are unnecessary because there is no scripting in this
+        // implementation.
+
+        # 10. If element has an xmlns attribute *in the XMLNS namespace* whose value is
+        # not exactly the same as the element’s namespace, that is a parse error.
+        # Similarly, if element has an xmlns:xlink attribute in the XMLNS namespace
+        # whose value is not the XLink namespace, that is a parse error.
+        $xmlns = $element->getAttributeNS(static::XMLNS_NAMESPACE, 'xmlns');
+        if ($xmlns !== false && $xmlns !== $element->namespaceURI) {
+            ParseError::trigger(ParseError::INVALID_XMLNS_ATTRIBUTE_VALUE, $this->data, $element->namespaceURI);
+        }
+
+        $xlink = $element->getAttributeNS(static::XMLNS_NAMESPACE, 'xlink');
+        if ($xlink !== false && $xlink !== static::XLINK_NAMESPACE) {
+            ParseError::trigger(ParseError::INVALID_XMLNS_ATTRIBUTE_VALUE, $this->data, static::XLINK_NAMESPACE);
+        }
+
+        # 11. If element is a resettable element, invoke its reset algorithm. (This
+        # initializes the element’s value and checkedness based on the element’s
+        # attributes.)
+        // DEVIATION: Unnecessary because there is no scripting in this implementation.
+
+        # 12. If element is a form-associated element, and the form element pointer is
+        # not null, and there is no template element on the stack of open elements, and
+        # element is either not listed or doesn’t have a form attribute, and the
+        # intended parent is in the same tree as the element pointed to by the form
+        # element pointer, associate element with the form element pointed to by the
+        # form element pointer, and suppress the running of the reset the form owner
+        # algorithm when the parser subsequently attempts to insert the element.
+        // DEVIATION: Unnecessary because there is no scripting in this implementation.
+
+        # 13. Return element.
+        // Don't need to return anything because going straight into insertion.
+
+        # When the steps below require the user agent to insert an HTML element for a
+        # token, the user agent must insert a foreign element for the token, in the HTML
+        # namespace.
+
+        # When the steps below require the user agent to insert a foreign element for a
+        # token in a given namespace, the user agent must run these steps:
+        // Doing both foreign and HTML elements here because the only difference between
+        // the two is that foreign elements are inserted with a namespace and HTML
+        // elements are not.
+
+        # 1. Let the adjusted insertion location be the appropriate place for inserting
+        # a node.
+        // Already have that.
+
+        # 2. Let element be the result of creating an element for the token in the given
+        # namespace, with the intended parent being the element in which the adjusted
+        # insertion location finds itself.
+        // Have that, too.
+
+        # 3. If it is possible to insert element at the adjusted insertion location,
+        # then:
+        # - 1. Push a new element queue onto the custom element reactions stack.
+        // DEVIATION: Unnecessary because there is no scripting in this implementation.
+
+        # - 2. Insert element at the adjusted insertion location.
+        if ($insertBefore === false) {
+            $adjustedInsertionLocation->appendChild($element);
+        } else {
+            $adjustedInsertionLocation->parentNode->insertBefore($element, $adjustedInsertionLocation);
+        }
+
+        # - 3. Pop the element queue from the custom element reactions stack, and
+        # invoke custom element reactions in that queue.
+        // DEVIATION: Unnecessary because there is no scripting in this implementation.
+
+        # 4. Push element onto the stack of open elements so that it is the new current node.
+        // OPTIMIZATION: Going to check if it is self-closing before pushing it onto the
+        // stack of open elements.
+        if ($token->selfClosing !== true) {
+            $this->stack[] = $element;
+        }
+
+        # Return element.
+        return $element;
     }
 }

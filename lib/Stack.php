@@ -49,13 +49,13 @@ class Stack implements \ArrayAccess {
         }
 
         if ($needle instanceof DOMElement) {
-            foreach ($this->storage as $key=>$value) {
+            foreach (array_reverse($this->storage) as $key=>$value) {
                 if ($value->isSameNode($needle)) {
                     return $key;
                 }
             }
         } elseif (is_string($needle)) {
-            foreach ($this->storage as $key=>$value) {
+            foreach (array_reverse($this->storage) as $key=>$value) {
                 if ($value->nodeName === $needle) {
                     return $key;
                 }
@@ -79,6 +79,10 @@ class Stack implements \ArrayAccess {
                 # element in it (fragment case); otherwise, the adjusted current node is the
                 # current node.
                 return (Parser::$self->fragmentCase && $this->length === 1) ? Parser::$self->fragmentContext : $this->currentNode;
+            break;
+            case 'adjustedCurrentNodeNamespace':
+                $adjustedCurrentNode = $this->adjustedCurrentNode;
+                return (!is_null($adjustedCurrentNode)) ? $adjustedCurrentNode->namespaceURI : null;
             break;
             case 'currentNodeName':
                 $currentNode = $this->currentNode;
