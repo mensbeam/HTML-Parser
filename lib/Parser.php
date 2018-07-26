@@ -3351,7 +3351,7 @@ class Parser {
                         # "html", or the token’s public identifier is not missing, or the token’s system
                         # identifier is neither missing nor a case-sensitive match for the string
                         # "about:legacy-compat", then there is a parse error.
-                        if ($token->name !== 'html' || !is_null($token->public) || (!is_null($token->system) && $token->system !== 'about:legacy-compat')) {
+                        if ($token->name !== 'html' || $token->public !== '' || ($token->system !== '' && $token->system !== 'about:legacy-compat')) {
                             ParseError::trigger(ParseError::INVALID_DOCTYPE, $this->data);
                         }
 
@@ -3371,7 +3371,7 @@ class Parser {
                         // an empty name, so if it is missing it is replaced with 'html' instead.
                         $this->DOM = $imp->createDocument('', '', $imp->createDocumentType((!is_null($token->name)) ? $token->name : 'html', $token->public, $token->system));
 
-                        $public = strtolower((string)$token->public);
+                        $public = strtolower($token->public);
 
                         # Then, if the document is not an iframe srcdoc document, and the DOCTYPE token
                         # matches one of the conditions in the following list, then set the Document to
