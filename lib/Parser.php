@@ -18,6 +18,9 @@ class Parser {
     // with forms in the face of dramatically bad markup, for historical reasons. It is
     // ignored inside template elements
     public $formElement;
+    // Flag for determining whether to use the foster parenting (badly nested table
+    // elements) algorithm.
+    public $fosterParenting = false;
     // Flag that shows whether the content that's being parsed is a fragment or not
     public $fragmentCase = false;
     // Flag used to determine whether elements are okay to be used in framesets or not
@@ -172,6 +175,12 @@ class Parser {
             static::$self = new $c;
         }
 
+        // Create the document if it doesn't already exist. Will be overwritten if there is a DOCTYPE.
+        if (is_null(static::$self->DOM)) {
+            $imp = new \DOMImplementation;
+            static::$self->DOM = $imp->createDocument();
+        }
+
         // Process the input stream.
         static::$self->data = new DataStream(($file === true) ? '' : $data, ($file === true) ? $data : 'STDIN');
 
@@ -180,8 +189,7 @@ class Parser {
         setlocale(LC_CTYPE, 'en_US.UTF8');
 
         static::$self->tokenize();
-        //return static::$self->fixDOM();
-        return static::$self->DOM;
+        return static::$self->fixDOM();
     }
 
     public static function parseFragment(string $data, \DOMDocument $dom = null, \DOMElement $context = null, bool $file = false): \DOMDocument {
@@ -199,7 +207,7 @@ class Parser {
         if (!is_null($dom)) {
             static::$self->DOM = $dom;
         } else {
-            $imp = new DOMImplementation;
+            $imp = new \DOMImplementation;
             static::$self->DOM = $imp->createDocument();
         }
 
@@ -234,16 +242,17 @@ class Parser {
         }
 
         // DEVIATION: Since this implementation uses a DOMDocumentFragment for insertion
-        // there is no need to create an html element for inserting stuff into. If the
-        // context element is a template element, push "in template" onto the stack of
-        // template insertion modes so that it is the new current template insertion
-        // mode.
+        // there is no need to create an html element for inserting stuff into.
+
+        # If the context element is a template element, push "in template" onto the
+        # stack of template insertion modes so that it is the new current template
+        # insertion mode.
+        // FIX ME: I am not sure this is needed without scripting.
         if ($name === 'template') {
             static::$self->templateInsertionModeStack[] = static::IN_TEMPLATE_MODE;
         }
 
         # Reset the parser's insertion mode appropriately.
-
         // DEVIATION: The insertion mode will be always 'in body', not 'before head' if
         // there isn't a context. There isn't a need to reconstruct a valid HTML
         // document when using a DOMDocumentFragment.
@@ -3243,70 +3252,354 @@ class Parser {
     }
 
     protected function emitToken(Token $token) {
-        $adjustedCurrentNode = $this->stack->adjustedCurrentNode;
-        $adjustedCurrentNodeName = $this->stack->adjustedCurrentNodeName;
-        $adjustedCurrentNodeNamespace = $this->stack->adjustedCurrentNodeNamespace;
+        // Loop used for reprocessing.
+        while (true) {
+            $adjustedCurrentNode = $this->stack->adjustedCurrentNode;
+            $adjustedCurrentNodeName = $this->stack->adjustedCurrentNodeName;
+            $adjustedCurrentNodeNamespace = $this->stack->adjustedCurrentNodeNamespace;
 
-        # 8.2.5 Tree construction
-        #
-        # As each token is emitted from the tokenizer, the user agent must follow the
-        # appropriate steps from the following list, known as the tree construction dispatcher:
-        #
-        # If the stack of open elements is empty
-        if ($this->stack->length === 0 ||
-            # If the adjusted current node is an element in the HTML namespace
-            $adjustedCurrentNodeNamespace === static::HTML_NAMESPACE || (
-                    # If the adjusted current node is a MathML text integration point and the token is a
-                    # start tag whose tag name is neither "mglyph" nor "malignmark"
-                    # If the adjusted current node is a MathML text integration point and the token is a
-                    # character token
-                    DOM::isMathMLTextIntegrationPoint($adjustedCurrentNode) && ((
-                            $token instanceof StartTagToken && (
-                                $token->name !== 'mglyph' && $token->name !== 'malignmark'
-                            ) ||
-                            $token instanceof CharacterToken
+            # 8.2.5 Tree construction
+            #
+            # As each token is emitted from the tokenizer, the user agent must follow the
+            # appropriate steps from the following list, known as the tree construction dispatcher:
+            #
+            # If the stack of open elements is empty
+            if ($this->stack->length === 0 ||
+                # If the adjusted current node is an element in the HTML namespace
+                $adjustedCurrentNodeNamespace === static::HTML_NAMESPACE || (
+                        # If the adjusted current node is a MathML text integration point and the token is a
+                        # start tag whose tag name is neither "mglyph" nor "malignmark"
+                        # If the adjusted current node is a MathML text integration point and the token is a
+                        # character token
+                        DOM::isMathMLTextIntegrationPoint($adjustedCurrentNode) && ((
+                                $token instanceof StartTagToken && (
+                                    $token->name !== 'mglyph' && $token->name !== 'malignmark'
+                                ) ||
+                                $token instanceof CharacterToken
+                            )
                         )
-                    )
-                ) || (
-                    # If the adjusted current node is an annotation-xml element in the MathML namespace and
-                    # the token is a start tag whose tag name is "svg"
-                    $adjustedCurrentNodeNamespace === static::MATHML_NAMESPACE &&
-                    $adjustedCurrentNodeName === 'annotation-xml' &&
-                    $token instanceof StartTagToken &&
-                    $token->name === 'svg'
-                ) || (
-                    # If the adjusted current node is an HTML integration point and the token is a start tag
-                    # If the adjusted current node is an HTML integration point and the token is a character
-                    # token
-                    DOM::isHTMLIntegrationPoint($adjustedCurrentNode) && (
-                        $token instanceof StartTagToken || $token instanceof CharacterToken
-                    )
-                ) ||
-                # If the token is an end-of-file token
-                $token instanceof EOFToken) {
-            # Process the token according to the rules given in the section corresponding to
-            # the current insertion mode in HTML content.
-            $this->parseTokenInHTMLContent($token);
-        }
-        # Otherwise
-        else {
-            # Process the token according to the rules given in the section for parsing tokens in foreign content.
-            $this->parseTokenInForeignContent($token);
-        }
+                    ) || (
+                        # If the adjusted current node is an annotation-xml element in the MathML namespace and
+                        # the token is a start tag whose tag name is "svg"
+                        $adjustedCurrentNodeNamespace === static::MATHML_NAMESPACE &&
+                        $adjustedCurrentNodeName === 'annotation-xml' &&
+                        $token instanceof StartTagToken &&
+                        $token->name === 'svg'
+                    ) || (
+                        # If the adjusted current node is an HTML integration point and the token is a start tag
+                        # If the adjusted current node is an HTML integration point and the token is a character
+                        # token
+                        DOM::isHTMLIntegrationPoint($adjustedCurrentNode) && (
+                            $token instanceof StartTagToken || $token instanceof CharacterToken
+                        )
+                    ) ||
+                    # If the token is an end-of-file token
+                    $token instanceof EOFToken) {
+                # Process the token according to the rules given in the section corresponding to
+                # the current insertion mode in HTML content.
+                // Returns false when needing to reprocess.
+                if ($this->parseTokenInHTMLContent($token) === false) {
+                    continue;
+                }
+            }
+            # Otherwise
+            else {
+                # Process the token according to the rules given in the section for parsing
+                # tokens in foreign content.
+                // Returns false when needing to reprocess.
+                if ($this->parseTokenInForeignContent($token) === false) {
+                    continue;
+                }
+            }
 
-        # TEMPORARY
-        var_export($token);
-        echo "\n\n";
+            # TEMPORARY
+            var_export($token);
+            echo "\n\n";
 
-        if ($token instanceof StartTagToken && !$token->selfClosing) {
-            $this->stack[] = $token;
-        } elseif ($token instanceof EndTagToken) {
-            $this->stack->pop();
+            break;
         }
     }
 
     protected function parseTokenInHTMLContent(Token $token, int $insertionMode = null) {
+        $insertionMode = (is_null($insertionMode)) ? $this->insertionMode : $insertionMode;
 
+        // Loop used when processing the token under different rules; always breaks.
+        while (true) {
+            # 8.2.5.4. The rules for parsing tokens in HTML content
+            switch ($insertionMode) {
+                # 8.2.5.4.1. The "initial" insertion mode
+                case static::INITIAL_MODE:
+                    # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED
+                    # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+                    // OPTIMIZATION: Will check for multiple space characters at once as character
+                    // tokens can contain more than one character.
+                    if ($token instanceof CharacterToken && (strspn($token->data, "\t\n\x0c\x0d ") !== strlen($token->data))) {
+                        # Ignore the token.
+                        return;
+                    }
+                    # A comment token
+                    elseif ($token instanceof CommentToken) {
+                        # Insert a comment as the last child of the Document object.
+                        // DEVIATION: PHP's DOM cannot have comments before the DOCTYPE, so just going
+                        // to ignore them instead.
+                        //$this->insertCommentToken($token, $this->$DOM);
+                        return;
+                    }
+                    # A DOCTYPE token
+                    elseif ($token instanceof DOCTYPEToken) {
+                        # If the DOCTYPE token’s name is not a case-sensitive match for the string
+                        # "html", or the token’s public identifier is not missing, or the token’s system
+                        # identifier is neither missing nor a case-sensitive match for the string
+                        # "about:legacy-compat", then there is a parse error.
+                        if ($token->name !== 'html' || !is_null($token->public) || (!is_null($token->system) && $token->system !== 'about:legacy-compat')) {
+                            ParseError::trigger(ParseError::INVALID_DOCTYPE, $this->data);
+                        }
+
+                        # Append a DocumentType node to the Document node, with the name attribute set
+                        # to the name given in the DOCTYPE token, or the empty string if the name was
+                        # missing; the publicId attribute set to the public identifier given in the
+                        # DOCTYPE token, or the empty string if the public identifier was missing; the
+                        # systemId attribute set to the system identifier given in the DOCTYPE token, or
+                        # the empty string if the system identifier was missing; and the other
+                        # attributes specific to DocumentType objects set to null and empty lists as
+                        # appropriate. Associate the DocumentType node with the Document object so that
+                        # it is returned as the value of the doctype attribute of the Document object.
+                        // PHP's DOM cannot just append a DOCTYPE node to the document, so a document is
+                        // created with the specified DOCTYPE instead.
+                        $imp = new \DOMImplementation();
+                        // DEVIATION: PHP's DOMImplementation::createDocumentType() method cannot accept
+                        // an empty name, so if it is missing it is replaced with 'html' instead.
+                        $this->DOM = $imp->createDocument('', '', $imp->createDocumentType((!is_null($token->name)) ? $token->name : 'html', $token->public, $token->system));
+
+                        $public = strtolower((string)$token->public);
+
+                        # Then, if the document is not an iframe srcdoc document, and the DOCTYPE token
+                        # matches one of the conditions in the following list, then set the Document to
+                        # quirks mode:
+                        // DEVIATION: This implementation does not render, so there is no nested
+                        // browsing contexts to consider.
+                        if ($token->forceQuirks === true || $token->name !== 'html' ||
+                            $public === '-//w3o//dtd w3 html strict 3.0//en//' ||
+                            $public === '-/w3c/dtd html 4.0 transitional/en' ||
+                            $public === 'html' ||
+                            strtolower($token->system) === 'http://www.ibm.com/data/dtd/v11/ibmxhtml1-transitional.dtd' ||
+                            strpos($public, '+//silmaril//dtd html pro v0r11 19970101//') === 0 ||
+                            strpos($public, '-//as//dtd html 3.0 aswedit + extensions//') === 0 ||
+                            strpos($public, '+//silmaril//dtd html pro v0r11 19970101//') === 0 ||
+                            strpos($public, '-//as//dtd html 3.0 aswedit + extensions//') === 0 ||
+                            strpos($public, '-//advasoft ltd//dtd html 3.0 aswedit + extensions//') === 0 ||
+                            strpos($public, '-//ietf//dtd html 2.0 level 1//') === 0 ||
+                            strpos($public, '-//ietf//dtd html 2.0 level 2//') === 0 ||
+                            strpos($public, '-//ietf//dtd html 2.0 strict level 1//') === 0 ||
+                            strpos($public, '-//ietf//dtd html 2.0 strict level 2//') === 0 ||
+                            strpos($public, '-//ietf//dtd html 2.0 strict//') === 0 ||
+                            strpos($public, '-//ietf//dtd html 2.0//') === 0 ||
+                            strpos($public, '-//ietf//dtd html 2.1e//') === 0 ||
+                            strpos($public, '-//ietf//dtd html 3.0//') === 0 ||
+                            strpos($public, '-//ietf//dtd html 3.2 final//') === 0 ||
+                            strpos($public, '-//ietf//dtd html 3.2//') === 0 ||
+                            strpos($public, '-//ietf//dtd html 3//') === 0 ||
+                            strpos($public, '-//ietf//dtd html level 0//') === 0 ||
+                            strpos($public, '-//ietf//dtd html level 1//') === 0 ||
+                            strpos($public, '-//ietf//dtd html level 2//') === 0 ||
+                            strpos($public, '-//ietf//dtd html level 3//') === 0 ||
+                            strpos($public, '-//ietf//dtd html strict level 0//') === 0 ||
+                            strpos($public, '-//ietf//dtd html strict level 1//') === 0 ||
+                            strpos($public, '-//ietf//dtd html strict level 2//') === 0 ||
+                            strpos($public, '-//ietf//dtd html strict level 3//') === 0 ||
+                            strpos($public, '-//ietf//dtd html strict//') === 0 ||
+                            strpos($public, '-//ietf//dtd html//') === 0 ||
+                            strpos($public, '-//metrius//dtd metrius presentational//') === 0 ||
+                            strpos($public, '-//microsoft//dtd internet explorer 2.0 html strict//') === 0 ||
+                            strpos($public, '-//microsoft//dtd internet explorer 2.0 html//') === 0 ||
+                            strpos($public, '-//microsoft//dtd internet explorer 2.0 tables//') === 0 ||
+                            strpos($public, '-//microsoft//dtd internet explorer 3.0 html strict//') === 0 ||
+                            strpos($public, '-//microsoft//dtd internet explorer 3.0 html//') === 0 ||
+                            strpos($public, '-//microsoft//dtd internet explorer 3.0 tables//') === 0 ||
+                            strpos($public, '-//netscape comm. corp.//dtd html//') === 0 ||
+                            strpos($public, '-//netscape comm. corp.//dtd strict html//') === 0 ||
+                            strpos($public, '-//o\'reilly and associates//dtd html 2.0//') === 0 ||
+                            strpos($public, '-//o\'reilly and associates//dtd html extended 1.0//') === 0 ||
+                            strpos($public, '-//o\'reilly and associates//dtd html extended relaxed 1.0//') === 0 ||
+                            strpos($public, '-//sq//dtd html 2.0 hotmetal + extensions//') === 0 ||
+                            strpos($public, '-//softquad software//dtd hotmetal pro 6.0::19990601::extensions to html 4.0//') === 0 ||
+                            strpos($public, '-//softquad//dtd hotmetal pro 4.0::19971010::extensions to html 4.0//') === 0 ||
+                            strpos($public, '-//spyglass//dtd html 2.0 extended//') === 0 ||
+                            strpos($public, '-//sun microsystems corp.//dtd hotjava html//') === 0 ||
+                            strpos($public, '-//sun microsystems corp.//dtd hotjava strict html//') === 0 ||
+                            strpos($public, '-//w3c//dtd html 3 1995-03-24//') === 0 ||
+                            strpos($public, '-//w3c//dtd html 3.2 draft//') === 0 ||
+                            strpos($public, '-//w3c//dtd html 3.2 final//') === 0 ||
+                            strpos($public, '-//w3c//dtd html 3.2//') === 0 ||
+                            strpos($public, '-//w3c//dtd html 3.2s draft//') === 0 ||
+                            strpos($public, '-//w3c//dtd html 4.0 frameset//') === 0 ||
+                            strpos($public, '-//w3c//dtd html 4.0 transitional//') === 0 ||
+                            strpos($public, '-//w3c//dtd html experimental 19960712//') === 0 ||
+                            strpos($public, '-//w3c//dtd html experimental 970421//') === 0 ||
+                            strpos($public, '-//w3c//dtd w3 html//') === 0 ||
+                            strpos($public, '-//w3o//dtd w3 html 3.0//') === 0 ||
+                            strpos($public, '-//webtechs//dtd mozilla html 2.0//') === 0 ||
+                            strpos($public, '-//webtechs//dtd mozilla html//') === 0 ||
+                            (is_null($token->system) &&
+                                (strpos($public, '-//w3c//dtd html 4.01 frameset//') === 0 ||
+                                 strpos($public, '-//w3c//dtd html 4.01 transitional//') === 0))) {
+                            $this->quirksMode = true;
+                        }
+                        # Otherwise, if the document is not an iframe srcdoc document, and the DOCTYPE
+                        # token matches one of the conditions in the following list, then set the
+                        # Document to limited-quirks mode:
+                        // DEVIATION: There is no iframe srcdoc document because there are no nested
+                        // browsing contexts in this implementation.
+                        else {
+                            if (strpos($public, '-//w3c//dtd xhtml 1.0 frameset//') === 0 ||
+                                strpos($public, '-//w3c//dtd xhtml 1.0 transitional//') === 0 ||
+                                (!is_null($token->system) &&
+                                    (strpos($public, '-//w3c//dtd html 4.01 frameset//') === 0 ||
+                                     strpos($public, '-//w3c//dtd html 4.01 transitional//') === 0))) {
+                                    $this->quirksMode = 'limited';
+                                }
+                        }
+
+                        # The system identifier and public identifier strings must be compared to the
+                        # values given in the lists above in an ASCII case-insensitive manner. A system
+                        # identifier whose value is the empty string is not considered missing for the
+                        # purposes of the conditions above.
+
+                        # Then, switch the insertion mode to "before html".
+                        $this->insertionMode = static::BEFORE_HTML_MODE;
+                    }
+                    # Anything else
+                    else {
+                        # If the document is not an iframe srcdoc document, then this is a parse error;
+                        # set the Document to quirks mode.
+                        // DEVIATION: There is no iframe srcdoc document because there are no nested
+                        // browsing contexts in this implementation.
+                        $this->quirksMode = true;
+
+                        # In any case, switch the insertion mode to "before html", then reprocess the
+                        # token.
+                        $this->insertionMode = static::BEFORE_HTML_MODE;
+                        return false;
+                    }
+                break;
+
+                # 8.2.5.4.2. The "before html" insertion mode
+                case static::BEFORE_HTML_MODE:
+                    # A DOCTYPE token
+                    if ($token instanceof DOCTYPEToken) {
+                        ParseError::trigger(ParseError::UNEXPECTED_DOCTYPE, $this->data, '');
+                    }
+                    # A comment token
+                    elseif ($token instanceof CommentToken) {
+                        # Insert a comment as the last child of the Document object.
+                        $this->insertCommentToken($token, $this->$DOM);
+                    }
+                    # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED
+                    # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+                    // OPTIMIZATION: Will check for multiple space characters at once as character
+                    // tokens can contain more than one character.
+                    elseif ($token instanceof CharacterToken && (strspn($token->data, "\t\n\x0c\x0d ") !== strlen($token->data))) {
+                        # Ignore the token.
+                        return;
+                    }
+                    # A start tag whose tag name is "html"
+                    elseif ($token instanceof StartTagToken && $token->name === 'html') {
+                        # Create an element for the token in the HTML namespace, with the Document as
+                        # the intended parent. Append it to the Document object. Put this element in the
+                        # stack of open elements.
+                        $element = $this->createElement($token);
+                        $this->DOM->appendChild($element);
+                        $this->stack[] = $element;
+
+                        # Switch the insertion mode to "before head".
+                        $this->insertionMode = static::BEFORE_HEAD_MODE;
+                    }
+                    # Any other end tag
+                    elseif ($token instanceof EndTagToken && $token->name !== 'head' && $token->name !== 'body' && $token->name !== 'html' && $token->name !== 'br') {
+                        # Parse error.
+                        ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $this->data, $token->name, 'head, body, html, or br tag');
+                    }
+                    # An end tag whose tag name is one of: "head", "body", "html", "br"
+                    # Anything else
+                    else {
+                        # Create an html element whose node document is the Document object. Append it
+                        # to the Document object. Put this element in the stack of open elements.
+                        $element = $this->DOM->createElement('html');
+                        $this->DOM->appendChild($element);
+                        $this->stack[] = $element;
+
+                        # Switch the insertion mode to "before head", then reprocess the token.
+                        $this->insertionMode = static::BEFORE_HEAD_MODE;
+                        return false;
+                    }
+
+                    # The document element can end up being removed from the Document object, e.g.,
+                    # by scripts; nothing in particular happens in such cases, content continues
+                    # being appended to the nodes as described in the next section.
+                    // Good to know. There's no scripting in this implementation, though.
+                break;
+
+                # 8.2.5.4.3. The "before head" insertion mode
+                case static::BEFORE_HEAD_MODE:
+                    # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED
+                    # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+                    if ($token instanceof CharacterToken && (strspn($token->data, "\t\n\x0c\x0d ") !== strlen($token->data))) {
+                        # Ignore the token.
+                        return;
+                    }
+                    # A comment token
+                    elseif ($token instanceof CommentToken) {
+                        $this->insertCommentToken($token);
+                    }
+                    # A DOCTYPE token
+                    elseif ($token instanceof DOCTYPEToken) {
+                        ParseError::trigger(ParseError::UNEXPECTED_DOCTYPE, $this->data, '');
+                    }
+                    elseif ($token instanceof StartTagToken) {
+                        # A start tag whose tag name is "html"
+                        if ($token->name === 'html') {
+                            # Process the token using the rules for the "in body" insertion mode.
+                            $insertionMode = static::IN_BODY_MODE;
+                            continue 2;
+                        }
+                        # A start tag whose tag name is "head"
+                        elseif ($token->name === 'head') {
+                            # Insert an HTML element for the token.
+                            $element = $this->createElement($token);
+                            $this->insertElement($element);
+                            # Set the head element pointer to the newly created head element.
+                            $this->headElement = $element;
+
+                            # Switch the insertion mode to "in head".
+                            $this->insertionMode = static::IN_HEAD_MODE;
+                        }
+                    }
+                    # Any other end tag
+                    elseif ($token instanceof EndTagToken && $token->name !== 'head' && $token->name !== 'body' && $token->name !== 'html' && $token->name === 'br') {
+                        # Parse error.
+                        ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $this->data, $token->name, 'head, body, html, or br tag');
+                    }
+                    # An end tag whose tag name is one of: "head", "body", "html", "br"
+                    # Anything else
+                    else {
+                        # Insert an HTML element for a "head" start tag token with no attributes.
+                        $element = $this->createElement(new StartTagToken('head'));
+                        $this->insertElement($element);
+                        # Set the head element pointer to the newly created head element.
+                        $this->headElement = $element;
+
+                        # Switch the insertion mode to "in head".
+                        $this->insertionMode = static::IN_HEAD_MODE;
+
+                        # Reprocess the current token.
+                        return false;
+                    }
+
+                break;
+            }
+
+            break;
+        }
     }
 
     protected function parseTokenInForeignContent(Token $token) {
@@ -3330,12 +3623,12 @@ class Parser {
             }
 
             # Insert the token's character.
-            $this->insertTextNode($token);
+            $this->insertCharacterToken($token);
         }
         # A comment token
         elseif ($token instanceof CommentToken) {
             # Insert a comment.
-            $this->insertCommentNode($token);
+            $this->insertCommentToken($token);
         }
         # A DOCTYPE token
         elseif ($token instanceof DOCTYPEToken) {
@@ -3383,7 +3676,7 @@ class Parser {
                 );
 
                 # Then, reprocess the token.
-                $this->emitToken($token);
+                return false;
             }
             # Any other start tag
             else {
@@ -3644,7 +3937,7 @@ class Parser {
 
                 # Insert a foreign element for the token, in the same namespace as the adjusted
                 # current node.
-                $this->createAndInsertElement($token, $adjustedCurrentNode->namespaceURI);
+                $this->createAndInsertElement($token, null, $adjustedCurrentNode->namespaceURI);
 
                 # If the token has its self-closing flag set, then run the appropriate steps
                 # from the following list:
@@ -3667,7 +3960,6 @@ class Parser {
         // aren't processed differently.
 
         # Any other end tag
-        // ¡STOPPED HERE!
         elseif ($token instanceof EndTagToken) {
             # Run these steps:
             #
@@ -3710,7 +4002,7 @@ class Parser {
         }
     }
 
-    protected function appropriatePlaceForInsertingNode(Token $token, \DOMElement $overrideTarget = null) {
+    protected function appropriatePlaceForInsertingNode(\DOMNode $overrideTarget = null) {
         $insertBefore = false;
 
         # 8.2.5.1. Creating and inserting nodes
@@ -3799,7 +4091,7 @@ class Parser {
         ];
     }
 
-    protected function insertTextNode(CharacterToken $token) {
+    protected function insertCharacterToken(CharacterToken $token) {
         # 1. Let data be the characters passed to the algorithm, or, if no characters
         # were explicitly specified, the character of the character token being
         # processed.
@@ -3807,7 +4099,7 @@ class Parser {
 
         # 2. Let the adjusted insertion location be the appropriate place for inserting
         # a node.
-        $location = $this->appropriatePlaceForInsertingNode($token);
+        $location = $this->appropriatePlaceForInsertingNode();
         $adjustedInsertionLocation = $location['node'];
         $insertBefore = $location['insert before'];
 
@@ -3838,7 +4130,7 @@ class Parser {
         }
     }
 
-    protected function insertCommentNode(CommentToken $token, DOMNode $position = null) {
+    protected function insertCommentToken(CommentToken $token, \DOMNode $position = null) {
         # When the steps below require the user agent to insert a comment while
         # processing a comment token, optionally with an explicitly insertion position
         # position, the user agent must run the following steps:
@@ -3853,7 +4145,7 @@ class Parser {
             $adjustedInsertionLocation = $position;
             $insertBefore = false;
         } else {
-            $location = $this->appropriatePlaceForInsertingNode($token);
+            $location = $this->appropriatePlaceForInsertingNode();
             $adjustedInsertionLocation = $location['node'];
             $insertBefore = $location['insert before'];
         }
@@ -3871,12 +4163,7 @@ class Parser {
         }
     }
 
-    protected function createAndInsertElement(StartTagToken $token, string $namespace = null) {
-        $location = $this->appropriatePlaceForInsertingNode($token);
-        $adjustedInsertionLocation = $location['node'];
-        $insertBefore = $location['insert before'];
-        $intendedParent = ($insertBefore === false) ? $adjustedInsertionLocation : $adjustedInsertionLocation->parentNode;
-
+    protected function createElement(StartTagToken $token, string $namespace = null) {
         if (!is_null($namespace)) {
             $token->namespace = $namespace;
         }
@@ -3886,22 +4173,25 @@ class Parser {
         # run the following steps:
 
         # 1. Let document be intended parent’s node document.
-        $document = $intendedParent['location']->ownerDocument;
+        // DEVIATION: Unnecessary because there aren't any nested contexts to consider.
+        // The document will always be $this->DOM.
 
         # 2. Let local name be the tag name of the token.
-        $localName = $token->name;
+        // Nope. Don't need it because when creating elements with
+        // DOMElement::createElementNS the prefix and local name are combined.
 
-        // DEVIATION: Steps three through six are unnecessary because there is no scripting in this implementation.
+        // DEVIATION: Steps three through six are unnecessary because there is no
+        // scripting in this implementation.
 
         # 7. Let element be the result of creating an element given document, local
         # name, given namespace, null, and is. If will execute script is true, set the
         # synchronous custom elements flag; otherwise, leave it unset.
-        // DEVIATION: There is no point to setting the synchronous custom elements flag; there is no scripting in this implementation.
-        // DEVIATION: There is no point to looking up a custom element definition; there is no scripting in this implementation.
-        if ($token->namespace === static::HTML_NAMESPACE) {
-            $element = $document->createElement($token->name);
+        // DEVIATION: There is no point to setting the synchronous custom elements flag
+        // and custom element definition; there is no scripting in this implementation.
+        if ($namespace === static::HTML_NAMESPACE) {
+            $element = $this->DOM->createElement($token->name);
         } else {
-            $element = $document->createElementNS($token->namespace, $token->name);
+            $element = $this->DOM->createElementNS($namespace, $token->name);
         }
 
         # 8. Append each attribute in the given token to element.
@@ -3914,7 +4204,9 @@ class Parser {
         }
 
         # 9. If will execute script is true, then:
-        # - 1. Let queue be the result of popping the current element queue from the custom element reactions stack. (This will be the same element queue as was pushed above.)
+        # - 1. Let queue be the result of popping the current element queue from the
+        # custom element reactions stack. (This will be the same element queue as was
+        # pushed above.)
         # - 2. Invoke custom element reactions in queue.
         # - 3. Decrement document’s throw-on-dynamic-markup-insertion counter.
         // DEVIATION: These steps are unnecessary because there is no scripting in this
@@ -3925,12 +4217,12 @@ class Parser {
         # Similarly, if element has an xmlns:xlink attribute in the XMLNS namespace
         # whose value is not the XLink namespace, that is a parse error.
         $xmlns = $element->getAttributeNS(static::XMLNS_NAMESPACE, 'xmlns');
-        if ($xmlns !== false && $xmlns !== $element->namespaceURI) {
+        if ($xmlns !== '' && $xmlns !== $element->namespaceURI) {
             ParseError::trigger(ParseError::INVALID_XMLNS_ATTRIBUTE_VALUE, $this->data, $element->namespaceURI);
         }
 
         $xlink = $element->getAttributeNS(static::XMLNS_NAMESPACE, 'xlink');
-        if ($xlink !== false && $xlink !== static::XLINK_NAMESPACE) {
+        if ($xlink !== '' && $xlink !== static::XLINK_NAMESPACE) {
             ParseError::trigger(ParseError::INVALID_XMLNS_ATTRIBUTE_VALUE, $this->data, static::XLINK_NAMESPACE);
         }
 
@@ -3949,8 +4241,10 @@ class Parser {
         // DEVIATION: Unnecessary because there is no scripting in this implementation.
 
         # 13. Return element.
-        // Don't need to return anything because going straight into insertion.
+        return $element;
+    }
 
+    protected function insertElement(\DOMElement $element, \DOMNode $intendedParent = null) {
         # When the steps below require the user agent to insert an HTML element for a
         # token, the user agent must insert a foreign element for the token, in the HTML
         # namespace.
@@ -3963,11 +4257,14 @@ class Parser {
 
         # 1. Let the adjusted insertion location be the appropriate place for inserting
         # a node.
-        // Already have that.
+        $location = $this->appropriatePlaceForInsertingNode($intendedParent);
+        $adjustedInsertionLocation = $location['node'];
+        $insertBefore = $location['insert before'];
 
         # 2. Let element be the result of creating an element for the token in the given
         # namespace, with the intended parent being the element in which the adjusted
         # insertion location finds itself.
+        // Element is supplied.
         // Have that, too.
 
         # 3. If it is possible to insert element at the adjusted insertion location,
@@ -3988,12 +4285,17 @@ class Parser {
 
         # 4. Push element onto the stack of open elements so that it is the new current node.
         // OPTIMIZATION: Going to check if it is self-closing before pushing it onto the
-        // stack of open elements.
-        if ($token->selfClosing !== true) {
+        // stack of open elements as per the spec it's just removed later on anyway if
+        // indeed self-closing.
+        //if ($token->selfClosing !== true) {
             $this->stack[] = $element;
-        }
+        //}
 
         # Return element.
         return $element;
+    }
+
+    function createAndInsertElement(StartTagToken $token, \DOMNode $intendedParent = null, string $namespace = null) {
+        return $this->insertElement($this->createElement($token, $namespace), $intendedParent);
     }
 }

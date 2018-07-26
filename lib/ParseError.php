@@ -61,7 +61,7 @@ class ParseError {
         $count = substr_count($message, '%s');
         // If the number of replacements don't match the arguments then oops.
         if (count($args) !== $count) {
-            throw new Exception(static::INCORRECT_PARAMETERS_FOR_MESSAGE, $count);
+            throw new Exception(Exception::INCORRECT_PARAMETERS_FOR_MESSAGE, $count);
         }
 
         if ($count > 0) {

@@ -27,11 +27,11 @@ class DOCTYPEToken extends Token {
     public $public;
     public $system;
 
-    public function __construct($name = null, $public = null, $system = null) {
-        $this->name = (string)$name;
+    public function __construct(string $name = null, string $public = '', string $system = '') {
+        $this->name = $name;
 
-        $this->public = (string)$public;
-        $this->system = (string)$system;
+        $this->public = $public;
+        $this->system = $system;
     }
 }
 
@@ -46,7 +46,7 @@ class CommentToken extends DataToken {
 class StartTagToken extends TagToken {
     public $namespace;
     public $selfClosing;
-    public $attributes;
+    public $attributes = [];
 
     public function __construct($name, bool $selfClosing = false, string $namespace = Parser::HTML_NAMESPACE) {
         $this->selfClosing = $selfClosing;
