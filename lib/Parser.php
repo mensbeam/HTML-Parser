@@ -3507,9 +3507,7 @@ class Parser {
                         # Create an element for the token in the HTML namespace, with the Document as
                         # the intended parent. Append it to the Document object. Put this element in the
                         # stack of open elements.
-                        $element = $this->createElement($token);
-                        $this->DOM->appendChild($element);
-                        $this->stack[] = $element;
+                        $element = $this->insertElement($token, $this->DOM);
 
                         # Switch the insertion mode to "before head".
                         $this->insertionMode = static::BEFORE_HEAD_MODE;
@@ -3565,8 +3563,7 @@ class Parser {
                         # A start tag whose tag name is "head"
                         elseif ($token->name === 'head') {
                             # Insert an HTML element for the token.
-                            $element = $this->createElement($token);
-                            $this->insertElement($element);
+                            $element = $this->insertElement($token);
                             # Set the head element pointer to the newly created head element.
                             $this->headElement = $element;
 
@@ -3583,8 +3580,7 @@ class Parser {
                     # Anything else
                     else {
                         # Insert an HTML element for a "head" start tag token with no attributes.
-                        $element = $this->createElement(new StartTagToken('head'));
-                        $this->insertElement($element);
+                        $element = $this->insertElement(new StartTagToken('head'));
                         # Set the head element pointer to the newly created head element.
                         $this->headElement = $element;
 
@@ -4163,9 +4159,9 @@ class Parser {
         }
     }
 
-    protected function createElement(StartTagToken $token, string $namespace = null) {
+    function insertElement(StartTagToken $token, \DOMNode $intendedParent = null, string $namespace = null) {
         if (!is_null($namespace)) {
-            $token->namespace = $namespace;
+            $namespace = $token->namespace;
         }
 
         # When the steps below require the UA to create an element for a token in a
@@ -4196,10 +4192,10 @@ class Parser {
 
         # 8. Append each attribute in the given token to element.
         foreach ($token->attributes as $a) {
-            if ($a->namespace === static::HTML_NAMESPACE) {
+            if ($namespace === static::HTML_NAMESPACE) {
                 $element->setAttribute($a->name, $a->value);
             } else {
-                $element->setAttributeNS($a->namespace, $a->name, $a->value);
+                $element->setAttributeNS($namespace, $a->name, $a->value);
             }
         }
 
@@ -4241,10 +4237,8 @@ class Parser {
         // DEVIATION: Unnecessary because there is no scripting in this implementation.
 
         # 13. Return element.
-        return $element;
-    }
+        // Nope. Going straight into element insertion.
 
-    protected function insertElement(\DOMElement $element, \DOMNode $intendedParent = null) {
         # When the steps below require the user agent to insert an HTML element for a
         # token, the user agent must insert a foreign element for the token, in the HTML
         # namespace.
@@ -4287,15 +4281,11 @@ class Parser {
         // OPTIMIZATION: Going to check if it is self-closing before pushing it onto the
         // stack of open elements as per the spec it's just removed later on anyway if
         // indeed self-closing.
-        //if ($token->selfClosing !== true) {
+        if ($token->selfClosing !== true) {
             $this->stack[] = $element;
-        //}
+        }
 
         # Return element.
         return $element;
-    }
-
-    function createAndInsertElement(StartTagToken $token, \DOMNode $intendedParent = null, string $namespace = null) {
-        return $this->insertElement($this->createElement($token, $namespace), $intendedParent);
     }
 }
