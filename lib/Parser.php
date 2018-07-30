@@ -171,7 +171,7 @@ class Parser {
         $this->insertionMode = static::INITIAL_MODE;
         $this->quirksMode = static::QUIRKS_MODE_OFF;
         $this->stack = new Stack();
-        $this->activeFormattingElementsList = new ActiveFormattingElementsList();
+        $this->activeFormattingElementsList = new ActiveFormattingElementsList($this);
     }
 
     public static function parse(string $data, bool $file = false) {

@@ -15,7 +15,12 @@ namespace dW\HTML5;
 # associated with the token for which it was created, so that further elements
 # can be created for that token if necessary.
 class ActiveFormattingElementsList implements \ArrayAccess {
+    public $parser;
     protected $storage = [];
+
+    public function __construct(Parser $parser) {
+        $this->parser = $parser;
+    }
 
     public function offsetSet($offset, $value) {
         if ($offset < 0) {
@@ -99,12 +104,107 @@ class ActiveFormattingElementsList implements \ArrayAccess {
         return $this->storage[$offset];
     }
 
+    public function insert(StartTagToken $token, \DOMElement $element) {
+        $this->storage[] = [
+            'token' => $token,
+            'element' => $element
+        ];
+    }
+
     public function insertMarker() {
         $this->offsetSet(null, new ActiveFormattingElementMarker());
     }
 
     public function pop() {
         return array_pop($this->storage);
+    }
+
+    public function reconstruct() {
+        # When the steps below require the UA to reconstruct the active formatting
+        # elements, the UA must perform the following steps:
+        // Yes, I know this uses gotos, but here are the reasons for using them:
+        // 1. The spec seems to actively encourage using them, even providing
+        // suggestions on what to name the labels.
+        // 2. It'd be a pain to program and maintain without them because of this.
+
+        # 1. If there are no entries in the list of active formatting elements, then
+        # there is nothing to reconstruct; stop this algorithm.
+        if (count($this->storage) === 0) {
+            return;
+        }
+
+        # 2. If the last (most recently added) entry in the list of active formatting
+        # elements is a marker, or if it is an element that is in the stack of open
+        # elements, then there is nothing to reconstruct; stop this algorithm.
+        $entry = end($this->storage);
+        if ($entry instanceof ActiveFormattingElementMarker || in_array($entry['element'], $this->parser->stack)) {
+            return;
+        }
+
+        # 3. Let entry be the last (most recently added) element in the list of active
+        # formatting elements.
+        // Done already.
+
+        # 4. Rewind: If there are no entries before entry in the list of active
+        # formatting elements, then jump to the step labeled Create.
+        rewind:
+        if (count($this->storage) === 1) {
+            goto create;
+        }
+
+        # 5. Let entry be the entry one earlier than entry in the list of active
+        # formatting elements.
+        $entry = prev($this->storage);
+
+        # 6. If entry is neither a marker nor an element that is also in the stack of
+        # open elements, go to the step labeled Rewind.
+        if (!$entry instanceof ActiveFormattingElementMarker && !in_array($entry['element'], $this->parser->stack)) {
+            goto rewind;
+        }
+
+        # 7. Advance: Let entry be the element one later than entry in the list of
+        # active formatting elements.
+        advance:
+        $entry = next($this->storage);
+
+        # 8. Create: Insert an HTML element for the token for which the element entry
+        # was created, to obtain new element.
+        create:
+        $element = $this->parser->insertElement($entry['token']);
+
+        # 9. Replace the entry for entry in the list with an entry for new element.
+        $this->storage[key($this->storage)]['element'] = $element;
+
+        # 10. If the entry for new element in the list of active formatting elements is
+        # not the last entry in the list, return to the step labeled Advance.
+        if ($entry !== $this->storage[count($this->storage) - 1]) {
+            goto advance;
+        }
+    }
+
+    public function clearToTheLastMarker() {
+        # When the steps below require the UA to clear the list of active formatting
+        # elements up to the last marker, the UA must perform the following steps:
+        # 1. Let entry be the last (most recently added) entry in the list of active
+        # formatting elements.
+        # 2. Remove entry from the list of active formatting elements.
+        # 3. If entry was a marker, then stop the algorithm at this point. The list has
+        # been cleared up to the last marker.
+        # 4. Go to step 1.
+
+        // Just going to go backwards through the array until a marker is reached. Does
+        // the same thing.
+
+        foreach (array_reverse($this->storage) as $key => $value) {
+            if ($value instanceof ActiveFormattingElementMarker) {
+                return;
+            }
+
+            unset($this->storage[$key]);
+        }
+
+        // Reindex the array.
+        $this->storage = array_values($this->storage);
     }
 
     public function __get($property) {
