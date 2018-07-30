@@ -5,8 +5,6 @@ namespace dW\HTML5;
 class Stack implements \ArrayAccess {
     protected $storage = [];
 
-    // Temporarily change this from DOMNode to HTML5StartTagToken for the purposes of
-    // testing the tokenizer.
     public function offsetSet($offset, $value) {
         if ($offset < 0) {
             throw new Exception(Exception::STACK_INVALID_INDEX);

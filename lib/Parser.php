@@ -30,10 +30,16 @@ class Parser {
     public $headElement;
     // The stack of open elements, uses Stack
     public $stack;
+    // The list of active formatting elements, used when elements are improperly nested
+    public $activeFormattingElementsList;
     // Controls the primary operation of the tokenizer
     public $tokenizerState;
     // Treebuilder insertion mode
     public $insertionMode;
+    // When the insertion mode is switched to "text" or "in table text", the
+    // original insertion mode is also set. This is the insertion mode to which the
+    // tree construction stage will return.
+    public $originalInsertionMode;
     // Used to check if the document is in quirks mode
     public $quirksMode;
 
@@ -165,6 +171,7 @@ class Parser {
         $this->insertionMode = static::INITIAL_MODE;
         $this->quirksMode = static::QUIRKS_MODE_OFF;
         $this->stack = new Stack();
+        $this->activeFormattingElementsList = new ActiveFormattingElementsList();
     }
 
     public static function parse(string $data, bool $file = false) {
@@ -3551,7 +3558,8 @@ class Parser {
                     }
                     # A DOCTYPE token
                     elseif ($token instanceof DOCTYPEToken) {
-                        ParseError::trigger(ParseError::UNEXPECTED_DOCTYPE, $this->data, '');
+                        # Parse error.
+                        ParseError::trigger(ParseError::UNEXPECTED_DOCTYPE, $this->data, 'head tag');
                     }
                     elseif ($token instanceof StartTagToken) {
                         # A start tag whose tag name is "html"
@@ -3590,7 +3598,146 @@ class Parser {
                         # Reprocess the current token.
                         return false;
                     }
+                break;
 
+                # 8.2.5.4.4. The "in head" insertion mode
+                case static::IN_HEAD_MODE:
+                    # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED
+                    # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+                    if ($token instanceof CharacterToken && (strspn($token->data, "\t\n\x0c\x0d ") !== strlen($token->data))) {
+                        # Insert the character.
+                        $this->insertCharacterToken($token);
+                    }
+                    # A comment token
+                    elseif ($token instanceof CommentToken) {
+                        # Insert a comment.
+                        $this->insertCommentToken($token);
+                    }
+                    # A DOCTYPE token
+                    elseif ($token instanceof DOCTYPEToken) {
+                        # Parse error.
+                        ParseError::trigger(ParseError::UNEXPECTED_DOCTYPE, $this->data, 'head data');
+                    }
+                    elseif ($token instanceof StartTagToken) {
+                        # A start tag whose tag name is "html"
+                        if ($token->name === 'html') {
+                            # Process the token using the rules for the "in body" insertion mode.
+                            $insertionMode = static::IN_BODY_MODE;
+                            continue 2;
+                        }
+                        # A start tag whose tag name is one of: "base", "basefont", "bgsound", "link"
+                        elseif ($token->name === 'base' || $token->name === 'basefont' || $token->name === 'bgsound' || $token->name === 'link') {
+                            # Insert an HTML element for the token. Immediately pop the current node off the
+                            # stack of open elements.
+                            $this->createAndInsertElement($token);
+                            $this->stack->pop();
+
+                            # Acknowledge the token’s *self-closing flag*, if it is set.
+                            // Acknowledged.
+                        }
+                        # A start tag whose tag name is "meta"
+                        elseif ($token->name === 'meta') {
+                            # Insert an HTML element for the token. Immediately pop the current node off the
+                            # stack of open elements.
+                            $this->createAndInsertElement($token);
+                            $this->stack->pop();
+
+                            # Acknowledge the token’s *self-closing flag*, if it is set.
+                            // Acknowledged.
+
+                            # If the element has a charset attribute, and getting an encoding from its value
+                            # results in an encoding, and the confidence is currently tentative, then change
+                            # the encoding to the resulting encoding.
+                            #
+                            # Otherwise, if the element has an http-equiv attribute whose value is an ASCII
+                            # case-insensitive match for the string "Content-Type", and the element has a
+                            # content attribute, and applying the algorithm for extracting a character
+                            # encoding from a meta element to that attribute’s value returns an encoding,
+                            # and the confidence is currently tentative, then change the encoding to the
+                            # extracted encoding.
+                            // DEVIATION: FIXME: This implementation currently only supports UTF-8.
+                        }
+                        # A start tag whose tag name is "title"
+                        elseif ($token->name === 'title') {
+                            # Follow the generic RCDATA element parsing algorithm.
+                            $this->genericRCDATAParsingAlgorithm();
+                        }
+                        # A start tag whose tag name is "noscript", if the scripting flag is enabled
+                        # A start tag whose tag name is one of: "noframes", "style"
+                        // DEVIATION: There is no scripting in this implementation, so the scripting
+                        // flag is always disabled.
+                        elseif ($token->name === 'noframes' || $token->name === 'style') {
+                            # Follow the generic raw text element parsing algorithm.
+                            $this->genericRawTextParsingAlgorithm();
+                        }
+                        # A start tag whose tag name is "noscript", if the scripting flag is disabled
+                        // DEVIATION: There is no scripting in this implementation, so the scripting
+                        // flag is always disabled.
+                        elseif ($token->name === 'noscript') {
+                            # Insert an HTML element for the token.
+                            $this->createAndInsertElement($token);
+                            # Switch the insertion mode to "in head noscript".
+                            $this->insertionMode = static::IN_HEAD_NOSCRIPT_MODE;
+                        }
+                        # A start tag whose tag name is "script"
+                        elseif ($token->name === 'script') {
+                            # Run these steps:
+
+                            # 1. Let the adjusted insertion location be the appropriate place for inserting
+                            # a node.
+                            # 2. Create an element for the token in the HTML namespace, with the intended
+                            # parent being the element in which the adjusted insertion location finds
+                            # itself.
+                            // DEVIATION: Because there is no scripting in this implementation, there is no
+                            // need to get the adjusted insertion location as the intended parent as the
+                            // intended parent isn't used when determining anything;
+                            // Parser::createAndInsertElement will get the adjusted insertion location
+                            // anyway.
+                            $this->createAndInsertElement($token);
+
+                            # 3. Mark the element as being "parser-inserted" and unset the element’s
+                            # "non-blocking" flag.
+                            # 4. Mark the element as being "parser-inserted" and unset the element’s
+                            # "non-blocking" flag.
+                            // DEVIATION: No scripting.
+                            # 5. Insert the newly created element at the adjusted insertion location.
+                            // Done.
+                            # 6. Push the element onto the stack of open elements so that it is the new
+                            # current node.
+                            // The element insertion algorithm has it do this already...
+                            # 7. Switch the tokenizer to the script data state.
+                            $this->tokenizerState = static::SCRIPT_DATA_STATE;
+                            # 8. Let the original insertion mode be the current insertion mode.
+                            $this->originalInsertionMode = $this->currentInsertionMode;
+                            # 9. Switch the insertion mode to "text".
+                            $this->insertionMode = static::TEXT_MODE;
+                        }
+                        # A start tag whose tag name is "template"
+                        elseif ($token->name === 'template') {
+                            # Insert an HTML element for the token.
+                            $this->createAndInsertElement($token);
+                            # Insert a marker at the end of the list of active formatting elements.
+                            $this->activeFormattingElementsList->insertMarker();
+                            # Set the frameset-ok flag to "not ok".
+                            $this->framesetOk = false;
+                            # Switch the insertion mode to "in template".
+                            $this->insertionMode = static::IN_TEMPLATE_MODE;
+                            # Push "in template" onto the stack of template insertion modes so that it is
+                            # the new current template insertion mode.
+                            // DEVIATION: No scripting.
+                        }
+                    }
+                    elseif ($token instanceof EndTagToken) {
+                        # An end tag whose tag name is "head"
+                        if ($token->name === 'head') {
+                            # Pop the current node (which will be the head element) off the stack of open
+                            # elements.
+                            $this->stack->pop();
+                            # Switch the insertion mode to "after head".
+                            $this->insertionMode = static::AFTER_HEAD_MODE;
+                        }
+                        // ¡STOPPED HERE!
+                    }
                 break;
             }
 
@@ -3947,7 +4094,8 @@ class Parser {
                 # Otherwise
                 # Pop the current node off the stack of open elements and acknowledge the
                 # token’s *self-closing flag*.
-                // OPTIMIZATION: Nope. The self-closing flag is checked when inserting.
+                $this->stack->pop();
+                // Acknowledged.
             }
         }
         # An end tag whose tag name is "script", if the current node is a script element
@@ -4278,14 +4426,38 @@ class Parser {
         // DEVIATION: Unnecessary because there is no scripting in this implementation.
 
         # 4. Push element onto the stack of open elements so that it is the new current node.
-        // OPTIMIZATION: Going to check if it is self-closing before pushing it onto the
-        // stack of open elements as per the spec it's just removed later on anyway if
-        // indeed self-closing.
-        if ($token->selfClosing !== true) {
-            $this->stack[] = $element;
-        }
+        $this->stack[] = $element;
 
         # Return element.
         return $element;
+    }
+
+    protected function genericTextParsingAlgorithm(StartTagToken $token, bool $RAWTEXT = true) {
+        # The generic raw text element parsing algorithm and the generic RCDATA element
+        # parsing algorithm consist of the following steps. These algorithms are always
+        # invoked in response to a start tag token.
+
+        # 1. Insert an HTML element for the token.
+        $this->createandInsertElement($token);
+
+        # 2. If the algorithm that was invoked is the generic raw text element parsing
+        # algorithm, switch the tokenizer to the RAWTEXT state; otherwise the algorithm
+        # invoked was the generic RCDATA element parsing algorithm, switch the tokenizer
+        # to the RCDATA state.
+        $this->tokenizerState = ($RAWTEXT === true) ? static::RAWTEXT_STATE : static::RCDATA_STATE;
+
+        # 3. Let the original insertion mode be the current insertion mode.
+        $this->originalInsertionMode = $this->insertionMode;
+
+        # 4. Then, switch the insertion mode to "text".
+        $this->insertionMode = static::TEXT_MODE;
+    }
+
+    protected function genericRawTextParsingAlgorithm(StartTagToken $token) {
+        $this->genericTextParsingAlgorithm($token, true);
+    }
+
+    protected function genericRCDATAParsingAlgorithm(StartTagToken $token) {
+        $this->genericTextParsingAlgorithm($token, false);
     }
 }
