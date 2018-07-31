@@ -15,16 +15,11 @@ namespace dW\HTML5;
 # associated with the token for which it was created, so that further elements
 # can be created for that token if necessary.
 class ActiveFormattingElementsList implements \ArrayAccess {
-    public $parser;
-    protected $storage = [];
-
-    public function __construct(Parser $parser) {
-        $this->parser = $parser;
-    }
+    protected $_storage = [];
 
     public function offsetSet($offset, $value) {
         if ($offset < 0) {
-            throw new Exception(Exception::STACK_INVALID_INDEX);
+            throw new Exception(Exception::ACTIVE_FORMATTING_ELEMENT_LIST_INVALID_INDEX);
         }
 
         if (is_null($offset)) {
@@ -76,36 +71,36 @@ class ActiveFormattingElementsList implements \ArrayAccess {
             }
 
             # 2. Add element to the list of active formatting elements.
-            $this->storage[] = $value;
+            $this->_storage[] = $value;
         } else {
-            $this->storage[$offset] = $value;
+            $this->_storage[$offset] = $value;
         }
     }
 
     public function offsetExists($offset) {
-        return isset($this->storage[$offset]);
+        return isset($this->_storage[$offset]);
     }
 
     public function offsetUnset($offset) {
         if ($offset < 0 || $offset > count($this->$storage) - 1) {
-            throw new Exception(Exception::STACK_INVALID_INDEX);
+            throw new Exception(Exception::ACTIVE_FORMATTING_ELEMENT_LIST_INVALID_INDEX);
         }
 
-        unset($this->storage[$offset]);
+        unset($this->_storage[$offset]);
         // Reindex the array.
-        $this->storage = array_values($this->storage);
+        $this->_storage = array_values($this->_storage);
     }
 
     public function offsetGet($offset) {
         if ($offset < 0 || $offset > count($this->$storage) - 1) {
-            throw new Exception(Exception::STACK_INVALID_INDEX);
+            throw new Exception(Exception::ACTIVE_FORMATTING_ELEMENT_LIST_INVALID_INDEX);
         }
 
-        return $this->storage[$offset];
+        return $this->_storage[$offset];
     }
 
     public function insert(StartTagToken $token, \DOMElement $element) {
-        $this->storage[] = [
+        $this->_storage[] = [
             'token' => $token,
             'element' => $element
         ];
@@ -116,7 +111,7 @@ class ActiveFormattingElementsList implements \ArrayAccess {
     }
 
     public function pop() {
-        return array_pop($this->storage);
+        return array_pop($this->_storage);
     }
 
     public function reconstruct() {
@@ -129,15 +124,15 @@ class ActiveFormattingElementsList implements \ArrayAccess {
 
         # 1. If there are no entries in the list of active formatting elements, then
         # there is nothing to reconstruct; stop this algorithm.
-        if (count($this->storage) === 0) {
+        if (count($this->_storage) === 0) {
             return;
         }
 
         # 2. If the last (most recently added) entry in the list of active formatting
         # elements is a marker, or if it is an element that is in the stack of open
         # elements, then there is nothing to reconstruct; stop this algorithm.
-        $entry = end($this->storage);
-        if ($entry instanceof ActiveFormattingElementMarker || in_array($entry['element'], $this->parser->stack)) {
+        $entry = end($this->_storage);
+        if ($entry instanceof ActiveFormattingElementMarker || in_array($entry['element'], Parser::$self->stack)) {
             return;
         }
 
@@ -148,36 +143,36 @@ class ActiveFormattingElementsList implements \ArrayAccess {
         # 4. Rewind: If there are no entries before entry in the list of active
         # formatting elements, then jump to the step labeled Create.
         rewind:
-        if (count($this->storage) === 1) {
+        if (count($this->_storage) === 1) {
             goto create;
         }
 
         # 5. Let entry be the entry one earlier than entry in the list of active
         # formatting elements.
-        $entry = prev($this->storage);
+        $entry = prev($this->_storage);
 
         # 6. If entry is neither a marker nor an element that is also in the stack of
         # open elements, go to the step labeled Rewind.
-        if (!$entry instanceof ActiveFormattingElementMarker && !in_array($entry['element'], $this->parser->stack)) {
+        if (!$entry instanceof ActiveFormattingElementMarker && !in_array($entry['element'], Parser::$self->stack)) {
             goto rewind;
         }
 
         # 7. Advance: Let entry be the element one later than entry in the list of
         # active formatting elements.
         advance:
-        $entry = next($this->storage);
+        $entry = next($this->_storage);
 
         # 8. Create: Insert an HTML element for the token for which the element entry
         # was created, to obtain new element.
         create:
-        $element = $this->parser->insertElement($entry['token']);
+        $element = Parser::$self->insertElement($entry['token']);
 
         # 9. Replace the entry for entry in the list with an entry for new element.
-        $this->storage[key($this->storage)]['element'] = $element;
+        $this->_storage[key($this->_storage)]['element'] = $element;
 
         # 10. If the entry for new element in the list of active formatting elements is
         # not the last entry in the list, return to the step labeled Advance.
-        if ($entry !== $this->storage[count($this->storage) - 1]) {
+        if ($entry !== $this->_storage[count($this->_storage) - 1]) {
             goto advance;
         }
     }
@@ -195,30 +190,30 @@ class ActiveFormattingElementsList implements \ArrayAccess {
         // Just going to go backwards through the array until a marker is reached. Does
         // the same thing.
 
-        foreach (array_reverse($this->storage) as $key => $value) {
-            if ($value instanceof ActiveFormattingElementMarker) {
+        for ($end = count($this->_storage) - 1, $i = $end; $i >= 0; $i--) {
+            if ($this->_storage[$i] instanceof ActiveFormattingElementMarker) {
                 return;
             }
 
-            unset($this->storage[$key]);
+            unset($this->_storage[$i]);
         }
 
         // Reindex the array.
-        $this->storage = array_values($this->storage);
+        $this->_storage = array_values($this->_storage);
     }
 
     public function __get($property) {
         switch ($property) {
             case 'lastMarker':
-                foreach (array_reverse($this->storage) as $key => $value) {
-                    if ($value instanceof ActiveFormattingElementMarker) {
-                        return $key;
+                for ($end = count($this->_storage) - 1, $i = $end; $i >= 0; $i--) {
+                    if ($this->_storage[$i] instanceof ActiveFormattingElementMarker) {
+                        return $i;
                     }
                 }
 
                 return false;
             break;
-            case 'length': return count($this->storage);
+            case 'length': return count($this->_storage);
             break;
             default: return null;
         }

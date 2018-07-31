@@ -171,7 +171,7 @@ class Parser {
         $this->insertionMode = static::INITIAL_MODE;
         $this->quirksMode = static::QUIRKS_MODE_OFF;
         $this->stack = new Stack();
-        $this->activeFormattingElementsList = new ActiveFormattingElementsList($this);
+        $this->activeFormattingElementsList = new ActiveFormattingElementsList();
     }
 
     public static function parse(string $data, bool $file = false) {
@@ -4235,7 +4235,7 @@ class Parser {
         ];
     }
 
-    protected function insertCharacterToken(CharacterToken $token) {
+    public function insertCharacterToken(CharacterToken $token) {
         # 1. Let data be the characters passed to the algorithm, or, if no characters
         # were explicitly specified, the character of the character token being
         # processed.
@@ -4274,7 +4274,7 @@ class Parser {
         }
     }
 
-    protected function insertCommentToken(CommentToken $token, \DOMNode $position = null) {
+    public function insertCommentToken(CommentToken $token, \DOMNode $position = null) {
         # When the steps below require the user agent to insert a comment while
         # processing a comment token, optionally with an explicitly insertion position
         # position, the user agent must run the following steps:
@@ -4307,7 +4307,7 @@ class Parser {
         }
     }
 
-    function insertElement(StartTagToken $token, \DOMNode $intendedParent = null, string $namespace = null) {
+    public function insertElement(StartTagToken $token, \DOMNode $intendedParent = null, string $namespace = null) {
         if (!is_null($namespace)) {
             $namespace = $token->namespace;
         }

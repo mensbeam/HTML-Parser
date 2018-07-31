@@ -14,10 +14,12 @@ class Exception extends \Exception {
     const STACK_INVALID_INDEX = 10201;
     const STACK_DOMNODE_ONLY = 10202;
 
-    const DATASTREAM_NODATA = 10301;
-    const DATASTREAM_INVALID_DATA_CONSUMPTION_LENGTH = 10302;
+    const ACTIVE_FORMATTING_ELEMENT_LIST_INVALID_INDEX = 10301;
 
-    const DOM_DOMELEMENT_STRING_OR_CLOSURE_EXPECTED = 10401;
+    const DATASTREAM_NODATA = 10401;
+    const DATASTREAM_INVALID_DATA_CONSUMPTION_LENGTH = 10402;
+
+    const DOM_DOMELEMENT_STRING_OR_CLOSURE_EXPECTED = 10501;
 
     protected static $messages = [10000 => 'Invalid error code',
                                   10001 => 'Unknown error; escaping',
@@ -27,13 +29,15 @@ class Exception extends \Exception {
                                   10102 => 'DOMElement, DOMDocument, or DOMDocumentFrag expected; found %s',
                                   10103 => 'DOMNode expected; found %s',
 
-                                  10201 => '%s is an invalid index',
-                                  10202 => 'Instances of DOMNode are the only types allowed in an HTML5Stack',
+                                  10201 => '%s is an invalid Stack index',
+                                  10202 => 'Instances of DOMNode are the only types allowed in a Stack',
 
-                                  10301 => 'Data string expected; found %s',
-                                  10302 => '%s is an invalid data consumption length; a value of 1 or above is expected',
+                                  10301 => '%s is an invalid ActiveFormattingElementsList index',
 
-                                  10401 => 'The first argument must either be an instance of \DOMElement, a string, or a closure; found %s'];
+                                  10401 => 'Data string expected; found %s',
+                                  10402 => '%s is an invalid data consumption length; a value of 1 or above is expected',
+
+                                  10501 => 'The first argument must either be an instance of \DOMElement, a string, or a closure; found %s'];
 
     public function __construct(int $code, ...$args) {
         if (!isset(static::$messages[$code])) {

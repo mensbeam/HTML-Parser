@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace dW\HTML5;
 
 class Stack implements \ArrayAccess {
-    protected $storage = [];
+    protected $_storage = [];
 
     public function offsetSet($offset, $value) {
         if ($offset < 0) {
@@ -11,14 +11,14 @@ class Stack implements \ArrayAccess {
         }
 
         if (is_null($offset)) {
-            $this->storage[] = $value;
+            $this->_storage[] = $value;
         } else {
-            $this->storage[$offset] = $value;
+            $this->_storage[$offset] = $value;
         }
     }
 
     public function offsetExists($offset) {
-        return isset($this->storage[$offset]);
+        return isset($this->_storage[$offset]);
     }
 
     public function offsetUnset($offset) {
@@ -26,7 +26,7 @@ class Stack implements \ArrayAccess {
             throw new Exception(Exception::STACK_INVALID_INDEX);
         }
 
-        unset($this->storage[$offset]);
+        unset($this->_storage[$offset]);
     }
 
     public function offsetGet($offset) {
@@ -34,11 +34,11 @@ class Stack implements \ArrayAccess {
             throw new Exception(Exception::STACK_INVALID_INDEX);
         }
 
-        return $this->storage[$offset];
+        return $this->_storage[$offset];
     }
 
     public function pop() {
-        return array_pop($this->storage);
+        return array_pop($this->_storage);
     }
 
     public function search(mixed $needle): int {
@@ -47,13 +47,13 @@ class Stack implements \ArrayAccess {
         }
 
         if ($needle instanceof DOMElement) {
-            foreach (array_reverse($this->storage) as $key=>$value) {
+            foreach (array_reverse($this->_storage) as $key=>$value) {
                 if ($value->isSameNode($needle)) {
                     return $key;
                 }
             }
         } elseif (is_string($needle)) {
-            foreach (array_reverse($this->storage) as $key=>$value) {
+            foreach (array_reverse($this->_storage) as $key=>$value) {
                 if ($value->nodeName === $needle) {
                     return $key;
                 }
@@ -65,10 +65,10 @@ class Stack implements \ArrayAccess {
 
     public function __get($property) {
         switch ($property) {
-            case 'length': return count($this->storage);
+            case 'length': return count($this->_storage);
             break;
             case 'currentNode':
-                $currentNode = end($this->storage);
+                $currentNode = end($this->_storage);
                 return ($currentNode) ? $currentNode : null;
             break;
             case 'adjustedCurrentNode':
