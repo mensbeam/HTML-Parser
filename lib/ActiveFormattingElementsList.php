@@ -132,7 +132,7 @@ class ActiveFormattingElementsList implements \ArrayAccess {
         # elements is a marker, or if it is an element that is in the stack of open
         # elements, then there is nothing to reconstruct; stop this algorithm.
         $entry = end($this->_storage);
-        if ($entry instanceof ActiveFormattingElementMarker || in_array($entry['element'], Parser::$self->stack)) {
+        if ($entry instanceof ActiveFormattingElementMarker || in_array($entry['element'], Parser::$instance->stack)) {
             return;
         }
 
@@ -153,7 +153,7 @@ class ActiveFormattingElementsList implements \ArrayAccess {
 
         # 6. If entry is neither a marker nor an element that is also in the stack of
         # open elements, go to the step labeled Rewind.
-        if (!$entry instanceof ActiveFormattingElementMarker && !in_array($entry['element'], Parser::$self->stack)) {
+        if (!$entry instanceof ActiveFormattingElementMarker && !in_array($entry['element'], Parser::$instance->stack)) {
             goto rewind;
         }
 
@@ -165,7 +165,7 @@ class ActiveFormattingElementsList implements \ArrayAccess {
         # 8. Create: Insert an HTML element for the token for which the element entry
         # was created, to obtain new element.
         create:
-        $element = Parser::$self->insertElement($entry['token']);
+        $element = Parser::$instance->insertElement($entry['token']);
 
         # 9. Replace the entry for entry in the list with an entry for new element.
         $this->_storage[key($this->_storage)]['element'] = $element;

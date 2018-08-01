@@ -21,6 +21,8 @@ class Exception extends \Exception {
 
     const DOM_DOMELEMENT_STRING_OR_CLOSURE_EXPECTED = 10501;
 
+    const TOKENIZER_INVALID_STATE = 10601;
+
     protected static $messages = [10000 => 'Invalid error code',
                                   10001 => 'Unknown error; escaping',
                                   10002 => 'Incorrect number of parameters for Exception message; %s expected',
@@ -37,7 +39,9 @@ class Exception extends \Exception {
                                   10401 => 'Data string expected; found %s',
                                   10402 => '%s is an invalid data consumption length; a value of 1 or above is expected',
 
-                                  10501 => 'The first argument must either be an instance of \DOMElement, a string, or a closure; found %s'];
+                                  10501 => 'The first argument must either be an instance of \DOMElement, a string, or a closure; found %s',
+
+                                  10601 => 'The Tokenizer has entered an invalid state'];
 
     public function __construct(int $code, ...$args) {
         if (!isset(static::$messages[$code])) {
@@ -62,18 +66,6 @@ class Exception extends \Exception {
         }
 
         if ($count > 0) {
-            // Convert newlines and tabs in the arguments to words to better express what they
-            // are.
-            /*$args = array_map(function($value) {
-                switch ($value) {
-                    case "\n": return 'Newline';
-                    break;
-                    case "\t": return 'Tab';
-                    break;
-                    default: return $value;
-                }
-            }, $args);*/
-
             // Go through each of the arguments and run sprintf on the strings.
             $message = call_user_func_array('sprintf', array_merge([$message], $args));
         }

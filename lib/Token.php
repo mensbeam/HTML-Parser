@@ -7,16 +7,16 @@ abstract class Token {}
 abstract class DataToken extends Token {
     public $data;
 
-    public function __construct($data) {
-        $this->data = (string)$data;
+    public function __construct(string $data) {
+        $this->data = $data;
     }
 }
 
 abstract class TagToken extends Token {
     public $name;
 
-    public function __construct($name) {
-        $this->name = (string)$name;
+    public function __construct(string $name) {
+        $this->name = $name;
     }
 }
 
@@ -38,7 +38,7 @@ class DOCTYPEToken extends Token {
 class CharacterToken extends DataToken {}
 
 class CommentToken extends DataToken {
-    public function __construct($data = '') {
+    public function __construct(string $data = '') {
         parent::__construct($data);
     }
 }
@@ -48,7 +48,7 @@ class StartTagToken extends TagToken {
     public $selfClosing;
     public $attributes = [];
 
-    public function __construct($name, bool $selfClosing = false, string $namespace = Parser::HTML_NAMESPACE) {
+    public function __construct(string $name, bool $selfClosing = false, string $namespace = Parser::HTML_NAMESPACE) {
         $this->selfClosing = $selfClosing;
         $this->namespace = $namespace;
         parent::__construct($name);
@@ -68,7 +68,7 @@ class StartTagToken extends TagToken {
          unset($this->attributes[$this->getAttributeKey($name)]);
      }
 
-     public function setAttribute($name, $value, $namespace = Parser::HTML_NAMESPACE) {
+     public function setAttribute(string $name, string $value, string $namespace = Parser::HTML_NAMESPACE) {
          $key = $this->_getAttributeKey($name);
          $attribute = new TokenAttr($name, $value, $namespace);
 
@@ -79,7 +79,7 @@ class StartTagToken extends TagToken {
          }
      }
 
-     private function _getAttributeKey($name) {
+     private function _getAttributeKey(string $name) {
          $key = null;
          foreach ($this->attributes as $key => $a) {
              if ($a->name === $name) {

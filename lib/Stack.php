@@ -76,7 +76,7 @@ class Stack implements \ArrayAccess {
                 # the HTML fragment parsing algorithm and the stack of open elements has only one
                 # element in it (fragment case); otherwise, the adjusted current node is the
                 # current node.
-                return (Parser::$self->fragmentCase && $this->length === 1) ? Parser::$self->fragmentContext : $this->currentNode;
+                return (Parser::$instance->fragmentCase && $this->length === 1) ? Parser::$instance->fragmentContext : $this->currentNode;
             break;
             case 'adjustedCurrentNodeNamespace':
                 $adjustedCurrentNode = $this->adjustedCurrentNode;

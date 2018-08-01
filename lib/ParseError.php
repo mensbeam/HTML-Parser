@@ -3,10 +3,6 @@ declare(strict_types=1);
 namespace dW\HTML5;
 
 class ParseError {
-    // DataStream object passed to it used to get information used in error
-    // reporting.
-    public static $data;
-
     const TAG_NAME_EXPECTED = 0;
     const UNEXPECTED_EOF = 1;
     const UNEXPECTED_CHARACTER = 2;
@@ -17,7 +13,11 @@ class ParseError {
     const UNEXPECTED_DOCTYPE = 7;
     const INVALID_DOCTYPE = 8;
     const INVALID_CONTROL_OR_NONCHARACTERS = 9;
-    const INVALID_XMLNS_ATTRIBUTE_VALUE = 10;
+    const UNEXPECTED_XMLNS_ATTRIBUTE_VALUE = 10;
+    const ENTITY_UNEXPECTED_CHARACTER = 11;
+    const INVALID_NUMERIC_ENTITY = 12;
+    const INVALID_NAMED_ENTITY = 14;
+    const INVALID_CODEPOINT = 15;
 
     protected static $messages = ['Tag name expected; found %s',
                                   'Unexpected end-of-file; %s expected',
@@ -29,14 +29,18 @@ class ParseError {
                                   'Unexpected DOCTYPE; %s expected',
                                   'Invalid DOCTYPE',
                                   'Invalid Control or Non-character; removing',
-                                  'Invalid xmlns attribute value; %s expected'];
+                                  'Unexpected xmlns attribute value; %s expected',
+                                  'Unexpected "%s" character in entity; %s expected',
+                                  '"%s" is an invalid numeric entity',
+                                  '"%s" is an invalid name for an entity',
+                                  '"%s" is an invalid character codepoint'];
 
     public static function errorHandler($code, $message, $file, $line, array $context) {
         if ($code === E_USER_WARNING) {
-            $errMsg = sprintf("HTML5 Parse Error: \"%s\" in %s", $message, static::$data->filePath);
+            $errMsg = sprintf("HTML5 Parse Error: \"%s\" in %s", $message, Parser::$instance->data->filePath);
 
-            if (static::$data->length !== 0) {
-                $errMsg .= sprintf(" on line %s, column %s\n", static ::$data->line, static::$data->column);
+            if (Parser::$instance->data->length !== 0) {
+                $errMsg .= sprintf(" on line %s, column %s\n", Parser::$instance->data->line, Parser::$instance->data->column);
             } else {
                 $errMsg .= "\n";
             }
@@ -45,12 +49,10 @@ class ParseError {
         }
     }
 
-    public static function trigger(int $code, DataStream $data, ...$args): bool {
+    public static function trigger(int $code, ...$args): bool {
         if (!isset(static::$messages[$code])) {
             throw new Exception(Exception::INVALID_CODE);
         }
-
-        static::$data = $data;
 
         // Set the error handler and honor already-set error reporting rules.
         set_error_handler('\\dW\\HTML5\\ParseError::errorHandler', error_reporting());
@@ -68,12 +70,14 @@ class ParseError {
             // Convert newlines and tabs in the arguments to words to better express what they
             // are.
             $args = array_map(function($value) {
-                switch ($value) {
-                    case "\n": return 'Newline';
-                    break;
-                    case "\t": return 'Tab';
-                    break;
-                    default: return $value;
+                if ($value === "\n") {
+                    return 'Newline';
+                } elseif ($value === "\t") {
+                    return 'Tab';
+                } elseif (is_null($value)) {
+                    return "nothing";
+                } else {
+                    return $value;
                 }
             }, $args);
 

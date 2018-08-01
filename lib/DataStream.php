@@ -141,7 +141,7 @@ class DataStream
                 # unconsume the U+0023 NUMBER SIGN character and, if appropriate, the X
                 # character). This is a parse error; nothing is returned.
                 if (!$number) {
-                    ParseError::trigger(ParseError::HEX_DIGITS_EXPECTED, $this, $this->peek());
+                    ParseError::trigger(ParseError::ENTITY_UNEXPECTED_CHARACTER, $this->peek(), 'hexadecimal digit');
                     $this->unconsume(2);
 
                     return '&';
@@ -154,7 +154,7 @@ class DataStream
                 # unconsume the U+0023 NUMBER SIGN character and, if appropriate, the X
                 # character). This is a parse error; nothing is returned.
                 if (!$number) {
-                    ParseError::trigger(ParseError::DIGITS_EXPECTED, $this, $this->peek());
+                    ParseError::trigger(ParseError::ENTITY_UNEXPECTED_CHARACTER, $this->peek(), 'decimal digit');
                     $this->unconsume();
 
                     return '&';
@@ -167,7 +167,7 @@ class DataStream
             if ($char === ';') {
                 $this->consume();
             } else {
-                ParseError::trigger(ParseError::SEMICOLON_TERMINATOR_EXPECTED, $this, $char);
+                ParseError::trigger(ParseError::ENTITY_UNEXPECTED_CHARACTER, $char, 'semicolon terminator');
             }
 
             # If one or more characters match the range, then take them all and interpret the
@@ -266,7 +266,7 @@ class DataStream
             }
 
             if ($returnValue) {
-                ParseError::trigger(Error::INVALID_NUMERIC_ENTITY);
+                ParseError::trigger(Error::INVALID_NUMERIC_ENTITY, $number);
                 return $returnValue;
             }
 
@@ -274,7 +274,7 @@ class DataStream
             # 0x10FFFF, then this is a parse error. Return a U+FFFD REPLACEMENT CHARACTER
             # character token.
             if (($number >= 0xD800 && $number <= 0xDFFF) || $number > 0x10FFFF) {
-                ParseError::trigger(Error::INVALID_CODEPOINT);
+                ParseError::trigger(Error::INVALID_CODEPOINT, $number);
                 return '�';
             }
 
@@ -295,7 +295,7 @@ class DataStream
                  $number === 0xBFFFF || $number === 0xCFFFE || $number === 0xCFFFF || $number === 0xDFFFE ||
                  $number === 0xDFFFF || $number === 0xEFFFE || $number === 0xEFFFF || $number === 0xFFFFE ||
                  $number === 0xFFFFF || $number === 0x10FFFE || $number === 0x10FFFF) {
-                ParseError::trigger(Error::INVALID_CODEPOINT);
+                ParseError::trigger(Error::INVALID_CODEPOINT, $number);
                 return '&';
             }
 
@@ -337,7 +337,7 @@ class DataStream
             $next = $this->peek();
             if ($inAttribute && $lastChar !== ';' && ($next === '=' || ctype_alnum($next))) {
                 if ($next === '=') {
-                    ParseError::trigger(ParseError::INVALID_NAMED_ENTITY, $this);
+                    ParseError::trigger(ParseError::ENTITY_UNEXPECTED_CHARACTER, $next, 'semicolon terminator');
                 }
 
                 return '&';
@@ -349,7 +349,7 @@ class DataStream
                 // Used for PHP's entity decoder. Described below.
                 $sequence.=';';
 
-                ParseError::trigger(ParseError::SEMICOLON_TERMINATOR_EXPECTED, $this);
+                ParseError::trigger(ParseError::ENTITY_UNEXPECTED_CHARACTER, $lastChar, 'semicolon terminator');
             }
 
             # Return one or two character tokens for the character(s) corresponding to the
@@ -367,7 +367,7 @@ class DataStream
         # (&) consist of a sequence of one or more alphanumeric ASCII characters followed
         # by a U+003B SEMICOLON character (;), then this is a parse error.
         if (preg_match('/^[A-Za-z0-9]+;/', $char)) {
-            ParseError::trigger(ParseError::INVALID_NAMED_ENTITY, $this);
+            ParseError::trigger(ParseError::INVALID_NAMED_ENTITY, $char);
         }
 
         return '&';
