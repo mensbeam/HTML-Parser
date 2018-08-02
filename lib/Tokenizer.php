@@ -76,7 +76,7 @@ class Tokenizer {
     const CTYPE_UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
     public function __construct() {
-        $this->state = static::DATA_STATE;
+        $this->state = self::DATA_STATE;
     }
 
     public function createToken(): Token {
@@ -85,140 +85,140 @@ class Tokenizer {
                 echo "State: ";
 
                 switch ($this->state) {
-                    case static::DATA_STATE: echo "Data\n";
+                    case self::DATA_STATE: echo "Data\n";
                     break;
-                    case static::RCDATA_STATE: echo "RCDATA\n";
+                    case self::RCDATA_STATE: echo "RCDATA\n";
                     break;
-                    case static::RAWTEXT_STATE: echo "RAWTEXT\n";
+                    case self::RAWTEXT_STATE: echo "RAWTEXT\n";
                     break;
-                    case static::SCRIPT_DATA_STATE: echo "Script data\n";
+                    case self::SCRIPT_DATA_STATE: echo "Script data\n";
                     break;
-                    case static::PLAINTEXT_STATE: echo "PLAINTEXT\n";
+                    case self::PLAINTEXT_STATE: echo "PLAINTEXT\n";
                     break;
-                    case static::TAG_OPEN_STATE: echo "Tag open\n";
+                    case self::TAG_OPEN_STATE: echo "Tag open\n";
                     break;
-                    case static::END_TAG_OPEN_STATE: echo "End tag open\n";
+                    case self::END_TAG_OPEN_STATE: echo "End tag open\n";
                     break;
-                    case static::TAG_NAME_STATE: echo "Tag name\n";
+                    case self::TAG_NAME_STATE: echo "Tag name\n";
                     break;
-                    case static::RCDATA_LESS_THAN_SIGN_STATE: echo "RCDATA less-than sign\n";
+                    case self::RCDATA_LESS_THAN_SIGN_STATE: echo "RCDATA less-than sign\n";
                     break;
-                    case static::RCDATA_END_TAG_OPEN_STATE: echo "RCDATA end tag open\n";
+                    case self::RCDATA_END_TAG_OPEN_STATE: echo "RCDATA end tag open\n";
                     break;
-                    case static::RCDATA_END_TAG_NAME_STATE: echo "RCDATA end tag name\n";
+                    case self::RCDATA_END_TAG_NAME_STATE: echo "RCDATA end tag name\n";
                     break;
-                    case static::RAWTEXT_LESS_THAN_SIGN_STATE: echo "RAWTEXT less than sign\n";
+                    case self::RAWTEXT_LESS_THAN_SIGN_STATE: echo "RAWTEXT less than sign\n";
                     break;
-                    case static::RAWTEXT_END_TAG_OPEN_STATE: echo "RAWTEXT end tag open\n";
+                    case self::RAWTEXT_END_TAG_OPEN_STATE: echo "RAWTEXT end tag open\n";
                     break;
-                    case static::RAWTEXT_END_TAG_NAME_STATE: echo "RAWTEXT end tag name\n";
+                    case self::RAWTEXT_END_TAG_NAME_STATE: echo "RAWTEXT end tag name\n";
                     break;
-                    case static::SCRIPT_DATA_LESS_THAN_SIGN_STATE: echo "Script data less-than sign\n";
+                    case self::SCRIPT_DATA_LESS_THAN_SIGN_STATE: echo "Script data less-than sign\n";
                     break;
-                    case static::SCRIPT_DATA_END_TAG_OPEN_STATE: echo "Script data end tag open\n";
+                    case self::SCRIPT_DATA_END_TAG_OPEN_STATE: echo "Script data end tag open\n";
                     break;
-                    case static::SCRIPT_DATA_END_TAG_NAME_STATE: echo "Script data end tag name\n";
+                    case self::SCRIPT_DATA_END_TAG_NAME_STATE: echo "Script data end tag name\n";
                     break;
-                    case static::SCRIPT_DATA_ESCAPE_START_STATE: echo "Script data escape start\n";
+                    case self::SCRIPT_DATA_ESCAPE_START_STATE: echo "Script data escape start\n";
                     break;
-                    case static::SCRIPT_DATA_ESCAPE_START_DASH_STATE: echo "Script data escape start dash\n";
+                    case self::SCRIPT_DATA_ESCAPE_START_DASH_STATE: echo "Script data escape start dash\n";
                     break;
-                    case static::SCRIPT_DATA_ESCAPED_STATE: echo "Script data escaped\n";
+                    case self::SCRIPT_DATA_ESCAPED_STATE: echo "Script data escaped\n";
                     break;
-                    case static::SCRIPT_DATA_ESCAPED_DASH_STATE: echo "Script data escaped dash\n";
+                    case self::SCRIPT_DATA_ESCAPED_DASH_STATE: echo "Script data escaped dash\n";
                     break;
-                    case static::SCRIPT_DATA_ESCAPED_DASH_DASH_STATE: echo "Script data escaped dash dash\n";
+                    case self::SCRIPT_DATA_ESCAPED_DASH_DASH_STATE: echo "Script data escaped dash dash\n";
                     break;
-                    case static::SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN_STATE: echo "Script data escaped less-than sign\n";
+                    case self::SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN_STATE: echo "Script data escaped less-than sign\n";
                     break;
-                    case static::SCRIPT_DATA_ESCAPED_END_TAG_OPEN_STATE: echo "Script data escaped end tag open\n";
+                    case self::SCRIPT_DATA_ESCAPED_END_TAG_OPEN_STATE: echo "Script data escaped end tag open\n";
                     break;
-                    case static::SCRIPT_DATA_ESCAPED_END_TAG_NAME_STATE: echo "Script data escaped end tag name\n";
+                    case self::SCRIPT_DATA_ESCAPED_END_TAG_NAME_STATE: echo "Script data escaped end tag name\n";
                     break;
-                    case static::SCRIPT_DATA_DOUBLE_ESCAPE_START_STATE: echo "Script data double escape start\n";
+                    case self::SCRIPT_DATA_DOUBLE_ESCAPE_START_STATE: echo "Script data double escape start\n";
                     break;
-                    case static::SCRIPT_DATA_DOUBLE_ESCAPED_STATE: echo "Script data double escaped\n";
+                    case self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE: echo "Script data double escaped\n";
                     break;
-                    case static::SCRIPT_DATA_DOUBLE_ESCAPED_DASH_STATE: echo "Script data double escaped dash\n";
+                    case self::SCRIPT_DATA_DOUBLE_ESCAPED_DASH_STATE: echo "Script data double escaped dash\n";
                     break;
-                    case static::SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH_STATE: echo "Script data double escaped dash dash\n";
+                    case self::SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH_STATE: echo "Script data double escaped dash dash\n";
                     break;
-                    case static::SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN_STATE: echo "Script data double escaped less-than sign\n";
+                    case self::SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN_STATE: echo "Script data double escaped less-than sign\n";
                     break;
-                    case static::SCRIPT_DATA_DOUBLE_ESCAPE_END_STATE: echo "Script data double escape end\n";
+                    case self::SCRIPT_DATA_DOUBLE_ESCAPE_END_STATE: echo "Script data double escape end\n";
                     break;
-                    case static::BEFORE_ATTRIBUTE_NAME_STATE: echo "Before attribute\n";
+                    case self::BEFORE_ATTRIBUTE_NAME_STATE: echo "Before attribute\n";
                     break;
-                    case static::ATTRIBUTE_NAME_STATE: echo "Attribute name\n";
+                    case self::ATTRIBUTE_NAME_STATE: echo "Attribute name\n";
                     break;
-                    case static::AFTER_ATTRIBUTE_NAME_STATE: echo "After attribute name\n";
+                    case self::AFTER_ATTRIBUTE_NAME_STATE: echo "After attribute name\n";
                     break;
-                    case static::BEFORE_ATTRIBUTE_VALUE_STATE: echo "Before attribute value\n";
+                    case self::BEFORE_ATTRIBUTE_VALUE_STATE: echo "Before attribute value\n";
                     break;
-                    case static::ATTRIBUTE_VALUE_DOUBLE_QUOTED_STATE: echo "Attribute value (double quoted)\n";
+                    case self::ATTRIBUTE_VALUE_DOUBLE_QUOTED_STATE: echo "Attribute value (double quoted)\n";
                     break;
-                    case static::ATTRIBUTE_VALUE_SINGLE_QUOTED_STATE: echo "Attribute value (single quoted)\n";
+                    case self::ATTRIBUTE_VALUE_SINGLE_QUOTED_STATE: echo "Attribute value (single quoted)\n";
                     break;
-                    case static::ATTRIBUTE_VALUE_UNQUOTED_STATE: echo "Attribute value (unquoted)\n";
+                    case self::ATTRIBUTE_VALUE_UNQUOTED_STATE: echo "Attribute value (unquoted)\n";
                     break;
-                    case static::AFTER_ATTRIBUTE_VALUE_QUOTED_STATE: echo "After attribute value (quoted)\n";
+                    case self::AFTER_ATTRIBUTE_VALUE_QUOTED_STATE: echo "After attribute value (quoted)\n";
                     break;
-                    case static::SELF_CLOSING_START_TAG_STATE: echo "Self-closing start tag\n";
+                    case self::SELF_CLOSING_START_TAG_STATE: echo "Self-closing start tag\n";
                     break;
-                    case static::BOGUS_COMMENT_STATE: echo "Bogus comment\n";
+                    case self::BOGUS_COMMENT_STATE: echo "Bogus comment\n";
                     break;
-                    case static::MARKUP_DECLARATION_OPEN_STATE: echo "Markup declaration open\n";
+                    case self::MARKUP_DECLARATION_OPEN_STATE: echo "Markup declaration open\n";
                     break;
-                    case static::COMMENT_START_STATE: echo "Comment start\n";
+                    case self::COMMENT_START_STATE: echo "Comment start\n";
                     break;
-                    case static::COMMENT_START_DASH_STATE: echo "Comment start dash\n";
+                    case self::COMMENT_START_DASH_STATE: echo "Comment start dash\n";
                     break;
-                    case static::COMMENT_STATE: echo "Comment\n";
+                    case self::COMMENT_STATE: echo "Comment\n";
                     break;
-                    case static::COMMENT_END_DASH_STATE: echo "Comment end dash\n";
+                    case self::COMMENT_END_DASH_STATE: echo "Comment end dash\n";
                     break;
-                    case static::COMMENT_END_STATE: echo "Comment end\n";
+                    case self::COMMENT_END_STATE: echo "Comment end\n";
                     break;
-                    case static::COMMENT_END_BANG_STATE: echo "Comment end bang\n";
+                    case self::COMMENT_END_BANG_STATE: echo "Comment end bang\n";
                     break;
-                    case static::DOCTYPE_STATE: echo "DOCTYPE\n";
+                    case self::DOCTYPE_STATE: echo "DOCTYPE\n";
                     break;
-                    case static::BEFORE_DOCTYPE_NAME_STATE: echo "Before DOCTYPE name\n";
+                    case self::BEFORE_DOCTYPE_NAME_STATE: echo "Before DOCTYPE name\n";
                     break;
-                    case static::DOCTYPE_NAME_STATE: echo "DOCTYPE name\n";
+                    case self::DOCTYPE_NAME_STATE: echo "DOCTYPE name\n";
                     break;
-                    case static::AFTER_DOCTYPE_NAME_STATE: echo "After DOCTYPE name\n";
+                    case self::AFTER_DOCTYPE_NAME_STATE: echo "After DOCTYPE name\n";
                     break;
-                    case static::AFTER_DOCTYPE_PUBLIC_KEYWORD_STATE: echo "After DOCTYPE public keyword\n";
+                    case self::AFTER_DOCTYPE_PUBLIC_KEYWORD_STATE: echo "After DOCTYPE public keyword\n";
                     break;
-                    case static::BEFORE_DOCTYPE_PUBLIC_IDENTIFIER_STATE: echo "Before DOCTYPE public identifier\n";
+                    case self::BEFORE_DOCTYPE_PUBLIC_IDENTIFIER_STATE: echo "Before DOCTYPE public identifier\n";
                     break;
-                    case static::DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED_STATE: echo "DOCTYPE public identifier (double quoted)\n";
+                    case self::DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED_STATE: echo "DOCTYPE public identifier (double quoted)\n";
                     break;
-                    case static::DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED_STATE: echo "DOCTYPE public identifier (single quoted)\n";
+                    case self::DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED_STATE: echo "DOCTYPE public identifier (single quoted)\n";
                     break;
-                    case static::AFTER_DOCTYPE_PUBLIC_IDENTIFIER_STATE: echo "After DOCTYPE public identifier\n";
+                    case self::AFTER_DOCTYPE_PUBLIC_IDENTIFIER_STATE: echo "After DOCTYPE public identifier\n";
                     break;
-                    case static::BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS_STATE: echo "Between DOCTYPE public and system identifiers\n";
+                    case self::BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS_STATE: echo "Between DOCTYPE public and system identifiers\n";
                     break;
-                    case static::AFTER_DOCTYPE_SYSTEM_KEYWORD_STATE: echo "After DOCTYPE system keyword\n";
+                    case self::AFTER_DOCTYPE_SYSTEM_KEYWORD_STATE: echo "After DOCTYPE system keyword\n";
                     break;
-                    case static::BEFORE_DOCTYPE_SYSTEM_IDENTIFIER_STATE: echo "Before DOCTYPE system identifier\n";
+                    case self::BEFORE_DOCTYPE_SYSTEM_IDENTIFIER_STATE: echo "Before DOCTYPE system identifier\n";
                     break;
-                    case static::DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED_STATE: echo "DOCTYPE system identifier (double-quoted)\n";
+                    case self::DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED_STATE: echo "DOCTYPE system identifier (double-quoted)\n";
                     break;
-                    case static::DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED_STATE: echo "DOCTYPE system identifier (single-quoted)\n";
+                    case self::DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED_STATE: echo "DOCTYPE system identifier (single-quoted)\n";
                     break;
-                    case static::AFTER_DOCTYPE_SYSTEM_IDENTIFIER_STATE: echo "After DOCTYPE system identifier\n";
+                    case self::AFTER_DOCTYPE_SYSTEM_IDENTIFIER_STATE: echo "After DOCTYPE system identifier\n";
                     break;
-                    case static::BOGUS_DOCTYPE_STATE: echo "Bogus comment\n";
+                    case self::BOGUS_DOCTYPE_STATE: echo "Bogus comment\n";
                     break;
-                    case static::CDATA_SECTION_STATE: echo "CDATA section\n";
+                    case self::CDATA_SECTION_STATE: echo "CDATA section\n";
                 }
             }
 
             # 12.2.4.1 Data state
-            if ($this->state === static::DATA_STATE) {
+            if ($this->state === self::DATA_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -239,7 +239,7 @@ class Tokenizer {
                 # U+003C LESS-THAN SIGN (<)
                 elseif ($char === '<') {
                     # Switch to the tag open state.
-                    $this->state = static::TAG_OPEN_STATE;
+                    $this->state = self::TAG_OPEN_STATE;
                     continue;
                 }
                 # EOF
@@ -261,7 +261,7 @@ class Tokenizer {
             // OPTIMIZATION: This is instead done in the block above.
 
             # 12.2.4.3 RCDATA state
-            elseif ($this->state === static::RCDATA_STATE) {
+            elseif ($this->state === self::RCDATA_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -282,7 +282,7 @@ class Tokenizer {
                 # U+003C LESS-THAN SIGN (<)
                 elseif ($char === '<') {
                     # Switch to the RCDATA less-than sign state.
-                    $this->state = static::RCDATA_LESS_THAN_SIGN_STATE;
+                    $this->state = self::RCDATA_LESS_THAN_SIGN_STATE;
                 }
                 # EOF
                 elseif ($char === '') {
@@ -305,14 +305,14 @@ class Tokenizer {
             // OPTIMIZATION: This is instead done in the block above.
 
             # 12.2.4.5 RAWTEXT state
-            elseif ($this->state === static::RAWTEXT_STATE) {
+            elseif ($this->state === self::RAWTEXT_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
                 # U+003C LESS-THAN SIGN (<)
                 if ($char === '<') {
                     # Switch to the RAWTEXT less-than sign state.
-                    $this->state = static::RAWTEXT_LESS_THAN_SIGN_STATE;
+                    $this->state = self::RAWTEXT_LESS_THAN_SIGN_STATE;
                 }
                 # EOF
                 elseif ($char === '') {
@@ -332,14 +332,14 @@ class Tokenizer {
             }
 
             # 12.2.4.6 Script data state
-            elseif ($this->state === static::SCRIPT_DATA_STATE) {
+            elseif ($this->state === self::SCRIPT_DATA_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
                 # U+003C LESS-THAN SIGN (<)
                 if ($char === '<') {
                     # Switch to the script data less-than sign state.
-                    $this->state = static::SCRIPT_DATA_LESS_THAN_SIGN_STATE;
+                    $this->state = self::SCRIPT_DATA_LESS_THAN_SIGN_STATE;
                 }
                 # EOF
                 elseif ($char === '') {
@@ -359,7 +359,7 @@ class Tokenizer {
             }
 
             # 12.2.4.7 PLAINTEXT state
-            elseif ($this->state === static::PLAINTEXT_STATE) {
+            elseif ($this->state === self::PLAINTEXT_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -379,19 +379,19 @@ class Tokenizer {
             }
 
             # 12.2.4.8 Tag open state
-            elseif ($this->state === static::TAG_OPEN_STATE) {
+            elseif ($this->state === self::TAG_OPEN_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
                 # U+0021 EXCLAMATION MARK (!)
                 if ($char === '!') {
                     # Switch to the markup declaration open state.
-                    $this->state = static::MARKUP_DECLARATION_OPEN_STATE;
+                    $this->state = self::MARKUP_DECLARATION_OPEN_STATE;
                 }
                 # U+002F SOLIDUS (/)
                 elseif ($char === '/') {
                     # Switch to the end tag open state.
-                    $this->state = static::END_TAG_OPEN_STATE;
+                    $this->state = self::END_TAG_OPEN_STATE;
                 }
                 # Uppercase ASCII letter
                 # Lowercase ASCII letter
@@ -410,8 +410,8 @@ class Tokenizer {
                     // characters.
                     // OPTIMIZATION: Consume all characters that are ASCII characters to prevent having
                     // to loop back through here every single time.
-                    $token = new StartTagToken(strtolower($char.Parser::$instance->data->consumeWhile(static::CTYPE_ALPHA)));
-                    $this->state = static::TAG_NAME_STATE;
+                    $token = new StartTagToken(strtolower($char.Parser::$instance->data->consumeWhile(self::CTYPE_ALPHA)));
+                    $this->state = self::TAG_NAME_STATE;
                 }
                 # U+003F QUESTION MARK (?)
                 elseif ($char === '?') {
@@ -424,7 +424,7 @@ class Tokenizer {
                         ParseError::trigger(ParseError::UNEXPECTED_EOF, 'tag name');
                     }
 
-                    $this->state = static::BOGUS_COMMENT_STATE;
+                    $this->state = self::BOGUS_COMMENT_STATE;
                 }
                 # Anything else
                 else {
@@ -438,7 +438,7 @@ class Tokenizer {
                         ParseError::trigger(ParseError::UNEXPECTED_EOF, 'tag name');
                     }
 
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     Parser::$instance->data->unconsume();
                 }
 
@@ -446,7 +446,7 @@ class Tokenizer {
             }
 
             # 8.2.4.9 End tag open state
-            elseif ($this->state === static::END_TAG_OPEN_STATE) {
+            elseif ($this->state === self::END_TAG_OPEN_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -467,14 +467,14 @@ class Tokenizer {
                     // characters.
                     // OPTIMIZATION: Consume all characters that are ASCII characters to prevent having
                     // to loop back through here every single time.
-                    $token = new EndTagToken(strtolower($char.Parser::$instance->data->consumeWhile(static::CTYPE_ALPHA)));
-                    $this->state = static::TAG_NAME_STATE;
+                    $token = new EndTagToken(strtolower($char.Parser::$instance->data->consumeWhile(self::CTYPE_ALPHA)));
+                    $this->state = self::TAG_NAME_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
                     # Parse error. Switch to the data state.
                     ParseError::trigger(ParseError::TAG_NAME_EXPECTED, $char);
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                 }
                 # EOF
                 elseif ($char === '') {
@@ -482,7 +482,7 @@ class Tokenizer {
                     # token and a U+002F SOLIDUS character token. Reconsume the EOF character.
                     // Making errors more expressive.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'tag name');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     Parser::$instance->data->unconsume();
                     return new CharacterToken('</');
                 }
@@ -490,14 +490,14 @@ class Tokenizer {
                 else {
                    # Parse error. Switch to the bogus comment state.
                    ParseError::trigger(ParseError::TAG_NAME_EXPECTED, $char);
-                   $this->state = static::BOGUS_COMMENT_STATE;
+                   $this->state = self::BOGUS_COMMENT_STATE;
                 }
 
                 continue;
             }
 
             # 8.2.4.10 Tag name state
-            elseif ($this->state === static::TAG_NAME_STATE) {
+            elseif ($this->state === self::TAG_NAME_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -507,17 +507,17 @@ class Tokenizer {
                 # U+0020 SPACE
                 if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
                     # Switch to the before attribute name state.
-                    $this->state = static::BEFORE_ATTRIBUTE_NAME_STATE;
+                    $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
                 }
                 # "/" (U+002F)
                 elseif ($char === '/') {
                     # Switch to the self-closing start tag state.
-                    $this->state = static::SELF_CLOSING_START_TAG_STATE;
+                    $this->state = self::SELF_CLOSING_START_TAG_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
                     # Switch to the data state. Emit the current tag token.
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     return $token;
                 }
                 # Uppercase ASCII letter
@@ -527,7 +527,7 @@ class Tokenizer {
 
                     // OPTIMIZATION: Consume all characters that are Uppercase ASCII characters to
                     // prevent having to loop back through here every single time.
-                    $token->name = $token->name.strtolower($char.Parser::$instance->data->consumeWhile(static::CTYPE_UPPER));
+                    $token->name = $token->name.strtolower($char.Parser::$instance->data->consumeWhile(self::CTYPE_UPPER));
                 }
                 # EOF
                 elseif ($char === '') {
@@ -540,7 +540,7 @@ class Tokenizer {
                         ParseError::trigger(ParseError::UNEXPECTED_EOF, 'tag name');
                     }
 
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     Parser::$instance->data->unconsume();
                 }
                 # Anything else
@@ -549,14 +549,14 @@ class Tokenizer {
 
                     // OPTIMIZATION: Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
-                    $token->name = $token->name.$char.Parser::$instance->data->consumeUntil("\t\n\x0c />".static::CTYPE_UPPER);
+                    $token->name = $token->name.$char.Parser::$instance->data->consumeUntil("\t\n\x0c />".self::CTYPE_UPPER);
                 }
 
                 continue;
             }
 
             # 8.2.4.11 RCDATA less-than sign state
-            elseif ($this->state === static::RCDATA_LESS_THAN_SIGN_STATE) {
+            elseif ($this->state === self::RCDATA_LESS_THAN_SIGN_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -565,13 +565,13 @@ class Tokenizer {
                     # Set the temporary buffer to the empty string. Switch to the RCDATA end tag open
                     # state.
                     $temporaryBuffer = '';
-                    $this->state = static::RCDATA_END_TAG_OPEN_STATE;
+                    $this->state = self::RCDATA_END_TAG_OPEN_STATE;
                 }
                 # Anything else
                 else {
                     # Switch to the RCDATA state. Emit a U+003C LESS-THAN SIGN character token.
                     # Reconsume the current input character.
-                    $this->state = static::RCDATA_STATE;
+                    $this->state = self::RCDATA_STATE;
                     Parser::$instance->data->unconsume();
                     return new CharacterToken('<');
                 }
@@ -580,7 +580,7 @@ class Tokenizer {
             }
 
             # 8.2.4.12 RCDATA end tag open state
-            elseif ($this->state === static::RCDATA_END_TAG_OPEN_STATE) {
+            elseif ($this->state === self::RCDATA_END_TAG_OPEN_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -605,21 +605,21 @@ class Tokenizer {
                     // to loop back through here every single time.
                     $token = new EndTagToken(strtolower($char));
                     $temporaryBuffer .= $char;
-                    $this->state = static::RCDATA_END_TAG_NAME_STATE;
+                    $this->state = self::RCDATA_END_TAG_NAME_STATE;
                     continue;
                 }
                 # Anything else
                 else {
                     # Switch to the RCDATA state. Emit a U+003C LESS-THAN SIGN character token and a
                     # U+002F SOLIDUS character token. Reconsume the current input character.
-                    $this->state = static::RCDATA_STATE;
+                    $this->state = self::RCDATA_STATE;
                     Parser::$instance->data->unconsume();
                     return new CharacterToken('</');
                 }
             }
 
             # 8.2.4.13 RCDATA end tag name state
-            elseif ($this->state === static::RCDATA_END_TAG_NAME_STATE) {
+            elseif ($this->state === self::RCDATA_END_TAG_NAME_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -632,9 +632,9 @@ class Tokenizer {
                     # before attribute name state. Otherwise, treat it as per the "anything else"
                     # entry below.
                     if ($token->name === $this->stack->currentNode()->name) {
-                        $this->state = static::BEFORE_ATTRIBUTE_NAME_STATE;
+                        $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
                     } else {
-                        $this->state = static::RCDATA_STATE;
+                        $this->state = self::RCDATA_STATE;
                         Parser::$instance->data->unconsume();
                         return new CharacterToken('</'.$temporaryBuffer);
                     }
@@ -645,9 +645,9 @@ class Tokenizer {
                     # self-closing start tag state. Otherwise, treat it as per the "anything else"
                     # entry below.
                     if ($token->name === $this->stack->currentNode()->name) {
-                        $this->state = static::SELF_CLOSING_START_TAG_STATE;
+                        $this->state = self::SELF_CLOSING_START_TAG_STATE;
                     } else {
-                        $this->state = static::RCDATA_STATE;
+                        $this->state = self::RCDATA_STATE;
                         Parser::$instance->data->unconsume();
                         return new CharacterToken('</'.$temporaryBuffer);
                     }
@@ -658,10 +658,10 @@ class Tokenizer {
                     # data state and emit the current tag token. Otherwise, treat it as per the
                     # "anything else" entry below.
                     if ($token->name === $this->stack->currentNode()->name) {
-                        $this->state = static::DATA_STATE;
+                        $this->state = self::DATA_STATE;
                         return $token;
                     } else {
-                        $this->state = static::RCDATA_STATE;
+                        $this->state = self::RCDATA_STATE;
                         Parser::$instance->data->unconsume();
                         return new CharacterToken('</'.$temporaryBuffer);
                     }
@@ -681,7 +681,7 @@ class Tokenizer {
                     // characters.
                     // OPTIMIZATION: Consume all characters that are ASCII characters to prevent having
                     // to loop back through here every single time.
-                    $token->name .= $token->name.strtolower($char.Parser::$instance->data->consumeWhile(static::CTYPE_ALPHA));
+                    $token->name .= $token->name.strtolower($char.Parser::$instance->data->consumeWhile(self::CTYPE_ALPHA));
                     $temporaryBuffer .= $char;
                 }
                 # Anything else
@@ -690,7 +690,7 @@ class Tokenizer {
                     # U+002F SOLIDUS character token, and a character token for each of the characters
                     # in the temporary buffer (in the order they were added to the buffer). Reconsume
                     # the current input character.
-                    $this->state = static::RCDATA_STATE;
+                    $this->state = self::RCDATA_STATE;
                     Parser::$instance->data->unconsume();
                     return new CharacterToken('</'.$temporaryBuffer);
                 }
@@ -699,7 +699,7 @@ class Tokenizer {
             }
 
             # 8.2.4.14 RAWTEXT less-than sign state
-            elseif ($this->state === static::RAWTEXT_LESS_THAN_SIGN_STATE) {
+            elseif ($this->state === self::RAWTEXT_LESS_THAN_SIGN_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -708,13 +708,13 @@ class Tokenizer {
                     # Set the temporary buffer to the empty string. Switch to the RAWTEXT end tag open
                     # state.
                     $temporaryBuffer = '';
-                    $this->state = static::RAWTEXT_END_TAG_OPEN_STATE;
+                    $this->state = self::RAWTEXT_END_TAG_OPEN_STATE;
                 }
                 # Anything else
                 else {
                     # Switch to the RAWTEXT state. Emit a U+003C LESS-THAN SIGN character token.
                     # Reconsume the current input character.
-                    $this->state = static::RAWTEXT_STATE;
+                    $this->state = self::RAWTEXT_STATE;
                     Parser::$instance->data->unconsume();
                     return new CharacterToken('<');
                 }
@@ -723,7 +723,7 @@ class Tokenizer {
             }
 
             # 8.2.4.15 RAWTEXT end tag open state
-            elseif ($this->state === static::RAWTEXT_END_TAG_OPEN_STATE) {
+            elseif ($this->state === self::RAWTEXT_END_TAG_OPEN_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -746,13 +746,13 @@ class Tokenizer {
                     // characters.
                     $token = new EndTagToken(strtolower($char));
                     $temporaryBuffer .= $char;
-                    $this->state = static::RAWTEXT_END_TAG_NAME_STATE;
+                    $this->state = self::RAWTEXT_END_TAG_NAME_STATE;
                 }
                 # Anything else
                 else {
                     # Switch to the RAWTEXT state. Emit a U+003C LESS-THAN SIGN character token and a
                     # U+002F SOLIDUS character token. Reconsume the current input character.
-                    $this->state = static::RAWTEXT_STATE;
+                    $this->state = self::RAWTEXT_STATE;
                     Parser::$instance->data->unconsume();
                     return new CharacterToken('</');
                 }
@@ -761,7 +761,7 @@ class Tokenizer {
             }
 
             # 8.2.4.16 RAWTEXT end tag name state
-            elseif ($this->state === static::RAWTEXT_END_TAG_NAME_STATE) {
+            elseif ($this->state === self::RAWTEXT_END_TAG_NAME_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -774,9 +774,9 @@ class Tokenizer {
                     # before attribute name state. Otherwise, treat it as per the "anything else"
                     # entry below.
                     if ($token->name === $this->stack->currentNode()->name) {
-                        $this->state = static::BEFORE_ATTRIBUTE_NAME_STATE;
+                        $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
                     } else {
-                        $this->state = static::RAWTEXT_STATE;
+                        $this->state = self::RAWTEXT_STATE;
                         Parser::$instance->emitToken(new CharacterToken('</'.$temporaryBuffer));
                         Parser::$instance->data->unconsume();
                     }
@@ -789,9 +789,9 @@ class Tokenizer {
                     # self-closing start tag state. Otherwise, treat it as per the "anything else"
                     # entry below.
                     if ($token->name === $this->stack->currentNode()->name) {
-                        $this->state = static::SELF_CLOSING_START_TAG_STATE;
+                        $this->state = self::SELF_CLOSING_START_TAG_STATE;
                     } else {
-                        $this->state = static::RAWTEXT_STATE;
+                        $this->state = self::RAWTEXT_STATE;
                         Parser::$instance->emitToken(new CharacterToken('</'.$temporaryBuffer));
                         Parser::$instance->data->unconsume();
                     }
@@ -804,10 +804,10 @@ class Tokenizer {
                     # data state and emit the current tag token. Otherwise, treat it as per the
                     # "anything else" entry below.
                     if ($token->name === $this->stack->currentNode()->name) {
-                        $this->state = static::DATA_STATE;
+                        $this->state = self::DATA_STATE;
                         Parser::$instance->emitToken($token);
                     } else {
-                        $this->state = static::RAWTEXT_STATE;
+                        $this->state = self::RAWTEXT_STATE;
                         Parser::$instance->emitToken(new CharacterToken('</'.$temporaryBuffer));
                         Parser::$instance->data->unconsume();
                     }
@@ -829,7 +829,7 @@ class Tokenizer {
                     // characters.
                     // OPTIMIZATION: Consume all characters that are ASCII characters to prevent having
                     // to loop back through here every single time.
-                    $token->name .= $token->name.strtolower($char.Parser::$instance->data->consumeWhile(static::CTYPE_ALPHA));
+                    $token->name .= $token->name.strtolower($char.Parser::$instance->data->consumeWhile(self::CTYPE_ALPHA));
                     $temporaryBuffer .= $char;
                 }
                 # Anything else
@@ -838,7 +838,7 @@ class Tokenizer {
                     # U+002F SOLIDUS character token, and a character token for each of the characters
                     # in the temporary buffer (in the order they were added to the buffer). Reconsume
                     # the current input character.
-                    $this->state = static::RAWTEXT_STATE;
+                    $this->state = self::RAWTEXT_STATE;
                     Parser::$instance->emitToken(new CharacterToken('</'.$temporaryBuffer));
                     Parser::$instance->data->unconsume();
 
@@ -847,7 +847,7 @@ class Tokenizer {
             }
 
             # 8.2.4.17 Script data less-than sign state
-            elseif ($this->state === static::SCRIPT_DATA_LESS_THAN_SIGN_STATE) {
+            elseif ($this->state === self::SCRIPT_DATA_LESS_THAN_SIGN_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -856,7 +856,7 @@ class Tokenizer {
                     # Set the temporary buffer to the empty string. Switch to the script data end tag
                     # open state.
                     $temporaryBuffer = '';
-                    $this->state = static::SCRIPT_DATA_END_TAG_OPEN_STATE;
+                    $this->state = self::SCRIPT_DATA_END_TAG_OPEN_STATE;
 
                     continue;
                 }
@@ -864,7 +864,7 @@ class Tokenizer {
                 elseif ($char === '!') {
                     # Switch to the script data escape start state. Emit a U+003C LESS-THAN SIGN
                     # character token and a U+0021 EXCLAMATION MARK character token.
-                    $this->state = static::SCRIPT_DATA_ESCAPE_START_STATE;
+                    $this->state = self::SCRIPT_DATA_ESCAPE_START_STATE;
                     Parser::$instance->emitToken(new CharacterToken('<!'));
 
                     continue;
@@ -873,7 +873,7 @@ class Tokenizer {
                 else {
                     # Switch to the script data state. Emit a U+003C LESS-THAN SIGN character token.
                     # Reconsume the current input character.
-                    $this->state = static::SCRIPT_DATA_STATE;
+                    $this->state = self::SCRIPT_DATA_STATE;
                     Parser::$instance->emitToken(new CharacterToken('<'));
                     Parser::$instance->data->unconsume();
 
@@ -882,7 +882,7 @@ class Tokenizer {
             }
 
             # 8.2.4.18 Script data end tag open state
-            elseif ($this->state === static::SCRIPT_DATA_END_TAG_OPEN_STATE) {
+            elseif ($this->state === self::SCRIPT_DATA_END_TAG_OPEN_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -905,13 +905,13 @@ class Tokenizer {
                     // characters.
                     $token = new EndTagToken(strtolower($char));
                     $temporaryBuffer .= $char;
-                    $this->state = static::SCRIPT_DATA_END_TAG_NAME_STATE;
+                    $this->state = self::SCRIPT_DATA_END_TAG_NAME_STATE;
                 }
                 # Anything else
                 else {
                     # Switch to the script data state. Emit a U+003C LESS-THAN SIGN character token
                     # and a U+002F SOLIDUS character token. Reconsume the current input character.
-                    $this->state = static::SCRIPT_DATA_STATE;
+                    $this->state = self::SCRIPT_DATA_STATE;
                     Parser::$instance->data->unconsume();
                     return new CharacterToken('</');
                 }
@@ -920,7 +920,7 @@ class Tokenizer {
             }
 
             # 8.2.4.19 Script data end tag name state
-            elseif ($this->state === static::SCRIPT_DATA_END_TAG_NAME_STATE) {
+            elseif ($this->state === self::SCRIPT_DATA_END_TAG_NAME_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -933,9 +933,9 @@ class Tokenizer {
                     # before attribute name state. Otherwise, treat it as per the "anything else"
                     # entry below.
                     if ($token->name === $this->stack->currentNode()->name) {
-                        $this->state = static::BEFORE_ATTRIBUTE_NAME_STATE;
+                        $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
                     } else {
-                        $this->state = static::SCRIPT_DATA_STATE;
+                        $this->state = self::SCRIPT_DATA_STATE;
                         Parser::$instance->data->unconsume();
                         return new CharacterToken('</'.$temporaryBuffer);
                     }
@@ -946,9 +946,9 @@ class Tokenizer {
                     # self-closing start tag state. Otherwise, treat it as per the "anything else"
                     # entry below.
                     if ($token->name === $this->stack->currentNode()->name) {
-                        $this->state = static::SELF_CLOSING_START_TAG_STATE;
+                        $this->state = self::SELF_CLOSING_START_TAG_STATE;
                     } else {
-                        $this->state = static::SCRIPT_DATA_STATE;
+                        $this->state = self::SCRIPT_DATA_STATE;
                         Parser::$instance->data->unconsume();
                         return new CharacterToken('</'.$temporaryBuffer);
                     }
@@ -959,10 +959,10 @@ class Tokenizer {
                     # data state and emit the current tag token. Otherwise, treat it as per the
                     # "anything else" entry below.
                     if ($token->name === $this->stack->currentNode()->name) {
-                        $this->state = static::DATA_STATE;
+                        $this->state = self::DATA_STATE;
                         Parser::$instance->emitToken($token);
                     } else {
-                        $this->state = static::SCRIPT_DATA_STATE;
+                        $this->state = self::SCRIPT_DATA_STATE;
                         Parser::$instance->data->unconsume();
                         return new CharacterToken('</'.$temporaryBuffer);
                     }
@@ -982,7 +982,7 @@ class Tokenizer {
                     // characters.
                     // OPTIMIZATION: Consume all characters that are ASCII characters to prevent having
                     // to loop back through here every single time.
-                    $token->name .= $token->name.strtolower($char.Parser::$instance->data->consumeWhile(static::CTYPE_ALPHA));
+                    $token->name .= $token->name.strtolower($char.Parser::$instance->data->consumeWhile(self::CTYPE_ALPHA));
                     $temporaryBuffer .= $char;
                 }
                 # Anything else
@@ -991,7 +991,7 @@ class Tokenizer {
                     # U+002F SOLIDUS character token, and a character token for each of the characters
                     # in the temporary buffer (in the order they were added to the buffer). Reconsume
                     # the current input character.
-                    $this->state = static::SCRIPT_DATA_STATE;
+                    $this->state = self::SCRIPT_DATA_STATE;
                     Parser::$instance->data->unconsume();
                     return new CharacterToken('</'.$temporaryBuffer);
                 }
@@ -1000,7 +1000,7 @@ class Tokenizer {
             }
 
             # 8.2.4.20 Script data escape start state
-            elseif ($this->state === static::SCRIPT_DATA_ESCAPE_START_STATE) {
+            elseif ($this->state === self::SCRIPT_DATA_ESCAPE_START_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -1008,13 +1008,13 @@ class Tokenizer {
                 if ($char === '-') {
                     # Switch to the script data escape start dash state. Emit a U+002D HYPHEN-MINUS
                     # character token.
-                    $this->state = static::SCRIPT_DATA_ESCAPE_START_DASH_STATE;
+                    $this->state = self::SCRIPT_DATA_ESCAPE_START_DASH_STATE;
                     return new CharacterToken('-');
                 }
                 # Anything else
                 else {
                     # Switch to the script data state. Reconsume the current input character.
-                    $this->state = static::SCRIPT_DATA_STATE;
+                    $this->state = self::SCRIPT_DATA_STATE;
                     Parser::$instance->data->unconsume();
                 }
 
@@ -1022,7 +1022,7 @@ class Tokenizer {
             }
 
             # 8.2.4.21 Script data escape start dash state
-            elseif ($this->state === static::SCRIPT_DATA_ESCAPE_START_DASH_STATE) {
+            elseif ($this->state === self::SCRIPT_DATA_ESCAPE_START_DASH_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -1030,13 +1030,13 @@ class Tokenizer {
                 if ($char === '-') {
                     # Switch to the script data escaped dash dash state. Emit a U+002D HYPHEN-MINUS
                     # character token.
-                    $this->state = static::SCRIPT_DATA_ESCAPED_DASH_DASH_STATE;
+                    $this->state = self::SCRIPT_DATA_ESCAPED_DASH_DASH_STATE;
                     return new CharacterToken('-');
                 }
                 # Anything else
                 else {
                     # Switch to the script data state. Reconsume the current input character.
-                    $this->state = static::SCRIPT_DATA_STATE;
+                    $this->state = self::SCRIPT_DATA_STATE;
                     Parser::$instance->data->unconsume();
                 }
 
@@ -1044,7 +1044,7 @@ class Tokenizer {
             }
 
             # 8.2.4.22 Script data escaped state
-            elseif ($this->state === static::SCRIPT_DATA_ESCAPED_STATE) {
+            elseif ($this->state === self::SCRIPT_DATA_ESCAPED_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -1052,18 +1052,18 @@ class Tokenizer {
                 if ($char === '-') {
                     # Switch to the script data escaped dash state. Emit a U+002D HYPHEN-MINUS
                     # character token.
-                    $this->state = static::SCRIPT_DATA_ESCAPED_DASH_STATE;
+                    $this->state = self::SCRIPT_DATA_ESCAPED_DASH_STATE;
                     return new CharacterToken('-');
                 }
                 # "<" (U+003C)
                 elseif ($char === '<') {
                     # Switch to the script data escaped less-than sign state.
-                    $this->state = static::SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN_STATE;
+                    $this->state = self::SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN_STATE;
                 }
                 # EOF
                 elseif ($char === '') {
                     # Switch to the data state. Parse error. Reconsume the EOF character.
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'script data');
                     Parser::$instance->data->unconsume();
                 }
@@ -1079,7 +1079,7 @@ class Tokenizer {
             }
 
             # 8.2.4.23 Script data escaped dash state
-            elseif ($this->state === static::SCRIPT_DATA_ESCAPED_DASH_STATE) {
+            elseif ($this->state === self::SCRIPT_DATA_ESCAPED_DASH_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -1087,18 +1087,18 @@ class Tokenizer {
                 if ($char === '-') {
                     # Switch to the script data escaped dash dash state. Emit a U+002D HYPHEN-MINUS
                     # character token.
-                    $this->state = static::SCRIPT_DATA_ESCAPED_DASH_DASH_STATE;
+                    $this->state = self::SCRIPT_DATA_ESCAPED_DASH_DASH_STATE;
                     return new CharacterToken('-');
                 }
                 # "<" (U+003C)
                 elseif ($char === '<') {
                     # Switch to the script data escaped less-than sign state.
-                    $this->state = static::SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN_STATE;
+                    $this->state = self::SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN_STATE;
                 }
                 # EOF
                 elseif ($char === '') {
                     # Switch to the data state. Parse error. Reconsume the EOF character.
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'script data');
                     Parser::$instance->data->unconsume();
                 }
@@ -1106,7 +1106,7 @@ class Tokenizer {
                 else {
                     # Switch to the script data escaped state. Emit the current input character as a
                     # character token.
-                    $this->state = static::SCRIPT_DATA_ESCAPED_STATE;
+                    $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
                     return new CharacterToken($char);
                 }
 
@@ -1114,7 +1114,7 @@ class Tokenizer {
             }
 
             # 8.2.4.24 Script data escaped dash dash state
-            elseif ($this->state === static::SCRIPT_DATA_ESCAPED_DASH_DASH_STATE) {
+            elseif ($this->state === self::SCRIPT_DATA_ESCAPED_DASH_DASH_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -1126,19 +1126,19 @@ class Tokenizer {
                 # "<" (U+003C)
                 elseif ($char === '<') {
                     # Switch to the script data escaped less-than sign state.
-                    $this->state = static::SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN_STATE;
+                    $this->state = self::SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
                     # Switch to the script data state. Emit a U+003E GREATER-THAN SIGN character
                     # token.
-                    $this->state = static::SCRIPT_DATA_STATE;
+                    $this->state = self::SCRIPT_DATA_STATE;
                     return new CharacterToken('>');
                 }
                 # EOF
                 elseif ($char === '') {
                     # Switch to the data state. Parse error. Reconsume the EOF character.
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'script data');
                     Parser::$instance->data->unconsume();
                 }
@@ -1146,7 +1146,7 @@ class Tokenizer {
                 else {
                     # Switch to the script data escaped state. Emit the current input character as a
                     # character token.
-                    $this->state = static::SCRIPT_DATA_ESCAPED_STATE;
+                    $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
                     return new CharacterToken($char);
                 }
 
@@ -1154,7 +1154,7 @@ class Tokenizer {
             }
 
             # 8.2.4.25 Script data escaped less-than sign state
-            elseif ($this->state === static::SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN_STATE) {
+            elseif ($this->state === self::SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -1163,7 +1163,7 @@ class Tokenizer {
                     # Set the temporary buffer to the empty string. Switch to the script data escaped
                     # end tag open state.
                     $temporaryBuffer .= '';
-                    $this->state = static::SCRIPT_DATA_ESCAPED_END_TAG_OPEN_STATE;
+                    $this->state = self::SCRIPT_DATA_ESCAPED_END_TAG_OPEN_STATE;
                 }
                 # Uppercase ASCII letter
                 # Lowercase ASCII letter
@@ -1183,14 +1183,14 @@ class Tokenizer {
                     // OPTIMIZATION: Will just check for alpha characters and strtolower the
                     // characters.
                     $temporaryBuffer = strtolower($char);
-                    $this->state = static::SCRIPT_DATA_DOUBLE_ESCAPE_START_STATE;
+                    $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPE_START_STATE;
                     return new CharacterToken('<'.$char);
                 }
                 # Anything else
                 else {
                     # Switch to the script data escaped state. Emit a U+003C LESS-THAN SIGN character
                     # token. Reconsume the current input character.
-                    $this->state = static::SCRIPT_DATA_ESCAPED_STATE;
+                    $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
                     Parser::$instance->data->unconsume();
                     return new CharacterToken($char);
                 }
@@ -1199,7 +1199,7 @@ class Tokenizer {
             }
 
             # 8.2.4.26 Script data escaped end tag open state
-            elseif ($this->state === static::SCRIPT_DATA_ESCAPED_END_TAG_OPEN_STATE) {
+            elseif ($this->state === self::SCRIPT_DATA_ESCAPED_END_TAG_OPEN_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -1224,14 +1224,14 @@ class Tokenizer {
                     // to loop back through here every single time.
                     $token = new EndTagToken(strtolower($char));
                     $temporaryBuffer .= $char;
-                    $this->state = static::SCRIPT_DATA_ESCAPED_END_TAG_NAME_STATE;
+                    $this->state = self::SCRIPT_DATA_ESCAPED_END_TAG_NAME_STATE;
                 }
                 # Anything else
                 else {
                     # Switch to the script data escaped state. Emit a U+003C LESS-THAN SIGN character
                     # token and a U+002F SOLIDUS character token. Reconsume the current input
                     # character.
-                    $this->state = static::SCRIPT_DATA_ESCAPED_STATE;
+                    $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
                     Parser::$instance->data->unconsume();
                     return new CharacterToken('</');
                 }
@@ -1240,7 +1240,7 @@ class Tokenizer {
             }
 
             # 8.2.4.27 Script data escaped end tag name state
-            elseif ($this->state === static::SCRIPT_DATA_ESCAPED_END_TAG_NAME_STATE) {
+            elseif ($this->state === self::SCRIPT_DATA_ESCAPED_END_TAG_NAME_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -1253,9 +1253,9 @@ class Tokenizer {
                     # before attribute name state. Otherwise, treat it as per the "anything else"
                     # entry below.
                     if ($token->name === $this->stack->currentNode()->name) {
-                        $this->state = static::BEFORE_ATTRIBUTE_NAME_STATE;
+                        $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
                     } else {
-                        $this->state = static::SCRIPT_DATA_ESCAPED_STATE;
+                        $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
                         Parser::$instance->data->unconsume();
                         return new CharacterToken('</'.$temporaryBuffer);
                     }
@@ -1266,9 +1266,9 @@ class Tokenizer {
                     # self-closing start tag state. Otherwise, treat it as per the "anything else"
                     # entry below.
                     if ($token->name === $this->stack->currentNode()->name) {
-                        $this->state = static::SELF_CLOSING_START_TAG_STATE;
+                        $this->state = self::SELF_CLOSING_START_TAG_STATE;
                     } else {
-                        $this->state = static::SCRIPT_DATA_ESCAPED_STATE;
+                        $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
                         Parser::$instance->data->unconsume();
                         return new CharacterToken('</'.$temporaryBuffer);
                     }
@@ -1279,10 +1279,10 @@ class Tokenizer {
                     # data state and emit the current tag token. Otherwise, treat it as per the
                     # "anything else" entry below.
                     if ($token->name === $this->stack->currentNode()->name) {
-                        $this->state = static::DATA_STATE;
+                        $this->state = self::DATA_STATE;
                         Parser::$instance->emitToken($token);
                     } else {
-                        $this->state = static::SCRIPT_DATA_ESCAPED_STATE;
+                        $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
                         Parser::$instance->data->unconsume();
                         return new CharacterToken('</'.$temporaryBuffer);
                     }
@@ -1302,7 +1302,7 @@ class Tokenizer {
                     // characters.
                     // OPTIMIZATION: Consume all characters that are ASCII characters to prevent having
                     // to loop back through here every single time.
-                    $token->name .= $token->name.strtolower($char.Parser::$instance->data->consumeWhile(static::CTYPE_ALPHA));
+                    $token->name .= $token->name.strtolower($char.Parser::$instance->data->consumeWhile(self::CTYPE_ALPHA));
                     $temporaryBuffer .= $char;
                 }
                 # Anything else
@@ -1311,7 +1311,7 @@ class Tokenizer {
                     # U+002F SOLIDUS character token, and a character token for each of the characters
                     # in the temporary buffer (in the order they were added to the buffer). Reconsume
                     # the current input character.
-                    $this->state = static::SCRIPT_DATA_ESCAPED_STATE;
+                    $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
                     Parser::$instance->data->unconsume();
                     return new CharacterToken('</'.$temporaryBuffer);
                 }
@@ -1320,7 +1320,7 @@ class Tokenizer {
             }
 
             # 8.2.4.29 Script data double escaped state
-            elseif ($this->state === static::SCRIPT_DATA_DOUBLE_ESCAPED_STATE) {
+            elseif ($this->state === self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -1328,35 +1328,35 @@ class Tokenizer {
                 if ($char === '-') {
                     # Switch to the script data double escaped dash dash state. Emit a U+002D
                     # HYPHEN-MINUS character token.
-                    $this->state = static::SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH_STATE;
+                    $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH_STATE;
                     return new CharacterToken('-');
                 }
                 # "<" (U+003C)
                 elseif ($char === '<') {
                     # Switch to the script data double escaped less-than sign state. Emit a U+003C
                     # LESS-THAN SIGN character token.
-                    $this->state = static::DOUBLE_ESCAPED_LESS_THAN_SIGN_STATE;
+                    $this->state = self::DOUBLE_ESCAPED_LESS_THAN_SIGN_STATE;
                     return new CharacterToken('<');
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
                     # Switch to the script data state. Emit a U+003E GREATER-THAN SIGN character
                     # token.
-                    $this->state = static::SCRIPT_DATA_STATE;
+                    $this->state = self::SCRIPT_DATA_STATE;
                     return new CharacterToken('>');
                 }
                 # EOF
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'script data');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     Parser::$instance->data->unconsume();
                 }
                 # Anything else
                 else {
                     # Switch to the script data double escaped state. Emit the current input character
                     # as a character token.
-                    $this->state = static::SCRIPT_DATA_DOUBLE_ESCAPED_STATE;
+                    $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE;
                     return new CharacterToken($char);
                 }
 
@@ -1364,7 +1364,7 @@ class Tokenizer {
             }
 
             # 8.2.4.32 Script data double escaped less-than sign state
-            elseif ($this->state === static::SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN_STATE) {
+            elseif ($this->state === self::SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -1373,14 +1373,14 @@ class Tokenizer {
                     # Set the temporary buffer to the empty string. Switch to the script data double
                     # escape end state. Emit a U+002F SOLIDUS character token.
                     $temporaryBuffer = '';
-                    $this->state === static::SCRIPT_DATA_DOUBLE_ESCAPE_END_STATE;
+                    $this->state === self::SCRIPT_DATA_DOUBLE_ESCAPE_END_STATE;
                     return new CharacterToken('/');
                 }
                 # Anything else
                 else {
                     # Switch to the script data double escaped state. Reconsume the current input
                     # character.
-                    $this->state === static::SCRIPT_DATA_DOUBLE_ESCAPED_STATE;
+                    $this->state === self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE;
                     Parser::$instance->data->unconsume();
                 }
 
@@ -1388,7 +1388,7 @@ class Tokenizer {
             }
 
             # 8.2.4.33 Script data double escape end state
-            elseif ($this->state === static::SCRIPT_DATA_DOUBLE_ESCAPE_END_STATE) {
+            elseif ($this->state === self::SCRIPT_DATA_DOUBLE_ESCAPE_END_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -1403,9 +1403,9 @@ class Tokenizer {
                     # escaped state. Otherwise, switch to the script data double escaped state. Emit
                     # the current input character as a character token.
                     if ($temporaryBuffer === 'script') {
-                        $this->state = static::SCRIPT_DATA_ESCAPED_STATE;
+                        $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
                     } else {
-                        $this->state = static::SCRIPT_DATA_DOUBLE_ESCAPED_STATE;
+                        $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE;
                         return new CharacterToken($char);
                     }
                 }
@@ -1424,7 +1424,7 @@ class Tokenizer {
                     // characters.
                     // OPTIMIZATION: Consume all characters that are ASCII characters to prevent having
                     // to loop back through here every single time.
-                    $char = $char.Parser::$instance->data->consumeWhile(static::CTYPE_ALPHA);
+                    $char = $char.Parser::$instance->data->consumeWhile(self::CTYPE_ALPHA);
                     $temporaryBuffer .= strtolower(strtolower($char));
                     return new CharacterToken($char);
                 }
@@ -1432,7 +1432,7 @@ class Tokenizer {
                 else {
                     # Switch to the script data double escaped state. Reconsume the current input
                     # character.
-                    $this->state = static::SCRIPT_DATA_ESCAPED_STATE;
+                    $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
                     Parser::$instance->data->unconsume();
                 }
 
@@ -1440,7 +1440,7 @@ class Tokenizer {
             }
 
             # 8.2.4.34 Before attribute name state
-            elseif ($this->state === static::BEFORE_ATTRIBUTE_NAME_STATE) {
+            elseif ($this->state === self::BEFORE_ATTRIBUTE_NAME_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -1454,12 +1454,12 @@ class Tokenizer {
                 # "/" (U+002F)
                 elseif ($char === '/') {
                     # Switch to the self-closing start tag state.
-                    $this->state = static::SELF_CLOSING_START_TAG_STATE;
+                    $this->state = self::SELF_CLOSING_START_TAG_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
                     # Switch to the data state. Emit the current tag token.
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     return $token;
                 }
                 # Uppercase ASCII letter
@@ -1472,13 +1472,13 @@ class Tokenizer {
                     // DEVIATION: Will use a buffer for the attribute name instead.
                     $attributeName = strtolower($char);
                     $attributeValue = '';
-                    $this->state = static::ATTRIBUTE_NAME_STATE;
+                    $this->state = self::ATTRIBUTE_NAME_STATE;
                 }
                 # EOF
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'attribute name');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     Parser::$instance->data->unconsume();
                 }
                 # U+0022 QUOTATION MARK (")
@@ -1501,14 +1501,14 @@ class Tokenizer {
                     // DEVIATION: Will use a buffer for the attribute name instead.
                     $attributeName = $char;
                     $attributeValue = '';
-                    $this->state = static::ATTRIBUTE_NAME_STATE;
+                    $this->state = self::ATTRIBUTE_NAME_STATE;
                 }
 
                 continue;
             }
 
             # 8.2.4.35 Attribute name state
-            elseif ($this->state === static::ATTRIBUTE_NAME_STATE) {
+            elseif ($this->state === self::ATTRIBUTE_NAME_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -1522,7 +1522,7 @@ class Tokenizer {
                     }
 
                     # Switch to the after attribute name state.
-                    $this->state = static::AFTER_ATTRIBUTE_NAME_STATE;
+                    $this->state = self::AFTER_ATTRIBUTE_NAME_STATE;
                 }
                 # "/" (U+002F)
                 elseif ($char === '/') {
@@ -1531,7 +1531,7 @@ class Tokenizer {
                     }
 
                     # Switch to the self-closing start tag state.
-                    $this->state = static::SELF_CLOSING_START_TAG_STATE;
+                    $this->state = self::SELF_CLOSING_START_TAG_STATE;
                 }
                 # "=" (U+003D)
                 elseif ($char === '=') {
@@ -1540,7 +1540,7 @@ class Tokenizer {
                     }
 
                     # Switch to the before attribute value state.
-                    $this->state = static::BEFORE_ATTRIBUTE_VALUE_STATE;
+                    $this->state = self::BEFORE_ATTRIBUTE_VALUE_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
@@ -1549,7 +1549,7 @@ class Tokenizer {
                     }
 
                     # Switch to the data state. Emit the current tag token.
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
 
                     // Need to add the current attribute name and value to the token if necessary.
                     if ($attributeName) {
@@ -1565,13 +1565,13 @@ class Tokenizer {
 
                     // OPTIMIZATION: Consume all characters that are uppercase ASCII letters to prevent
                     // having to loop back through here every single time.
-                    $attributeName .= strtolower($char.Parser::$instance->data->consumeWhile(static::CTYPE_UPPER));
+                    $attributeName .= strtolower($char.Parser::$instance->data->consumeWhile(self::CTYPE_UPPER));
                 }
                 # EOF
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'attribute name');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     Parser::$instance->data->unconsume();
                 }
                 # U+0022 QUOTATION MARK (")
@@ -1593,7 +1593,7 @@ class Tokenizer {
                     // characters.
                     // OPTIMIZATION: Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
-                    $attributeName .= $char.Parser::$instance->data->consumeUntil("\t\n\x0c /=>\"'<".static::CTYPE_UPPER);
+                    $attributeName .= $char.Parser::$instance->data->consumeUntil("\t\n\x0c /=>\"'<".self::CTYPE_UPPER);
                 }
 
                 # When the user agent leaves the attribute name state (and before emitting the tag
@@ -1609,7 +1609,7 @@ class Tokenizer {
             }
 
             # 8.2.4.36 After attribute name state
-            elseif ($this->state === static::AFTER_ATTRIBUTE_NAME_STATE) {
+            elseif ($this->state === self::AFTER_ATTRIBUTE_NAME_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -1623,17 +1623,17 @@ class Tokenizer {
                 # "/" (U+002F)
                 elseif ($char === '/') {
                     # Switch to the self-closing start tag state.
-                    $this->state = static::SELF_CLOSING_START_TAG_STATE;
+                    $this->state = self::SELF_CLOSING_START_TAG_STATE;
                 }
                 # "=" (U+003D)
                 elseif ($char === '=') {
                     # Switch to the before attribute value state.
-                    $this->state = static::BEFORE_ATTRIBUTE_VALUE_STATE;
+                    $this->state = self::BEFORE_ATTRIBUTE_VALUE_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
                     # Switch to the data state. Emit the current tag token.
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
 
                     // Need to add the current attribute name and value to the token if necessary.
                     if ($attributeName) {
@@ -1652,13 +1652,13 @@ class Tokenizer {
                     // DEVIATION: Will use a buffer for the attribute name instead.
                     $attributeName = strtolower($char);
                     $attributeValue = '';
-                    $this->state = static::ATTRIBUTE_NAME_STATE;
+                    $this->state = self::ATTRIBUTE_NAME_STATE;
                 }
                 # EOF
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'attribute name, attribute value, or tag end');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     Parser::$instance->data->unconsume();
                 }
                 # U+0022 QUOTATION MARK (")
@@ -1680,14 +1680,14 @@ class Tokenizer {
 
                     $attributeName = $char;
                     $attributeValue = '';
-                    $this->state = static::ATTRIBUTE_NAME_STATE;
+                    $this->state = self::ATTRIBUTE_NAME_STATE;
                 }
 
                 continue;
             }
 
             # 8.2.4.37 Before attribute value state
-            elseif ($this->state === static::BEFORE_ATTRIBUTE_VALUE_STATE) {
+            elseif ($this->state === self::BEFORE_ATTRIBUTE_VALUE_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -1701,25 +1701,25 @@ class Tokenizer {
                 # U+0022 QUOTATION MARK (")
                 elseif ($char === '"') {
                     # Switch to the attribute value (double-quoted) state.
-                    $this->state = static::ATTRIBUTE_VALUE_DOUBLE_QUOTED_STATE;
+                    $this->state = self::ATTRIBUTE_VALUE_DOUBLE_QUOTED_STATE;
                 }
                 # U+0026 AMPERSAND (&)
                 elseif ($char === '&') {
                     # Switch to the attribute value (unquoted) state. Reconsume the current input
                     # character.
-                    $this->state = static::ATTRIBUTE_VALUE_UNQUOTED_STATE;
+                    $this->state = self::ATTRIBUTE_VALUE_UNQUOTED_STATE;
                     Parser::$instance->data->unconsume();
                 }
                 # "'" (U+0027)
                 elseif ($char === "'") {
                     # Switch to the attribute value (single-quoted) state.
-                    $this->state = static::ATTRIBUTE_VALUE_SINGLE_QUOTED_STATE;
+                    $this->state = self::ATTRIBUTE_VALUE_SINGLE_QUOTED_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
                     # Parse error. Switch to the data state. Emit the current tag token.
                     ParseError::trigger(ParseError::UNEXPECTED_TAG_END, 'attribute value');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
 
                     // Need to add the current attribute name and value to the token if necessary.
                     if ($attributeName) {
@@ -1732,7 +1732,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'attribute value');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     Parser::$instance->data->unconsume();
                 }
                 # "<" (U+003C)
@@ -1751,20 +1751,20 @@ class Tokenizer {
                     }
 
                     $attributeValue .= $char;
-                    $this->state = static::ATTRIBUTE_VALUE_UNQUOTED_STATE;
+                    $this->state = self::ATTRIBUTE_VALUE_UNQUOTED_STATE;
                 }
 
                 continue;
             }
 
             # 8.2.4.38 Attribute value (double-quoted) state
-            elseif ($this->state === static::ATTRIBUTE_VALUE_DOUBLE_QUOTED_STATE) {
+            elseif ($this->state === self::ATTRIBUTE_VALUE_DOUBLE_QUOTED_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
                 # U+0022 QUOTATION MARK (")
                 if ($char === '"') {
-                    $this->state = static::AFTER_ATTRIBUTE_VALUE_QUOTED_STATE;
+                    $this->state = self::AFTER_ATTRIBUTE_VALUE_QUOTED_STATE;
                 }
                 # U+0026 AMPERSAND (&)
                 elseif ($char === '&') {
@@ -1787,7 +1787,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'attribute value');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     Parser::$instance->data->unconsume();
                 }
                 # Anything else
@@ -1802,14 +1802,14 @@ class Tokenizer {
             }
 
             # 8.2.4.39 Attribute value (single-quoted) state
-            elseif ($this->state === static::ATTRIBUTE_VALUE_SINGLE_QUOTED_STATE) {
+            elseif ($this->state === self::ATTRIBUTE_VALUE_SINGLE_QUOTED_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
                 # "'" (U+0027)
                 if ($char === "'") {
                     # Switch to the after attribute value (quoted) state.
-                    $this->state = static::AFTER_ATTRIBUTE_VALUE_QUOTED_STATE;
+                    $this->state = self::AFTER_ATTRIBUTE_VALUE_QUOTED_STATE;
                 }
                 # U+0026 AMPERSAND (&)
                 elseif ($char === '&') {
@@ -1832,7 +1832,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'attribute value');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     Parser::$instance->data->unconsume();
                 }
                 # Anything else
@@ -1849,7 +1849,7 @@ class Tokenizer {
 
 
             # 8.2.4.40 Attribute value (unquoted) state
-            elseif ($this->state === static::ATTRIBUTE_VALUE_UNQUOTED_STATE) {
+            elseif ($this->state === self::ATTRIBUTE_VALUE_UNQUOTED_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -1858,7 +1858,7 @@ class Tokenizer {
                 # "FF" (U+000C)
                 # U+0020 SPACE
                 if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
-                    $this->state = static::BEFORE_ATTRIBUTE_VALUE_STATE;
+                    $this->state = self::BEFORE_ATTRIBUTE_VALUE_STATE;
                 }
                 # U+0026 AMPERSAND (&)
                 elseif ($char === '&') {
@@ -1883,7 +1883,7 @@ class Tokenizer {
                 # ">" (U+003E)
                 elseif ($char === '>') {
                     # Switch to the data state. Emit the current tag token.
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
 
                     // Need to add the current attribute name and value to the token if necessary.
                     if ($attributeName) {
@@ -1895,7 +1895,7 @@ class Tokenizer {
                 # Parse error. Switch to the data state. Reconsume the EOF character.
                 elseif ($char === '') {
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'attribute value');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     Parser::$instance->data->unconsume();
                 }
                 # U+0022 QUOTATION MARK (")
@@ -1923,7 +1923,7 @@ class Tokenizer {
             }
 
             # 8.2.4.42 After attribute value (quoted) state
-            elseif ($this->state === static::AFTER_ATTRIBUTE_VALUE_QUOTED_STATE) {
+            elseif ($this->state === self::AFTER_ATTRIBUTE_VALUE_QUOTED_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -1933,17 +1933,17 @@ class Tokenizer {
                 # U+0020 SPACE
                 if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
                     # Switch to the before attribute name state.
-                    $this->state = static::BEFORE_ATTRIBUTE_NAME_STATE;
+                    $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
                 }
                 # "/" (U+002F)
                 elseif ($char === '/') {
                     # Switch to the self-closing start tag state.
-                    $this->state = static::SELF_CLOSING_START_TAG_STATE;
+                    $this->state = self::SELF_CLOSING_START_TAG_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
                     # Switch to the data state. Emit the current tag token.
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
 
                     // Need to add the current attribute name and value to the token if necessary.
                     if ($attributeName) {
@@ -1956,14 +1956,14 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'attribute name or tag end');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     Parser::$instance->data->unconsume();
                 }
                 # Anything else
                 else {
                     # Parse error. Switch to the before attribute name state. Reconsume the character.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'attribute name or tag end');
-                    $this->state = static::BEFORE_ATTRIBUTE_NAME_STATE;
+                    $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
                     Parser::$instance->data->unconsume();
                 }
 
@@ -1971,7 +1971,7 @@ class Tokenizer {
             }
 
             # 8.2.4.43 Self-closing start tag state
-            elseif ($this->state === static::SELF_CLOSING_START_TAG_STATE) {
+            elseif ($this->state === self::SELF_CLOSING_START_TAG_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -1980,21 +1980,21 @@ class Tokenizer {
                     # Set the self-closing flag of the current tag token. Switch to the data state.
                     # Emit the current tag token.
                     $token->selfClosing = true;
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     return $token;
                 }
                 # EOF
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'tag end');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     Parser::$instance->data->unconsume();
                 }
                 # Anything else
                 else {
                     # Parse error. Switch to the before attribute name state. Reconsume the character.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'tag end');
-                    $this->state = static::BEFORE_ATTRIBUTE_NAME_STATE;
+                    $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
                     Parser::$instance->data->unconsume();
                 }
 
@@ -2002,7 +2002,7 @@ class Tokenizer {
             }
 
             # 8.2.4.44 Bogus comment state
-            elseif ($this->state === static::BOGUS_COMMENT_STATE) {
+            elseif ($this->state === self::BOGUS_COMMENT_STATE) {
                 # Consume every character up to and including the first ">" (U+003E) character or
                 # the end of the file (EOF), whichever comes first. Emit a comment token whose
                 # data is the concatenation of all the characters starting from and including the
@@ -2017,7 +2017,7 @@ class Tokenizer {
                 $nextChar = Parser::$instance->data->consume();
 
                 # Switch to the data state.
-                $this->state = static::DATA_STATE;
+                $this->state = self::DATA_STATE;
 
                 # If the end of the file was reached, reconsume the EOF character.
                 if ($nextChar === '') {
@@ -2028,21 +2028,21 @@ class Tokenizer {
             }
 
             # 8.2.4.45 Markup declaration open state
-            elseif ($this->state === static::MARKUP_DECLARATION_OPEN_STATE) {
+            elseif ($this->state === self::MARKUP_DECLARATION_OPEN_STATE) {
                 # If the next two characters are both "-" (U+002D) characters, consume those two
                 # characters, create a comment token whose data is the empty string, and switch to
                 # the comment start state.
                 if (Parser::$instance->data->peek(2) === '--') {
                     Parser::$instance->data->consume(2);
                     $token = new CommentToken();
-                    $this->state = static::COMMENT_START_STATE;
+                    $this->state = self::COMMENT_START_STATE;
                 }
                 # Otherwise, if the next seven characters are an ASCII case-insensitive match for
                 # the word "DOCTYPE", then consume those characters and switch to the DOCTYPE
                 # state.
                 elseif (strtolower(Parser::$instance->data->peek(7)) === 'doctype') {
                     Parser::$instance->data->consume(7);
-                    $this->state = static::DOCTYPE_STATE;
+                    $this->state = self::DOCTYPE_STATE;
                 }
                 # Otherwise, if there is an adjusted current node and it is not an element in the
                 # HTML namespace and the next seven characters are a case-sensitive match for the
@@ -2051,9 +2051,9 @@ class Tokenizer {
                 # the CDATA section state.
                 else {
                     $adjustedCurrentNode = $this->stack->adjustedCurrentNode;
-                    if ($adjustedCurrentNode && $adjustedCurrentNode->namespace !== static::HTML_NAMESPACE && Parser::$instance->data->peek(7) === '[CDATA[') {
+                    if ($adjustedCurrentNode && $adjustedCurrentNode->namespace !== self::HTML_NAMESPACE && Parser::$instance->data->peek(7) === '[CDATA[') {
                         Parser::$instance->data->consume(7);
-                        $this->state = static::CDATA_SECTION_STATE;
+                        $this->state = self::CDATA_SECTION_STATE;
                     }
                     # Otherwise, this is a parse error. Switch to the bogus comment state. The next
                     # character that is consumed, if any, is the first character that will be in the
@@ -2066,7 +2066,7 @@ class Tokenizer {
                             ParseError::trigger(ParseError::UNEXPECTED_EOF, 'markup declaration');
                         }
 
-                        $this->state = static::BOGUS_COMMENT_STATE;
+                        $this->state = self::BOGUS_COMMENT_STATE;
                     }
                 }
 
@@ -2074,20 +2074,20 @@ class Tokenizer {
             }
 
             # 8.2.4.46 Comment start state
-            elseif ($this->state === static::COMMENT_START_STATE) {
+            elseif ($this->state === self::COMMENT_START_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
                     # Switch to the comment start dash state.
-                    $this->state = static::COMMENT_START_DASH_STATE;
+                    $this->state = self::COMMENT_START_DASH_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
                     # Parse error. Switch to the data state. Emit the comment token.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>', 'comment');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     return $token;
                 }
                 # EOF
@@ -2095,7 +2095,7 @@ class Tokenizer {
                     # Parse error. Switch to the data state. Emit the comment token. Reconsume the EOF
                     # character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'comment');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     Parser::$instance->data->unconsume();
                     return $token;
                 }
@@ -2104,27 +2104,27 @@ class Tokenizer {
                     # Append the current input character to the comment token's data. Switch to the
                     # comment state.
                     $token->data .= $char;
-                    $this->state = static::COMMENT_STATE;
+                    $this->state = self::COMMENT_STATE;
                 }
 
                 continue;
             }
 
             # 8.2.4.47 Comment start dash state
-            elseif ($this->state === static::COMMENT_START_DASH_STATE) {
+            elseif ($this->state === self::COMMENT_START_DASH_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
                     # Switch to the comment start dash state.
-                    $this->state = static::COMMENT_END_STATE;
+                    $this->state = self::COMMENT_END_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
                     # Parse error. Switch to the data state. Emit the comment token.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>', 'comment');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     return $token;
                 }
                 # EOF
@@ -2132,7 +2132,7 @@ class Tokenizer {
                     # Parse error. Switch to the data state. Emit the comment token. Reconsume the EOF
                     # character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'comment');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     Parser::$instance->data->unconsume();
                     return $token;
                 }
@@ -2141,28 +2141,28 @@ class Tokenizer {
                     # Append a "-" (U+002D) character and the current input character to the comment
                     # token's data. Switch to the comment state.
                     $token->data .= '-'.$char;
-                    $this->state = static::COMMENT_STATE;
+                    $this->state = self::COMMENT_STATE;
                 }
 
                 continue;
             }
 
             # 8.2.4.48 Comment state
-            elseif ($this->state === static::COMMENT_STATE) {
+            elseif ($this->state === self::COMMENT_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
                     # Switch to the comment end dash state
-                    $this->state = static::COMMENT_END_DASH_STATE;
+                    $this->state = self::COMMENT_END_DASH_STATE;
                 }
                 # EOF
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Emit the comment token. Reconsume the EOF
                     # character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'comment');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     Parser::$instance->data->unconsume();
                     return $token;
                 }
@@ -2179,21 +2179,21 @@ class Tokenizer {
             }
 
             # 8.2.4.49 Comment end dash state
-            elseif ($this->state === static::COMMENT_END_DASH_STATE) {
+            elseif ($this->state === self::COMMENT_END_DASH_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
                     # Switch to the comment end state
-                    $this->state = static::COMMENT_END_STATE;
+                    $this->state = self::COMMENT_END_STATE;
                 }
                 # EOF
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Emit the comment token. Reconsume the EOF
                     # character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'comment');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     Parser::$instance->data->unconsume();
                     return $token;
                 }
@@ -2202,28 +2202,28 @@ class Tokenizer {
                    # Append a "-" (U+002D) character and the current input character to the comment
                    # token's data. Switch to the comment state.
                    $token->data .= '-'.$char;
-                   $this->state = static::COMMENT_STATE;
+                   $this->state = self::COMMENT_STATE;
                 }
 
                 continue;
             }
 
             # 8.2.4.50 Comment end state
-            elseif ($this->state === static::COMMENT_END_STATE) {
+            elseif ($this->state === self::COMMENT_END_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
                 # ">" (U+003E)
                 if ($char === '>') {
                     # Switch to the data state. Emit the comment token.
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     return $token;
                 }
                 # "!" (U+0021)
                 elseif ($char === '!') {
                     # Parse error. Switch to the comment end bang state.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '!', 'comment end');
-                    $this->state = static::COMMENT_END_BANG_STATE;
+                    $this->state = self::COMMENT_END_BANG_STATE;
                 }
                 # "-" (U+002D)
                 elseif ($char === '-') {
@@ -2243,7 +2243,7 @@ class Tokenizer {
                     # Parse error. Switch to the data state. Emit the comment token. Reconsume the EOF
                     # character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'comment end');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     Parser::$instance->data->unconsume();
                     return $token;
                 }
@@ -2253,14 +2253,14 @@ class Tokenizer {
                     # to the comment token's data. Switch to the comment state.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'comment end');
                     $token->data .= '--'.$char;
-                    $this->state = static::COMMENT_STATE;
+                    $this->state = self::COMMENT_STATE;
                 }
 
                 continue;
             }
 
             # 8.2.4.51 Comment end bang state
-            elseif ($this->state === static::COMMENT_END_BANG_STATE) {
+            elseif ($this->state === self::COMMENT_END_BANG_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -2269,12 +2269,12 @@ class Tokenizer {
                     # Append two "-" (U+002D) characters and a "!" (U+0021) character to the comment
                     # token's data. Switch to the comment end dash state.
                     $token->data .= '--!';
-                    $this->state = static::COMMENT_END_DASH_STATE;
+                    $this->state = self::COMMENT_END_DASH_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
                     # Switch to the data state. Emit the comment token.
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     return $token;
                 }
                 # EOF
@@ -2282,7 +2282,7 @@ class Tokenizer {
                     # Parse error. Switch to the data state. Emit the comment token. Reconsume the EOF
                     # character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'comment end');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     Parser::$instance->data->unconsume();
                     return $token;
                 }
@@ -2291,14 +2291,14 @@ class Tokenizer {
                     # Append two "-" (U+002D) characters, a "!" (U+0021) character, and the current
                     # input character to the comment token's data. Switch to the comment state.
                     $token->data .= '--!'.$char;
-                    $this->state = static::COMMENT_STATE;
+                    $this->state = self::COMMENT_STATE;
                 }
 
                 continue;
             }
 
             # 8.2.4.52 DOCTYPE state
-            elseif ($this->state === static::DOCTYPE_STATE) {
+            elseif ($this->state === self::DOCTYPE_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -2312,14 +2312,14 @@ class Tokenizer {
                     // Spec doesn't say to create a token here, but if you don't it leads to a
                     // situation where a token doesn't exist.
                     $token = new DOCTYPEToken();
-                    $this->state = static::DOCTYPE_NAME_STATE;
+                    $this->state = self::DOCTYPE_NAME_STATE;
                 }
                 # EOF
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Create a new DOCTYPE token. Set its
                     # force-quirks flag to on. Emit the token. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     $token = new DOCTYPEToken();
                     $token->forceQuirks = true;
                     Parser::$instance->data->unconsume();
@@ -2329,7 +2329,7 @@ class Tokenizer {
                 else {
                     # Parse error. Switch to the before DOCTYPE name state. Reconsume the character.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'DOCTYPE');
-                    $this->state = static::DOCTYPE_NAME_STATE;
+                    $this->state = self::DOCTYPE_NAME_STATE;
                     Parser::$instance->data->unconsume();
                 }
 
@@ -2337,7 +2337,7 @@ class Tokenizer {
             }
 
             # 8.2.4.53 Before DOCTYPE name state
-            elseif ($this->state === static::BEFORE_DOCTYPE_NAME_STATE) {
+            elseif ($this->state === self::BEFORE_DOCTYPE_NAME_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -2354,7 +2354,7 @@ class Tokenizer {
                     # current input character (add 0x0020 to the character's code point). Switch to
                     # the DOCTYPE name state.
                     $token = new DOCTYPEToken($char);
-                    $token->tokenizerState = static::DOCTYPE_NAME_STATE;
+                    $token->tokenizerState = self::DOCTYPE_NAME_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
@@ -2363,7 +2363,7 @@ class Tokenizer {
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>', 'DOCTYPE');
                     $token = new DOCTYPEToken();
                     $token->forceQuirks = true;
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     return $token;
                 }
                 # EOF
@@ -2371,7 +2371,7 @@ class Tokenizer {
                     # Parse error. Switch to the data state. Create a new DOCTYPE token. Set its
                     # force-quirks flag to on. Emit the token. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     $token = new DOCTYPEToken();
                     $token->forceQuirks = true;
                     Parser::$instance->data->unconsume();
@@ -2382,14 +2382,14 @@ class Tokenizer {
                     # Create a new DOCTYPE token. Set the token's name to the current input character.
                     # Switch to the DOCTYPE name state.
                     $token = new DOCTYPEToken($char);
-                    $token->tokenizerState = static::DOCTYPE_NAME_STATE;
+                    $token->tokenizerState = self::DOCTYPE_NAME_STATE;
                 }
 
                 continue;
             }
 
             # 8.2.4.54 DOCTYPE name state
-            elseif ($this->state === static::DOCTYPE_NAME_STATE) {
+            elseif ($this->state === self::DOCTYPE_NAME_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -2399,12 +2399,12 @@ class Tokenizer {
                 # U+0020 SPACE
                 if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
                     # Switch to the after DOCTYPE name state.
-                    $this->state = static::AFTER_DOCTYPE_NAME_STATE;
+                    $this->state = self::AFTER_DOCTYPE_NAME_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
                     # Switch to the data state. Emit the current DOCTYPE token.
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     return $token;
                 }
                 # Uppercase ASCII letter
@@ -2416,14 +2416,14 @@ class Tokenizer {
                     // characters.
                     // OPTIMIZATION: Consume all characters that are ASCII characters to prevent having
                     // to loop back through here every single time.
-                    $token->name .= strtolower($char.Parser::$instance->data->consumeWhile(static::CTYPE_ALPHA));
+                    $token->name .= strtolower($char.Parser::$instance->data->consumeWhile(self::CTYPE_ALPHA));
                 }
                 # EOF
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     Parser::$instance->data->unconsume();
                     return $token;
@@ -2434,14 +2434,14 @@ class Tokenizer {
 
                     // OPTIMIZATION: Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
-                    $token->name .= $char.Parser::$instance->data->consumeUntil("\t\n\x0c >".static::CTYPE_ALPHA);
+                    $token->name .= $char.Parser::$instance->data->consumeUntil("\t\n\x0c >".self::CTYPE_ALPHA);
                 }
 
                 continue;
             }
 
             # 8.2.4.55 After DOCTYPE name state
-            elseif ($this->state === static::AFTER_DOCTYPE_NAME_STATE) {
+            elseif ($this->state === self::AFTER_DOCTYPE_NAME_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -2451,12 +2451,12 @@ class Tokenizer {
                 # U+0020 SPACE
                 if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
                     # Switch to the after DOCTYPE name state.
-                    $this->state = static::AFTER_DOCTYPE_NAME_STATE;
+                    $this->state = self::AFTER_DOCTYPE_NAME_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
                     # Switch to the data state. Emit the current DOCTYPE token.
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     return $token;
                 }
                 # EOF
@@ -2464,7 +2464,7 @@ class Tokenizer {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE name');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     Parser::$instance->data->unconsume();
                     return $token;
@@ -2477,13 +2477,13 @@ class Tokenizer {
                     // Simpler to just consume and then unconsume if they're not needed.
                     $char .= Parser::$instance->data->consume(5);
                     if (strtolower($char) === 'public') {
-                        $this->state = static::AFTER_DOCTYPE_PUBLIC_KEYWORD_STATE;
+                        $this->state = self::AFTER_DOCTYPE_PUBLIC_KEYWORD_STATE;
                     }
                     # Otherwise, if the six characters starting from the current input character are
                     # an ASCII case-insensitive match for the word "SYSTEM", then consume those
                     # characters and switch to the after DOCTYPE system keyword state.
                     elseif (strtolower($char) === 'system') {
-                        $this->state = static::AFTER_DOCTYPE_SYSTEM_KEYWORD_STATE;
+                        $this->state = self::AFTER_DOCTYPE_SYSTEM_KEYWORD_STATE;
                     }
                     # Otherwise, this is a parse error. Set the DOCTYPE token's force-quirks flag to
                     # on. Switch to the bogus DOCTYPE state.
@@ -2492,7 +2492,7 @@ class Tokenizer {
                         Parser::$instance->data->unconsume(5);
                         ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char[0], 'DOCTYPE name');
                         $token->forceQuirks = true;
-                        $this->state = static::BOGUS_DOCTYPE_STATE;
+                        $this->state = self::BOGUS_DOCTYPE_STATE;
                     }
                 }
 
@@ -2500,7 +2500,7 @@ class Tokenizer {
             }
 
             # 8.2.4.56 After DOCTYPE public keyword state
-            elseif ($this->state === static::AFTER_DOCTYPE_PUBLIC_KEYWORD_STATE) {
+            elseif ($this->state === self::AFTER_DOCTYPE_PUBLIC_KEYWORD_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -2510,7 +2510,7 @@ class Tokenizer {
                 # U+0020 SPACE
                 if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
                     # Switch to the before DOCTYPE public identifier state.
-                    $this->state = static::BEFORE_DOCTYPE_PUBLIC_IDENTIFIER_STATE;
+                    $this->state = self::BEFORE_DOCTYPE_PUBLIC_IDENTIFIER_STATE;
                 }
                 # U+0022 QUOTATION MARK (")
                 elseif ($char === '"') {
@@ -2518,7 +2518,7 @@ class Tokenizer {
                     # missing), then switch to the DOCTYPE public identifier (double-quoted) state.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '"', 'DOCTYPE public keyword');
                     $token->public = '';
-                    $this->state = static::DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED_STATE;
+                    $this->state = self::DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED_STATE;
                 }
                 # "'" (U+0027)
                 elseif ($char === "'") {
@@ -2526,7 +2526,7 @@ class Tokenizer {
                     # missing), then switch to the DOCTYPE public identifier (single-quoted) state.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, "'", 'DOCTYPE public keyword');
                     $token->public = '';
-                    $this->state = static::DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED_STATE;
+                    $this->state = self::DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
@@ -2534,7 +2534,7 @@ class Tokenizer {
                     # state. Emit that DOCTYPE token.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>', 'DOCTYPE public keyword');
                     $token->forceQuirks = true;
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     return $token;
                 }
                 # EOF
@@ -2542,7 +2542,7 @@ class Tokenizer {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE public keyword');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     Parser::$instance->data->unconsume();
                     return $token;
@@ -2553,14 +2553,14 @@ class Tokenizer {
                     # bogus DOCTYPE state.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'DOCTYPE public keyword');
                     $token->forceQuirks = true;
-                    $this->state = static::BOGUS_DOCTYPE_STATE;
+                    $this->state = self::BOGUS_DOCTYPE_STATE;
                 }
 
                 continue;
             }
 
             # 8.2.4.57 Before DOCTYPE public identifier state
-            elseif ($this->state === static::BEFORE_DOCTYPE_PUBLIC_IDENTIFIER_STATE) {
+            elseif ($this->state === self::BEFORE_DOCTYPE_PUBLIC_IDENTIFIER_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -2576,14 +2576,14 @@ class Tokenizer {
                     # Set the DOCTYPE token's public identifier to the empty string (not missing),
                     # then switch to the DOCTYPE public identifier (double-quoted) state.
                     $token->public = '';
-                    $this->state = static::DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED_STATE;
+                    $this->state = self::DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED_STATE;
                 }
                 # "'" (U+0027)
                 elseif ($char === "'") {
                     # Set the DOCTYPE token's public identifier to the empty string (not missing),
                     # then switch to the DOCTYPE public identifier (single-quoted) state.
                     $token->public = '';
-                    $this->state = static::DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED_STATE;
+                    $this->state = self::DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
@@ -2591,7 +2591,7 @@ class Tokenizer {
                     # state. Emit that DOCTYPE token.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>', 'DOCTYPE public identifier');
                     $token->forceQuirks = true;
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     return $token;
                 }
                 # EOF
@@ -2599,7 +2599,7 @@ class Tokenizer {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE public identifier');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     Parser::$instance->data->unconsume();
                     return $token;
@@ -2610,21 +2610,21 @@ class Tokenizer {
                     # bogus DOCTYPE state.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'DOCTYPE public identifier');
                     $token->forceQuirks = true;
-                    $this->state = static::BOGUS_DOCTYPE_STATE;
+                    $this->state = self::BOGUS_DOCTYPE_STATE;
                 }
 
                 continue;
             }
 
             # 8.2.4.58 DOCTYPE public identifier (double-quoted) state
-            elseif ($this->state === static::DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED_STATE) {
+            elseif ($this->state === self::DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
                 # U+0022 QUOTATION MARK (")
                 if ($char === '"') {
                     # Switch to the after DOCTYPE public identifier state.
-                    $this->state = static::AFTER_DOCTYPE_PUBLIC_IDENTIFIER_STATE;
+                    $this->state = self::AFTER_DOCTYPE_PUBLIC_IDENTIFIER_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
@@ -2632,7 +2632,7 @@ class Tokenizer {
                     # state. Emit that DOCTYPE token.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>', 'DOCTYPE public identifier');
                     $token->forceQuirks = true;
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     return $token;
                 }
                 # EOF
@@ -2640,7 +2640,7 @@ class Tokenizer {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE public identifier');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     Parser::$instance->data->unconsume();
                     return $token;
@@ -2658,21 +2658,21 @@ class Tokenizer {
             }
 
             # 8.2.4.59 DOCTYPE public identifier (single-quoted) state
-            elseif ($this->state === static::DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED_STATE) {
+            elseif ($this->state === self::DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
                 # "'" (U+0027)
                 if ($char === "'") {
                     # Switch to the after DOCTYPE public identifier state.
-                    $this->state = static::AFTER_DOCTYPE_PUBLIC_IDENTIFIER_STATE;
+                    $this->state = self::AFTER_DOCTYPE_PUBLIC_IDENTIFIER_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
                     # Parse error. Set the DOCTYPE token's force-quirks flag to on. Switch to the data
                     # state. Emit that DOCTYPE token.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>', 'DOCTYPE public identifier');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     return $token;
                 }
                 # EOF
@@ -2680,7 +2680,7 @@ class Tokenizer {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE public identifier');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     Parser::$instance->data->unconsume();
                     return $token;
@@ -2698,7 +2698,7 @@ class Tokenizer {
             }
 
             # 8.2.4.60 After DOCTYPE public identifier state
-            elseif ($this->state === static::AFTER_DOCTYPE_PUBLIC_IDENTIFIER_STATE) {
+            elseif ($this->state === self::AFTER_DOCTYPE_PUBLIC_IDENTIFIER_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -2708,12 +2708,12 @@ class Tokenizer {
                 # U+0020 SPACE
                 if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
                     # Switch to the between DOCTYPE public and system identifiers state.
-                    $this->state = static::BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS_STATE;
+                    $this->state = self::BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>')  {
                     # Switch to the data state. Emit the current DOCTYPE token.
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     return $token;
                 }
                 # U+0022 QUOTATION MARK (")
@@ -2721,21 +2721,21 @@ class Tokenizer {
                     # Set the DOCTYPE token's system identifier to the empty string (not missing),
                     # then switch to the DOCTYPE system identifier (double-quoted) state.
                     $this->system = '';
-                    $this->state = static::DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED_STATE;
+                    $this->state = self::DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED_STATE;
                 }
                 # "'" (U+0027)
                 elseif ($char === "'") {
                     # Set the DOCTYPE token's system identifier to the empty string (not missing),
                     # then switch to the DOCTYPE system identifier (single-quoted) state.
                     $this->system = '';
-                    $this->state = static::DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED_STATE;
+                    $this->state = self::DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED_STATE;
                 }
                 # EOF
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE public identifier');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     Parser::$instance->data->unconsume();
                     return $token;
@@ -2746,14 +2746,14 @@ class Tokenizer {
                     # bogus DOCTYPE state.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'DOCTYPE public identifier');
                     $token->forceQuirks = true;
-                    $this->state = static::BOGUS_DOCTYPE_STATE;
+                    $this->state = self::BOGUS_DOCTYPE_STATE;
                 }
 
                 continue;
             }
 
             # 8.2.4.61 Between DOCTYPE public and system identifiers state
-            elseif ($this->state === static::BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS_STATE) {
+            elseif ($this->state === self::BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -2767,7 +2767,7 @@ class Tokenizer {
                 # ">" (U+003E)
                 elseif ($char === '>')  {
                     # Switch to the data state. Emit the current DOCTYPE token.
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     return $token;
                 }
                 # U+0022 QUOTATION MARK (")
@@ -2775,21 +2775,21 @@ class Tokenizer {
                     # Set the DOCTYPE token's system identifier to the empty string (not missing),
                     # then switch to the DOCTYPE system identifier (double-quoted) state.
                     $this->system = '';
-                    $this->state = static::DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED_STATE;
+                    $this->state = self::DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED_STATE;
                 }
                 # "'" (U+0027)
                 elseif ($char === "'") {
                     # Set the DOCTYPE token's system identifier to the empty string (not missing),
                     # then switch to the DOCTYPE system identifier (single-quoted) state.
                     $this->system = '';
-                    $this->state = static::DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED_STATE;
+                    $this->state = self::DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED_STATE;
                 }
                 # EOF
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE public identifier');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     Parser::$instance->data->unconsume();
                     return $token;
@@ -2800,14 +2800,14 @@ class Tokenizer {
                     # bogus DOCTYPE state.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'DOCTYPE public identifier');
                     $token->forceQuirks = true;
-                    $this->state = static::BOGUS_DOCTYPE_STATE;
+                    $this->state = self::BOGUS_DOCTYPE_STATE;
                 }
 
                 continue;
             }
 
             # 8.2.4.62 After DOCTYPE system keyword state
-            elseif ($this->state === static::AFTER_DOCTYPE_SYSTEM_KEYWORD_STATE) {
+            elseif ($this->state === self::AFTER_DOCTYPE_SYSTEM_KEYWORD_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -2817,7 +2817,7 @@ class Tokenizer {
                 # U+0020 SPACE
                 if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
                     # Switch to the before DOCTYPE system identifier state.
-                    $this->state = static::BEFORE_DOCTYPE_SYSTEM_IDENTIFIER_STATE;
+                    $this->state = self::BEFORE_DOCTYPE_SYSTEM_IDENTIFIER_STATE;
                 }
                 # U+0022 QUOTATION MARK (")
                 elseif ($char === '"') {
@@ -2825,7 +2825,7 @@ class Tokenizer {
                     # missing), then switch to the DOCTYPE system identifier (double-quoted) state.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '"', 'DOCTYPE system keyword');
                     $token->system = '';
-                    $this->state = static::DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED_STATE;
+                    $this->state = self::DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED_STATE;
                 }
                 # "'" (U+0027)
                 elseif ($char === "'") {
@@ -2833,7 +2833,7 @@ class Tokenizer {
                     # missing), then switch to the DOCTYPE system identifier (single-quoted) state.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, "'", 'DOCTYPE system keyword');
                     $token->system = '';
-                    $this->state = static::DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED_STATE;
+                    $this->state = self::DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
@@ -2841,7 +2841,7 @@ class Tokenizer {
                     # state. Emit that DOCTYPE token.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>', 'DOCTYPE system keyword');
                     $token->forceQuirks = true;
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     return $token;
                 }
                 # EOF
@@ -2849,7 +2849,7 @@ class Tokenizer {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE system keyword');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     Parser::$instance->data->unconsume();
                     return $token;
@@ -2860,14 +2860,14 @@ class Tokenizer {
                     # bogus DOCTYPE state.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'DOCTYPE system keyword');
                     $token->forceQuirks = true;
-                    $this->state = static::BOGUS_DOCTYPE_STATE;
+                    $this->state = self::BOGUS_DOCTYPE_STATE;
                 }
 
                 continue;
             }
 
             # 8.2.4.63 Before DOCTYPE system identifier state
-            elseif ($this->state === static::BEFORE_DOCTYPE_SYSTEM_IDENTIFIER_STATE) {
+            elseif ($this->state === self::BEFORE_DOCTYPE_SYSTEM_IDENTIFIER_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -2883,14 +2883,14 @@ class Tokenizer {
                     # Set the DOCTYPE token's system identifier to the empty string (not missing),
                     # then switch to the DOCTYPE system identifier (double-quoted) state.
                     $token->system = '';
-                    $this->state = static::DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED_STATE;
+                    $this->state = self::DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED_STATE;
                 }
                 # "'" (U+0027)
                 elseif ($char === "'") {
                     # Set the DOCTYPE token's system identifier to the empty string (not missing),
                     # then switch to the DOCTYPE system identifier (single-quoted) state.
                     $token->system = '';
-                    $this->state = static::DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED_STATE;
+                    $this->state = self::DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
@@ -2898,7 +2898,7 @@ class Tokenizer {
                     # state. Emit that DOCTYPE token.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>', 'DOCTYPE system identifier');
                     $token->forceQuirks = true;
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     return $token;
                 }
                 # EOF
@@ -2906,7 +2906,7 @@ class Tokenizer {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE system identifier');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     Parser::$instance->data->unconsume();
                     return $token;
@@ -2917,28 +2917,28 @@ class Tokenizer {
                     # bogus DOCTYPE state.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'DOCTYPE system identifier');
                     $token->forceQuirks = true;
-                    $this->state = static::BOGUS_DOCTYPE_STATE;
+                    $this->state = self::BOGUS_DOCTYPE_STATE;
                 }
 
                 continue;
             }
 
             # 8.2.4.64 DOCTYPE system identifier (double-quoted) state
-            elseif ($this->state === static::DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED_STATE) {
+            elseif ($this->state === self::DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
                 # U+0022 QUOTATION MARK (")
                 if ($char === '"') {
                     # Switch to the after DOCTYPE system identifier state.
-                    $this->state = static::AFTER_DOCTYPE_SYSTEM_IDENTIFIER_STATE;
+                    $this->state = self::AFTER_DOCTYPE_SYSTEM_IDENTIFIER_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
                     # Parse error. Set the DOCTYPE token's force-quirks flag to on. Switch to the data
                     # state. Emit that DOCTYPE token.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>', 'DOCTYPE system identifier');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     return $token;
                 }
                 # EOF
@@ -2946,7 +2946,7 @@ class Tokenizer {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE system identifier');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     Parser::$instance->data->unconsume();
                     return $token;
@@ -2964,21 +2964,21 @@ class Tokenizer {
             }
 
             # 8.2.4.65 DOCTYPE system identifier (single-quoted) state
-            elseif ($this->state === static::DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED_STATE) {
+            elseif ($this->state === self::DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
                 # "'" (U+0027)
                 if ($char === "'") {
                     # Switch to the after DOCTYPE system identifier state.
-                    $this->state = static::AFTER_DOCTYPE_SYSTEM_IDENTIFIER_STATE;
+                    $this->state = self::AFTER_DOCTYPE_SYSTEM_IDENTIFIER_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
                     # Parse error. Set the DOCTYPE token's force-quirks flag to on. Switch to the data
                     # state. Emit that DOCTYPE token.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>', 'DOCTYPE system identifier');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     return $token;
                 }
                 # EOF
@@ -2986,7 +2986,7 @@ class Tokenizer {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE system identifier');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     Parser::$instance->data->unconsume();
                     return $token;
@@ -3004,7 +3004,7 @@ class Tokenizer {
             }
 
             # 8.2.4.66 After DOCTYPE system identifier state
-            elseif ($this->state === static::AFTER_DOCTYPE_SYSTEM_IDENTIFIER_STATE) {
+            elseif ($this->state === self::AFTER_DOCTYPE_SYSTEM_IDENTIFIER_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
@@ -3014,12 +3014,12 @@ class Tokenizer {
                 # U+0020 SPACE
                 if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
                     # Switch to the between DOCTYPE system and system identifiers state.
-                    $this->state = static::BETWEEN_DOCTYPE_SYSTEM_AND_SYSTEM_IDENTIFIERS_STATE;
+                    $this->state = self::BETWEEN_DOCTYPE_SYSTEM_AND_SYSTEM_IDENTIFIERS_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>')  {
                     # Switch to the data state. Emit the current DOCTYPE token.
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     return $token;
                 }
                 # U+0022 QUOTATION MARK (")
@@ -3027,21 +3027,21 @@ class Tokenizer {
                     # Set the DOCTYPE token's system identifier to the empty string (not missing),
                     # then switch to the DOCTYPE system identifier (double-quoted) state.
                     $this->system = '';
-                    $this->state = static::DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED_STATE;
+                    $this->state = self::DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED_STATE;
                 }
                 # "'" (U+0027)
                 elseif ($char === "'") {
                     # Set the DOCTYPE token's system identifier to the empty string (not missing),
                     # then switch to the DOCTYPE system identifier (single-quoted) state.
                     $this->system = '';
-                    $this->state = static::DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED_STATE;
+                    $this->state = self::DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED_STATE;
                 }
                 # EOF
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE system identifier');
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     Parser::$instance->data->unconsume();
                     return $token;
@@ -3052,27 +3052,27 @@ class Tokenizer {
                     # bogus DOCTYPE state.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'DOCTYPE system identifier');
                     $token->forceQuirks = true;
-                    $this->state = static::BOGUS_DOCTYPE_STATE;
+                    $this->state = self::BOGUS_DOCTYPE_STATE;
                 }
 
                 continue;
             }
 
             # 8.2.4.67 Bogus DOCTYPE state
-            elseif ($this->state === static::BOGUS_DOCTYPE_STATE) {
+            elseif ($this->state === self::BOGUS_DOCTYPE_STATE) {
                 # Consume the next input character
                 $char = Parser::$instance->data->consume();
 
                 # ">" (U+003E)
                 if ($char === '>') {
                     # Switch to the data state. Emit the DOCTYPE token.
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     return $token;
                 }
                 # EOF
                 elseif ($char === '') {
                     # Switch to the data state. Emit the DOCTYPE token.
-                    $this->state = static::DATA_STATE;
+                    $this->state = self::DATA_STATE;
                     Parser::$instance->data->unconsume();
                     return $token;
                 }
@@ -3083,9 +3083,9 @@ class Tokenizer {
             }
 
             # 8.2.4.68 CDATA section state
-            elseif ($this->state === static::CDATA_SECTION_STATE) {
+            elseif ($this->state === self::CDATA_SECTION_STATE) {
                 # Switch to the data state.
-                $this->state = static::DATA_STATE;
+                $this->state = self::DATA_STATE;
 
                 # Consume every character up to the next occurrence of the three character
                 # sequence U+005D RIGHT SQUARE BRACKET U+005D RIGHT SQUARE BRACKET U+003E
