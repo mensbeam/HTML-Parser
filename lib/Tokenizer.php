@@ -777,8 +777,8 @@ class Tokenizer {
                         $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
                     } else {
                         $this->state = self::RAWTEXT_STATE;
-                        Parser::$instance->emitToken(new CharacterToken('</'.$temporaryBuffer));
                         Parser::$instance->data->unconsume();
+                        return new CharacterToken('</'.$temporaryBuffer);
                     }
 
                     continue;
@@ -792,8 +792,8 @@ class Tokenizer {
                         $this->state = self::SELF_CLOSING_START_TAG_STATE;
                     } else {
                         $this->state = self::RAWTEXT_STATE;
-                        Parser::$instance->emitToken(new CharacterToken('</'.$temporaryBuffer));
                         Parser::$instance->data->unconsume();
+                        return new CharacterToken('</'.$temporaryBuffer);
                     }
 
                     continue;
@@ -805,11 +805,11 @@ class Tokenizer {
                     # "anything else" entry below.
                     if ($token->name === $this->stack->currentNode()->name) {
                         $this->state = self::DATA_STATE;
-                        Parser::$instance->emitToken($token);
+                        return $token;
                     } else {
                         $this->state = self::RAWTEXT_STATE;
-                        Parser::$instance->emitToken(new CharacterToken('</'.$temporaryBuffer));
                         Parser::$instance->data->unconsume();
+                        return new CharacterToken('</'.$temporaryBuffer);
                     }
 
                     continue;
@@ -839,8 +839,8 @@ class Tokenizer {
                     # in the temporary buffer (in the order they were added to the buffer). Reconsume
                     # the current input character.
                     $this->state = self::RAWTEXT_STATE;
-                    Parser::$instance->emitToken(new CharacterToken('</'.$temporaryBuffer));
                     Parser::$instance->data->unconsume();
+                    return new CharacterToken('</'.$temporaryBuffer);
 
                     continue;
                 }
@@ -865,17 +865,15 @@ class Tokenizer {
                     # Switch to the script data escape start state. Emit a U+003C LESS-THAN SIGN
                     # character token and a U+0021 EXCLAMATION MARK character token.
                     $this->state = self::SCRIPT_DATA_ESCAPE_START_STATE;
-                    Parser::$instance->emitToken(new CharacterToken('<!'));
-
-                    continue;
+                    return new CharacterToken('<!');
                 }
                 # Anything else
                 else {
                     # Switch to the script data state. Emit a U+003C LESS-THAN SIGN character token.
                     # Reconsume the current input character.
                     $this->state = self::SCRIPT_DATA_STATE;
-                    Parser::$instance->emitToken(new CharacterToken('<'));
                     Parser::$instance->data->unconsume();
+                    return new CharacterToken('<');
 
                     continue;
                 }
@@ -960,7 +958,7 @@ class Tokenizer {
                     # "anything else" entry below.
                     if ($token->name === $this->stack->currentNode()->name) {
                         $this->state = self::DATA_STATE;
-                        Parser::$instance->emitToken($token);
+                        return $token;
                     } else {
                         $this->state = self::SCRIPT_DATA_STATE;
                         Parser::$instance->data->unconsume();
@@ -1280,7 +1278,7 @@ class Tokenizer {
                     # "anything else" entry below.
                     if ($token->name === $this->stack->currentNode()->name) {
                         $this->state = self::DATA_STATE;
-                        Parser::$instance->emitToken($token);
+                        return $token;
                     } else {
                         $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
                         Parser::$instance->data->unconsume();
@@ -3101,17 +3099,17 @@ class Tokenizer {
 
                     if ($peek === ']]>') {
                         Parser::$instance->data->consume(3);
-                        Parser::$instance->emitToken(new CharacterToken($char));
+                        return new CharacterToken($char);
                         break;
                     } elseif ($peek === '') {
-                        Parser::$instance->emitToken(new CharacterToken($char));
+                        return new CharacterToken($char);
 
                         # If the end of the file was reached, reconsume the EOF character.
                         Parser::$instance->data->unconsume();
                         break;
                     } elseif ($peeklen < 3) {
                         $char .= Parser::$instance->data->consume($peeklen);
-                        Parser::$instance->emitToken(new CharacterToken($char));
+                        return new CharacterToken($char);
 
                         # If the end of the file was reached, reconsume the EOF character.
                         Parser::$instance->data->unconsume();
