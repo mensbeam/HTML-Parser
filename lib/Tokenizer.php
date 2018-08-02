@@ -3102,17 +3102,15 @@ class Tokenizer {
                         return new CharacterToken($char);
                         break;
                     } elseif ($peek === '') {
-                        return new CharacterToken($char);
-
                         # If the end of the file was reached, reconsume the EOF character.
                         Parser::$instance->data->unconsume();
+                        return new CharacterToken($char);
                         break;
                     } elseif ($peeklen < 3) {
                         $char .= Parser::$instance->data->consume($peeklen);
-                        return new CharacterToken($char);
-
                         # If the end of the file was reached, reconsume the EOF character.
                         Parser::$instance->data->unconsume();
+                        return new CharacterToken($char);
                         break;
                     } else {
                         $char .= Parser::$instance->data->consume();
