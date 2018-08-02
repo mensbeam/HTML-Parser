@@ -98,7 +98,6 @@ class Parser {
     protected function __construct() {
         $this->insertionMode = static::INITIAL_MODE;
         $this->quirksMode = static::QUIRKS_MODE_OFF;
-        $this->tokenizer = new Tokenizer();
         $this->stack = new Stack();
         $this->activeFormattingElementsList = new ActiveFormattingElementsList();
     }
@@ -123,6 +122,9 @@ class Parser {
         // Set the locale for CTYPE to en_US.UTF8 so ctype functions and strtolower only
         // work on basic latin characters. Used extensively when tokenizing.
         setlocale(LC_CTYPE, 'en_US.UTF8');
+
+        // initialize the tokenizer
+        static::$instance->tokenizer = new Tokenizer(static::$instance->data, static::$instance->stack);
 
         // Run the tokenizer. Tokenizer runs until after the EOF token is emitted.
         do {

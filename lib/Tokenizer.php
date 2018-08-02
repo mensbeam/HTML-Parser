@@ -4,6 +4,8 @@ namespace dW\HTML5;
 
 class Tokenizer {
     public $state;
+    protected $data;
+    protected $stack;
 
     const DATA_STATE = 0;
     const RCDATA_STATE = 1;
@@ -75,8 +77,10 @@ class Tokenizer {
     const CTYPE_ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
     const CTYPE_UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-    public function __construct() {
+    public function __construct(DataStream $data, Stack $openElements) {
         $this->state = self::DATA_STATE;
+        $this->data = $data;
+        $this->stack = $openElements;
     }
 
     public function createToken(): Token {
@@ -220,7 +224,7 @@ class Tokenizer {
             # 12.2.4.1 Data state
             if ($this->state === self::DATA_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # U+0026 AMPERSAND (&)
                 if ($char === '&') {
@@ -234,7 +238,7 @@ class Tokenizer {
 
                     // DEVIATION: This implementation does the character reference consuming in a
                     // function for which it is more suited for.
-                    return new CharacterToken(Parser::$instance->data->consumeCharacterReference());
+                    return new CharacterToken($this->data->consumeCharacterReference());
                 }
                 # U+003C LESS-THAN SIGN (<)
                 elseif ($char === '<') {
@@ -253,7 +257,7 @@ class Tokenizer {
                     // OPTIMIZATION: Consume all characters that don't match what is above and emit
                     // that as a character token instead to prevent having to loop back through here
                     // every single time.
-                    return new CharacterToken($char.Parser::$instance->data->consumeUntil('&<'));
+                    return new CharacterToken($char.$this->data->consumeUntil('&<'));
                 }
             }
 
@@ -263,7 +267,7 @@ class Tokenizer {
             # 12.2.4.3 RCDATA state
             elseif ($this->state === self::RCDATA_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # U+0026 AMPERSAND (&)
                 if ($char === '&') {
@@ -277,7 +281,7 @@ class Tokenizer {
 
                     // DEVIATION: This implementation does the character reference consuming in a
                     // function for which it is more suited for.
-                    return new CharacterToken(Parser::$instance->data->consumeCharacterReference());
+                    return new CharacterToken($this->data->consumeCharacterReference());
                 }
                 # U+003C LESS-THAN SIGN (<)
                 elseif ($char === '<') {
@@ -295,7 +299,7 @@ class Tokenizer {
                     // OPTIMIZATION: Consume all characters that don't match what is above and emit
                     // that as a character token instead to prevent having to loop back through here
                     // every single time.
-                    return new CharacterToken($char.Parser::$instance->data->consumeUntil('&<'));
+                    return new CharacterToken($char.$this->data->consumeUntil('&<'));
                 }
 
                 continue;
@@ -307,7 +311,7 @@ class Tokenizer {
             # 12.2.4.5 RAWTEXT state
             elseif ($this->state === self::RAWTEXT_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # U+003C LESS-THAN SIGN (<)
                 if ($char === '<') {
@@ -325,7 +329,7 @@ class Tokenizer {
                     // OPTIMIZATION: Consume all characters that don't match what is above and emit
                     // that as a character token instead to prevent having to loop back through here
                     // every single time.
-                    return new CharacterToken($char.Parser::$instance->data->consumeUntil('<'));
+                    return new CharacterToken($char.$this->data->consumeUntil('<'));
                 }
 
                 continue;
@@ -334,7 +338,7 @@ class Tokenizer {
             # 12.2.4.6 Script data state
             elseif ($this->state === self::SCRIPT_DATA_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # U+003C LESS-THAN SIGN (<)
                 if ($char === '<') {
@@ -352,7 +356,7 @@ class Tokenizer {
                     // OPTIMIZATION: Consume all characters that don't match what is above and emit
                     // that as a character token instead to prevent having to loop back through here
                     // every single time.
-                    return new CharacterToken($char.Parser::$instance->data->consumeUntil('<'));
+                    return new CharacterToken($char.$this->data->consumeUntil('<'));
                 }
 
                 continue;
@@ -361,7 +365,7 @@ class Tokenizer {
             # 12.2.4.7 PLAINTEXT state
             elseif ($this->state === self::PLAINTEXT_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # EOF
                 if ($char === '') {
@@ -374,14 +378,14 @@ class Tokenizer {
                     // OPTIMIZATION: Consume all characters that don't match what is above and emit
                     // that as a character token instead to prevent having to loop back through here
                     // every single time.
-                    return new CharacterToken($char.Parser::$instance->data->consumeUntil(''));
+                    return new CharacterToken($char.$this->data->consumeUntil(''));
                 }
             }
 
             # 12.2.4.8 Tag open state
             elseif ($this->state === self::TAG_OPEN_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # U+0021 EXCLAMATION MARK (!)
                 if ($char === '!') {
@@ -410,7 +414,7 @@ class Tokenizer {
                     // characters.
                     // OPTIMIZATION: Consume all characters that are ASCII characters to prevent having
                     // to loop back through here every single time.
-                    $token = new StartTagToken(strtolower($char.Parser::$instance->data->consumeWhile(self::CTYPE_ALPHA)));
+                    $token = new StartTagToken(strtolower($char.$this->data->consumeWhile(self::CTYPE_ALPHA)));
                     $this->state = self::TAG_NAME_STATE;
                 }
                 # U+003F QUESTION MARK (?)
@@ -439,7 +443,7 @@ class Tokenizer {
                     }
 
                     $this->state = self::DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                 }
 
                 continue;
@@ -448,7 +452,7 @@ class Tokenizer {
             # 8.2.4.9 End tag open state
             elseif ($this->state === self::END_TAG_OPEN_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # Uppercase ASCII letter
                 # Lowercase ASCII letter
@@ -467,7 +471,7 @@ class Tokenizer {
                     // characters.
                     // OPTIMIZATION: Consume all characters that are ASCII characters to prevent having
                     // to loop back through here every single time.
-                    $token = new EndTagToken(strtolower($char.Parser::$instance->data->consumeWhile(self::CTYPE_ALPHA)));
+                    $token = new EndTagToken(strtolower($char.$this->data->consumeWhile(self::CTYPE_ALPHA)));
                     $this->state = self::TAG_NAME_STATE;
                 }
                 # ">" (U+003E)
@@ -483,7 +487,7 @@ class Tokenizer {
                     // Making errors more expressive.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'tag name');
                     $this->state = self::DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return new CharacterToken('</');
                 }
                 # Anything else
@@ -499,7 +503,7 @@ class Tokenizer {
             # 8.2.4.10 Tag name state
             elseif ($this->state === self::TAG_NAME_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -527,7 +531,7 @@ class Tokenizer {
 
                     // OPTIMIZATION: Consume all characters that are Uppercase ASCII characters to
                     // prevent having to loop back through here every single time.
-                    $token->name = $token->name.strtolower($char.Parser::$instance->data->consumeWhile(self::CTYPE_UPPER));
+                    $token->name = $token->name.strtolower($char.$this->data->consumeWhile(self::CTYPE_UPPER));
                 }
                 # EOF
                 elseif ($char === '') {
@@ -541,7 +545,7 @@ class Tokenizer {
                     }
 
                     $this->state = self::DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                 }
                 # Anything else
                 else {
@@ -549,7 +553,7 @@ class Tokenizer {
 
                     // OPTIMIZATION: Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
-                    $token->name = $token->name.$char.Parser::$instance->data->consumeUntil("\t\n\x0c />".self::CTYPE_UPPER);
+                    $token->name = $token->name.$char.$this->data->consumeUntil("\t\n\x0c />".self::CTYPE_UPPER);
                 }
 
                 continue;
@@ -558,7 +562,7 @@ class Tokenizer {
             # 8.2.4.11 RCDATA less-than sign state
             elseif ($this->state === self::RCDATA_LESS_THAN_SIGN_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "/" (U+002F)
                 if ($char === '/') {
@@ -572,7 +576,7 @@ class Tokenizer {
                     # Switch to the RCDATA state. Emit a U+003C LESS-THAN SIGN character token.
                     # Reconsume the current input character.
                     $this->state = self::RCDATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return new CharacterToken('<');
                 }
 
@@ -582,7 +586,7 @@ class Tokenizer {
             # 8.2.4.12 RCDATA end tag open state
             elseif ($this->state === self::RCDATA_END_TAG_OPEN_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # Uppercase ASCII letter
                 # Lowercase ASCII letter
@@ -613,7 +617,7 @@ class Tokenizer {
                     # Switch to the RCDATA state. Emit a U+003C LESS-THAN SIGN character token and a
                     # U+002F SOLIDUS character token. Reconsume the current input character.
                     $this->state = self::RCDATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return new CharacterToken('</');
                 }
             }
@@ -621,7 +625,7 @@ class Tokenizer {
             # 8.2.4.13 RCDATA end tag name state
             elseif ($this->state === self::RCDATA_END_TAG_NAME_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -635,7 +639,7 @@ class Tokenizer {
                         $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
                     } else {
                         $this->state = self::RCDATA_STATE;
-                        Parser::$instance->data->unconsume();
+                        $this->data->unconsume();
                         return new CharacterToken('</'.$temporaryBuffer);
                     }
                 }
@@ -648,7 +652,7 @@ class Tokenizer {
                         $this->state = self::SELF_CLOSING_START_TAG_STATE;
                     } else {
                         $this->state = self::RCDATA_STATE;
-                        Parser::$instance->data->unconsume();
+                        $this->data->unconsume();
                         return new CharacterToken('</'.$temporaryBuffer);
                     }
                 }
@@ -662,7 +666,7 @@ class Tokenizer {
                         return $token;
                     } else {
                         $this->state = self::RCDATA_STATE;
-                        Parser::$instance->data->unconsume();
+                        $this->data->unconsume();
                         return new CharacterToken('</'.$temporaryBuffer);
                     }
                 }
@@ -681,7 +685,7 @@ class Tokenizer {
                     // characters.
                     // OPTIMIZATION: Consume all characters that are ASCII characters to prevent having
                     // to loop back through here every single time.
-                    $token->name .= $token->name.strtolower($char.Parser::$instance->data->consumeWhile(self::CTYPE_ALPHA));
+                    $token->name .= $token->name.strtolower($char.$this->data->consumeWhile(self::CTYPE_ALPHA));
                     $temporaryBuffer .= $char;
                 }
                 # Anything else
@@ -691,7 +695,7 @@ class Tokenizer {
                     # in the temporary buffer (in the order they were added to the buffer). Reconsume
                     # the current input character.
                     $this->state = self::RCDATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return new CharacterToken('</'.$temporaryBuffer);
                 }
 
@@ -701,7 +705,7 @@ class Tokenizer {
             # 8.2.4.14 RAWTEXT less-than sign state
             elseif ($this->state === self::RAWTEXT_LESS_THAN_SIGN_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "/" (U+002F)
                 if ($char === '/') {
@@ -715,7 +719,7 @@ class Tokenizer {
                     # Switch to the RAWTEXT state. Emit a U+003C LESS-THAN SIGN character token.
                     # Reconsume the current input character.
                     $this->state = self::RAWTEXT_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return new CharacterToken('<');
                 }
 
@@ -725,7 +729,7 @@ class Tokenizer {
             # 8.2.4.15 RAWTEXT end tag open state
             elseif ($this->state === self::RAWTEXT_END_TAG_OPEN_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # Uppercase ASCII letter
                 # Lowercase ASCII letter
@@ -753,7 +757,7 @@ class Tokenizer {
                     # Switch to the RAWTEXT state. Emit a U+003C LESS-THAN SIGN character token and a
                     # U+002F SOLIDUS character token. Reconsume the current input character.
                     $this->state = self::RAWTEXT_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return new CharacterToken('</');
                 }
 
@@ -763,7 +767,7 @@ class Tokenizer {
             # 8.2.4.16 RAWTEXT end tag name state
             elseif ($this->state === self::RAWTEXT_END_TAG_NAME_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -777,7 +781,7 @@ class Tokenizer {
                         $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
                     } else {
                         $this->state = self::RAWTEXT_STATE;
-                        Parser::$instance->data->unconsume();
+                        $this->data->unconsume();
                         return new CharacterToken('</'.$temporaryBuffer);
                     }
 
@@ -792,7 +796,7 @@ class Tokenizer {
                         $this->state = self::SELF_CLOSING_START_TAG_STATE;
                     } else {
                         $this->state = self::RAWTEXT_STATE;
-                        Parser::$instance->data->unconsume();
+                        $this->data->unconsume();
                         return new CharacterToken('</'.$temporaryBuffer);
                     }
 
@@ -808,7 +812,7 @@ class Tokenizer {
                         return $token;
                     } else {
                         $this->state = self::RAWTEXT_STATE;
-                        Parser::$instance->data->unconsume();
+                        $this->data->unconsume();
                         return new CharacterToken('</'.$temporaryBuffer);
                     }
 
@@ -829,7 +833,7 @@ class Tokenizer {
                     // characters.
                     // OPTIMIZATION: Consume all characters that are ASCII characters to prevent having
                     // to loop back through here every single time.
-                    $token->name .= $token->name.strtolower($char.Parser::$instance->data->consumeWhile(self::CTYPE_ALPHA));
+                    $token->name .= $token->name.strtolower($char.$this->data->consumeWhile(self::CTYPE_ALPHA));
                     $temporaryBuffer .= $char;
                 }
                 # Anything else
@@ -839,7 +843,7 @@ class Tokenizer {
                     # in the temporary buffer (in the order they were added to the buffer). Reconsume
                     # the current input character.
                     $this->state = self::RAWTEXT_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return new CharacterToken('</'.$temporaryBuffer);
 
                     continue;
@@ -849,7 +853,7 @@ class Tokenizer {
             # 8.2.4.17 Script data less-than sign state
             elseif ($this->state === self::SCRIPT_DATA_LESS_THAN_SIGN_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "/" (U+002F)
                 if ($char === '/') {
@@ -872,7 +876,7 @@ class Tokenizer {
                     # Switch to the script data state. Emit a U+003C LESS-THAN SIGN character token.
                     # Reconsume the current input character.
                     $this->state = self::SCRIPT_DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return new CharacterToken('<');
 
                     continue;
@@ -882,7 +886,7 @@ class Tokenizer {
             # 8.2.4.18 Script data end tag open state
             elseif ($this->state === self::SCRIPT_DATA_END_TAG_OPEN_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # Uppercase ASCII letter
                 # Lowercase ASCII letter
@@ -910,7 +914,7 @@ class Tokenizer {
                     # Switch to the script data state. Emit a U+003C LESS-THAN SIGN character token
                     # and a U+002F SOLIDUS character token. Reconsume the current input character.
                     $this->state = self::SCRIPT_DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return new CharacterToken('</');
                 }
 
@@ -920,7 +924,7 @@ class Tokenizer {
             # 8.2.4.19 Script data end tag name state
             elseif ($this->state === self::SCRIPT_DATA_END_TAG_NAME_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -934,7 +938,7 @@ class Tokenizer {
                         $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
                     } else {
                         $this->state = self::SCRIPT_DATA_STATE;
-                        Parser::$instance->data->unconsume();
+                        $this->data->unconsume();
                         return new CharacterToken('</'.$temporaryBuffer);
                     }
                 }
@@ -947,7 +951,7 @@ class Tokenizer {
                         $this->state = self::SELF_CLOSING_START_TAG_STATE;
                     } else {
                         $this->state = self::SCRIPT_DATA_STATE;
-                        Parser::$instance->data->unconsume();
+                        $this->data->unconsume();
                         return new CharacterToken('</'.$temporaryBuffer);
                     }
                 }
@@ -961,7 +965,7 @@ class Tokenizer {
                         return $token;
                     } else {
                         $this->state = self::SCRIPT_DATA_STATE;
-                        Parser::$instance->data->unconsume();
+                        $this->data->unconsume();
                         return new CharacterToken('</'.$temporaryBuffer);
                     }
                 }
@@ -980,7 +984,7 @@ class Tokenizer {
                     // characters.
                     // OPTIMIZATION: Consume all characters that are ASCII characters to prevent having
                     // to loop back through here every single time.
-                    $token->name .= $token->name.strtolower($char.Parser::$instance->data->consumeWhile(self::CTYPE_ALPHA));
+                    $token->name .= $token->name.strtolower($char.$this->data->consumeWhile(self::CTYPE_ALPHA));
                     $temporaryBuffer .= $char;
                 }
                 # Anything else
@@ -990,7 +994,7 @@ class Tokenizer {
                     # in the temporary buffer (in the order they were added to the buffer). Reconsume
                     # the current input character.
                     $this->state = self::SCRIPT_DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return new CharacterToken('</'.$temporaryBuffer);
                 }
 
@@ -1000,7 +1004,7 @@ class Tokenizer {
             # 8.2.4.20 Script data escape start state
             elseif ($this->state === self::SCRIPT_DATA_ESCAPE_START_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
@@ -1013,7 +1017,7 @@ class Tokenizer {
                 else {
                     # Switch to the script data state. Reconsume the current input character.
                     $this->state = self::SCRIPT_DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                 }
 
                 continue;
@@ -1022,7 +1026,7 @@ class Tokenizer {
             # 8.2.4.21 Script data escape start dash state
             elseif ($this->state === self::SCRIPT_DATA_ESCAPE_START_DASH_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
@@ -1035,7 +1039,7 @@ class Tokenizer {
                 else {
                     # Switch to the script data state. Reconsume the current input character.
                     $this->state = self::SCRIPT_DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                 }
 
                 continue;
@@ -1044,7 +1048,7 @@ class Tokenizer {
             # 8.2.4.22 Script data escaped state
             elseif ($this->state === self::SCRIPT_DATA_ESCAPED_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
@@ -1063,14 +1067,14 @@ class Tokenizer {
                     # Switch to the data state. Parse error. Reconsume the EOF character.
                     $this->state = self::DATA_STATE;
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'script data');
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                 }
                 # Anything else
                 else {
                     # Emit the current input character as a character token.
                     // OPTIMIZATION: Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
-                    return new CharacterToken($char.Parser::$instance->data->consumeUntil('-<'));
+                    return new CharacterToken($char.$this->data->consumeUntil('-<'));
                 }
 
                 continue;
@@ -1079,7 +1083,7 @@ class Tokenizer {
             # 8.2.4.23 Script data escaped dash state
             elseif ($this->state === self::SCRIPT_DATA_ESCAPED_DASH_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
@@ -1098,7 +1102,7 @@ class Tokenizer {
                     # Switch to the data state. Parse error. Reconsume the EOF character.
                     $this->state = self::DATA_STATE;
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'script data');
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                 }
                 # Anything else
                 else {
@@ -1114,7 +1118,7 @@ class Tokenizer {
             # 8.2.4.24 Script data escaped dash dash state
             elseif ($this->state === self::SCRIPT_DATA_ESCAPED_DASH_DASH_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
@@ -1138,7 +1142,7 @@ class Tokenizer {
                     # Switch to the data state. Parse error. Reconsume the EOF character.
                     $this->state = self::DATA_STATE;
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'script data');
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                 }
                 # Anything else
                 else {
@@ -1154,7 +1158,7 @@ class Tokenizer {
             # 8.2.4.25 Script data escaped less-than sign state
             elseif ($this->state === self::SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "/" (U+002F)
                 if ($char === '/') {
@@ -1189,7 +1193,7 @@ class Tokenizer {
                     # Switch to the script data escaped state. Emit a U+003C LESS-THAN SIGN character
                     # token. Reconsume the current input character.
                     $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return new CharacterToken($char);
                 }
 
@@ -1199,7 +1203,7 @@ class Tokenizer {
             # 8.2.4.26 Script data escaped end tag open state
             elseif ($this->state === self::SCRIPT_DATA_ESCAPED_END_TAG_OPEN_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # Uppercase ASCII letter
                 # Lowercase ASCII letter
@@ -1230,7 +1234,7 @@ class Tokenizer {
                     # token and a U+002F SOLIDUS character token. Reconsume the current input
                     # character.
                     $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return new CharacterToken('</');
                 }
 
@@ -1240,7 +1244,7 @@ class Tokenizer {
             # 8.2.4.27 Script data escaped end tag name state
             elseif ($this->state === self::SCRIPT_DATA_ESCAPED_END_TAG_NAME_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -1254,7 +1258,7 @@ class Tokenizer {
                         $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
                     } else {
                         $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
-                        Parser::$instance->data->unconsume();
+                        $this->data->unconsume();
                         return new CharacterToken('</'.$temporaryBuffer);
                     }
                 }
@@ -1267,7 +1271,7 @@ class Tokenizer {
                         $this->state = self::SELF_CLOSING_START_TAG_STATE;
                     } else {
                         $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
-                        Parser::$instance->data->unconsume();
+                        $this->data->unconsume();
                         return new CharacterToken('</'.$temporaryBuffer);
                     }
                 }
@@ -1281,7 +1285,7 @@ class Tokenizer {
                         return $token;
                     } else {
                         $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
-                        Parser::$instance->data->unconsume();
+                        $this->data->unconsume();
                         return new CharacterToken('</'.$temporaryBuffer);
                     }
                 }
@@ -1300,7 +1304,7 @@ class Tokenizer {
                     // characters.
                     // OPTIMIZATION: Consume all characters that are ASCII characters to prevent having
                     // to loop back through here every single time.
-                    $token->name .= $token->name.strtolower($char.Parser::$instance->data->consumeWhile(self::CTYPE_ALPHA));
+                    $token->name .= $token->name.strtolower($char.$this->data->consumeWhile(self::CTYPE_ALPHA));
                     $temporaryBuffer .= $char;
                 }
                 # Anything else
@@ -1310,7 +1314,7 @@ class Tokenizer {
                     # in the temporary buffer (in the order they were added to the buffer). Reconsume
                     # the current input character.
                     $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return new CharacterToken('</'.$temporaryBuffer);
                 }
 
@@ -1320,7 +1324,7 @@ class Tokenizer {
             # 8.2.4.29 Script data double escaped state
             elseif ($this->state === self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
@@ -1348,7 +1352,7 @@ class Tokenizer {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'script data');
                     $this->state = self::DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                 }
                 # Anything else
                 else {
@@ -1364,7 +1368,7 @@ class Tokenizer {
             # 8.2.4.32 Script data double escaped less-than sign state
             elseif ($this->state === self::SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "/" (U+002F)
                 if ($char === '/') {
@@ -1379,7 +1383,7 @@ class Tokenizer {
                     # Switch to the script data double escaped state. Reconsume the current input
                     # character.
                     $this->state === self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                 }
 
                 continue;
@@ -1388,7 +1392,7 @@ class Tokenizer {
             # 8.2.4.33 Script data double escape end state
             elseif ($this->state === self::SCRIPT_DATA_DOUBLE_ESCAPE_END_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -1422,7 +1426,7 @@ class Tokenizer {
                     // characters.
                     // OPTIMIZATION: Consume all characters that are ASCII characters to prevent having
                     // to loop back through here every single time.
-                    $char = $char.Parser::$instance->data->consumeWhile(self::CTYPE_ALPHA);
+                    $char = $char.$this->data->consumeWhile(self::CTYPE_ALPHA);
                     $temporaryBuffer .= strtolower(strtolower($char));
                     return new CharacterToken($char);
                 }
@@ -1431,7 +1435,7 @@ class Tokenizer {
                     # Switch to the script data double escaped state. Reconsume the current input
                     # character.
                     $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                 }
 
                 continue;
@@ -1440,7 +1444,7 @@ class Tokenizer {
             # 8.2.4.34 Before attribute name state
             elseif ($this->state === self::BEFORE_ATTRIBUTE_NAME_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -1477,7 +1481,7 @@ class Tokenizer {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'attribute name');
                     $this->state = self::DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                 }
                 # U+0022 QUOTATION MARK (")
                 # "'" (U+0027)
@@ -1508,7 +1512,7 @@ class Tokenizer {
             # 8.2.4.35 Attribute name state
             elseif ($this->state === self::ATTRIBUTE_NAME_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -1563,14 +1567,14 @@ class Tokenizer {
 
                     // OPTIMIZATION: Consume all characters that are uppercase ASCII letters to prevent
                     // having to loop back through here every single time.
-                    $attributeName .= strtolower($char.Parser::$instance->data->consumeWhile(self::CTYPE_UPPER));
+                    $attributeName .= strtolower($char.$this->data->consumeWhile(self::CTYPE_UPPER));
                 }
                 # EOF
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'attribute name');
                     $this->state = self::DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                 }
                 # U+0022 QUOTATION MARK (")
                 # "'" (U+0027)
@@ -1591,7 +1595,7 @@ class Tokenizer {
                     // characters.
                     // OPTIMIZATION: Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
-                    $attributeName .= $char.Parser::$instance->data->consumeUntil("\t\n\x0c /=>\"'<".self::CTYPE_UPPER);
+                    $attributeName .= $char.$this->data->consumeUntil("\t\n\x0c /=>\"'<".self::CTYPE_UPPER);
                 }
 
                 # When the user agent leaves the attribute name state (and before emitting the tag
@@ -1609,7 +1613,7 @@ class Tokenizer {
             # 8.2.4.36 After attribute name state
             elseif ($this->state === self::AFTER_ATTRIBUTE_NAME_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -1657,7 +1661,7 @@ class Tokenizer {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'attribute name, attribute value, or tag end');
                     $this->state = self::DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                 }
                 # U+0022 QUOTATION MARK (")
                 # "'" (U+0027)
@@ -1687,7 +1691,7 @@ class Tokenizer {
             # 8.2.4.37 Before attribute value state
             elseif ($this->state === self::BEFORE_ATTRIBUTE_VALUE_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -1706,7 +1710,7 @@ class Tokenizer {
                     # Switch to the attribute value (unquoted) state. Reconsume the current input
                     # character.
                     $this->state = self::ATTRIBUTE_VALUE_UNQUOTED_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                 }
                 # "'" (U+0027)
                 elseif ($char === "'") {
@@ -1731,7 +1735,7 @@ class Tokenizer {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'attribute value');
                     $this->state = self::DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                 }
                 # "<" (U+003C)
                 # "=" (U+003D)
@@ -1758,7 +1762,7 @@ class Tokenizer {
             # 8.2.4.38 Attribute value (double-quoted) state
             elseif ($this->state === self::ATTRIBUTE_VALUE_DOUBLE_QUOTED_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # U+0022 QUOTATION MARK (")
                 if ($char === '"') {
@@ -1779,21 +1783,21 @@ class Tokenizer {
 
                     // DEVIATION: This implementation does the character reference consuming in a
                     // function for which it is more suited for.
-                    $attributeValue .= Parser::$instance->data->consumeCharacterReference('"', true);
+                    $attributeValue .= $this->data->consumeCharacterReference('"', true);
                 }
                 # EOF
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'attribute value');
                     $this->state = self::DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                 }
                 # Anything else
                 else {
                     # Append the current input character to the current attribute's value.
                     // OPTIMIZATION: Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
-                    $attributeValue .= $char.Parser::$instance->data->consumeUntil('"&');
+                    $attributeValue .= $char.$this->data->consumeUntil('"&');
                 }
 
                 continue;
@@ -1802,7 +1806,7 @@ class Tokenizer {
             # 8.2.4.39 Attribute value (single-quoted) state
             elseif ($this->state === self::ATTRIBUTE_VALUE_SINGLE_QUOTED_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "'" (U+0027)
                 if ($char === "'") {
@@ -1824,14 +1828,14 @@ class Tokenizer {
 
                     # DEVIATION: This implementation does the character reference consuming in a
                     # function for which it is more suited for.
-                    $attributeValue .= Parser::$instance->data->consumeCharacterReference("'", true);
+                    $attributeValue .= $this->data->consumeCharacterReference("'", true);
                 }
                 # EOF
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'attribute value');
                     $this->state = self::DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                 }
                 # Anything else
                 else {
@@ -1839,7 +1843,7 @@ class Tokenizer {
 
                     // OPTIMIZATION: Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
-                    $attributeValue .= $char.Parser::$instance->data->consumeUntil("'&");
+                    $attributeValue .= $char.$this->data->consumeUntil("'&");
                 }
 
                 continue;
@@ -1849,7 +1853,7 @@ class Tokenizer {
             # 8.2.4.40 Attribute value (unquoted) state
             elseif ($this->state === self::ATTRIBUTE_VALUE_UNQUOTED_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -1876,7 +1880,7 @@ class Tokenizer {
 
                     // DEVIATION: This implementation does the character reference consuming in a
                     // function for which it is more suited for.
-                    $attributeValue .= Parser::$instance->data->consumeCharacterReference('>', true);
+                    $attributeValue .= $this->data->consumeCharacterReference('>', true);
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
@@ -1894,7 +1898,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'attribute value');
                     $this->state = self::DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                 }
                 # U+0022 QUOTATION MARK (")
                 # "'" (U+0027)
@@ -1914,7 +1918,7 @@ class Tokenizer {
 
                     // OPTIMIZATION: Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
-                    $attributeValue .= $char.Parser::$instance->data->consumeUntil("\t\n\x0c &>\"'<=`");
+                    $attributeValue .= $char.$this->data->consumeUntil("\t\n\x0c &>\"'<=`");
                 }
 
                 continue;
@@ -1923,7 +1927,7 @@ class Tokenizer {
             # 8.2.4.42 After attribute value (quoted) state
             elseif ($this->state === self::AFTER_ATTRIBUTE_VALUE_QUOTED_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -1955,14 +1959,14 @@ class Tokenizer {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'attribute name or tag end');
                     $this->state = self::DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                 }
                 # Anything else
                 else {
                     # Parse error. Switch to the before attribute name state. Reconsume the character.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'attribute name or tag end');
                     $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                 }
 
                 continue;
@@ -1971,7 +1975,7 @@ class Tokenizer {
             # 8.2.4.43 Self-closing start tag state
             elseif ($this->state === self::SELF_CLOSING_START_TAG_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # ">" (U+003E)
                 if ($char === '>') {
@@ -1986,14 +1990,14 @@ class Tokenizer {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'tag end');
                     $this->state = self::DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                 }
                 # Anything else
                 else {
                     # Parse error. Switch to the before attribute name state. Reconsume the character.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'tag end');
                     $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                 }
 
                 continue;
@@ -2011,15 +2015,15 @@ class Tokenizer {
                 # the comment was started by the end of the file (EOF), the token is empty.
                 # Similarly, the token is empty if it was generated by the string "<!>".)
 
-                $char = $char.Parser::$instance->data->consumeUntil('>');
-                $nextChar = Parser::$instance->data->consume();
+                $char = $char.$this->data->consumeUntil('>');
+                $nextChar = $this->data->consume();
 
                 # Switch to the data state.
                 $this->state = self::DATA_STATE;
 
                 # If the end of the file was reached, reconsume the EOF character.
                 if ($nextChar === '') {
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                 }
 
                 return new CommentToken($char);
@@ -2030,16 +2034,16 @@ class Tokenizer {
                 # If the next two characters are both "-" (U+002D) characters, consume those two
                 # characters, create a comment token whose data is the empty string, and switch to
                 # the comment start state.
-                if (Parser::$instance->data->peek(2) === '--') {
-                    Parser::$instance->data->consume(2);
+                if ($this->data->peek(2) === '--') {
+                    $this->data->consume(2);
                     $token = new CommentToken();
                     $this->state = self::COMMENT_START_STATE;
                 }
                 # Otherwise, if the next seven characters are an ASCII case-insensitive match for
                 # the word "DOCTYPE", then consume those characters and switch to the DOCTYPE
                 # state.
-                elseif (strtolower(Parser::$instance->data->peek(7)) === 'doctype') {
-                    Parser::$instance->data->consume(7);
+                elseif (strtolower($this->data->peek(7)) === 'doctype') {
+                    $this->data->consume(7);
                     $this->state = self::DOCTYPE_STATE;
                 }
                 # Otherwise, if there is an adjusted current node and it is not an element in the
@@ -2049,15 +2053,15 @@ class Tokenizer {
                 # the CDATA section state.
                 else {
                     $adjustedCurrentNode = $this->stack->adjustedCurrentNode;
-                    if ($adjustedCurrentNode && $adjustedCurrentNode->namespace !== self::HTML_NAMESPACE && Parser::$instance->data->peek(7) === '[CDATA[') {
-                        Parser::$instance->data->consume(7);
+                    if ($adjustedCurrentNode && $adjustedCurrentNode->namespace !== self::HTML_NAMESPACE && $this->data->peek(7) === '[CDATA[') {
+                        $this->data->consume(7);
                         $this->state = self::CDATA_SECTION_STATE;
                     }
                     # Otherwise, this is a parse error. Switch to the bogus comment state. The next
                     # character that is consumed, if any, is the first character that will be in the
                     # comment.
                     else {
-                        $char = Parser::$instance->data->consume();
+                        $char = $this->data->consume();
                         if ($char !== '') {
                             ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'markup declaration');
                         } else {
@@ -2074,7 +2078,7 @@ class Tokenizer {
             # 8.2.4.46 Comment start state
             elseif ($this->state === self::COMMENT_START_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
@@ -2094,7 +2098,7 @@ class Tokenizer {
                     # character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'comment');
                     $this->state = self::DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return $token;
                 }
                 # Anything else
@@ -2111,7 +2115,7 @@ class Tokenizer {
             # 8.2.4.47 Comment start dash state
             elseif ($this->state === self::COMMENT_START_DASH_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
@@ -2131,7 +2135,7 @@ class Tokenizer {
                     # character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'comment');
                     $this->state = self::DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return $token;
                 }
                 # Anything else
@@ -2148,7 +2152,7 @@ class Tokenizer {
             # 8.2.4.48 Comment state
             elseif ($this->state === self::COMMENT_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
@@ -2161,7 +2165,7 @@ class Tokenizer {
                     # character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'comment');
                     $this->state = self::DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return $token;
                 }
                 # Anything else
@@ -2170,7 +2174,7 @@ class Tokenizer {
 
                     // OPTIMIZATION: Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
-                    $token->data .= $char.Parser::$instance->data->consumeUntil('-');
+                    $token->data .= $char.$this->data->consumeUntil('-');
                 }
 
                 continue;
@@ -2179,7 +2183,7 @@ class Tokenizer {
             # 8.2.4.49 Comment end dash state
             elseif ($this->state === self::COMMENT_END_DASH_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
@@ -2192,7 +2196,7 @@ class Tokenizer {
                     # character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'comment');
                     $this->state = self::DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return $token;
                 }
                 # Anything else
@@ -2209,7 +2213,7 @@ class Tokenizer {
             # 8.2.4.50 Comment end state
             elseif ($this->state === self::COMMENT_END_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # ">" (U+003E)
                 if ($char === '>') {
@@ -2229,7 +2233,7 @@ class Tokenizer {
 
                     // OPTIMIZATION: Consume all '-' characters to prevent having to loop back through
                     // here every single time.
-                    $char .= Parser::$instance->data->consumeWhile('-');
+                    $char .= $this->data->consumeWhile('-');
                     for ($i = 0; $i < strlen($char); $i++) {
                         ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '-', 'comment end');
                     }
@@ -2242,7 +2246,7 @@ class Tokenizer {
                     # character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'comment end');
                     $this->state = self::DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return $token;
                 }
                 # Anything else
@@ -2260,7 +2264,7 @@ class Tokenizer {
             # 8.2.4.51 Comment end bang state
             elseif ($this->state === self::COMMENT_END_BANG_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
@@ -2281,7 +2285,7 @@ class Tokenizer {
                     # character.
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'comment end');
                     $this->state = self::DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return $token;
                 }
                 # Anything else
@@ -2298,7 +2302,7 @@ class Tokenizer {
             # 8.2.4.52 DOCTYPE state
             elseif ($this->state === self::DOCTYPE_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -2320,7 +2324,7 @@ class Tokenizer {
                     $this->state = self::DATA_STATE;
                     $token = new DOCTYPEToken();
                     $token->forceQuirks = true;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return $token;
                 }
                 # Anything else
@@ -2328,7 +2332,7 @@ class Tokenizer {
                     # Parse error. Switch to the before DOCTYPE name state. Reconsume the character.
                     ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'DOCTYPE');
                     $this->state = self::DOCTYPE_NAME_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                 }
 
                 continue;
@@ -2337,7 +2341,7 @@ class Tokenizer {
             # 8.2.4.53 Before DOCTYPE name state
             elseif ($this->state === self::BEFORE_DOCTYPE_NAME_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -2372,7 +2376,7 @@ class Tokenizer {
                     $this->state = self::DATA_STATE;
                     $token = new DOCTYPEToken();
                     $token->forceQuirks = true;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return $token;
                 }
                 # Anything else
@@ -2389,7 +2393,7 @@ class Tokenizer {
             # 8.2.4.54 DOCTYPE name state
             elseif ($this->state === self::DOCTYPE_NAME_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -2414,7 +2418,7 @@ class Tokenizer {
                     // characters.
                     // OPTIMIZATION: Consume all characters that are ASCII characters to prevent having
                     // to loop back through here every single time.
-                    $token->name .= strtolower($char.Parser::$instance->data->consumeWhile(self::CTYPE_ALPHA));
+                    $token->name .= strtolower($char.$this->data->consumeWhile(self::CTYPE_ALPHA));
                 }
                 # EOF
                 elseif ($char === '') {
@@ -2423,7 +2427,7 @@ class Tokenizer {
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE');
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return $token;
                 }
                 # Anything else
@@ -2432,7 +2436,7 @@ class Tokenizer {
 
                     // OPTIMIZATION: Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
-                    $token->name .= $char.Parser::$instance->data->consumeUntil("\t\n\x0c >".self::CTYPE_ALPHA);
+                    $token->name .= $char.$this->data->consumeUntil("\t\n\x0c >".self::CTYPE_ALPHA);
                 }
 
                 continue;
@@ -2441,7 +2445,7 @@ class Tokenizer {
             # 8.2.4.55 After DOCTYPE name state
             elseif ($this->state === self::AFTER_DOCTYPE_NAME_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -2464,7 +2468,7 @@ class Tokenizer {
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE name');
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return $token;
                 }
                 # Anything else
@@ -2473,7 +2477,7 @@ class Tokenizer {
                     # case-insensitive match for the word "PUBLIC", then consume those characters and
                     # switch to the after DOCTYPE public keyword state.
                     // Simpler to just consume and then unconsume if they're not needed.
-                    $char .= Parser::$instance->data->consume(5);
+                    $char .= $this->data->consume(5);
                     if (strtolower($char) === 'public') {
                         $this->state = self::AFTER_DOCTYPE_PUBLIC_KEYWORD_STATE;
                     }
@@ -2487,7 +2491,7 @@ class Tokenizer {
                     # on. Switch to the bogus DOCTYPE state.
                     else {
                         // Need to unconsume what was consumed earlier.
-                        Parser::$instance->data->unconsume(5);
+                        $this->data->unconsume(5);
                         ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char[0], 'DOCTYPE name');
                         $token->forceQuirks = true;
                         $this->state = self::BOGUS_DOCTYPE_STATE;
@@ -2500,7 +2504,7 @@ class Tokenizer {
             # 8.2.4.56 After DOCTYPE public keyword state
             elseif ($this->state === self::AFTER_DOCTYPE_PUBLIC_KEYWORD_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -2542,7 +2546,7 @@ class Tokenizer {
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE public keyword');
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return $token;
                 }
                 # Anything else
@@ -2560,7 +2564,7 @@ class Tokenizer {
             # 8.2.4.57 Before DOCTYPE public identifier state
             elseif ($this->state === self::BEFORE_DOCTYPE_PUBLIC_IDENTIFIER_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -2599,7 +2603,7 @@ class Tokenizer {
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE public identifier');
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return $token;
                 }
                 # Anything else
@@ -2617,7 +2621,7 @@ class Tokenizer {
             # 8.2.4.58 DOCTYPE public identifier (double-quoted) state
             elseif ($this->state === self::DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # U+0022 QUOTATION MARK (")
                 if ($char === '"') {
@@ -2640,7 +2644,7 @@ class Tokenizer {
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE public identifier');
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return $token;
                 }
                 # Anything else
@@ -2649,7 +2653,7 @@ class Tokenizer {
 
                     // OPTIMIZATION: Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
-                    $token->public .= $char.Parser::$instance->data->consumeUntil('">');
+                    $token->public .= $char.$this->data->consumeUntil('">');
                 }
 
                 continue;
@@ -2658,7 +2662,7 @@ class Tokenizer {
             # 8.2.4.59 DOCTYPE public identifier (single-quoted) state
             elseif ($this->state === self::DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "'" (U+0027)
                 if ($char === "'") {
@@ -2680,7 +2684,7 @@ class Tokenizer {
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE public identifier');
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return $token;
                 }
                 # Anything else
@@ -2689,7 +2693,7 @@ class Tokenizer {
 
                     // OPTIMIZATION: Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
-                    $token->public .= $char.Parser::$instance->data->consumeUntil("'>");
+                    $token->public .= $char.$this->data->consumeUntil("'>");
                 }
 
                 continue;
@@ -2698,7 +2702,7 @@ class Tokenizer {
             # 8.2.4.60 After DOCTYPE public identifier state
             elseif ($this->state === self::AFTER_DOCTYPE_PUBLIC_IDENTIFIER_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -2735,7 +2739,7 @@ class Tokenizer {
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE public identifier');
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return $token;
                 }
                 # Anything else
@@ -2753,7 +2757,7 @@ class Tokenizer {
             # 8.2.4.61 Between DOCTYPE public and system identifiers state
             elseif ($this->state === self::BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -2789,7 +2793,7 @@ class Tokenizer {
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE public identifier');
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return $token;
                 }
                 # Anything else
@@ -2807,7 +2811,7 @@ class Tokenizer {
             # 8.2.4.62 After DOCTYPE system keyword state
             elseif ($this->state === self::AFTER_DOCTYPE_SYSTEM_KEYWORD_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -2849,7 +2853,7 @@ class Tokenizer {
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE system keyword');
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return $token;
                 }
                 # Anything else
@@ -2867,7 +2871,7 @@ class Tokenizer {
             # 8.2.4.63 Before DOCTYPE system identifier state
             elseif ($this->state === self::BEFORE_DOCTYPE_SYSTEM_IDENTIFIER_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -2906,7 +2910,7 @@ class Tokenizer {
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE system identifier');
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return $token;
                 }
                 # Anything else
@@ -2924,7 +2928,7 @@ class Tokenizer {
             # 8.2.4.64 DOCTYPE system identifier (double-quoted) state
             elseif ($this->state === self::DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # U+0022 QUOTATION MARK (")
                 if ($char === '"') {
@@ -2946,7 +2950,7 @@ class Tokenizer {
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE system identifier');
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return $token;
                 }
                 # Anything else
@@ -2955,7 +2959,7 @@ class Tokenizer {
 
                     // OPTIMIZATION: Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
-                    $token->system .= $char.Parser::$instance->data->consumeUntil('">');
+                    $token->system .= $char.$this->data->consumeUntil('">');
                 }
 
                 continue;
@@ -2964,7 +2968,7 @@ class Tokenizer {
             # 8.2.4.65 DOCTYPE system identifier (single-quoted) state
             elseif ($this->state === self::DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "'" (U+0027)
                 if ($char === "'") {
@@ -2986,7 +2990,7 @@ class Tokenizer {
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE system identifier');
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return $token;
                 }
                 # Anything else
@@ -2995,7 +2999,7 @@ class Tokenizer {
 
                     // OPTIMIZATION: Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
-                    $token->system .= $char.Parser::$instance->data->consumeUntil("'>");
+                    $token->system .= $char.$this->data->consumeUntil("'>");
                 }
 
                 continue;
@@ -3004,7 +3008,7 @@ class Tokenizer {
             # 8.2.4.66 After DOCTYPE system identifier state
             elseif ($this->state === self::AFTER_DOCTYPE_SYSTEM_IDENTIFIER_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -3041,7 +3045,7 @@ class Tokenizer {
                     ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE system identifier');
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return $token;
                 }
                 # Anything else
@@ -3059,7 +3063,7 @@ class Tokenizer {
             # 8.2.4.67 Bogus DOCTYPE state
             elseif ($this->state === self::BOGUS_DOCTYPE_STATE) {
                 # Consume the next input character
-                $char = Parser::$instance->data->consume();
+                $char = $this->data->consume();
 
                 # ">" (U+003E)
                 if ($char === '>') {
@@ -3071,7 +3075,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Switch to the data state. Emit the DOCTYPE token.
                     $this->state = self::DATA_STATE;
-                    Parser::$instance->data->unconsume();
+                    $this->data->unconsume();
                     return $token;
                 }
                 # Anything else
@@ -3093,27 +3097,27 @@ class Tokenizer {
                 # the end of the file).
                 $char = '';
                 while (true) {
-                    $char .= Parser::$instance->data->consumeUntil(']');
-                    $peek = Parser::$instance->data->peek(3);
+                    $char .= $this->data->consumeUntil(']');
+                    $peek = $this->data->peek(3);
                     $peeklen = strlen($peek);
 
                     if ($peek === ']]>') {
-                        Parser::$instance->data->consume(3);
+                        $this->data->consume(3);
                         return new CharacterToken($char);
                         break;
                     } elseif ($peek === '') {
                         # If the end of the file was reached, reconsume the EOF character.
-                        Parser::$instance->data->unconsume();
+                        $this->data->unconsume();
                         return new CharacterToken($char);
                         break;
                     } elseif ($peeklen < 3) {
-                        $char .= Parser::$instance->data->consume($peeklen);
+                        $char .= $this->data->consume($peeklen);
                         # If the end of the file was reached, reconsume the EOF character.
-                        Parser::$instance->data->unconsume();
+                        $this->data->unconsume();
                         return new CharacterToken($char);
                         break;
                     } else {
-                        $char .= Parser::$instance->data->consume();
+                        $char .= $this->data->consume();
                     }
                 }
 
