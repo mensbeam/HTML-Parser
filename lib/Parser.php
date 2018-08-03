@@ -100,6 +100,12 @@ class Parser {
         $this->quirksMode = static::QUIRKS_MODE_OFF;
         $this->stack = new Stack();
         $this->activeFormattingElementsList = new ActiveFormattingElementsList();
+
+        static::$instance = $this;
+    }
+
+    public function __destruct() {
+        static::$instance = null;
     }
 
     public static function parse(string $data, bool $file = false) {
@@ -123,7 +129,7 @@ class Parser {
         // work on basic latin characters. Used extensively when tokenizing.
         setlocale(LC_CTYPE, 'en_US.UTF8');
 
-        // initialize the tokenizer
+        // Initialize the tokenizer
         static::$instance->tokenizer = new Tokenizer(static::$instance->data, static::$instance->stack);
 
         // Run the tokenizer. Tokenizer runs until after the EOF token is emitted.
@@ -132,23 +138,20 @@ class Parser {
             static::$instance->emitToken($token);
         } while (!$token instanceof EOFToken);
 
-        return DOM::fixIdAttributes(static::$instance->DOM);
+        // The Parser instance has no need to exist when finished.
+        $dom = static::$instance->DOM;
+        static::$instance->__destruct();
+
+        return DOM::fixIdAttributes($dom);
     }
 
-    public static function parseFragment(string $data, \DOMDocument $dom = null, \DOMElement $context = null, bool $file = false): \DOMDocument {
-        // If a context is provided and either the DOM isn't provided or the DOM isn't
-        // the owner document of the provided context then the context is invalid and
-        // should be set to null.
-        if (!is_null($context) && (is_null($dom) || !$dom->isSameNode($context->ownerDocument))) {
-            $context = null;
-        }
-
+    public static function parseFragment(string $data, \DOMElement $context = null, bool $file = false): \DOMDocument {
         // Create an instance of this class to use the non static properties.
         $c = __CLASS__;
         static::$instance = new $c;
 
-        if (!is_null($dom)) {
-            static::$instance->DOM = $dom;
+        if (!is_null($context)) {
+            static::$instance->DOM = $context->ownerDocument;
         } else {
             $imp = new \DOMImplementation;
             static::$instance->DOM = $imp->createDocument();
@@ -170,18 +173,23 @@ class Parser {
 
         $name = static::$instance->fragmentContext->nodeName;
         # Set the state of the HTML parser's tokenization stage as follows:
-        if ($name === 'title' || $name === 'textarea') {
-            static::$instance->tokenizer->state = Tokenizer::RCDATA_STATE;
-        } elseif ($name === 'style' || $name === 'xmp' || $name === 'iframe' || $name === 'noembed' || $name === 'noframes') {
-            static::$instance->tokenizer->state = Tokenizer::RAWTEXT_STATE;
-        } elseif ($name === 'script') {
-            static::$instance->tokenizer->state = Tokenizer::SCRIPT_STATE;
-        } elseif ($name === 'noscript') {
-            static::$instance->tokenizer->state = Tokenizer::NOSCRIPT_STATE;
-        } elseif ($name === 'plaintext') {
-            static::$instance->tokenizer->state = Tokenizer::PLAINTEXT_STATE;
-        } else {
-            static::$instance->tokenizer->state = Tokenizer::DATA_STATE;
+        switch($name) {
+            case 'title':
+            case 'textarea': static::$instance->tokenizer->state = Tokenizer::RCDATA_STATE;
+            break;
+            case 'style':
+            case 'xmp':
+            case 'iframe':
+            case 'noembed':
+            case 'noframes': static::$instance->tokenizer->state = Tokenizer::RAWTEXT_STATE;
+            break;
+            case 'script': static::$instance->tokenizer->state = Tokenizer::SCRIPT_STATE;
+            break;
+            case 'noscript': static::$instance->tokenizer->state = Tokenizer::NOSCRIPT_STATE;
+            break;
+            case 'plaintext': static::$instance->tokenizer->state = Tokenizer::PLAINTEXT_STATE;
+            break;
+            default: static::$instance->tokenizer->state = Tokenizer::DATA_STATE;
         }
 
         // DEVIATION: Since this implementation uses a DOMDocumentFragment for insertion

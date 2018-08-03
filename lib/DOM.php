@@ -49,8 +49,7 @@ class DOM {
 
         // Fix id attributes so they may be selected by the DOM. Fix the PHP id attribute
         // bug. Allows DOMDocument->getElementById() to work on id attributes.
-        if (!Parser::$instance->fragmentCase) {
-            $dom->relaxNGValidateSource('<grammar xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+        $dom->relaxNGValidateSource('<grammar xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
  <start>
   <element>
    <anyName/>
@@ -71,7 +70,6 @@ class DOM {
   </zeroOrMore>
  </define>
 </grammar>');
-        }
 
         $dom->normalize();
         return $dom;

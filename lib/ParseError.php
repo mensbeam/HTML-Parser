@@ -75,7 +75,7 @@ class ParseError {
                 } elseif ($value === "\t") {
                     return 'Tab';
                 } elseif (is_null($value)) {
-                    return "nothing";
+                    return 'nothing';
                 } else {
                     return $value;
                 }

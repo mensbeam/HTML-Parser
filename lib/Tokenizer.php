@@ -4,6 +4,7 @@ namespace dW\HTML5;
 
 class Tokenizer {
     public $state;
+    
     protected $data;
     protected $stack;
 
@@ -77,10 +78,10 @@ class Tokenizer {
     const CTYPE_ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
     const CTYPE_UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-    public function __construct(DataStream $data, Stack $openElements) {
+    public function __construct(DataStream $data, Stack $stack) {
         $this->state = self::DATA_STATE;
         $this->data = $data;
-        $this->stack = $openElements;
+        $this->stack = $stack;
     }
 
     public function createToken(): Token {
