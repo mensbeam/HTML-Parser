@@ -129,8 +129,10 @@ class Parser {
         // work on basic latin characters. Used extensively when tokenizing.
         setlocale(LC_CTYPE, 'en_US.UTF8');
 
-        // Initialize the tokenizer
+        // Initialize the tokenizer.
         static::$instance->tokenizer = new Tokenizer(static::$instance->data, static::$instance->stack);
+        // Initialize the parse error handler.
+        static::$instance->parseError = new ParseError(static::$instance->data);
 
         // Run the tokenizer. Tokenizer runs until after the EOF token is emitted.
         do {

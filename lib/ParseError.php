@@ -3,6 +3,8 @@ declare(strict_types=1);
 namespace dW\HTML5;
 
 class ParseError {
+    protected $data;
+
     const TAG_NAME_EXPECTED = 0;
     const UNEXPECTED_EOF = 1;
     const UNEXPECTED_CHARACTER = 2;
@@ -35,12 +37,23 @@ class ParseError {
                                   '"%s" is an invalid name for an entity',
                                   '"%s" is an invalid character codepoint'];
 
-    public static function errorHandler($code, $message, $file, $line, array $context) {
-        if ($code === E_USER_WARNING) {
-            $errMsg = sprintf("HTML5 Parse Error: \"%s\" in %s", $message, Parser::$instance->data->filePath);
+    public function __construct(DataStream $data) {
+        $this->data = $data;
 
-            if (Parser::$instance->data->length !== 0) {
-                $errMsg .= sprintf(" on line %s, column %s\n", Parser::$instance->data->line, Parser::$instance->data->column);
+        // Set the error handler and honor already-set error reporting rules.
+        set_error_handler([$this, 'errorHandler'], error_reporting());
+    }
+
+    public function __destruct() {
+        restore_error_handler();
+    }
+
+    public function errorHandler(int $code, string $message, string $file, int $line) {
+        if ($code === E_USER_WARNING) {
+            $errMsg = sprintf("HTML5 Parse Error: \"%s\" in %s", $message, $this->data->filePath);
+
+            if ($this->data->length !== 0) {
+                $errMsg .= sprintf(" on line %s, column %s\n", $this->data->line, $this->data->column);
             } else {
                 $errMsg .= "\n";
             }
@@ -53,9 +66,6 @@ class ParseError {
         if (!isset(static::$messages[$code])) {
             throw new Exception(Exception::INVALID_CODE);
         }
-
-        // Set the error handler and honor already-set error reporting rules.
-        set_error_handler('\\dW\\HTML5\\ParseError::errorHandler', error_reporting());
 
         $message = static::$messages[$code];
 
@@ -86,7 +96,6 @@ class ParseError {
         }
 
         $output = trigger_error($message, E_USER_WARNING);
-        restore_error_handler();
         return $output;
     }
 }
