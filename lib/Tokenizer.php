@@ -4,7 +4,7 @@ namespace dW\HTML5;
 
 class Tokenizer {
     public $state;
-    
+
     protected $data;
     protected $stack;
 
@@ -3105,18 +3105,15 @@ class Tokenizer {
                     if ($peek === ']]>') {
                         $this->data->consume(3);
                         return new CharacterToken($char);
-                        break;
                     } elseif ($peek === '') {
                         # If the end of the file was reached, reconsume the EOF character.
                         $this->data->unconsume();
                         return new CharacterToken($char);
-                        break;
                     } elseif ($peeklen < 3) {
                         $char .= $this->data->consume($peeklen);
                         # If the end of the file was reached, reconsume the EOF character.
                         $this->data->unconsume();
                         return new CharacterToken($char);
-                        break;
                     } else {
                         $char .= $this->data->consume();
                     }
