@@ -98,8 +98,6 @@ class Parser {
     protected function __construct() {
         $this->insertionMode = static::INITIAL_MODE;
         $this->quirksMode = static::QUIRKS_MODE_OFF;
-        $this->stack = new Stack();
-        $this->activeFormattingElementsList = new ActiveFormattingElementsList();
 
         static::$instance = $this;
     }
@@ -129,6 +127,10 @@ class Parser {
         // work on basic latin characters. Used extensively when tokenizing.
         setlocale(LC_CTYPE, 'en_US.UTF8');
 
+        // Initialize the stack of open elements.
+        static::$instance->stack = new Stack(static::$instance->fragmentCase, static::$instance->fragmentContext);
+        // Initialize the list of active formatting elements.
+        static::$instance->activeFormattingElementsList = new ActiveFormattingElementsList(static::$instance->stack);
         // Initialize the tokenizer.
         static::$instance->tokenizer = new Tokenizer(static::$instance->data, static::$instance->stack);
         // Initialize the parse error handler.

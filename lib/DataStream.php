@@ -109,7 +109,7 @@ class DataStream
 
         // OPTIMIZATION: When this spec states to return a character token of any kind this
         // method will just return the character. The token will be emitted from
-        // Parser::tokenize() instead. Likewise, if the spec states to return nothing this
+        // Parser::parse() instead. Likewise, if the spec states to return nothing this
         // method will instead return '&' because every single use of "tokenizing a
         // character reference" in the spec this emits a '&' character token upon failure.
 

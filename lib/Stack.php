@@ -4,6 +4,13 @@ namespace dW\HTML5;
 
 class Stack implements \ArrayAccess {
     protected $_storage = [];
+    protected $fragmentCase;
+    protected $fragmentContext;
+
+    public function __construct(bool $fragmentCase = false, $fragmentContext = null) {
+        $this->fragmentCase = $fragmentCase;
+        $this->fragmentContext = $fragmentContext;
+    }
 
     public function offsetSet($offset, $value) {
         if ($offset < 0) {
@@ -76,7 +83,7 @@ class Stack implements \ArrayAccess {
                 # the HTML fragment parsing algorithm and the stack of open elements has only one
                 # element in it (fragment case); otherwise, the adjusted current node is the
                 # current node.
-                return (Parser::$instance->fragmentCase && $this->length === 1) ? Parser::$instance->fragmentContext : $this->currentNode;
+                return ($this->fragmentCase && $this->length === 1) ? $this->fragmentContext : $this->currentNode;
             break;
             case 'adjustedCurrentNodeNamespace':
                 $adjustedCurrentNode = $this->adjustedCurrentNode;

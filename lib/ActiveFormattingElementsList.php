@@ -16,6 +16,11 @@ namespace dW\HTML5;
 # can be created for that token if necessary.
 class ActiveFormattingElementsList implements \ArrayAccess {
     protected $_storage = [];
+    protected $stack;
+
+    public function __construct(Stack $stack) {
+        $this->stack = $stack;
+    }
 
     public function offsetSet($offset, $value) {
         if ($offset < 0) {
@@ -132,7 +137,7 @@ class ActiveFormattingElementsList implements \ArrayAccess {
         # elements is a marker, or if it is an element that is in the stack of open
         # elements, then there is nothing to reconstruct; stop this algorithm.
         $entry = end($this->_storage);
-        if ($entry instanceof ActiveFormattingElementMarker || in_array($entry['element'], Parser::$instance->stack)) {
+        if ($entry instanceof ActiveFormattingElementMarker || in_array($entry['element'], $this->stack)) {
             return;
         }
 
@@ -153,7 +158,7 @@ class ActiveFormattingElementsList implements \ArrayAccess {
 
         # 6. If entry is neither a marker nor an element that is also in the stack of
         # open elements, go to the step labeled Rewind.
-        if (!$entry instanceof ActiveFormattingElementMarker && !in_array($entry['element'], Parser::$instance->stack)) {
+        if (!$entry instanceof ActiveFormattingElementMarker && !in_array($entry['element'], $this->stack)) {
             goto rewind;
         }
 
