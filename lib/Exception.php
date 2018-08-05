@@ -13,6 +13,7 @@ class Exception extends \Exception {
 
     const STACK_INVALID_INDEX = 10201;
     const STACK_DOMNODE_ONLY = 10202;
+    const STACK_FRAGMENT_CONTEXT_DOMELEMENT_DOMDOCUMENT_DOMDOCUMENTFRAG_EXPECTED = 10203;
 
     const ACTIVE_FORMATTING_ELEMENT_LIST_INVALID_INDEX = 10301;
 
@@ -28,11 +29,12 @@ class Exception extends \Exception {
                                   10002 => 'Incorrect number of parameters for Exception message; %s expected',
 
                                   10101 => 'DOMDocument expected; found %s',
-                                  10102 => 'DOMElement, DOMDocument, or DOMDocumentFrag expected; found %s',
+                                  10102 => 'DOMElement, DOMDocument, or DOMDocumentFragment expected; found %s',
                                   10103 => 'DOMNode expected; found %s',
 
                                   10201 => '%s is an invalid Stack index',
                                   10202 => 'Instances of DOMNode are the only types allowed in a Stack',
+                                  10203 => 'DOMElement, DOMDocument, or DOMDocumentFragment expected for fragment context; found %s'
 
                                   10301 => '%s is an invalid ActiveFormattingElementsList index',
 

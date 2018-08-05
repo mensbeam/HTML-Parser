@@ -8,6 +8,15 @@ class Stack implements \ArrayAccess {
     protected $fragmentContext;
 
     public function __construct(bool $fragmentCase = false, $fragmentContext = null) {
+        // If the fragment context is not null and is not a document fragment, document,
+        // or element then we have a problem. Additionally, if the parser is created for
+        // parsing a fragment and the fragment context is null then we have a problem,
+        // too.
+        if ((!is_null($fragmentContext) && !$fragmentContext instanceof DOMDocumentFragment && !$fragmentContext instanceof DOMDocument && !$fragmentContext instanceof DOMElement) ||
+            (is_null($fragmentContext) && $fragmentCase)) {
+            throw new Exception(Exception::STACK_FRAGMENT_CONTEXT_DOMELEMENT_DOMDOCUMENT_DOMDOCUMENTFRAG_EXPECTED, gettype($fragmentContext));
+        }
+        
         $this->fragmentCase = $fragmentCase;
         $this->fragmentContext = $fragmentContext;
     }

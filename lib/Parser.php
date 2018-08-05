@@ -46,10 +46,10 @@ class Parser {
 
     /* Static properties */
 
-    // Property used as an instance for the non-static properties
-    public static $instance;
     // For debugging
     public static $debug = false;
+    // Property used as an instance for the non-static properties
+    protected static $instance;
 
 
     /* Constants */
@@ -484,7 +484,7 @@ class Parser {
                         # Create an element for the token in the HTML namespace, with the Document as
                         # the intended parent. Append it to the Document object. Put this element in the
                         # stack of open elements.
-                        $element = $this->insertElement($token, $this->DOM);
+                        $element = static::insertStartTagToken($token, $this->DOM);
 
                         # Switch the insertion mode to "before head".
                         $this->insertionMode = static::BEFORE_HEAD_MODE;
@@ -541,7 +541,7 @@ class Parser {
                         # A start tag whose tag name is "head"
                         elseif ($token->name === 'head') {
                             # Insert an HTML element for the token.
-                            $element = $this->insertElement($token);
+                            $element = static::insertStartTagToken($token);
                             # Set the head element pointer to the newly created head element.
                             $this->headElement = $element;
 
@@ -558,7 +558,7 @@ class Parser {
                     # Anything else
                     else {
                         # Insert an HTML element for a "head" start tag token with no attributes.
-                        $element = $this->insertElement(new StartTagToken('head'));
+                        $element = static::insertStartTagToken(new StartTagToken('head'));
                         # Set the head element pointer to the newly created head element.
                         $this->headElement = $element;
 
@@ -599,7 +599,7 @@ class Parser {
                         elseif ($token->name === 'base' || $token->name === 'basefont' || $token->name === 'bgsound' || $token->name === 'link') {
                             # Insert an HTML element for the token. Immediately pop the current node off the
                             # stack of open elements.
-                            $this->createAndInsertElement($token);
+                            static::insertStartTagToken($token);
                             $this->stack->pop();
 
                             # Acknowledge the token’s *self-closing flag*, if it is set.
@@ -609,7 +609,7 @@ class Parser {
                         elseif ($token->name === 'meta') {
                             # Insert an HTML element for the token. Immediately pop the current node off the
                             # stack of open elements.
-                            $this->createAndInsertElement($token);
+                            static::insertStartTagToken($token);
                             $this->stack->pop();
 
                             # Acknowledge the token’s *self-closing flag*, if it is set.
@@ -645,7 +645,7 @@ class Parser {
                         // flag is always disabled.
                         elseif ($token->name === 'noscript') {
                             # Insert an HTML element for the token.
-                            $this->createAndInsertElement($token);
+                            static::insertStartTagToken($token);
                             # Switch the insertion mode to "in head noscript".
                             $this->insertionMode = static::IN_HEAD_NOSCRIPT_MODE;
                         }
@@ -663,7 +663,7 @@ class Parser {
                             // intended parent isn't used when determining anything;
                             // Parser::createAndInsertElement will get the adjusted insertion location
                             // anyway.
-                            $this->createAndInsertElement($token);
+                            static::insertStartTagToken($token);
 
                             # 3. Mark the element as being "parser-inserted" and unset the element’s
                             # "non-blocking" flag.
@@ -685,7 +685,7 @@ class Parser {
                         # A start tag whose tag name is "template"
                         elseif ($token->name === 'template') {
                             # Insert an HTML element for the token.
-                            $this->createAndInsertElement($token);
+                            static::insertStartTagToken($token);
                             # Insert a marker at the end of the list of active formatting elements.
                             $this->activeFormattingElementsList->insertMarker();
                             # Set the frameset-ok flag to "not ok".
@@ -1050,7 +1050,7 @@ class Parser {
 
                 # Insert a foreign element for the token, in the same namespace as the adjusted
                 # current node.
-                $this->createAndInsertElement($token, null, $adjustedCurrentNode->namespaceURI);
+                static::insertStartTagToken($token, null, $adjustedCurrentNode->namespaceURI);
 
                 # If the token has its self-closing flag set, then run the appropriate steps
                 # from the following list:
@@ -1116,7 +1116,7 @@ class Parser {
         }
     }
 
-    protected function appropriatePlaceForInsertingNode(\DOMNode $overrideTarget = null) {
+    protected function appropriatePlaceForInsertingNode(\DOMNode $overrideTarget = null): array {
         $insertBefore = false;
 
         # 8.2.5.1. Creating and inserting nodes
@@ -1205,7 +1205,7 @@ class Parser {
         ];
     }
 
-    public function insertCharacterToken(CharacterToken $token) {
+    public static function insertCharacterToken(CharacterToken $token) {
         # 1. Let data be the characters passed to the algorithm, or, if no characters
         # were explicitly specified, the character of the character token being
         # processed.
@@ -1213,7 +1213,7 @@ class Parser {
 
         # 2. Let the adjusted insertion location be the appropriate place for inserting
         # a node.
-        $location = $this->appropriatePlaceForInsertingNode();
+        $location = static::$instance->appropriatePlaceForInsertingNode();
         $adjustedInsertionLocation = $location['node'];
         $insertBefore = $location['insert before'];
 
@@ -1244,7 +1244,7 @@ class Parser {
         }
     }
 
-    public function insertCommentToken(CommentToken $token, \DOMNode $position = null) {
+    public static function insertCommentToken(CommentToken $token, \DOMNode $position = null) {
         # When the steps below require the user agent to insert a comment while
         # processing a comment token, optionally with an explicitly insertion position
         # position, the user agent must run the following steps:
@@ -1259,7 +1259,7 @@ class Parser {
             $adjustedInsertionLocation = $position;
             $insertBefore = false;
         } else {
-            $location = $this->appropriatePlaceForInsertingNode();
+            $location = static::$instance->appropriatePlaceForInsertingNode();
             $adjustedInsertionLocation = $location['node'];
             $insertBefore = $location['insert before'];
         }
@@ -1277,7 +1277,7 @@ class Parser {
         }
     }
 
-    public function insertElement(StartTagToken $token, \DOMNode $intendedParent = null, string $namespace = null) {
+    public static function insertStartTagToken(StartTagToken $token, \DOMNode $intendedParent = null, string $namespace = null) {
         if (!is_null($namespace)) {
             $namespace = $token->namespace;
         }
@@ -1303,9 +1303,9 @@ class Parser {
         // DEVIATION: There is no point to setting the synchronous custom elements flag
         // and custom element definition; there is no scripting in this implementation.
         if ($namespace === static::HTML_NAMESPACE) {
-            $element = $this->DOM->createElement($token->name);
+            $element = static::$instance->DOM->createElement($token->name);
         } else {
-            $element = $this->DOM->createElementNS($namespace, $token->name);
+            $element = static::$instance->DOM->createElementNS($namespace, $token->name);
         }
 
         # 8. Append each attribute in the given token to element.
@@ -1369,7 +1369,7 @@ class Parser {
 
         # 1. Let the adjusted insertion location be the appropriate place for inserting
         # a node.
-        $location = $this->appropriatePlaceForInsertingNode($intendedParent);
+        $location = static::$instance->appropriatePlaceForInsertingNode($intendedParent);
         $adjustedInsertionLocation = $location['node'];
         $insertBefore = $location['insert before'];
 
@@ -1396,7 +1396,7 @@ class Parser {
         // DEVIATION: Unnecessary because there is no scripting in this implementation.
 
         # 4. Push element onto the stack of open elements so that it is the new current node.
-        $this->stack[] = $element;
+        static::$instance->stack[] = $element;
 
         # Return element.
         return $element;
@@ -1408,7 +1408,7 @@ class Parser {
         # invoked in response to a start tag token.
 
         # 1. Insert an HTML element for the token.
-        $this->createandInsertElement($token);
+        static::insertStartTagToken($token);
 
         # 2. If the algorithm that was invoked is the generic raw text element parsing
         # algorithm, switch the tokenizer to the RAWTEXT state; otherwise the algorithm
