@@ -24,6 +24,9 @@ class Exception extends \Exception {
 
     const TOKENIZER_INVALID_STATE = 10601;
 
+    const TREEBUILDER_FORMELEMENT_EXPECTED = 10701;
+    const TREEBUILDER_FRAGMENT_CONTEXT_DOMELEMENT_DOMDOCUMENT_DOMDOCUMENTFRAG_EXPECTED = 10702;
+
     protected static $messages = [10000 => 'Invalid error code',
                                   10001 => 'Unknown error; escaping',
                                   10002 => 'Incorrect number of parameters for Exception message; %s expected',
@@ -43,11 +46,14 @@ class Exception extends \Exception {
 
                                   10501 => 'The first argument must either be an instance of \DOMElement, a string, or a closure; found %s',
 
-                                  10601 => 'The Tokenizer has entered an invalid state'];
+                                  10601 => 'The Tokenizer has entered an invalid state',
+
+                                  10701 => 'Form element expected, found %s',
+                                  10702 => 'DOMElement, DOMDocument, or DOMDocumentFragment expected; found %s'];
 
     public function __construct(int $code, ...$args) {
         if (!isset(static::$messages[$code])) {
-            throw new Exception(static::INVALID_CODE);
+            throw new Exception(self::INVALID_CODE);
         }
 
         $message = static::$messages[$code];
@@ -64,7 +70,7 @@ class Exception extends \Exception {
         $count = substr_count($message, '%s');
         // If the number of replacements don't match the arguments then oops.
         if (count($args) !== $count) {
-            throw new Exception(static::INCORRECT_PARAMETERS_FOR_MESSAGE, $count);
+            throw new Exception(self::INCORRECT_PARAMETERS_FOR_MESSAGE, $count);
         }
 
         if ($count > 0) {

@@ -636,7 +636,7 @@ class Tokenizer {
                     # If the current end tag token is an appropriate end tag token, then switch to the
                     # before attribute name state. Otherwise, treat it as per the "anything else"
                     # entry below.
-                    if ($token->name === $this->stack->currentNode()->name) {
+                    if ($token->name === $this->stack->currentNodeName) {
                         $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
                     } else {
                         $this->state = self::RCDATA_STATE;
@@ -649,7 +649,7 @@ class Tokenizer {
                     # If the current end tag token is an appropriate end tag token, then switch to the
                     # self-closing start tag state. Otherwise, treat it as per the "anything else"
                     # entry below.
-                    if ($token->name === $this->stack->currentNode()->name) {
+                    if ($token->name === $this->stack->currentNodeName) {
                         $this->state = self::SELF_CLOSING_START_TAG_STATE;
                     } else {
                         $this->state = self::RCDATA_STATE;
@@ -662,7 +662,7 @@ class Tokenizer {
                     # If the current end tag token is an appropriate end tag token, then switch to the
                     # data state and emit the current tag token. Otherwise, treat it as per the
                     # "anything else" entry below.
-                    if ($token->name === $this->stack->currentNode()->name) {
+                    if ($token->name === $this->stack->currentNodeName) {
                         $this->state = self::DATA_STATE;
                         return $token;
                     } else {
@@ -778,7 +778,7 @@ class Tokenizer {
                     # If the current end tag token is an appropriate end tag token, then switch to the
                     # before attribute name state. Otherwise, treat it as per the "anything else"
                     # entry below.
-                    if ($token->name === $this->stack->currentNode()->name) {
+                    if ($token->name === $this->stack->currentNodeName) {
                         $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
                     } else {
                         $this->state = self::RAWTEXT_STATE;
@@ -793,7 +793,7 @@ class Tokenizer {
                     # If the current end tag token is an appropriate end tag token, then switch to the
                     # self-closing start tag state. Otherwise, treat it as per the "anything else"
                     # entry below.
-                    if ($token->name === $this->stack->currentNode()->name) {
+                    if ($token->name === $this->stack->currentNodeName) {
                         $this->state = self::SELF_CLOSING_START_TAG_STATE;
                     } else {
                         $this->state = self::RAWTEXT_STATE;
@@ -808,7 +808,7 @@ class Tokenizer {
                     # If the current end tag token is an appropriate end tag token, then switch to the
                     # data state and emit the current tag token. Otherwise, treat it as per the
                     # "anything else" entry below.
-                    if ($token->name === $this->stack->currentNode()->name) {
+                    if ($token->name === $this->stack->currentNodeName) {
                         $this->state = self::DATA_STATE;
                         return $token;
                     } else {
@@ -935,7 +935,7 @@ class Tokenizer {
                     # If the current end tag token is an appropriate end tag token, then switch to the
                     # before attribute name state. Otherwise, treat it as per the "anything else"
                     # entry below.
-                    if ($token->name === $this->stack->currentNode()->name) {
+                    if ($token->name === $this->stack->currentNodeName) {
                         $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
                     } else {
                         $this->state = self::SCRIPT_DATA_STATE;
@@ -948,7 +948,7 @@ class Tokenizer {
                     # If the current end tag token is an appropriate end tag token, then switch to the
                     # self-closing start tag state. Otherwise, treat it as per the "anything else"
                     # entry below.
-                    if ($token->name === $this->stack->currentNode()->name) {
+                    if ($token->name === $this->stack->currentNodeName) {
                         $this->state = self::SELF_CLOSING_START_TAG_STATE;
                     } else {
                         $this->state = self::SCRIPT_DATA_STATE;
@@ -961,7 +961,7 @@ class Tokenizer {
                     # If the current end tag token is an appropriate end tag token, then switch to the
                     # data state and emit the current tag token. Otherwise, treat it as per the
                     # "anything else" entry below.
-                    if ($token->name === $this->stack->currentNode()->name) {
+                    if ($token->name === $this->stack->currentNodeName) {
                         $this->state = self::DATA_STATE;
                         return $token;
                     } else {
@@ -1255,7 +1255,7 @@ class Tokenizer {
                     # If the current end tag token is an appropriate end tag token, then switch to the
                     # before attribute name state. Otherwise, treat it as per the "anything else"
                     # entry below.
-                    if ($token->name === $this->stack->currentNode()->name) {
+                    if ($token->name === $this->stack->currentNodeName) {
                         $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
                     } else {
                         $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
@@ -1268,7 +1268,7 @@ class Tokenizer {
                     # If the current end tag token is an appropriate end tag token, then switch to the
                     # self-closing start tag state. Otherwise, treat it as per the "anything else"
                     # entry below.
-                    if ($token->name === $this->stack->currentNode()->name) {
+                    if ($token->name === $this->stack->currentNodeName) {
                         $this->state = self::SELF_CLOSING_START_TAG_STATE;
                     } else {
                         $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
@@ -1281,7 +1281,7 @@ class Tokenizer {
                     # If the current end tag token is an appropriate end tag token, then switch to the
                     # data state and emit the current tag token. Otherwise, treat it as per the
                     # "anything else" entry below.
-                    if ($token->name === $this->stack->currentNode()->name) {
+                    if ($token->name === $this->stack->currentNodeName) {
                         $this->state = self::DATA_STATE;
                         return $token;
                     } else {

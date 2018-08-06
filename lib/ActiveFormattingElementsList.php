@@ -170,7 +170,7 @@ class ActiveFormattingElementsList implements \ArrayAccess {
         # 8. Create: Insert an HTML element for the token for which the element entry
         # was created, to obtain new element.
         create:
-        $element = Parser::insertStartTagToken($entry['token']);
+        $element = TreeBuilder::insertStartTagToken($entry['token']);
 
         # 9. Replace the entry for entry in the list with an entry for new element.
         $this->_storage[key($this->_storage)]['element'] = $element;
