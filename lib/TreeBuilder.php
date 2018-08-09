@@ -15,6 +15,10 @@ class TreeBuilder {
     // Flag for determining whether to use the foster parenting (badly nested table
     // elements) algorithm.
     protected $fosterParenting = false;
+    // Flag that shows whether the content that's being parsed is a fragment or not
+    protected $fragmentCase;
+    // Context element for fragments
+    protected $fragmentContext;
     // Flag used to determine whether elements are okay to be used in framesets or not
     protected $framesetOk = true;
     // Once a head element has been parsed (whether implicitly or explicitly) the head
@@ -333,7 +337,7 @@ class TreeBuilder {
                         # In any case, switch the insertion mode to "before html", then reprocess the
                         # token.
                         $this->insertionMode = self::BEFORE_HTML_MODE;
-                        return false;
+                        continue;
                     }
                 break;
 
@@ -369,7 +373,7 @@ class TreeBuilder {
                     # Any other end tag
                     elseif ($token instanceof EndTagToken && $token->name !== 'head' && $token->name !== 'body' && $token->name !== 'html' && $token->name !== 'br') {
                         # Parse error.
-                        ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $token->name, 'head, body, html, or br tag');
+                        ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $token->name, 'head, body, html, br');
                     }
                     # An end tag whose tag name is one of: "head", "body", "html", "br"
                     # Anything else
@@ -382,7 +386,7 @@ class TreeBuilder {
 
                         # Switch the insertion mode to "before head", then reprocess the token.
                         $this->insertionMode = self::BEFORE_HEAD_MODE;
-                        return false;
+                        continue;
                     }
 
                     # The document element can end up being removed from the Document object, e.g.,
@@ -429,7 +433,7 @@ class TreeBuilder {
                     # Any other end tag
                     elseif ($token instanceof EndTagToken && $token->name !== 'head' && $token->name !== 'body' && $token->name !== 'html' && $token->name === 'br') {
                         # Parse error.
-                        ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $token->name, 'head, body, html, or br tag');
+                        ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $token->name, 'head, body, html, br');
                     }
                     # An end tag whose tag name is one of: "head", "body", "html", "br"
                     # Anything else
@@ -443,7 +447,7 @@ class TreeBuilder {
                         $this->insertionMode = self::IN_HEAD_MODE;
 
                         # Reprocess the current token.
-                        return false;
+                        continue;
                     }
                 break;
 
@@ -583,6 +587,50 @@ class TreeBuilder {
                             # Switch the insertion mode to "after head".
                             $this->insertionMode = self::AFTER_HEAD_MODE;
                         }
+                        # An end tag whose tag name is one of: "body", "html", "br"
+                        elseif ($token->name === 'body' || $token->name === 'html' || $token->name === 'br') {
+                            # Act as described in the "anything else" entry below.
+                            #
+                            # Pop the current node (which will be the head element) off the stack of open
+                            # elements.
+                            $this->stack->pop();
+                            # Switch the insertion mode to "after head".
+                            $this->insertionMOde = self::AFTER_HEAD_MODE;
+                            # Reprocess the token.
+                            continue;
+                        }
+                        # An end tag whose tag name is "template"
+                        elseif ($token->name === 'template') {
+                            # If there is no template element on the stack of open elements, then this is a
+                            # parse error; ignore the token.
+                            if ($this->stack->search('template') === -1) {
+                                ParseError::trigger(ParseError::UNEXPECTED_END_TAG, 'template', (string)$this->stack);
+                            }
+                            # Otherwise, run these steps:
+                            else {
+                                # 1. Generate all implied end tags thoroughly.
+                                $this->stack->generateImpliedEndTags();
+
+                                # 2. If the current node is not a template element, then this is a parse error.
+                                if ($this->stack->currentNodeName !== 'template') {
+                                    ParseError::trigger(ParseError::UNEXPECTED_END_TAG, 'template', (string)$this->stack);
+                                }
+
+                                # 3. Pop elements from the stack of open elements until a template element has been popped from the stack.
+                                do {
+                                    $poppedNodeName = $this->stack->pop()->nodeName;
+                                } while ($poppedNodeName !== 'template');
+
+                                # 4. Clear the list of active formatting elements up to the last marker.
+                                $this->activeFormattingElementsList->clearToTheLastMarker();
+
+                                # 5. Pop the current template insertion mode off the stack of template insertion modes.
+                                // DEVIATION: No scripting.
+
+                                # 6. Reset the insertion mode appropriately.
+                                $this->resetInsertionMode();
+                            }
+                        }
                         // ¡STOPPED HERE!
                     }
                 break;
@@ -666,7 +714,7 @@ class TreeBuilder {
                 );
 
                 # Then, reprocess the token.
-                return false;
+                continue;
             }
             # Any other start tag
             else {
@@ -1019,18 +1067,22 @@ class TreeBuilder {
             # 1. Let last template be the last template element in the stack of open
             # elements, if any.
             $lastTemplateKey = $this->stack->search('template');
-            $lastTemplate = $this->stack[$lastTemplateKey];
+            $lastTemplate = ($lastTemplateKey !== -1 ) ? $this->stack[$lastTemplateKey] : null;
 
             # 2. Let last table be the last table element in the stack of open elements, if
             # any.
             $lastTableKey = $this->stack->search('table');
-            $lastTable = $this->stack[$lastTableKey];
+            $lastTable = ($lastTableKey !== -1 ) ? $this->stack[$lastTableKey] : null;
 
             # 3. If there is a last template and either there is no last table, or there is
             # one, but last template is lower (more recently added) than last table in the
             # stack of open elements, then: let adjusted insertion location be inside last
             # template’s template contents, after its last child (if any), and abort these
             # substeps.
+            // DEVIATION: PHP's DOM does not have a special element for template and
+            // therefore no API for putting the template's contents into a
+            // DOMDocumentFragment in a property of the element, so the contents are just
+            // going to be children of the template element instead.
             if ($lastTemplate && (!$lastTable || $lastTable && $lastTemplateKey > $lastTableKey)) {
                 $insertionLocation = $lastTemplate;
                 // Abort!
@@ -1071,9 +1123,11 @@ class TreeBuilder {
         # 3. If the adjusted insertion location is inside a template element, let it
         # instead be inside the template element’s template contents, after its last
         # child (if any).
-        if ($insertionLocation->nodeName === 'template') {
-            $insertionLocation = $insertionLocation->contents;
-        }
+        // DEVIATION: PHP's DOM does not have a special element for template and
+        // therefore no API for putting the template's contents into a
+        // DOMDocumentFragment in a property of the element, so the contents are just
+        // going to be children of the template element instead, so there's nothing to
+        // do.
 
         # 4. Return the adjusted insertion location.
         return [
@@ -1306,5 +1360,152 @@ class TreeBuilder {
 
     protected function parseGenericRCDATA(StartTagToken $token) {
         $this->parseGenericText($token, false);
+    }
+
+    protected function resetInsertionMode() {
+        # When the steps below require the UA to reset the insertion mode appropriately,
+        # it means the UA must follow these steps:
+
+        # 1. Let last be false.
+        $last = false;
+
+        # 2. Let node be the last node in the stack of open elements.
+        $node = $this->stack->currentNode;
+        $nodeName = $this->stack->currentNodeName;
+        // Keeping up with the position, too.
+        $position = $this->stack->length - 1;
+
+        # 3. Loop: If node is the first node in the stack of open elements, then set
+        # last to true, and, if the parser was originally created as part of the HTML
+        # fragment parsing algorithm (fragment case), set node to the context element
+        # passed to that algorithm.
+        while (true) {
+            if ($node->isSameNode($this->stack[0])) {
+                $last = true;
+
+                if ($this->fragmentCase === true) {
+                    $node = $this->fragmentContext;
+                }
+            }
+
+            # 4. If node is a select element, run these substeps:
+            if ($nodeName === 'select') {
+                # 1. If last is true, jump to the step below labeled Done.
+                if ($last === false) {
+                    # 2. Let ancestor be node.
+                    $ancestor = $node;
+                    $position2 = $position;
+
+                    # 3. Loop: If ancestor is the first node in the stack of open elements, jump to
+                    # the step below labeled Done.
+                    while (!$ancestor->isSameNode($this->stack[0])) {
+                        # 4. Let ancestor be the node before ancestor in the stack of open elements.
+                        $ancestor = $this->stack[--$position2];
+
+                        # 5. If ancestor is a template node, jump to the step below labeled Done.
+                        if ($ancestor->nodeName === 'template') {
+                            break;
+                        }
+
+                        # 6. If ancestor is a table node, switch the insertion mode to "in select in
+                        # table" and abort these steps.
+                        if ($ancestor->nodeName === 'table') {
+                            $this->insertionMode = self::IN_SELECT_IN_TABLE_MODE;
+                            return;
+                        }
+
+                        # 7. Jump back to the step labeled Loop.
+                    }
+                }
+
+                # 8. Done: Switch the insertion mode to "in select" and abort these steps.
+                $this->insertionMode = self::IN_SELECT_MODE;
+            }
+            # 5. If node is a td or th element and last is false, then switch the insertion
+            # mode to "in cell" and abort these steps.
+            elseif (($nodeName === 'td' || $nodeName === 'th') && $last === false) {
+                $this->insertionMode = self::IN_CELL_MODE;
+                return;
+            }
+            # 6. If node is a tr element, then switch the insertion mode to "in row" and
+            # abort these steps.
+            elseif ($nodeName === 'tr') {
+                $this->insertionMode = self::IN_ROW_MODE;
+                return;
+            }
+            # 7. If node is a tbody, thead, or tfoot element, then switch the insertion mode
+            # to "in table body" and abort these steps.
+            elseif ($nodeName === 'tbody' || $nodeName === 'thead' || $nodeName === 'tfoot') {
+                $this->insertionMode = self::IN_TABLE_BODY_MODE;
+                return;
+            }
+            # 8. If node is a caption element, then switch the insertion mode to "in
+            # caption" and abort these steps.
+            elseif ($nodeName === 'caption') {
+                $this->insertionMode = self::IN_CAPTION_MODE;
+                return;
+            }
+            # 9. If node is a colgroup element, then switch the insertion mode to "in column
+            # group" and abort these steps.
+            elseif ($nodeName === 'colgroup') {
+                $this->insertionMode = self::IN_COLUMN_GROUP_MODE;
+                return;
+            }
+            # 10. If node is a table element, then switch the insertion mode to "in table"
+            # and abort these steps.
+            elseif ($nodeName === 'table') {
+                $this->insertionMode = self::IN_TABLE_MODE;
+                return;
+            }
+            # 11. If node is a template element, then switch the insertion mode to the
+            # current template insertion mode and abort these steps.
+            elseif ($nodeName === 'template') {
+                // FIXME: NOT SURE WHAT TO DO HERE YET.
+                return;
+            }
+            # 12. If node is a head element and last is false, then switch the insertion
+            # mode to "in head" and abort these steps.
+            elseif ($nodeName === 'head' && $last === false) {
+                $this->insertionMode = self::IN_HEAD_MODE;
+                return;
+            }
+            # 13. If node is a body element, then switch the insertion mode to "in body" and
+            # abort these steps.
+            elseif ($nodeName === 'body') {
+                $this->insertionMode = self::IN_BODY_MODE;
+                return;
+            }
+            # 14. If node is a frameset element, then switch the insertion mode to "in
+            # frameset" and abort these steps. (fragment case)
+            elseif ($nodeName === 'frameset') {
+                $this->insertionMode = self::IN_FRAMESET_MODE;
+                return;
+            }
+            # 15. If node is an html element, run these substeps:
+            elseif ($nodeName === 'html') {
+                # 1. If the head element pointer is null, switch the insertion mode to "before
+                # head" and abort these steps. (fragment case)
+                if (is_null($this->headElement)) {
+                    $this->insertionMode = self::BEFORE_HEAD_MODE;
+                    return;
+                }
+
+                # 2. Otherwise, the head element pointer is not null, switch the insertion mode
+                # to "after head" and abort these steps.
+                $this->insertionMode = self::AFTER_HEAD_MODE;
+                return;
+            }
+
+            # 16. If last is true, then switch the insertion mode to "in body" and abort
+            # these steps. (fragment case)
+            if ($last === true) {
+                $this->insertionMode = self::IN_BODY_MODE;
+            }
+
+            # 17. Let node now be the node before node in the stack of open elements.
+            $node = $this->stack[--$position];
+
+            # 18. Return to the step labeled Loop.
+        }
     }
 }

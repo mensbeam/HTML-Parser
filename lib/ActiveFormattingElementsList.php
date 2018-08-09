@@ -158,7 +158,7 @@ class ActiveFormattingElementsList implements \ArrayAccess {
 
         # 6. If entry is neither a marker nor an element that is also in the stack of
         # open elements, go to the step labeled Rewind.
-        if (!$entry instanceof ActiveFormattingElementMarker && !in_array($entry['element'], $this->stack)) {
+        if (!$entry instanceof ActiveFormattingElementMarker || $this->stack->search($entry['element']) === -1) {
             goto rewind;
         }
 

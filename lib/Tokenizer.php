@@ -1721,7 +1721,7 @@ class Tokenizer {
                 # ">" (U+003E)
                 elseif ($char === '>') {
                     # Parse error. Switch to the data state. Emit the current tag token.
-                    ParseError::trigger(ParseError::UNEXPECTED_TAG_END, 'attribute value');
+                    ParseError::trigger(ParseError::UNEXPECTED_END_OF_TAG, 'attribute value');
                     $this->state = self::DATA_STATE;
 
                     // Need to add the current attribute name and value to the token if necessary.

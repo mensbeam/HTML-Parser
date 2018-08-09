@@ -16,7 +16,7 @@ class Stack implements \ArrayAccess {
             (is_null($fragmentContext) && $fragmentCase)) {
             throw new Exception(Exception::STACK_FRAGMENT_CONTEXT_DOMELEMENT_DOMDOCUMENT_DOMDOCUMENTFRAG_EXPECTED, gettype($fragmentContext));
         }
-        
+
         $this->fragmentCase = $fragmentCase;
         $this->fragmentContext = $fragmentContext;
     }
@@ -59,7 +59,7 @@ class Stack implements \ArrayAccess {
 
     public function search(mixed $needle): int {
         if (!$needle) {
-            return false;
+            return -1;
         }
 
         if ($needle instanceof DOMElement) {
@@ -76,7 +76,15 @@ class Stack implements \ArrayAccess {
             }
         }
 
-        return false;
+        return -1;
+    }
+
+    public function generateImpliedEndTags() {
+        $currentNodeName = end($this->_storage)->nodeName;
+        while ($currentNodeName === 'caption' || $currentNodeName === 'colgroup' || $currentNodeName === 'dd' || $currentNodeName === 'dt' || $currentNodeName === 'li' || $currentNodeName === 'optgroup' || $currentNodeName === 'option' || $currentNodeName === 'p' || $currentNodeName === 'rb' || $currentNodeName === 'rp' || $currentNodeName === 'rt' || $currentNodeName === 'rtc' || $currentNodeName === 'tbody' || $currentNodeName === 'td' || $currentNodeName === 'tfoot' || $currentNodeName === 'th' || $currentNodeName === 'thead' || $currentNodeName === 'tr') {
+            $this->pop();
+            $currentNodeName = end($this->_storage)->nodeName;
+        }
     }
 
     public function __get($property) {
@@ -105,6 +113,20 @@ class Stack implements \ArrayAccess {
             case 'currentNodeNamespace': return (!is_null($this->currentNode)) ? $this->currentNode->namespaceURI : null;
             break;
             default: return null;
+        }
+    }
+
+    // Used when listing expected elements when returning parse errors
+    public function __toString(): string {
+        if (count($this->_storage) > 1) {
+            // Don't output the name of the root element.
+            for ($i = 1, $temp = []; $i < count($this->_storage) - 1; $i++) {
+                $temp[] = $this->_storage[$i]->nodeName;
+            }
+
+            return implode(', ', array_unique($temp));
+        } else {
+            return '';
         }
     }
 }

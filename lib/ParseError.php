@@ -9,7 +9,7 @@ class ParseError {
     const UNEXPECTED_EOF = 1;
     const UNEXPECTED_CHARACTER = 2;
     const ATTRIBUTE_EXISTS = 3;
-    const UNEXPECTED_TAG_END = 4;
+    const UNEXPECTED_END_OF_TAG = 4;
     const UNEXPECTED_START_TAG = 5;
     const UNEXPECTED_END_TAG = 6;
     const UNEXPECTED_DOCTYPE = 7;
@@ -25,9 +25,9 @@ class ParseError {
                                   'Unexpected end-of-file; %s expected',
                                   'Unexpected "%s" character; %s expected',
                                   '%s attribute already exists; discarding',
-                                  'Unexpected tag end; %s expected',
-                                  'Unexpected %s start tag; %s expected',
-                                  'Unexpected %s end tag; %s expected',
+                                  'Unexpected end-of-tag; %s expected',
+                                  'Unexpected %s start tag; %s start tag expected',
+                                  'Unexpected %s end tag; %s end tag expected',
                                   'Unexpected DOCTYPE; %s expected',
                                   'Invalid DOCTYPE',
                                   'Invalid Control or Non-character; removing',
