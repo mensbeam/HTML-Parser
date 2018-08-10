@@ -337,7 +337,8 @@ class TreeBuilder {
                         # In any case, switch the insertion mode to "before html", then reprocess the
                         # token.
                         $this->insertionMode = self::BEFORE_HTML_MODE;
-                        continue;
+                        $insertionMode = self::BEFORE_HTML_MODE;
+                        continue 2;
                     }
                 break;
 
@@ -356,7 +357,7 @@ class TreeBuilder {
                     # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
                     // OPTIMIZATION: Will check for multiple space characters at once as character
                     // tokens can contain more than one character.
-                    elseif ($token instanceof CharacterToken && (strspn($token->data, "\t\n\x0c\x0d ") !== strlen($token->data))) {
+                    elseif ($token instanceof CharacterToken && (strspn($token->data, "\t\n\x0c\x0d ") === strlen($token->data))) {
                         # Ignore the token.
                         return;
                     }
@@ -386,7 +387,8 @@ class TreeBuilder {
 
                         # Switch the insertion mode to "before head", then reprocess the token.
                         $this->insertionMode = self::BEFORE_HEAD_MODE;
-                        continue;
+                        $insertionMode = self::BEFORE_HEAD_MODE;
+                        continue 2;
                     }
 
                     # The document element can end up being removed from the Document object, e.g.,
@@ -399,7 +401,7 @@ class TreeBuilder {
                 case self::BEFORE_HEAD_MODE:
                     # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED
                     # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
-                    if ($token instanceof CharacterToken && (strspn($token->data, "\t\n\x0c\x0d ") !== strlen($token->data))) {
+                    if ($token instanceof CharacterToken && (strspn($token->data, "\t\n\x0c\x0d ") === strlen($token->data))) {
                         # Ignore the token.
                         return;
                     }
@@ -447,7 +449,7 @@ class TreeBuilder {
                         $this->insertionMode = self::IN_HEAD_MODE;
 
                         # Reprocess the current token.
-                        continue;
+                        continue 2;
                     }
                 break;
 
@@ -577,6 +579,24 @@ class TreeBuilder {
                             # the new current template insertion mode.
                             // DEVIATION: No scripting.
                         }
+                        # A start tag whose tag name is "head"
+                        elseif ($token->name === 'head') {
+                            # Parse error.
+                            ParseError::trigger(ParseError::UNEXPECTED_START_TAG, 'head', 'base, basefont, bgsound, link, meta, title, noframes, style, noscript, script, template');
+                        }
+                        # Anything else
+                        else {
+                            # Act as described in the "anything else" entry below.
+                            #
+                            # Pop the current node (which will be the head element) off the stack of open
+                            # elements.
+                            $this->stack->pop();
+                            # Switch the insertion mode to "after head".
+                            $this->insertionMode = self::AFTER_HEAD_MODE;
+                            $insertionMode = self::AFTER_HEAD_MODE;
+                            # Reprocess the token.
+                            continue 2;
+                        }
                     }
                     elseif ($token instanceof EndTagToken) {
                         # An end tag whose tag name is "head"
@@ -595,9 +615,10 @@ class TreeBuilder {
                             # elements.
                             $this->stack->pop();
                             # Switch the insertion mode to "after head".
-                            $this->insertionMOde = self::AFTER_HEAD_MODE;
+                            $this->insertionMode = self::AFTER_HEAD_MODE;
+                            $insertionMode = self::AFTER_HEAD_MODE;
                             # Reprocess the token.
-                            continue;
+                            continue 2;
                         }
                         # An end tag whose tag name is "template"
                         elseif ($token->name === 'template') {
@@ -631,7 +652,164 @@ class TreeBuilder {
                                 $this->resetInsertionMode();
                             }
                         }
-                        // ¡STOPPED HERE!
+                        # Any other end tag
+                        else {
+                            # Parse error.
+                            ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $token->name, (string)$this->stack);
+                        }
+                    }
+                    # Anything else
+                    else {
+                        # Pop the current node (which will be the head element) off the stack of open
+                        # elements.
+                        $this->stack->pop();
+                        # Switch the insertion mode to "after head".
+                        $this->insertionMode = self::AFTER_HEAD_MODE;
+                        $insertionMode = self::AFTER_HEAD_MODE;
+                        # Reprocess the token.
+                        continue 2;
+                    }
+                break;
+
+                # 8.2.5.4.5. The "in head noscript" insertion mode
+                case self::IN_HEAD_NOSCRIPT_MODE:
+                    # DOCTYPE token
+                    if ($token instanceof DOCTYPEToken) {
+                        # Parse error.
+                        ParseError::trigger(ParseError::UNEXPECTED_DOCTYPE, 'head data');
+                    }
+                    elseif ($token instanceof StartTagToken) {
+                        # A start tag whose tag name is "html"
+                        if ($token->name === 'html') {
+                            # Process the token using the rules for the "in body" insertion mode.
+                            $insertionMode = self::IN_BODY_MODE;
+                            continue 2;
+                        }
+                        # A start tag whose tag name is one of: "basefont", "bgsound", "link", "meta",
+                        # "noframes", "style"
+                        elseif ($token->name === 'basefont' || $token->name === 'bgsound' || $token->name === 'link' || $token->name === 'meta' || $token->name === 'noframes' || $token->name === 'style'){
+                            # Process the token using the rules for the "in head" insertion mode.
+                            $insertionMode = self::IN_HEAD_MODE;
+                            continue 2;
+                        }
+                        # A start tag whose tag name is one of: "head", "noscript"
+                        elseif ($token->name === 'head' || $token->name === 'noscript') {
+                            # Parse error.
+                            ParseError::trigger(ParseError::UNEXPECTED_START_TAG, $token->name, 'basefont, bgsound, link, meta, noframes, style');
+                        }
+                        # Anything else
+                        else {
+                            # Act as described in the "anything else" entry below.
+                            #
+                            # Parse error.
+                            ParseError::trigger(ParseError::UNEXPECTED_START_TAG, $token->name, 'basefont, bgsound, link, meta, noframes, style');
+                            # Pop the current node (which will be a noscript element) from the stack of open
+                            # elements; the new current node will be a head element.
+                            $this->stack->pop();
+                            # Switch the insertion mode to "in head".
+                            $this->insertionMode = self::IN_HEAD_MODE;
+                            $insertionMode = self::IN_HEAD_MODE;
+                            # Reprocess the token.
+                            continue 2;
+                        }
+                    }
+                    elseif ($token instanceof EndTagToken) {
+                        # An end tag whose tag name is "noscript"
+                        if ($token->name === 'noscript') {
+                            # Pop the current node (which will be a noscript element) from the stack of open
+                            # elements; the new current node will be a head element.
+                            $this->stack->pop();
+                            # Switch the insertion mode to "in head".
+                            $this->insertionMode = self::IN_HEAD_MODE;
+                        }
+                        # An end tag whose tag name is "br"
+                        elseif ($token->name === 'br') {
+                            # Act as described in the "anything else" entry below.
+                            #
+                            # Parse error.
+                            ParseError::trigger(ParseError::UNEXPECTED_END_TAG, 'br', (string)$this->stack);
+                            # Pop the current node (which will be a noscript element) from the stack of open
+                            # elements; the new current node will be a head element.
+                            $this->stack->pop();
+                            # Switch the insertion mode to "in head".
+                            $this->insertionMode = self::IN_HEAD_MODE;
+                            $insertionMode = self::IN_HEAD_MODE;
+                            # Reprocess the token.
+                            continue 2;
+                        }
+                        # Any other end tag
+                        else {
+                            # Parse error.
+                            ParseError::trigger(ParseError::UNEXPECTED_END_TAG, 'br', (string)$this->stack);
+                        }
+                    }
+                    # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED
+                    # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+                    # A comment token
+                    elseif (($token instanceof CharacterToken && (strspn($token->data, "\t\n\x0c\x0d ") === strlen($token->data))) ||
+                         $token instanceof CommentToken) {
+                        # Process the token using the rules for the "in head" insertion mode.
+                        $insertionMode = self::IN_HEAD_MODE;
+                        continue 2;
+                    }
+                    # Anything else
+                    else {
+                        # Parse error.
+                        ParseError::trigger(ParseError::UNEXPECTED_END_TAG, 'br', (string)$this->stack);
+                        # Pop the current node (which will be a noscript element) from the stack of open
+                        # elements; the new current node will be a head element.
+                        $this->stack->pop();
+                        # Switch the insertion mode to "in head".
+                        $this->insertionMode = self::IN_HEAD_MODE;
+                        $insertionMode = self::IN_HEAD_MODE;
+                        # Reprocess the token.
+                        continue 2;
+                    }
+                break;
+
+                # 8.2.5.4.6. The "after head" insertion mode
+                case self::AFTER_HEAD_MODE:
+                    # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED
+                    # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+                    if ($token instanceof CharacterToken && (strspn($token->data, "\t\n\x0c\x0d ") === strlen($token->data)) {
+                        # Insert the character.
+                        $this->insertCharacterToken($token);
+                    }
+                    # A comment token
+                    elseif ($token instanceof CommentToken) {
+                        # Insert a comment.
+                        $this->insertCommentToken($token);
+                    }
+                    # A DOCTYPE token
+                    elseif ($token instanceof DOCTYPEToken) {
+                        # Parse error.
+                        ParseError::trigger(ParseError::UNEXPECTED_DOCTYPE, 'body, frameset, template start tag');
+                    }
+                    elseif ($token instanceof StartTagToken) {
+                        # A start tag whose tag name is "html"
+                        if ($token->name === 'html') {
+                            # Process the token using the rules for the "in body" insertion mode.
+                            $insertionMode = self::IN_BODY_MODE;
+                            continue 2;
+                        }
+                        # A start tag whose tag name is "body"
+                        elseif ($token->name === 'body') {
+                            # Insert an HTML element for the token.
+                            $this->insertStartTagToken($token);
+                            # Set the frameset-ok flag to "not ok".
+                            $this->framesetOk = false;
+                            # Switch the insertion mode to "in body".
+                            $this->insertionMode = self::IN_BODY_MODE;
+                        }
+                        # A start tag whose tag name is "frameset"
+                        elseif ($token->name === 'frameset') {
+                            # Insert an HTML element for the token.
+                            $this->insertStartTagToken($token);
+                            # Switch the insertion mode to "in frameset".
+                            $this->insertionMode = self::IN_FRAMESET_MODE;
+                        }
+
+                        /* ¡STOPPED HERE!
                     }
                 break;
             }
@@ -714,7 +892,7 @@ class TreeBuilder {
                 );
 
                 # Then, reprocess the token.
-                continue;
+                return false;
             }
             # Any other start tag
             else {
@@ -969,7 +1147,6 @@ class TreeBuilder {
                         break;
                         case 'xmlns:xlink': $a->namespace = Parser::XLINK_NAMESPACE;
                         break;
-                        //default: $node->setAttribute($name, $value);
                     }
                 }
 
