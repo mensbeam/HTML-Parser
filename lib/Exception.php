@@ -37,7 +37,7 @@ class Exception extends \Exception {
 
                                   10201 => '%s is an invalid Stack index',
                                   10202 => 'Instances of DOMNode are the only types allowed in a Stack',
-                                  10203 => 'DOMElement, DOMDocument, or DOMDocumentFragment expected for fragment context; found %s'
+                                  10203 => 'DOMElement, DOMDocument, or DOMDocumentFragment expected for fragment context; found %s',
 
                                   10301 => '%s is an invalid ActiveFormattingElementsList index',
 
