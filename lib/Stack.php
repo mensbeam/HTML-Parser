@@ -89,12 +89,6 @@ class Stack implements \ArrayAccess {
 
     public function __get($property) {
         switch ($property) {
-            case 'length': return count($this->_storage);
-            break;
-            case 'currentNode':
-                $currentNode = end($this->_storage);
-                return ($currentNode) ? $currentNode : null;
-            break;
             case 'adjustedCurrentNode':
                 # The adjusted current node is the context element if the parser was created by
                 # the HTML fragment parsing algorithm and the stack of open elements has only one
@@ -102,15 +96,27 @@ class Stack implements \ArrayAccess {
                 # current node.
                 return ($this->fragmentCase && $this->length === 1) ? $this->fragmentContext : $this->currentNode;
             break;
+            case 'adjustedCurrentNodeName':
+                $adjustedCurrentNode = $this->adjustedCurrentNode;
+                return (!is_null($adjustedCurrentNode)) ? $adjustedCurrentNode->nodeName : null;
+            break;
             case 'adjustedCurrentNodeNamespace':
                 $adjustedCurrentNode = $this->adjustedCurrentNode;
-                return (!is_null($adjustedCurrentNode)) ? $adjustedCurrentNode->namespaceURI : null;
+                return (!is_null($adjustedCurrentNode)) ? $adjustedCurrentNode->namespaceURI: null;
+            break;
+            case 'currentNode':
+                $currentNode = end($this->_storage);
+                return ($currentNode) ? $currentNode : null;
             break;
             case 'currentNodeName':
                 $currentNode = $this->currentNode;
                 return ($currentNode && $currentNode->nodeType) ? $currentNode->nodeName : null;
             break;
-            case 'currentNodeNamespace': return (!is_null($this->currentNode)) ? $this->currentNode->namespaceURI : null;
+            case 'currentNodeNamespace':
+                $currentNode = $this->currentNode;
+                return (!is_null($currentNode)) ? $currentNode->namespaceURI: null;
+            break;
+            case 'length': return count($this->_storage);
             break;
             default: return null;
         }

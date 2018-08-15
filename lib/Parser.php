@@ -45,7 +45,7 @@ class Parser {
     const XLINK_NAMESPACE = 'http://www.w3.org/1999/xlink';
     const XML_NAMESPACE = 'http://www.w3.org/XML/1998/namespace';
     const XMLNS_NAMESPACE = 'http://www.w3.org/2000/xmlns/';
-    
+
 
     // Protected construct used for creating an instance to access properties which must
     // be reset on every parse

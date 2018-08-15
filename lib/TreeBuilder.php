@@ -116,6 +116,10 @@ class TreeBuilder {
             $adjustedCurrentNodeName = $this->stack->adjustedCurrentNodeName;
             $adjustedCurrentNodeNamespace = $this->stack->adjustedCurrentNodeNamespace;
 
+            if (Parser::$debug) {
+                echo "Node: $adjustedCurrentNodeName\n";
+            }
+
             # 8.2.5 Tree construction
             #
             # As each token is emitted from the tokenizer, the user agent must follow the
@@ -124,7 +128,8 @@ class TreeBuilder {
             # If the stack of open elements is empty
             if ($this->stack->length === 0 ||
                 # If the adjusted current node is an element in the HTML namespace
-                $adjustedCurrentNodeNamespace === Parser::HTML_NAMESPACE || (
+                // PHP's DOM returns null when the namespace isn't specified... eg. HTML.
+                is_null($adjustedCurrentNodeNamespace) || (
                         # If the adjusted current node is a MathML text integration point and the token is a
                         # start tag whose tag name is neither "mglyph" nor "malignmark"
                         # If the adjusted current node is a MathML text integration point and the token is a
@@ -155,10 +160,7 @@ class TreeBuilder {
                     $token instanceof EOFToken) {
                 # Process the token according to the rules given in the section corresponding to
                 # the current insertion mode in HTML content.
-                // Returns false when needing to reprocess.
-                if ($this->parseTokenInHTMLContent($token) === false) {
-                    continue;
-                }
+                $this->parseTokenInHTMLContent($token);
             }
             # Otherwise
             else {
@@ -247,7 +249,6 @@ class TreeBuilder {
                     // tokens can contain more than one character.
                     if ($token instanceof CharacterToken && (strspn($token->data, "\t\n\x0c\x0d ") !== strlen($token->data))) {
                         # Ignore the token.
-                        return;
                     }
                     # A comment token
                     elseif ($token instanceof CommentToken) {
@@ -255,7 +256,6 @@ class TreeBuilder {
                         // DEVIATION: PHP's DOM cannot have comments before the DOCTYPE, so just going
                         // to ignore them instead.
                         //$this->insertCommentToken($token, $this->$DOM);
-                        return;
                     }
                     # A DOCTYPE token
                     elseif ($token instanceof DOCTYPEToken) {
@@ -413,7 +413,6 @@ class TreeBuilder {
                     // tokens can contain more than one character.
                     elseif ($token instanceof CharacterToken && (strspn($token->data, "\t\n\x0c\x0d ") === strlen($token->data))) {
                         # Ignore the token.
-                        return;
                     }
                     # A start tag whose tag name is "html"
                     elseif ($token instanceof StartTagToken && $token->name === 'html') {
@@ -457,7 +456,6 @@ class TreeBuilder {
                     # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
                     if ($token instanceof CharacterToken && (strspn($token->data, "\t\n\x0c\x0d ") === strlen($token->data))) {
                         # Ignore the token.
-                        return;
                     }
                     # A comment token
                     elseif ($token instanceof CommentToken) {
@@ -965,14 +963,51 @@ class TreeBuilder {
                         # Parse error.
                         ParseError::trigger(ParseError::UNEXPECTED_DOCTYPE, 'body content');
                     }
+                    elseif ($token instanceof StartTagToken) {
+                        # A start tag whose tag name is "html"
+                        if ($token->name === 'html') {
+                            # Parse error.
+                            ParseError::trigger(ParseError::UNEXPECTED_START_TAG, 'html', 'any body content');
+                            # If there is a template element on the stack of open elements, then ignore the
+                            # token.
+                            if ($this->stack->search('template') === -1) {
+                                # Otherwise, for each attribute on the token, check to see if the attribute is
+                                # already present on the top element of the stack of open elements. If it is
+                                # not, add the attribute and its corresponding value to that element.
+                                $top = $this->stack[0];
+                                foreach ($token->attributes as $a) {
+                                    if (!$top->hasAttribute($a->name)) {
+                                        $top->setAttribute($a->name, $a->value);
+                                    }
+                                }
+                            }
+                        }
+                        # A start tag whose tag name is one of: "base", "basefont", "bgsound", "link",
+                        # "meta", "noframes", "script", "style", "template", "title"
+                        elseif ($token->name === 'base' || $token->name === 'basefont' || $token->name === 'bgsound' || $token->name === 'link' || $token->name === 'meta' || $token->name === 'noframes' || $token->name === 'script' || $token->name === 'style' || $token->name === 'template' || $token->name === 'title') {
+                            # Process the token using the rules for the "in head" insertion mode.
+                            $insertionMode = self::IN_HEAD_MODE;
+                            continue 2;
+                        }
+                    }
+                    elseif ($token instanceof EndTagToken) {
+                        # An end tag whose tag name is "template"
+                        if ($token->name === 'template') {
+                            # Process the token using the rules for the "in head" insertion mode.
+                            $insertionMode = self::IN_HEAD_MODE;
+                            continue 2;
+                        }
+                    }
                 break;
             }
 
             break;
         }
+
+        return true;
     }
 
-    protected function parseTokenInForeignContent(Token $token) {
+    protected function parseTokenInForeignContent(Token $token): bool {
         if (Parser::$debug) {
             echo "Foreign Content\n";
         }
@@ -1042,10 +1077,13 @@ class TreeBuilder {
                 # namespace.
                 do {
                     $popped = $this->stack->pop();
-                } while (!is_null($popped) && (
-                        !DOM::isMathMLTextIntegrationPoint($this->stack->currentNode) &&
-                        !DOM::isHTMLIntegrationPoint($this->stack->currentNode) &&
-                        $this->stack->currentNode->namespaceURI !== Parser::HTML_NAMESPACE
+                    $n = $this->stack->currentNode;
+                    $nns = $currentNode->namespaceURI;
+                } while (!is_null($popped) && !(
+                        DOM::isMathMLTextIntegrationPoint($n) ||
+                        DOM::isHTMLIntegrationPoint($n) ||
+                        // PHP's DOM returns null when the namespace isn't specified... eg. HTML.
+                        is_null($nns)
                     )
                 );
 
@@ -1061,7 +1099,7 @@ class TreeBuilder {
                 # table, change the tag name to the name given in the corresponding cell in the
                 # second column. (This fixes the case of SVG elements that are not all
                 # lowercase.)
-                if ($currentNode->namespaceURI === Parser::SVG_NAMESPACE) {
+                if ($this->stack->adjustedCurrentNodeNamespace === Parser::SVG_NAMESPACE) {
                     switch ($token->name) {
                         case 'altglyph': $token->name = 'altGlyph';
                         break;
@@ -1364,7 +1402,8 @@ class TreeBuilder {
 
                 # 5. If node is not an element in the HTML namespace, return to the step labeled
                 # loop.
-                if ($node->namespaceURI !== Parser::HTML_NAMESPACE) {
+                // PHP DOM returns null if the namespace isn't specified... eg. HTML.
+                if (!is_null($node->namespaceURI)) {
                     continue;
                 }
 
@@ -1374,6 +1413,8 @@ class TreeBuilder {
                 break;
             }
         }
+
+        return true;
     }
 
     protected function appropriatePlaceForInsertingNode(\DOMNode $overrideTarget = null): array {
