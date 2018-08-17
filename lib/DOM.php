@@ -3,6 +3,27 @@ declare(strict_types=1);
 namespace dW\HTML5;
 
 class DOM {
+    public $document = null;
+    public $implementation = null;
+
+    // Instance used to pass around the implementation and the document. PHP's DOM
+    // cannot append a DOCTYPE to a DOMDocument, so the document must be created
+    // when the DOCTYPE is. This creates a problem where the Parser sometimes needs
+    // an implementation before the TreeBuilder is initiated.
+    public function __construct($document = null) {
+        if (is_null($document)) {
+            $this->implementation = new \DOMImplementation();
+            return;
+        }
+
+        if (!$document instanceof \DOMDocument) {
+            throw new Exception(Exception::DOM_DOMDOCUMENT_EXPECTED, gettype($document));
+        }
+
+        $this->document = $document;
+    }
+
+
     public static function getAncestor(mixed $needle, \DOMElement $context): \DOMElement {
         return static::ancestor($needle, $context, true);
     }

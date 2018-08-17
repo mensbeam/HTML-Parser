@@ -73,7 +73,7 @@ class TreeBuilder {
     const QUIRKS_MODE_LIMITED = 2;
 
 
-    public function __construct(\DOMDocument $dom, $formElement, bool $fragmentCase = false, $fragmentContext = null, Stack $stack, Tokenizer $tokenizer) {
+    public function __construct(DOM $dom, $formElement, bool $fragmentCase = false, $fragmentContext = null, Stack $stack, Tokenizer $tokenizer) {
         // If the form element isn't an instance of DOMElement that has a node name of
         // "form" or null then there's a problem.
         if (!is_null($formElement) && !($formElement instanceof DOMElement && $formElement->nodeName === 'form')) {
@@ -173,6 +173,7 @@ class TreeBuilder {
             }
 
             # TEMPORARY
+            echo "\n";
             var_export($token);
             echo "\n\n";
 
@@ -278,10 +279,9 @@ class TreeBuilder {
                         # it is returned as the value of the doctype attribute of the Document object.
                         // PHP's DOM cannot just append a DOCTYPE node to the document, so a document is
                         // created with the specified DOCTYPE instead.
-                        $imp = new \DOMImplementation();
                         // DEVIATION: PHP's DOMImplementation::createDocumentType() method cannot accept
                         // an empty name, so if it is missing it is replaced with 'html' instead.
-                        $this->DOM = $imp->createDocument('', '', $imp->createDocumentType((!is_null($token->name)) ? $token->name : 'html', $token->public, $token->system));
+                        $this->DOM->document = $this->DOM->implementation->createDocument('', '', $this->DOM->implementation->createDocumentType((!is_null($token->name)) ? $token->name : 'html', $token->public, $token->system));
 
                         $public = strtolower($token->public);
 
@@ -386,6 +386,17 @@ class TreeBuilder {
                         # set the Document to quirks mode.
                         // DEVIATION: There is no iframe srcdoc document because there are no nested
                         // browsing contexts in this implementation.
+                        switch (get_class($token)) {
+                            case 'StartTagToken': $errorType = ParseError::UNEXPECTED_START_TAG;
+                            break;
+                            case 'EndTagToken': $errorType = ParseError::UNEXPECTED_END_TAG;
+                            break;
+                            case 'EOFToken': $errorType = ParseError::UNEXPECTED_EOF;
+                            break;
+                            default: throw new Exception(Exception::UNKNOWN_ERROR);
+                        }
+
+                        ParseError::trigger($errorType, 'doctype');
                         $this->quirksMode = self::QUIRKS_MODE_ON;
 
                         # In any case, switch the insertion mode to "before html", then reprocess the
@@ -400,7 +411,7 @@ class TreeBuilder {
                 case self::BEFORE_HTML_MODE:
                     # A DOCTYPE token
                     if ($token instanceof DOCTYPEToken) {
-                        ParseError::trigger(ParseError::UNEXPECTED_DOCTYPE, '');
+                        ParseError::trigger(ParseError::UNEXPECTED_DOCTYPE, 'html start tag, comment');
                     }
                     # A comment token
                     elseif ($token instanceof CommentToken) {
@@ -419,7 +430,7 @@ class TreeBuilder {
                         # Create an element for the token in the HTML namespace, with the Document as
                         # the intended parent. Append it to the Document object. Put this element in the
                         # stack of open elements.
-                        $element = static::insertStartTagToken($token, $this->DOM);
+                        $element = static::insertStartTagToken($token, $this->DOM->document);
 
                         # Switch the insertion mode to "before head".
                         $this->insertionMode = self::BEFORE_HEAD_MODE;
@@ -427,15 +438,15 @@ class TreeBuilder {
                     # Any other end tag
                     elseif ($token instanceof EndTagToken && $token->name !== 'head' && $token->name !== 'body' && $token->name !== 'html' && $token->name !== 'br') {
                         # Parse error.
-                        ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $token->name, 'head, body, html, br');
+                        ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $token->name, 'head, body, html, br end tag');
                     }
                     # An end tag whose tag name is one of: "head", "body", "html", "br"
                     # Anything else
                     else {
                         # Create an html element whose node document is the Document object. Append it
                         # to the Document object. Put this element in the stack of open elements.
-                        $element = $this->DOM->createElement('html');
-                        $this->DOM->appendChild($element);
+                        $element = $this->DOM->document->createElement('html');
+                        $this->DOM->document->appendChild($element);
                         $this->stack[] = $element;
 
                         # Switch the insertion mode to "before head", then reprocess the token.
@@ -487,7 +498,7 @@ class TreeBuilder {
                     # Any other end tag
                     elseif ($token instanceof EndTagToken && $token->name !== 'head' && $token->name !== 'body' && $token->name !== 'html' && $token->name === 'br') {
                         # Parse error.
-                        ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $token->name, 'head, body, html, br');
+                        ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $token->name, 'head, body, html, br end tag');
                     }
                     # An end tag whose tag name is one of: "head", "body", "html", "br"
                     # Anything else
@@ -635,7 +646,7 @@ class TreeBuilder {
                         # A start tag whose tag name is "head"
                         elseif ($token->name === 'head') {
                             # Parse error.
-                            ParseError::trigger(ParseError::UNEXPECTED_START_TAG, 'head', 'base, basefont, bgsound, link, meta, title, noframes, style, noscript, script, template');
+                            ParseError::trigger(ParseError::UNEXPECTED_START_TAG, 'head', 'base, basefont, bgsound, link, meta, title, noframes, style, noscript, script, template start tag');
                         }
                         # Anything else
                         else {
@@ -678,7 +689,7 @@ class TreeBuilder {
                             # If there is no template element on the stack of open elements, then this is a
                             # parse error; ignore the token.
                             if ($this->stack->search('template') === -1) {
-                                ParseError::trigger(ParseError::UNEXPECTED_END_TAG, 'template', (string)$this->stack);
+                                ParseError::trigger(ParseError::UNEXPECTED_END_TAG, 'template', (string)$this->stack.' end tag');
                             }
                             # Otherwise, run these steps:
                             else {
@@ -687,7 +698,7 @@ class TreeBuilder {
 
                                 # 2. If the current node is not a template element, then this is a parse error.
                                 if ($this->stack->currentNodeName !== 'template') {
-                                    ParseError::trigger(ParseError::UNEXPECTED_END_TAG, 'template', (string)$this->stack);
+                                    ParseError::trigger(ParseError::UNEXPECTED_END_TAG, 'template', (string)$this->stack.' end tag');
                                 }
 
                                 # 3. Pop elements from the stack of open elements until a template element has been popped from the stack.
@@ -708,7 +719,7 @@ class TreeBuilder {
                         # Any other end tag
                         else {
                             # Parse error.
-                            ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $token->name, (string)$this->stack);
+                            ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $token->name, (string)$this->stack.' end tag');
                         }
                     }
                     # Anything else
@@ -748,14 +759,14 @@ class TreeBuilder {
                         # A start tag whose tag name is one of: "head", "noscript"
                         elseif ($token->name === 'head' || $token->name === 'noscript') {
                             # Parse error.
-                            ParseError::trigger(ParseError::UNEXPECTED_START_TAG, $token->name, 'basefont, bgsound, link, meta, noframes, style');
+                            ParseError::trigger(ParseError::UNEXPECTED_START_TAG, $token->name, 'basefont, bgsound, link, meta, noframes, style start tag');
                         }
                         # Anything else
                         else {
                             # Act as described in the "anything else" entry below.
                             #
                             # Parse error.
-                            ParseError::trigger(ParseError::UNEXPECTED_START_TAG, $token->name, 'basefont, bgsound, link, meta, noframes, style');
+                            ParseError::trigger(ParseError::UNEXPECTED_START_TAG, $token->name, 'basefont, bgsound, link, meta, noframes, style start tag');
                             # Pop the current node (which will be a noscript element) from the stack of open
                             # elements; the new current node will be a head element.
                             $this->stack->pop();
@@ -780,7 +791,7 @@ class TreeBuilder {
                             # Act as described in the "anything else" entry below.
                             #
                             # Parse error.
-                            ParseError::trigger(ParseError::UNEXPECTED_END_TAG, 'br', (string)$this->stack);
+                            ParseError::trigger(ParseError::UNEXPECTED_END_TAG, 'br', (string)$this->stack.' end tag');
                             # Pop the current node (which will be a noscript element) from the stack of open
                             # elements; the new current node will be a head element.
                             $this->stack->pop();
@@ -793,7 +804,7 @@ class TreeBuilder {
                         # Any other end tag
                         else {
                             # Parse error.
-                            ParseError::trigger(ParseError::UNEXPECTED_END_TAG, 'br', (string)$this->stack);
+                            ParseError::trigger(ParseError::UNEXPECTED_END_TAG, 'br', (string)$this->stack.' end tag');
                         }
                     }
                     # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED
@@ -808,7 +819,7 @@ class TreeBuilder {
                     # Anything else
                     else {
                         # Parse error.
-                        ParseError::trigger(ParseError::UNEXPECTED_END_TAG, 'br', (string)$this->stack);
+                        ParseError::trigger(ParseError::UNEXPECTED_END_TAG, 'br', (string)$this->stack.' end tag');
                         # Pop the current node (which will be a noscript element) from the stack of open
                         # elements; the new current node will be a head element.
                         $this->stack->pop();
@@ -865,7 +876,7 @@ class TreeBuilder {
                         # "meta", "noframes", "script", "style", "template", "title"
                         elseif ($token->name === 'base' || $token->name === 'basefont' || $token->name === 'bgsound' || $token->name === 'link' || $token->name === 'meta' || $token->name === 'noframes' || $token->name === 'script' || $token->name === 'style' || $token->name === 'template' || $token->name === 'title') {
                             # Parse error.
-                            ParseError::trigger(ParseError::UNEXPECTED_START_TAG, $token->name, 'body, frameset');
+                            ParseError::trigger(ParseError::UNEXPECTED_START_TAG, $token->name, 'body, frameset start tag');
                             # Push the node pointed to by the head element pointer onto the stack of open elements.
                             $this->stack[] = $this->headElement;
                             # Process the token using the rules for the "in head" insertion mode.
@@ -881,7 +892,7 @@ class TreeBuilder {
                         # A start tag whose tag name is "head"
                         elseif ($token->name === 'head') {
                             # Parse error.
-                            ParseError::trigger(ParseError::UNEXPECTED_START_TAG, 'head', 'body, frameset');
+                            ParseError::trigger(ParseError::UNEXPECTED_START_TAG, 'head', 'body, frameset start tag');
                         }
                         # Any other start tag
                         else {
@@ -918,7 +929,7 @@ class TreeBuilder {
                         # Any other end tag
                         else {
                             # Parse error.
-                            ParseError::trigger(ParseError::UNEXPECTED_END_TAG, 'head', 'body, frameset');
+                            ParseError::trigger(ParseError::UNEXPECTED_END_TAG, 'head', 'body, frameset end tag');
                         }
                     }
                     # Anything else
@@ -967,7 +978,7 @@ class TreeBuilder {
                         # A start tag whose tag name is "html"
                         if ($token->name === 'html') {
                             # Parse error.
-                            ParseError::trigger(ParseError::UNEXPECTED_START_TAG, 'html', 'any body content');
+                            ParseError::trigger(ParseError::UNEXPECTED_START_TAG, 'html', 'any body content start tag');
                             # If there is a template element on the stack of open elements, then ignore the
                             # token.
                             if ($this->stack->search('template') === -1) {
@@ -1059,7 +1070,7 @@ class TreeBuilder {
                 )
             ) {
                 # Parse error.
-                ParseError::trigger(ParseError::UNEXPECTED_START_TAG, $token->name, 'Non-HTML');
+                ParseError::trigger(ParseError::UNEXPECTED_START_TAG, $token->name, 'Non-HTML start tag');
 
                 # If the parser was originally created for the HTML fragment parsing algorithm,
                 # then act as described in the "any other start tag" entry below. (fragment
@@ -1381,7 +1392,7 @@ class TreeBuilder {
             # 2. If node is not an element with the same tag name as the token, then this is
             # a parse error.
             if ($nodeName !== $token->name) {
-                ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $token->name, $nodeName);
+                ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $token->name, "$nodeName end tag");
             }
             # 3. Loop: If node's tag name, converted to ASCII lowercase, is the same as the
             # tag name of the token, pop elements from the stack of open elements until node
@@ -1595,7 +1606,7 @@ class TreeBuilder {
 
         # 1. Let document be intended parent’s node document.
         // DEVIATION: Unnecessary because there aren't any nested contexts to consider.
-        // The document will always be $this->DOM.
+        // The document will always be $this->DOM->document.
 
         # 2. Let local name be the tag name of the token.
         // Nope. Don't need it because when creating elements with
@@ -1610,9 +1621,9 @@ class TreeBuilder {
         // DEVIATION: There is no point to setting the synchronous custom elements flag
         // and custom element definition; there is no scripting in this implementation.
         if ($namespace === Parser::HTML_NAMESPACE) {
-            $element = static::$instance->DOM->createElement($token->name);
+            $element = static::$instance->DOM->document->createElement($token->name);
         } else {
-            $element = static::$instance->DOM->createElementNS($namespace, $token->name);
+            $element = static::$instance->DOM->document->createElementNS($namespace, $token->name);
         }
 
         # 8. Append each attribute in the given token to element.
@@ -1677,6 +1688,7 @@ class TreeBuilder {
         # 1. Let the adjusted insertion location be the appropriate place for inserting
         # a node.
         $location = static::$instance->appropriatePlaceForInsertingNode($intendedParent);
+
         $adjustedInsertionLocation = $location['node'];
         $insertBefore = $location['insert before'];
 

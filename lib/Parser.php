@@ -65,10 +65,8 @@ class Parser {
             static::$instance = new $c;
         }
 
-        // Create the document if it doesn't already exist. Will be overwritten if there is a DOCTYPE.
         if (is_null(static::$instance->DOM)) {
-            $imp = new \DOMImplementation;
-            static::$instance->DOM = $imp->createDocument();
+            static::$instance->DOM = new DOM();
         }
 
         // Process the input stream.
@@ -94,7 +92,7 @@ class Parser {
         } while (!$token instanceof EOFToken);
 
         // The Parser instance has no need to exist when finished.
-        $dom = static::$instance->DOM;
+        $dom = static::$instance->DOM->document;
         static::$instance->__destruct();
 
         return DOM::fixIdAttributes($dom);
@@ -106,13 +104,13 @@ class Parser {
         static::$instance = new $c;
 
         if (!is_null($context)) {
-            static::$instance->DOM = $context->ownerDocument;
+            static::$instance->DOM = new DOM($context->ownerDocument);
         } else {
-            $imp = new \DOMImplementation;
-            static::$instance->DOM = $imp->createDocument();
+            static::$instance->DOM = new DOM();
+            static::$instance->DOM->document = static::$instance->DOM->implementation->createDocument();
         }
 
-        static::$instance->DOMFragment = static::$instance->DOM->createDocumentFragment();
+        static::$instance->DOMFragment = static::$instance->DOM->document->createDocumentFragment();
 
         // DEVIATION: The spec says to let the document be in quirks mode if the
         // DOMDocument is in quirks mode. Cannot check whether the context element is in

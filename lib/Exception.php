@@ -20,7 +20,8 @@ class Exception extends \Exception {
     const DATASTREAM_NODATA = 10401;
     const DATASTREAM_INVALID_DATA_CONSUMPTION_LENGTH = 10402;
 
-    const DOM_DOMELEMENT_STRING_OR_CLOSURE_EXPECTED = 10501;
+    const DOM_DOMDOCUMENT_EXPECTED = 10501;
+    const DOM_DOMELEMENT_STRING_OR_CLOSURE_EXPECTED = 10502;
 
     const TOKENIZER_INVALID_STATE = 10601;
 
@@ -44,7 +45,8 @@ class Exception extends \Exception {
                                   10401 => 'Data string expected; found %s',
                                   10402 => '%s is an invalid data consumption length; a value of 1 or above is expected',
 
-                                  10501 => 'The first argument must either be an instance of \DOMElement, a string, or a closure; found %s',
+                                  10501 => 'The first argument must be an instance of \DOMElement or null; found %s',
+                                  10502 => 'The first argument must either be an instance of \DOMElement, a string, or a closure; found %s',
 
                                   10601 => 'The Tokenizer has entered an invalid state',
 
