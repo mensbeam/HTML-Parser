@@ -55,7 +55,7 @@ class StartTagToken extends TagToken {
     }
 
      public function getAttribute(string $name) {
-         $key = $this->getAttributeKey($name);
+         $key = $this->_getAttributeKey($name);
 
          return (isset($this->attributes[$key])) ? $this->attributes[$key] : null;
      }
@@ -65,29 +65,30 @@ class StartTagToken extends TagToken {
      }
 
      public function removeAttribute(string $name) {
-         unset($this->attributes[$this->getAttributeKey($name)]);
+         unset($this->attributes[$this->_getAttributeKey($name)]);
      }
 
      public function setAttribute(string $name, string $value, string $namespace = Parser::HTML_NAMESPACE) {
          $key = $this->_getAttributeKey($name);
-         $attribute = new TokenAttr($name, $value, $namespace);
 
          if (is_null($key)) {
-             $this->attributes[] = $attribute;
+             $this->attributes[] = new TokenAttr($name, $value, $namespace);
          } else {
-             $this->attributes[$key] = $attribute;
+             $attribute = &$this->attributes[$key];
+             $attribute->name = $name;
+             $attribute->value = $value;
+             $attribute->namespace = $namespace;
          }
      }
 
      private function _getAttributeKey(string $name) {
-         $key = null;
          foreach ($this->attributes as $key => $a) {
              if ($a->name === $name) {
-                 break;
+                 return $key;
              }
          }
 
-         return $key;
+         return null;
      }
 }
 

@@ -1474,9 +1474,13 @@ class Tokenizer {
                     # code point), and its value to the empty string. Switch to the attribute name
                     # state.
 
-                    // DEVIATION: Will use a buffer for the attribute name instead.
-                    $attributeName = strtolower($char);
-                    $attributeValue = '';
+                    // Need to add the current attribute to the token, if necessary.
+                    if ($attribute) {
+                        $token->attributes[] = $attribute;
+                        $attribute = null;
+                    }
+
+                    $attribute = new TokenAttr(strtolower($char), '');
                     $this->state = self::ATTRIBUTE_NAME_STATE;
                 }
                 # EOF
@@ -1503,9 +1507,13 @@ class Tokenizer {
                         ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'attribute name');
                     }
 
-                    // DEVIATION: Will use a buffer for the attribute name instead.
-                    $attributeName = $char;
-                    $attributeValue = '';
+                    // Need to add the current attribute to the token, if necessary.
+                    if ($attribute) {
+                        $token->attributes[] = $attribute;
+                        $attribute = null;
+                    }
+
+                    $attribute = new TokenAttr($char, '');
                     $this->state = self::ATTRIBUTE_NAME_STATE;
                 }
 
@@ -1521,47 +1529,26 @@ class Tokenizer {
                 # "LF" (U+000A)
                 # "FF" (U+000C)
                 # U+0020 SPACE
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
-                    if ($token->hasAttribute($attributeName)) {
-                        ParseError::trigger(ParseError::ATTRIBUTE_EXISTS, $attributeName);
-                    }
-
-                    # Switch to the after attribute name state.
-                    $this->state = self::AFTER_ATTRIBUTE_NAME_STATE;
-                }
                 # "/" (U+002F)
-                elseif ($char === '/') {
-                    if ($token->hasAttribute($attributeName)) {
-                        ParseError::trigger(ParseError::ATTRIBUTE_EXISTS, $attributeName);
+                # U+003E GREATER-THAN SIGN (>)
+                # EOF
+                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ' || $char === '/' || $char === '>' || $char === '') {
+                    if ($token->hasAttribute($attribute->name)) {
+                        ParseError::trigger(ParseError::ATTRIBUTE_EXISTS, $attribute->name);
                     }
 
-                    # Switch to the self-closing start tag state.
-                    $this->state = self::SELF_CLOSING_START_TAG_STATE;
+                    # Reconsume in the after attribute name state.
+                    $this->data->unconsume();
+                    $this->state = self::AFTER_ATTRIBUTE_NAME_STATE;
                 }
                 # "=" (U+003D)
                 elseif ($char === '=') {
-                    if ($token->hasAttribute($attributeName)) {
-                        ParseError::trigger(ParseError::ATTRIBUTE_EXISTS, $attributeName);
+                    if ($token->hasAttribute($attribute->name)) {
+                        ParseError::trigger(ParseError::ATTRIBUTE_EXISTS, $attribute->name);
                     }
 
                     # Switch to the before attribute value state.
                     $this->state = self::BEFORE_ATTRIBUTE_VALUE_STATE;
-                }
-                # ">" (U+003E)
-                elseif ($char === '>') {
-                    if ($token->hasAttribute($attributeName)) {
-                        ParseError::trigger(ParseError::ATTRIBUTE_EXISTS, $attributeName);
-                    }
-
-                    # Switch to the data state. Emit the current tag token.
-                    $this->state = self::DATA_STATE;
-
-                    // Need to add the current attribute name and value to the token if necessary.
-                    if ($attributeName) {
-                        $token->setAttribute($attributeName, $attributeValue);
-                    }
-
-                    return $token;
                 }
                 # Uppercase ASCII letter
                 elseif (ctype_upper($char)) {
@@ -1570,22 +1557,14 @@ class Tokenizer {
 
                     // OPTIMIZATION: Consume all characters that are uppercase ASCII letters to prevent
                     // having to loop back through here every single time.
-                    $attributeName .= strtolower($char.$this->data->consumeWhile(self::CTYPE_UPPER));
-                }
-                # EOF
-                elseif ($char === '') {
-                    # Parse error. Switch to the data state. Reconsume the EOF character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'attribute name');
-                    $this->state = self::DATA_STATE;
-                    $this->data->unconsume();
+                    $attribute->name .= strtolower($char.$this->data->consumeWhile(self::CTYPE_UPPER));
                 }
                 # U+0022 QUOTATION MARK (")
                 # "'" (U+0027)
                 # "<" (U+003C)
-                # "=" (U+003D)
                 # Anything else
                 else {
-                    # Quotes, less than sign, equals:
+                    # Quotes, less than sign:
                     # Parse error. Treat it as per the "anything else" entry below.
                     # Anything else:
                     # Append the current input character to the current attribute's name.
@@ -1598,7 +1577,7 @@ class Tokenizer {
                     // characters.
                     // OPTIMIZATION: Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
-                    $attributeName .= $char.$this->data->consumeUntil("\t\n\x0c /=>\"'<".self::CTYPE_UPPER);
+                    $attribute->name .= $char.$this->data->consumeUntil("\t\n\x0c /=>\"'<".self::CTYPE_UPPER);
                 }
 
                 # When the user agent leaves the attribute name state (and before emitting the tag
@@ -1625,26 +1604,26 @@ class Tokenizer {
                 if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
                     # Ignore the character.
                 }
-                # "/" (U+002F)
+                # U+002F SOLIDUS (/)
                 elseif ($char === '/') {
                     # Switch to the self-closing start tag state.
                     $this->state = self::SELF_CLOSING_START_TAG_STATE;
                 }
-                # "=" (U+003D)
+                # U+003D EQUALS SIGN (=)
                 elseif ($char === '=') {
                     # Switch to the before attribute value state.
                     $this->state = self::BEFORE_ATTRIBUTE_VALUE_STATE;
                 }
-                # ">" (U+003E)
+                # U+003E GREATER-THAN SIGN (>)
                 elseif ($char === '>') {
-                    # Switch to the data state. Emit the current tag token.
-                    $this->state = self::DATA_STATE;
-
-                    // Need to add the current attribute name and value to the token if necessary.
-                    if ($attributeName) {
-                        $token->setAttribute($attributeName, $attributeValue);
+                    // Need to add the current attribute to the token, if necessary.
+                    if ($attribute) {
+                        $token->attributes[] = $attribute;
+                        $attribute = null;
                     }
 
+                    # Switch to the data state. Emit the current tag token.
+                    $this->state = self::DATA_STATE;
                     return $token;
                 }
                 # Uppercase ASCII letter
@@ -1654,9 +1633,13 @@ class Tokenizer {
                     # code point), and its value to the empty string. Switch to the attribute name
                     # state.
 
-                    // DEVIATION: Will use a buffer for the attribute name instead.
-                    $attributeName = strtolower($char);
-                    $attributeValue = '';
+                    // Need to add the current attribute to the token, if necessary.
+                    if ($attribute) {
+                        $token->attributes[] = $attribute;
+                        $attribute = null;
+                    }
+
+                    $attribute = new TokenAttr(strtolower($char), '');
                     $this->state = self::ATTRIBUTE_NAME_STATE;
                 }
                 # EOF
@@ -1683,8 +1666,13 @@ class Tokenizer {
                         ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'attribute name, attribute value, or tag end');
                     }
 
-                    $attributeName = $char;
-                    $attributeValue = '';
+                    // Need to add the current attribute to the token, if necessary.
+                    if ($attribute) {
+                        $token->attributes[] = $attribute;
+                        $attribute = null;
+                    }
+
+                    $attribute = new TokenAttr($char, '');
                     $this->state = self::ATTRIBUTE_NAME_STATE;
                 }
 
@@ -1726,9 +1714,10 @@ class Tokenizer {
                     ParseError::trigger(ParseError::UNEXPECTED_END_OF_TAG, 'attribute value');
                     $this->state = self::DATA_STATE;
 
-                    // Need to add the current attribute name and value to the token if necessary.
-                    if ($attributeName) {
-                        $token->setAttribute($attributeName, $attributeValue);
+                    // Need to add the current attribute to the token, if necessary.
+                    if ($attribute) {
+                        $token->attributes[] = $attribute;
+                        $attribute = null;
                     }
 
                     return $token;
@@ -1755,7 +1744,7 @@ class Tokenizer {
                         ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'attribute value');
                     }
 
-                    $attributeValue .= $char;
+                    $attribute->value .= $char;
                     $this->state = self::ATTRIBUTE_VALUE_UNQUOTED_STATE;
                 }
 
@@ -1786,7 +1775,7 @@ class Tokenizer {
 
                     // DEVIATION: This implementation does the character reference consuming in a
                     // function for which it is more suited for.
-                    $attributeValue .= $this->data->consumeCharacterReference('"', true);
+                    $attribute->value .= $this->data->consumeCharacterReference('"', true);
                 }
                 # EOF
                 elseif ($char === '') {
@@ -1800,7 +1789,7 @@ class Tokenizer {
                     # Append the current input character to the current attribute's value.
                     // OPTIMIZATION: Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
-                    $attributeValue .= $char.$this->data->consumeUntil('"&');
+                    $attribute->value .= $char.$this->data->consumeUntil('"&');
                 }
 
                 continue;
@@ -1831,7 +1820,7 @@ class Tokenizer {
 
                     # DEVIATION: This implementation does the character reference consuming in a
                     # function for which it is more suited for.
-                    $attributeValue .= $this->data->consumeCharacterReference("'", true);
+                    $attribute->value .= $this->data->consumeCharacterReference("'", true);
                 }
                 # EOF
                 elseif ($char === '') {
@@ -1846,7 +1835,7 @@ class Tokenizer {
 
                     // OPTIMIZATION: Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
-                    $attributeValue .= $char.$this->data->consumeUntil("'&");
+                    $attribute->value .= $char.$this->data->consumeUntil("'&");
                 }
 
                 continue;
@@ -1883,16 +1872,17 @@ class Tokenizer {
 
                     // DEVIATION: This implementation does the character reference consuming in a
                     // function for which it is more suited for.
-                    $attributeValue .= $this->data->consumeCharacterReference('>', true);
+                    $attribute->value .= $this->data->consumeCharacterReference('>', true);
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
                     # Switch to the data state. Emit the current tag token.
                     $this->state = self::DATA_STATE;
 
-                    // Need to add the current attribute name and value to the token if necessary.
-                    if ($attributeName) {
-                        $token->setAttribute($attributeName, $attributeValue);
+                    // Need to add the current attribute to the token, if necessary.
+                    if ($attribute) {
+                        $token->attributes[] = $attribute;
+                        $attribute = null;
                     }
 
                     return $token;
@@ -1921,7 +1911,7 @@ class Tokenizer {
 
                     // OPTIMIZATION: Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
-                    $attributeValue .= $char.$this->data->consumeUntil("\t\n\x0c &>\"'<=`");
+                    $attribute->value .= $char.$this->data->consumeUntil("\t\n\x0c &>\"'<=`");
                 }
 
                 continue;
@@ -1950,9 +1940,10 @@ class Tokenizer {
                     # Switch to the data state. Emit the current tag token.
                     $this->state = self::DATA_STATE;
 
-                    // Need to add the current attribute name and value to the token if necessary.
-                    if ($attributeName) {
-                        $token->setAttribute($attributeName, $attributeValue);
+                    // Need to add the current attribute to the token, if necessary.
+                    if ($attribute) {
+                        $token->attributes[] = $attribute;
+                        $attribute = null;
                     }
 
                     return $token;
@@ -1986,6 +1977,13 @@ class Tokenizer {
                     # Emit the current tag token.
                     $token->selfClosing = true;
                     $this->state = self::DATA_STATE;
+
+                    // Need to add the current attribute to the token, if necessary.
+                    if ($attribute) {
+                        $token->attributes[] = $attribute;
+                        $attribute = null;
+                    }
+
                     return $token;
                 }
                 # EOF
