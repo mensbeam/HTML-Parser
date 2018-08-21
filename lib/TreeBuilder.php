@@ -978,7 +978,7 @@ class TreeBuilder {
                         # A start tag whose tag name is "html"
                         if ($token->name === 'html') {
                             # Parse error.
-                            ParseError::trigger(ParseError::UNEXPECTED_START_TAG, 'html', 'any body content start tag');
+                            ParseError::trigger(ParseError::UNEXPECTED_START_TAG, 'html', 'body content');
                             # If there is a template element on the stack of open elements, then ignore the
                             # token.
                             if ($this->stack->search('template') === -1) {
@@ -1000,6 +1000,58 @@ class TreeBuilder {
                             $insertionMode = self::IN_HEAD_MODE;
                             continue 2;
                         }
+                        # A start tag whose tag name is "body"
+                        elseif ($token->name === 'body') {
+                            # Parse error.
+                            ParseError::trigger(ParseError::UNEXPECTED_START_TAG, 'body', 'body content');
+                            # If the second element on the stack of open elements is not a body element, if
+                            # the stack of open elements has only one node on it, or if there is a template
+                            # element on the stack of open elements, then ignore the token. (fragment case)
+                            if (!($this->stack[1]->name !== 'body' || $this->stack->length === 1 || $this->stack->search('template') !== -1)) {
+                                # Otherwise, set the frameset-ok flag to "not ok"; then, for each attribute on
+                                # the token, check to see if the attribute is already present on the body
+                                # element (the second element) on the stack of open elements, and if it is not,
+                                # add the attribute and its corresponding value to that element.
+                                $this->framesetOk = false;
+
+                                $body = $this->stack[1];
+                                foreach ($token->attributes as $a) {
+                                    if (!$body->hasAttribute($a->name)) {
+                                        $body->setAttribute($a->name, $a->value);
+                                    }
+                                }
+                            }
+                        }
+                        # A start tag whose tag name is "frameset"
+                        elseif ($token->name === 'frameset') {
+                            # Parse error.
+                            ParseError::trigger(ParseError::UNEXPECTED_START_TAG, 'frameset', 'body content');
+
+                            # If the stack of open elements has only one node on it, or if the second
+                            # element on the stack of open elements is not a body element, then ignore the
+                            # token. (fragment case)
+                            # If the frameset-ok flag is set to "not ok", ignore the token.
+                            if (!($this->stack->length === 1 || $this->stack[1]->name !== 'body' || $framesetOk === false)) {
+                                # Otherwise, run the following steps:
+                                #
+                                # 1. Remove the second element on the stack of open elements from its parent
+                                # node, if it has one.
+                                $second = $this->stack[1];
+                                if ($second->parentNode) {
+                                    $second->parentNode->removeChild($second);
+                                }
+                                # 2. Pop all the nodes from the bottom of the stack of open elements, from the
+                                # current node up to, but not including, the root html element.
+                                for ($i = $this->stack->length - 1; $i > 0; $i--) {
+                                    $this->stack->pop();
+                                }
+                                # 3. Insert an HTML element for the token.
+                                $this->insertStartTagToken($token);
+                                # 4. Switch the insertion mode to "in frameset".
+                                $this->insertionMode = self::IN_FRAMESET_MODE;
+                            }
+                        }
+
                     }
                     elseif ($token instanceof EndTagToken) {
                         # An end tag whose tag name is "template"
