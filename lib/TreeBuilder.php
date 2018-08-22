@@ -36,6 +36,8 @@ class TreeBuilder {
     protected $tokenizer;
     // Used to check if the document is in quirks mode
     protected $quirksMode;
+    // Used to store the template insertion modes
+    protected $templateInsertionModes;
 
 
     // Instance used with the static token insertion methods.
@@ -73,7 +75,7 @@ class TreeBuilder {
     const QUIRKS_MODE_LIMITED = 2;
 
 
-    public function __construct(DOM $dom, $formElement, bool $fragmentCase = false, $fragmentContext = null, OpenElementsStack $stack, Tokenizer $tokenizer) {
+    public function __construct(DOM $dom, $formElement, bool $fragmentCase = false, $fragmentContext = null, OpenElementsStack $stack, Stack $templateInsertionModes, Tokenizer $tokenizer) {
         // If the form element isn't an instance of DOMElement that has a node name of
         // "form" or null then there's a problem.
         if (!is_null($formElement) && !($formElement instanceof DOMElement && $formElement->nodeName === 'form')) {
@@ -94,6 +96,7 @@ class TreeBuilder {
         $this->fragmentCase = $fragmentCase;
         $this->fragmentContext = $fragmentContext;
         $this->stack = $stack;
+        $this->templateInsertionModes = $templateInsertionModes;
         $this->tokenizer = $tokenizer;
 
         // Initialize the list of active formatting elements.
@@ -641,7 +644,7 @@ class TreeBuilder {
                             $this->insertionMode = self::IN_TEMPLATE_MODE;
                             # Push "in template" onto the stack of template insertion modes so that it is
                             # the new current template insertion mode.
-                            // DEVIATION: No scripting.
+                            $this->templateInsertionModes = self::IN_TEMPLATE_MODE;
                         }
                         # A start tag whose tag name is "head"
                         elseif ($token->name === 'head') {
@@ -710,7 +713,7 @@ class TreeBuilder {
                                 $this->activeFormattingElementsList->clearToTheLastMarker();
 
                                 # 5. Pop the current template insertion mode off the stack of template insertion modes.
-                                // DEVIATION: No scripting.
+                                $this->templateInsertionModes->pop();
 
                                 # 6. Reset the insertion mode appropriately.
                                 $this->resetInsertionMode();

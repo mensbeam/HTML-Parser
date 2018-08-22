@@ -9,7 +9,8 @@ class DOM {
     // Instance used to pass around the implementation and the document. PHP's DOM
     // cannot append a DOCTYPE to a DOMDocument, so the document must be created
     // when the DOCTYPE is. This creates a problem where the Parser sometimes needs
-    // an implementation before the TreeBuilder is initiated.
+    // an implementation before the TreeBuilder is initiated. This instance is used
+    // to work around that problem.
     public function __construct($document = null) {
         if (is_null($document)) {
             $this->implementation = new \DOMImplementation();

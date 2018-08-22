@@ -24,6 +24,8 @@ class Parser {
     protected $parseError;
     // The stack of open elements, uses Stack
     protected $stack;
+    // Used to store the template insertion modes
+    protected $templateInsertionModes;
     // Instance of the Tokenizer class used for creating tokens
     protected $tokenizer;
     // Instance of the TreeBuilder class used for building the document
@@ -78,10 +80,14 @@ class Parser {
 
         // Initialize the stack of open elements.
         static::$instance->stack = new OpenElementsStack(static::$instance->fragmentCase, static::$instance->fragmentContext);
+        // Initialize the template insertion modes stack if necessary.
+        if (is_null(static::$instance->templateInsertionModes)) {
+            static::$instance->templateInsertionModes = new Stack();
+        }
         // Initialize the tokenizer.
         static::$instance->tokenizer = new Tokenizer(static::$instance->data, static::$instance->stack);
         // Initialize the tree builder.
-        static::$instance->treeBuilder = new TreeBuilder(static::$instance->DOM, static::$instance->formElement, static::$instance->fragmentCase, static::$instance->fragmentContext, static::$instance->stack, static::$instance->tokenizer);
+        static::$instance->treeBuilder = new TreeBuilder(static::$instance->DOM, static::$instance->formElement, static::$instance->fragmentCase, static::$instance->fragmentContext, static::$instance->stack, static::$instance->templateInsertionModes, static::$instance->tokenizer);
         // Initialize the parse error handler.
         static::$instance->parseError = new ParseError(static::$instance->data);
 
@@ -151,7 +157,10 @@ class Parser {
         # If the context element is a template element, push "in template" onto the
         # stack of template insertion modes so that it is the new current template
         # insertion mode.
-        // DEVIATION: No scripting.
+        if ($context instanceof \DOMelement && $context->nodeName === 'template') {
+            static::$templateInsertionModes = new Stack();
+            static::$templateInsertionModes[] = TreeBuilder::IN_TEMPLATE_MODE;
+        }
 
         # Reset the parser's insertion mode appropriately.
         // DEVIATION: The insertion mode will be always 'in body', not 'before head' if

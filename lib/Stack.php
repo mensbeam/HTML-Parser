@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace dW\HTML5;
 
-abstract class Stack implements \ArrayAccess {
+class Stack implements \ArrayAccess {
     protected $_storage = [];
     protected $fragmentCase;
     protected $fragmentContext;
