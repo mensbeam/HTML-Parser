@@ -77,7 +77,7 @@ class Parser {
         setlocale(LC_CTYPE, 'en_US.UTF8');
 
         // Initialize the stack of open elements.
-        static::$instance->stack = new Stack(static::$instance->fragmentCase, static::$instance->fragmentContext);
+        static::$instance->stack = new OpenElementsStack(static::$instance->fragmentCase, static::$instance->fragmentContext);
         // Initialize the tokenizer.
         static::$instance->tokenizer = new Tokenizer(static::$instance->data, static::$instance->stack);
         // Initialize the tree builder.

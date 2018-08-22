@@ -73,7 +73,7 @@ class TreeBuilder {
     const QUIRKS_MODE_LIMITED = 2;
 
 
-    public function __construct(DOM $dom, $formElement, bool $fragmentCase = false, $fragmentContext = null, Stack $stack, Tokenizer $tokenizer) {
+    public function __construct(DOM $dom, $formElement, bool $fragmentCase = false, $fragmentContext = null, OpenElementsStack $stack, Tokenizer $tokenizer) {
         // If the form element isn't an instance of DOMElement that has a node name of
         // "form" or null then there's a problem.
         if (!is_null($formElement) && !($formElement instanceof DOMElement && $formElement->nodeName === 'form')) {

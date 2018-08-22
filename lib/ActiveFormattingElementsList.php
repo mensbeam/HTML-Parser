@@ -14,17 +14,17 @@ namespace dW\HTML5;
 # In addition, each element in the list of active formatting elements is
 # associated with the token for which it was created, so that further elements
 # can be created for that token if necessary.
-class ActiveFormattingElementsList implements \ArrayAccess {
+class ActiveFormattingElementsList extends Stack {
     protected $_storage = [];
     protected $stack;
 
-    public function __construct(Stack $stack) {
+    public function __construct(OpenElementsStack $stack) {
         $this->stack = $stack;
     }
 
     public function offsetSet($offset, $value) {
-        if ($offset < 0) {
-            throw new Exception(Exception::ACTIVE_FORMATTING_ELEMENT_LIST_INVALID_INDEX);
+        if ($offset < 0 || $offset > count($this->_storage) - 1) {
+            throw new Exception(Exception::STACK_INVALID_INDEX);
         }
 
         if (is_null($offset)) {
@@ -78,30 +78,8 @@ class ActiveFormattingElementsList implements \ArrayAccess {
             # 2. Add element to the list of active formatting elements.
             $this->_storage[] = $value;
         } else {
-            $this->_storage[$offset] = $value;
+            parent::offsetSet($offset, $value);
         }
-    }
-
-    public function offsetExists($offset) {
-        return isset($this->_storage[$offset]);
-    }
-
-    public function offsetUnset($offset) {
-        if ($offset < 0 || $offset > count($this->$storage) - 1) {
-            throw new Exception(Exception::ACTIVE_FORMATTING_ELEMENT_LIST_INVALID_INDEX);
-        }
-
-        unset($this->_storage[$offset]);
-        // Reindex the array.
-        $this->_storage = array_values($this->_storage);
-    }
-
-    public function offsetGet($offset) {
-        if ($offset < 0 || $offset > count($this->$storage) - 1) {
-            throw new Exception(Exception::ACTIVE_FORMATTING_ELEMENT_LIST_INVALID_INDEX);
-        }
-
-        return $this->_storage[$offset];
     }
 
     public function insert(StartTagToken $token, \DOMElement $element) {
@@ -115,17 +93,14 @@ class ActiveFormattingElementsList implements \ArrayAccess {
         $this->offsetSet(null, new ActiveFormattingElementMarker());
     }
 
-    public function pop() {
-        return array_pop($this->_storage);
-    }
-
     public function reconstruct() {
         # When the steps below require the UA to reconstruct the active formatting
         # elements, the UA must perform the following steps:
         // Yes, I know this uses gotos, but here are the reasons for using them:
         // 1. The spec seems to actively encourage using them, even providing
         // suggestions on what to name the labels.
-        // 2. It'd be a pain to program and maintain without them because of this.
+        // 2. It'd be a pain to program and maintain without them because the algorithm
+        // jumps around all over the place.
 
         # 1. If there are no entries in the list of active formatting elements, then
         # there is nothing to reconstruct; stop this algorithm.
@@ -208,6 +183,11 @@ class ActiveFormattingElementsList implements \ArrayAccess {
     }
 
     public function __get($property) {
+        $value = parent::__get($property);
+        if (!is_null($value)) {
+            return $value;
+        }
+
         switch ($property) {
             case 'lastMarker':
                 for ($end = count($this->_storage) - 1, $i = $end; $i >= 0; $i--) {
@@ -217,8 +197,6 @@ class ActiveFormattingElementsList implements \ArrayAccess {
                 }
 
                 return false;
-            break;
-            case 'length': return count($this->_storage);
             break;
             default: return null;
         }

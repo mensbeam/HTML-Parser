@@ -78,7 +78,7 @@ class Tokenizer {
     const CTYPE_ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
     const CTYPE_UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-    public function __construct(DataStream $data, Stack $stack) {
+    public function __construct(DataStream $data, OpenElementsStack $stack) {
         $this->state = self::DATA_STATE;
         $this->data = $data;
         $this->stack = $stack;
