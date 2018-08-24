@@ -324,7 +324,7 @@ class DataStream
 
             # Otherwise, return a character token for the Unicode character whose code point
             # is that number.
-            return mb_convert_encoding(pack('N', $number), 'UTF-8', 'UCS-4BE');
+            return \MensBeam\Intl\Encoding\UTF8::encode($number);
            }
 
         # Consume the maximum number of characters possible, with the consumed characters
@@ -420,12 +420,14 @@ class DataStream
                 break;
             }
 
-            if ($advancePointer && $char === "\n") {
-                $this->newlines[] = $this->data->posChar();
-                $this->_column = 1;
-                $this->_line++;
-            } else {
-                $this->_column++;
+            if ($advancePointer) {
+                if ($char === "\n") {
+                    $this->newlines[] = $this->data->posChar();
+                    $this->_column = 1;
+                    $this->_line++;
+                } else {
+                    $this->_column++;
+                }
             }
 
             $string .= $char;

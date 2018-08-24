@@ -4,7 +4,6 @@
     "type": "library",
     "require": {
         "php": "^7.0",
-        "ext-mbstring": "*",
         "ext-ctype": "*",
         "ext-hash": "*",
         "mensbeam/intl": "*"
