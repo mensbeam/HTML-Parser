@@ -4,17 +4,18 @@ namespace dW\HTML5;
 
 class DataStream
 {
-    // The length of the data used for checking for end-of-file.
-    public $length = 0;
     // Used to get the file path for error reporting.
     public $filePath;
-    // Internal storage for the byte stream data array.
-    protected $byteStream;
-    // The internal position pointer.
-    private $pointer = 0;
-    // Line in the document the pointer is at. Used for error reporting.
-    private $position = [];
 
+    // Internal storage for the Intl data object.
+    protected $data;
+    // Used for error reporting to display line number.
+    protected $_line = 1;
+    // Used for error reporting to display column number.
+    protected $_column = 0;
+    // Used for error reporting when unconsuming to calculate column number from
+    // last newline.
+    protected $newlines = [];
 
     const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
     const DIGIT = '0123456789';
@@ -31,9 +32,7 @@ class DataStream
 
         // DEVIATION: The spec has steps for parsing and determining the character
         // encoding. At this moment this implementation won't determine a character
-        // encoding and will convert all content fed to it to UTF-8.
-        $data = mb_convert_encoding($data, 'UTF-8', mb_detect_encoding($data));
-        mb_internal_encoding('UTF-8');
+        // encoding and will just assume UTF-8.
 
         # One leading U+FEFF BYTE ORDER MARK character must be ignored if any are present
         # in the input stream.
@@ -54,53 +53,77 @@ class DataStream
             return '';
         }, $data);
 
+
         // Normalize line breaks. Convert CRLF and CR to LF.
-        // Break the document into a unicode friendly array of single characters for
-        // tokenization.
-        $this->byteStream = preg_split('/(?<!^)(?!$)/u', str_replace(["\r\n","\r"], "\n", $data));
-
-        // Create a positioning array for getting the line and column for errors.
-        for ($line = 1, $column = 0, $i = 0; $i < count($this->byteStream); $i++) {
-            if ($this->byteStream[$i] === "\n") {
-                $line++;
-                $column = 0;
-            }
-
-            $this->position[$i] = [$line, ++$column];
-        }
-
-        // Set EOF to the string length of the document.
-        $this->length = count($this->byteStream);
+        // Break the string up into a traversable object.
+        $this->data = new \MensBeam\Intl\Encoding\UTF8(str_replace(["\r\n", "\r"], "\n", $data));
     }
 
     public function consume(int $length = 1): string {
-        return $this->look('', $length, true);
+        if ($length <= 0) {
+            throw new Exception(Exception::DATASTREAM_INVALID_DATA_CONSUMPTION_LENGTH, $length);
+        }
+
+        for ($i = 0, $string = ''; $i < $length; $i++) {
+            $char = $this->data->nextChar();
+
+            if ($char === "\n") {
+                $this->newlines[] = $this->data->posChar();
+                $this->_column = 1;
+                $this->_line++;
+            } else {
+                $this->_column++;
+            }
+
+            $string .= $char;
+        }
+
+        return $string;
     }
 
     public function unconsume(int $length = 1) {
-        if ($this->pointer < $this->length) {
-            $this->pointer -= $length;
+        if ($length <= 0) {
+            throw new Exception(Exception::DATASTREAM_INVALID_DATA_CONSUMPTION_LENGTH, $length);
+        }
+
+        $this->data->seek(0 - $length);
+
+        $string = $this->data->peekChar($length);
+        $numOfNewlines = substr_count($string, "\n");
+
+        if ($numOfNewlines > 0) {
+            $this->_line -= $numOfNewlines;
+
+            $count = $this->newlines;
+            $index = count($this->newlines) - ($numOfNewlines - 1);
+            $this->_column = 1 + (($count > 0 && isset($this->newlines[$index])) ? $this->data->posChar() - $this->newlines[$index] : $this->data->posChar());
+        } else {
+            $this->_column -= $length;
         }
     }
 
     public function consumeWhile(string $match, int $limit = 0): string {
-        return $this->look($match, $limit, true, true);
+        return $this->span($match, true, true, $limit);
     }
 
     public function consumeUntil(string $match, int $limit = 0): string {
-        return $this->look($match, $limit, true, false);
+        return $this->span($match, false, true, $limit);
     }
 
     public function peek(int $length = 1): string {
-        return $this->look('', $length, false);
+        if ($length <= 0) {
+            throw new Exception(Exception::DATASTREAM_INVALID_DATA_CONSUMPTION_LENGTH, $length);
+        }
+
+        return $this->data->peekChar($length);
     }
 
     public function peekWhile(string $match, int $limit = 0): string {
-        return $this->look($match, $limit, false, true);
+        return $this->span($match, true, false, $limit);
     }
 
     public function peekUntil(string $match, int $limit = 0): string {
-        return $this->look($match, $limit, false, false);
+        return $this->span($match, false, false, $limit);
     }
 
 
@@ -373,40 +396,19 @@ class DataStream
         return '&';
     }
 
-    private function look(string $match, int $length = 1, bool $movePointer = false, bool $while = true): string {
-        if ($length <= 0 && $match === '') {
-            throw new Exception(Exception::DATASTREAM_INVALID_DATA_CONSUMPTION_LENGTH, $length);
-        }
-
-        if ($match !== '') {
-            $length = $this->stringSpan($match, $while, $this->pointer, $length);
-        } elseif ($this->pointer + 1 > $this->length) {
-            return '';
-        }
-
-        for ($output = '', $end = $this->pointer + $length, $i = $this->pointer; $i < $end; $i++) {
-            $output .= $this->byteStream[$i];
-        }
-
-        if ($movePointer) {
-            $this->pointer = $end;
-        }
-
-        return $output;
-    }
-
-
-    private function stringSpan(string $match, bool $while = true, int $start = 0, int $length = 0): int {
-        $output = 0;
-
+    protected function span(string $match, bool $while = true, bool $advancePointer = true, int $limit = 0): string {
         // Break the matching characters into an array of characters. Unicode friendly.
-        $match = preg_split('/(?<!^)(?!$)/u', $match);
-        while(true) {
-            if (!isset($this->byteStream[$start])) {
+        $match = preg_split('/(?<!^)(?!$)/Su', $match);
+
+        $count = 0;
+        $string = '';
+        while (true) {
+            $char = $this->data->nextChar();
+
+            if ($char === '') {
                 break;
             }
 
-            $char = $this->byteStream[$start];
             $inArray = in_array($char, $match);
 
             // strspn
@@ -418,20 +420,34 @@ class DataStream
                 break;
             }
 
-            $output++;
-            $start++;
+            if ($advancePointer && $char === "\n") {
+                $this->newlines[] = $this->data->posChar();
+                $this->_column = 1;
+                $this->_line++;
+            } else {
+                $this->_column++;
+            }
 
-            if($output === $length) break;
+            $string .= $char;
+            $count++;
+            if ($count === $limit) {
+                break;
+            }
         }
 
-        return $output;
+        if ($count === 0) {
+            return '';
+        }
+
+        $this->data->seek(($advancePointer) ? -1 : 0 - $count - 2);
+        return $string;
     }
 
     public function __get($property) {
         switch ($property) {
-            case 'line': return $this->position[($this->pointer < $this->length) ? $this->pointer : $this->length - 1][0];
+            case 'column': return $this->_column;
             break;
-            case 'column': return $this->position[($this->pointer < $this->length) ? $this->pointer : $this->length - 1][1] + 1;
+            case 'line': return $this->_line;
             break;
             default: return null;
         }

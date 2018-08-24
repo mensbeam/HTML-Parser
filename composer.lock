@@ -1,11 +1,56 @@
 {
     "_readme": [
         "This file locks the dependencies of your project to a known state",
-        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "0dd2aa7522ed74e55953bac6d8f875dc",
-    "packages": [],
+    "content-hash": "081b624245e1c42efc06f310a4bc46bd",
+    "packages": [
+        {
+            "name": "mensbeam/intl",
+            "version": "0.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://code.mensbeam.com/MensBeam/intl",
+                "reference": "58444b9545665a19a0cb6d997ab3596025e3be71"
+            },
+            "require": {
+                "php": "^7.0"
+            },
+            "require-dev": {
+                "bamarni/composer-bin-plugin": "*",
+                "ext-intl": "*"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MensBeam\\Intl\\": "lib/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "J. King",
+                    "email": "jking@jkingweb.ca",
+                    "homepage": "https://jkingweb.ca/"
+                }
+            ],
+            "description": "A set of dependency-free basic internationalization tools",
+            "keywords": [
+                "charset",
+                "encoding",
+                "internationalization",
+                "intl",
+                "unicode",
+                "utf-8",
+                "utf8"
+            ],
+            "time": "2018-08-12T02:04:45+00:00"
+        }
+    ],
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
@@ -14,7 +59,6 @@
     "prefer-lowest": false,
     "platform": {
         "php": "^7.0",
-        "ext-intl": "*",
         "ext-mbstring": "*",
         "ext-ctype": "*",
         "ext-hash": "*"

@@ -4,10 +4,10 @@
     "type": "library",
     "require": {
         "php": "^7.0",
-        "ext-intl": "*",
         "ext-mbstring": "*",
         "ext-ctype": "*",
-        "ext-hash": "*"
+        "ext-hash": "*",
+        "mensbeam/intl": "*"
     },
     "license": "MIT",
     "authors": [
