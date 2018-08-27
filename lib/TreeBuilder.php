@@ -42,6 +42,8 @@ class TreeBuilder {
 
     // Instance used with the static token insertion methods.
     protected static $instance;
+    // Used for debugging to print out information as the tree is built.
+    protected static $debug = false;
 
 
     // Constants used for insertion modes
@@ -119,8 +121,11 @@ class TreeBuilder {
             $adjustedCurrentNodeName = $this->stack->adjustedCurrentNodeName;
             $adjustedCurrentNodeNamespace = $this->stack->adjustedCurrentNodeNamespace;
 
-            if (Parser::$debug) {
+            if (self::$debug) {
                 echo "Node: $adjustedCurrentNodeName\n";
+                echo "\nToken: \n";
+                var_export($token);
+                echo "\n\n";
             }
 
             # 8.2.5 Tree construction
@@ -175,11 +180,6 @@ class TreeBuilder {
                 }
             }
 
-            # TEMPORARY
-            echo "\n";
-            var_export($token);
-            echo "\n\n";
-
             break;
         }
     }
@@ -189,7 +189,7 @@ class TreeBuilder {
 
         // Loop used when processing the token under different rules; always breaks.
         while (true) {
-            if (Parser::$debug) {
+            if (self::$debug) {
                 switch ($insertionMode) {
                     case self::INITIAL_MODE: $mode = "Initial";
                     break;
@@ -251,7 +251,7 @@ class TreeBuilder {
                     # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
                     // OPTIMIZATION: Will check for multiple space characters at once as character
                     // tokens can contain more than one character.
-                    if ($token instanceof CharacterToken && (strspn($token->data, "\t\n\x0c\x0d ") !== strlen($token->data))) {
+                    if ($token instanceof CharacterToken && (strspn($token->data, Data::WHITESPACE) === strlen($token->data))) {
                         # Ignore the token.
                     }
                     # A comment token
@@ -425,7 +425,7 @@ class TreeBuilder {
                     # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
                     // OPTIMIZATION: Will check for multiple space characters at once as character
                     // tokens can contain more than one character.
-                    elseif ($token instanceof CharacterToken && (strspn($token->data, "\t\n\x0c\x0d ") === strlen($token->data))) {
+                    elseif ($token instanceof CharacterToken && (strspn($token->data, Data::WHITESPACE) === strlen($token->data))) {
                         # Ignore the token.
                     }
                     # A start tag whose tag name is "html"
@@ -468,7 +468,9 @@ class TreeBuilder {
                 case self::BEFORE_HEAD_MODE:
                     # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED
                     # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
-                    if ($token instanceof CharacterToken && (strspn($token->data, "\t\n\x0c\x0d ") === strlen($token->data))) {
+                    // OPTIMIZATION: Will check for multiple space characters at once as character
+                    // tokens can contain more than one character.
+                    if ($token instanceof CharacterToken && (strspn($token->data, Data::WHITESPACE) === strlen($token->data))) {
                         # Ignore the token.
                     }
                     # A comment token
@@ -524,7 +526,9 @@ class TreeBuilder {
                 case self::IN_HEAD_MODE:
                     # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED
                     # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
-                    if ($token instanceof CharacterToken && (strspn($token->data, "\t\n\x0c\x0d ") !== strlen($token->data))) {
+                    // OPTIMIZATION: Will check for multiple space characters at once as character
+                    // tokens can contain more than one character.
+                    if ($token instanceof CharacterToken && (strspn($token->data, Data::WHITESPACE) === strlen($token->data))) {
                         # Insert the character.
                         $this->insertCharacterToken($token);
                     }
@@ -813,7 +817,9 @@ class TreeBuilder {
                     # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED
                     # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
                     # A comment token
-                    elseif (($token instanceof CharacterToken && (strspn($token->data, "\t\n\x0c\x0d ") === strlen($token->data))) ||
+                    // OPTIMIZATION: Will check for multiple space characters at once as character
+                    // tokens can contain more than one character.
+                    elseif (($token instanceof CharacterToken && (strspn($token->data, Data::WHITESPACE) === strlen($token->data))) ||
                          $token instanceof CommentToken) {
                         # Process the token using the rules for the "in head" insertion mode.
                         $insertionMode = self::IN_HEAD_MODE;
@@ -838,7 +844,9 @@ class TreeBuilder {
                 case self::AFTER_HEAD_MODE:
                     # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED
                     # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
-                    if ($token instanceof CharacterToken && (strspn($token->data, "\t\n\x0c\x0d ") === strlen($token->data))) {
+                    // OPTIMIZATION: Will check for multiple space characters at once as character
+                    // tokens can contain more than one character.
+                    if ($token instanceof CharacterToken && (strspn($token->data, Data::WHITESPACE) === strlen($token->data))) {
                         # Insert the character.
                         $this->insertCharacterToken($token);
                     }
@@ -962,7 +970,9 @@ class TreeBuilder {
                         # Insert the token’s character.
                         $this->insertCharacterToken($token);
 
-                        if (strspn($token->data, "\t\n\x0c\x0d ") !== strlen($token->data)) {
+                        // OPTIMIZATION: Will check for multiple space characters at once as character
+                        // tokens can contain more than one character.
+                        if (strspn($token->data, Data::WHITESPACE) !== strlen($token->data)) {
                             # Set the frameset-ok flag to "not ok".
                             $this->framesetOk = false;
                         }
@@ -1074,7 +1084,7 @@ class TreeBuilder {
     }
 
     protected function parseTokenInForeignContent(Token $token): bool {
-        if (Parser::$debug) {
+        if (self::$debug) {
             echo "Foreign Content\n";
         }
 
@@ -1092,7 +1102,7 @@ class TreeBuilder {
             # Any other character token
             // OPTIMIZATION: Will check for multiple space characters at once as character
             // tokens can contain more than one character.
-            if (strspn($token->data, "\t\n\x0c\x0d ") !== strlen($token->data)) {
+            if (strspn($token->data, Data::WHITESPACE) !== strlen($token->data)) {
                 # Set the frameset-ok flag to "not ok".
                 $this->$framesetOk = false;
             }

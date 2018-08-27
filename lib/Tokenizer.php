@@ -8,6 +8,8 @@ class Tokenizer {
     protected $data;
     protected $stack;
 
+    public static $debug = false;
+
     const DATA_STATE = 0;
     const RCDATA_STATE = 1;
     const RAWTEXT_STATE = 2;
@@ -78,7 +80,7 @@ class Tokenizer {
     const CTYPE_ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
     const CTYPE_UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-    public function __construct(DataStream $data, OpenElementsStack $stack) {
+    public function __construct(Data $data, OpenElementsStack $stack) {
         $this->state = self::DATA_STATE;
         $this->data = $data;
         $this->stack = $stack;
@@ -86,7 +88,7 @@ class Tokenizer {
 
     public function createToken(): Token {
         while (true) {
-            if (Parser::$debug) {
+            if (self::$debug) {
                 switch ($this->state) {
                     case self::DATA_STATE: $state = "Data";
                     break;
@@ -260,6 +262,7 @@ class Tokenizer {
                     // OPTIMIZATION: Consume all characters that don't match what is above and emit
                     // that as a character token instead to prevent having to loop back through here
                     // every single time.
+
                     return new CharacterToken($char.$this->data->consumeUntil('&<'));
                 }
             }

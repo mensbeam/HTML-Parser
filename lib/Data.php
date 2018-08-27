@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace dW\HTML5;
 
-class DataStream
+class Data
 {
     // Used to get the file path for error reporting.
     public $filePath;
@@ -17,9 +17,15 @@ class DataStream
     // last newline.
     protected $newlines = [];
 
+
+    // Used for debugging to print out information as data is consumed.
+    public static $debug = false;
+
+
     const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
     const DIGIT = '0123456789';
     const HEX = '0123456789ABCDEFabcdef';
+    const WHITESPACE = "\t\n\x0c\x0d ";
 
 
     public function __construct(string $data, string $filePath = 'STDIN') {
@@ -61,7 +67,7 @@ class DataStream
 
     public function consume(int $length = 1): string {
         if ($length <= 0) {
-            throw new Exception(Exception::DATASTREAM_INVALID_DATA_CONSUMPTION_LENGTH, $length);
+            throw new Exception(Exception::DATA_INVALID_DATA_CONSUMPTION_LENGTH, $length);
         }
 
         for ($i = 0, $string = ''; $i < $length; $i++) {
@@ -78,12 +84,22 @@ class DataStream
             $string .= $char;
         }
 
+        if (self::$debug) {
+            echo "\nConsume\n==========\n";
+            echo "Length: $length\n";
+            echo "Data: ";
+            var_export($string);
+            echo "\n";
+            echo "Pointer: {$this->data->posChar()}\n";
+            echo "==========\n\n";
+        }
+
         return $string;
     }
 
     public function unconsume(int $length = 1) {
         if ($length <= 0) {
-            throw new Exception(Exception::DATASTREAM_INVALID_DATA_CONSUMPTION_LENGTH, $length);
+            throw new Exception(Exception::DATA_INVALID_DATA_CONSUMPTION_LENGTH, $length);
         }
 
         $this->data->seek(0 - $length);
@@ -100,6 +116,12 @@ class DataStream
         } else {
             $this->_column -= $length;
         }
+
+        if (self::$debug) {
+            echo "\nUnconsume\n==========\n";
+            echo "Pointer: {$this->data->posChar()}\n";
+            echo "==========\n\n";
+        }
     }
 
     public function consumeWhile(string $match, int $limit = 0): string {
@@ -112,10 +134,21 @@ class DataStream
 
     public function peek(int $length = 1): string {
         if ($length <= 0) {
-            throw new Exception(Exception::DATASTREAM_INVALID_DATA_CONSUMPTION_LENGTH, $length);
+            throw new Exception(Exception::DATA_INVALID_DATA_CONSUMPTION_LENGTH, $length);
         }
 
-        return $this->data->peekChar($length);
+        $string = $this->data->peekChar($length);
+
+        if (self::$debug) {
+            echo "\nPeek\n==========\n";
+            echo "Data: ";
+            var_export($string);
+            echo "\n";
+            echo "Pointer: {$this->data->posChar()}\n";
+            echo "==========\n\n";
+        }
+
+        return $string;
     }
 
     public function peekWhile(string $match, int $limit = 0): string {
@@ -437,11 +470,18 @@ class DataStream
             }
         }
 
-        if ($count === 0) {
-            return '';
+        $this->data->seek(($advancePointer) ? -1 : 0 - $count - 2);
+
+        if (self::$debug) {
+            echo ($advancePointer) ? "\nconsume" : "\npeek";
+            echo ($while) ? 'While' : 'Until';
+            echo "\n==========\nPattern: ";
+            var_export(str_replace(["\t", "\n", "\x0c", "\x0d"], ['\t', '\n', '\x0c', '\x0d'], implode('', $match)));
+            echo "\nData: ";
+            var_export($string);
+            echo "\nPointer: {$this->data->posChar()}\n==========\n\n";
         }
 
-        $this->data->seek(($advancePointer) ? -1 : 0 - $count - 2);
         return $string;
     }
 
@@ -450,6 +490,8 @@ class DataStream
             case 'column': return $this->_column;
             break;
             case 'line': return $this->_line;
+            break;
+            case 'pointer': return $this->data->posChar();
             break;
             default: return null;
         }

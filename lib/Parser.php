@@ -5,7 +5,7 @@ namespace dW\HTML5;
 class Parser {
     /* Non-static properties */
 
-    // Input data that's being parsed, uses DataStream
+    // Input data that's being parsed, uses Data
     protected $data;
     // The DOMDocument that is assembled by the tree builder
     protected $DOM;
@@ -33,9 +33,6 @@ class Parser {
 
 
     /* Static properties */
-
-    // For debugging
-    public static $debug = false;
 
     // Property used as an instance for the non-static properties
     protected static $instance;
@@ -72,7 +69,7 @@ class Parser {
         }
 
         // Process the input stream.
-        static::$instance->data = new DataStream(($file === true) ? '' : $data, ($file === true) ? $data : 'STDIN');
+        static::$instance->data = new Data(($file === true) ? '' : $data, ($file === true) ? $data : 'STDIN');
 
         // Set the locale for CTYPE to en_US.UTF8 so ctype functions and strtolower only
         // work on basic latin characters. Used extensively when tokenizing.

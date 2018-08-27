@@ -37,7 +37,7 @@ class ParseError {
                                   '"%s" is an invalid name for an entity',
                                   '"%s" is an invalid character codepoint'];
 
-    public function __construct(DataStream $data) {
+    public function __construct(Data $data) {
         $this->data = $data;
 
         // Set the error handler and honor already-set error reporting rules.
