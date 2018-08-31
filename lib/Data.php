@@ -358,7 +358,7 @@ class Data
             # Otherwise, return a character token for the Unicode character whose code point
             # is that number.
             return \MensBeam\Intl\Encoding\UTF8::encode($number);
-           }
+        }
 
         # Consume the maximum number of characters possible, with the consumed characters
         # matching one of the identifiers in the first column of the named character
@@ -399,7 +399,9 @@ class Data
                 return '&';
             }
 
-            $this->consume(strlen($sequence));
+            // Add 1 to the string length because the & isn't included in the matched
+            // sequence.
+            $this->consume(strlen($sequence) + 1);
 
             if ($lastChar !== ';') {
                 // Used for PHP's entity decoder. Described below.

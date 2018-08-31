@@ -39,12 +39,11 @@ class TreeBuilder {
     // Used to store the template insertion modes
     protected $templateInsertionModes;
 
+    // Used for debugging to print out information as the tree is built.
+    public static $debug = false;
 
     // Instance used with the static token insertion methods.
     protected static $instance;
-    // Used for debugging to print out information as the tree is built.
-    protected static $debug = false;
-
 
     // Constants used for insertion modes
     const INITIAL_MODE = 0;
