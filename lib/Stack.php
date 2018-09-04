@@ -9,7 +9,7 @@ class Stack implements \ArrayAccess {
 
     public function offsetSet($offset, $value) {
         if ($offset < 0) {
-            throw new Exception(Exception::STACK_INVALID_INDEX);
+            throw new Exception(Exception::STACK_INVALID_INDEX, $offset);
         }
 
         if (is_null($offset)) {
@@ -25,7 +25,7 @@ class Stack implements \ArrayAccess {
 
     public function offsetUnset($offset) {
         if ($offset < 0 || $offset > count($this->_storage) - 1) {
-            throw new Exception(Exception::STACK_INVALID_INDEX);
+            throw new Exception(Exception::STACK_INVALID_INDEX, $offset);
         }
 
         unset($this->_storage[$offset]);
@@ -35,7 +35,7 @@ class Stack implements \ArrayAccess {
 
     public function offsetGet($offset) {
         if ($offset < 0 || $offset > count($this->_storage) - 1) {
-            throw new Exception(Exception::STACK_INVALID_INDEX);
+            throw new Exception(Exception::STACK_INVALID_INDEX, $offset);
         }
 
         return $this->_storage[$offset];

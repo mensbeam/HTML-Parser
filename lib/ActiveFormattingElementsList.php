@@ -24,7 +24,7 @@ class ActiveFormattingElementsList extends Stack {
 
     public function offsetSet($offset, $value) {
         if ($offset < 0 || $offset > count($this->_storage) - 1) {
-            throw new Exception(Exception::STACK_INVALID_INDEX);
+            throw new Exception(Exception::STACK_INVALID_INDEX, $offset);
         }
 
         if (is_null($offset)) {
