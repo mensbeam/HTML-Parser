@@ -3,9 +3,10 @@ declare(strict_types=1);
 namespace dW\HTML5;
 
 class Printer {
+    protected static $selfClosing = ['area', 'base', 'basefont', 'bgsound', 'br', 'col', 'embed', 'frame', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'];
 
     public static function serialize($node): string {
-        if (!$node instanceof DOMElement && !$node instanceof DOMDocument && !$node instanceof DOMDocumentFragment) {
+        if (!$node instanceof \DOMElement && !$node instanceof \DOMDocument && !$node instanceof \DOMDocumentFragment) {
             throw new Exception(Exception::PRINTER_DOMELEMENT_DOMDOCUMENT_DOMDOCUMENTFRAG_EXPECTED, gettype($node));
         }
 
@@ -20,11 +21,12 @@ class Printer {
         for ($i = 0; $i < $node->childNodes->length; $i++) {
             # 1. Let current node be the child node being processed.
             $currentNode = $node->childNodes->item($i);
+            $currentNodeName = $currentNode->nodeName;
 
             # 2. Append the appropriate string from the following list to s:
 
             # If current node is an Element
-            if ($currentNode instanceof DOMElement) {
+            if ($currentNode instanceof \DOMElement) {
                 # If current node is an element in the HTML namespace, the MathML namespace,
                 # or the SVG namespace, then let tagname be current node’s local name.
                 # Otherwise, let tagname be current node’s qualified name.
@@ -102,8 +104,7 @@ class Printer {
                 # If current node is an area, base, basefont, bgsound, br, col, embed, frame,
                 # hr, img, input, link, meta, param, source, track or wbr element, then continue
                 # on to the next child node at this point.
-                $currentNodeName = $currentNode->nodeName;
-                if ($currentNodeName === 'area' || $currentNodeName === 'base' || $currentNodeName === 'basefont' || $currentNodeName === 'bgsound' || $currentNodeName === 'br' || $currentNodeName === 'col' || $currentNodeName === 'embed' || $currentNodeName === 'frame' || $currentNodeName === 'hr' || $currentNodeName === 'img' || $currentNodeName === 'input' || $currentNodeName === 'link' || $currentNodeName === 'meta' || $currentNodeName === 'param' || $currentNodeName === 'source' || $currentNodeName === 'track' || $currentNodeName === 'wbr') {
+                if (in_array($currentNodeName, static::$selfClosing)) {
                     continue;
                 }
 
@@ -115,21 +116,64 @@ class Printer {
                 $s .= static::serialize($currentNode);
                 $s .= "</$currentNodeName>";
             }
+            # If current node is a Text node
+            elseif ($currentNode instanceof \DOMText) {
+                # If the parent of current node is a style, script, xmp, iframe, noembed,
+                # noframes, or plaintext element, or if the parent of current node is a noscript
+                # element and scripting is enabled for the node, then append the value of
+                # current node’s data IDL attribute literally.
+                // Deviation: No scripting.
+
+                # Otherwise, append the value of current node’s data IDL attribute, escaped as
+                # described below.
+                $s .= static::escapeString($currentNode->data);
+            }
+            # If current node is a Comment
+            elseif ($currentNode instanceof \DOMComment) {
+                # Append the literal string "<!--" (U+003C LESS-THAN SIGN, U+0021 EXCLAMATION
+                # MARK, U+002D HYPHEN-MINUS, U+002D HYPHEN-MINUS), followed by the value of
+                # current node’s data IDL attribute, followed by the literal string "-->"
+                # (U+002D HYPHEN-MINUS, U+002D HYPHEN-MINUS, U+003E GREATER-THAN SIGN).
+                $s .= "<!--{$currentNode->data}-->";
+            }
+            # If current node is a ProcessingInstruction
+            elseif ($currentNode instanceof \DOMProcessingInstruction) {
+                # Append the literal string "<?" (U+003C LESS-THAN SIGN, U+003F QUESTION MARK),
+                # followed by the value of current node’s target IDL attribute, followed by a
+                # single U+0020 SPACE character, followed by the value of current node’s data
+                # IDL attribute, followed by a single U+003E GREATER-THAN SIGN character (>).
+                $s .= "<?{$currentNode->target} {$currentNode->data}>";
+            }
+            # If current node is a DocumentType
+            elseif ($currentNode instanceof \DOMDocumentType) {
+                # Append the literal string "<!DOCTYPE" (U+003C LESS-THAN SIGN, U+0021
+                # EXCLAMATION MARK, U+0044 LATIN CAPITAL LETTER D, U+004F LATIN CAPITAL LETTER
+                # O, U+0043 LATIN CAPITAL LETTER C, U+0054 LATIN CAPITAL LETTER T, U+0059 LATIN
+                # CAPITAL LETTER Y, U+0050 LATIN CAPITAL LETTER P, U+0045 LATIN CAPITAL LETTER
+                # E), followed by a space (U+0020 SPACE), followed by the value of current
+                # node’s name IDL attribute, followed by the literal string ">" (U+003E
+                # GREATER-THAN SIGN).
+                $s .= "<!DOCTYPE {$currentNode->name}>";
+            }
         }
+
+        # 4. The result of the algorithm is the string s.
+        return $s;
     }
 
-    protected static escapeString(string $string, bool $attribute = false): string {
+    protected static function escapeString(string $string, bool $attribute = false): string {
         # Escaping a string (for the purposes of the algorithm above) consists of
         # running the following steps:
-        ## 1. Replace any occurrence of the "&amp;" character by the string "&amp;amp;".
-        ## 2. Replace any occurrences of the U+00A0 NO-BREAK SPACE character by the
-        ## string "&amp;nbsp;".
+
+        # 1. Replace any occurrence of the "&amp;" character by the string "&amp;amp;".
+        # 2. Replace any occurrences of the U+00A0 NO-BREAK SPACE character by the
+        # string "&amp;nbsp;".
         $string = str_replace(['&amp;', chr(0x00A0)], ['&amp;amp;', '&amp;nbsp;'], $string);
-        ## 3. If the algorithm was invoked in the attribute mode, replace any
-        ## occurrences of the "&quot;" character by the string "&amp;quot;".
-        ## 4. If the algorithm was not invoked in the attribute mode, replace any
-        ## occurrences of the "&lt;" character by the string "&amp;lt;", and any
-        ## occurrences of the "&gt;" character by the string "&amp;gt;".
+        # 3. If the algorithm was invoked in the attribute mode, replace any
+        # occurrences of the "&quot;" character by the string "&amp;quot;".
+        # 4. If the algorithm was not invoked in the attribute mode, replace any
+        # occurrences of the "&lt;" character by the string "&amp;lt;", and any
+        # occurrences of the "&gt;" character by the string "&amp;gt;".
         if ($attribute) {
             $string = str_replace(['&quot;', '&lt;', '&gt;'], ['&amp;quot;', '&amp;lt;', '&amp;gt;'], $string);
         }
