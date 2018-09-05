@@ -4,15 +4,15 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "081b624245e1c42efc06f310a4bc46bd",
+    "content-hash": "530885138877b3d0251bb2a794f03ed6",
     "packages": [
         {
             "name": "mensbeam/intl",
-            "version": "0.2.0",
+            "version": "0.3.0",
             "source": {
                 "type": "git",
                 "url": "https://code.mensbeam.com/MensBeam/intl",
-                "reference": "58444b9545665a19a0cb6d997ab3596025e3be71"
+                "reference": "61993bb900ebd6150c8b762c4b0158f0f4a5fc78"
             },
             "require": {
                 "php": "^7.0"
@@ -48,7 +48,7 @@
                 "utf-8",
                 "utf8"
             ],
-            "time": "2018-08-12T02:04:45+00:00"
+            "time": "2018-08-29T21:37:44+00:00"
         }
     ],
     "packages-dev": [],
@@ -59,7 +59,6 @@
     "prefer-lowest": false,
     "platform": {
         "php": "^7.0",
-        "ext-mbstring": "*",
         "ext-ctype": "*",
         "ext-hash": "*"
     },

@@ -112,7 +112,6 @@ class Printer {
                 # current node element (thus recursing into this algorithm for that element),
                 # followed by a U+003C LESS-THAN SIGN character (<), a U+002F SOLIDUS character (/),
                 # tagname again, and finally a U+003E GREATER-THAN SIGN character (>).
-
                 $s .= static::serialize($currentNode);
                 $s .= "</$currentNodeName>";
             }
