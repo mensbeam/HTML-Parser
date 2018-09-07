@@ -141,7 +141,7 @@ class TreeBuilder {
                         # start tag whose tag name is neither "mglyph" nor "malignmark"
                         # If the adjusted current node is a MathML text integration point and the token is a
                         # character token
-                        DOM::isMathMLTextIntegrationPoint($adjustedCurrentNode) && ((
+                        $adjustedCurrentNode->isMathMLTextIntegrationPoint() && ((
                                 $token instanceof StartTagToken && (
                                     $token->name !== 'mglyph' && $token->name !== 'malignmark'
                                 ) ||
@@ -159,7 +159,7 @@ class TreeBuilder {
                         # If the adjusted current node is an HTML integration point and the token is a start tag
                         # If the adjusted current node is an HTML integration point and the token is a character
                         # token
-                        DOM::isHTMLIntegrationPoint($adjustedCurrentNode) && (
+                        $adjustedCurrentNode->isHTMLIntegrationPoint() && (
                             $token instanceof StartTagToken || $token instanceof CharacterToken
                         )
                     ) ||
@@ -1151,8 +1151,8 @@ class TreeBuilder {
                     $n = $this->stack->currentNode;
                     $nns = $currentNode->namespaceURI;
                 } while (!is_null($popped) && !(
-                        DOM::isMathMLTextIntegrationPoint($n) ||
-                        DOM::isHTMLIntegrationPoint($n) ||
+                        $n->isMathMLTextIntegrationPoint() ||
+                        $n->isHTMLIntegrationPoint() ||
                         // PHP's DOM returns null when the namespace isn't specified... eg. HTML.
                         is_null($nns)
                     )
