@@ -65,7 +65,7 @@ class Parser {
         }
 
         if (is_null(static::$instance->DOM)) {
-            static::$instance->DOM = new DOM();
+            static::$instance->DOM = new DOM\Document();
         }
 
         // Process the input stream.
@@ -94,26 +94,23 @@ class Parser {
             static::$instance->treeBuilder->emitToken($token);
         } while (!$token instanceof EOFToken);
 
+        // Fix id attributes before outputting.
+        static::$instance->DOM->fixIdAttributes();
+
         // The Parser instance has no need to exist when finished.
-        $dom = static::$instance->DOM->document;
+        $dom = static::$instance->DOM;
         static::$instance->__destruct();
 
-        return DOM::fixIdAttributes($dom);
+        return $dom;
     }
 
-    public static function parseFragment(string $data, \DOMElement $context = null, bool $file = false): \DOMDocument {
+    public static function parseFragment(string $data, Element $context = null, bool $file = false): \DOMDocument {
         // Create an instance of this class to use the non static properties.
         $c = __CLASS__;
         static::$instance = new $c;
 
-        if (!is_null($context)) {
-            static::$instance->DOM = new DOM($context->ownerDocument);
-        } else {
-            static::$instance->DOM = new DOM();
-            static::$instance->DOM->document = static::$instance->DOM->implementation->createDocument();
-        }
-
-        static::$instance->DOMFragment = static::$instance->DOM->document->createDocumentFragment();
+        static::$instance->DOM = (is_null($context)) ? new DOM\Document() : $context->ownerDocument;
+        static::$instance->DOMFragment = static::$instance->DOM->createDocumentFragment();
 
         // DEVIATION: The spec says to let the document be in quirks mode if the
         // DOMDocument is in quirks mode. Cannot check whether the context element is in
@@ -154,7 +151,7 @@ class Parser {
         # If the context element is a template element, push "in template" onto the
         # stack of template insertion modes so that it is the new current template
         # insertion mode.
-        if ($context instanceof \DOMelement && $context->nodeName === 'template') {
+        if ($context instanceof \DOMElement && $context->nodeName === 'template') {
             static::$templateInsertionModes = new Stack();
             static::$templateInsertionModes[] = TreeBuilder::IN_TEMPLATE_MODE;
         }

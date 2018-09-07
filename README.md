@@ -1,6 +1,6 @@
-# HTML5 Parser
+# HTML5
 
-A parser for HTML5 written in php. Extremely easy to use. Accepts a string as input and outputs a DOMDocument.
+Tools for parsing and printing HTML5 documents and fragments.
 
 ```php
 <?php

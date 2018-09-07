@@ -13,14 +13,14 @@ class OpenElementsStack extends Stack {
         // too.
         if ((!is_null($fragmentContext) && !$fragmentContext instanceof DOMDocumentFragment && !$fragmentContext instanceof DOMDocument && !$fragmentContext instanceof DOMElement) ||
             (is_null($fragmentContext) && $fragmentCase)) {
-            throw new Exception(Exception::STACK_FRAGMENT_CONTEXT_DOMELEMENT_DOMDOCUMENT_DOMDOCUMENTFRAG_EXPECTED, gettype($fragmentContext));
+            throw new Exception(Exception::STACK_DOCUMENTFRAG_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED, gettype($fragmentContext));
         }
 
         $this->fragmentCase = $fragmentCase;
         $this->fragmentContext = $fragmentContext;
     }
 
-    public function search(mixed $needle): int {
+    public function search($needle): int {
         if (!$needle) {
             return -1;
         }

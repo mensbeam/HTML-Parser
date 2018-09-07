@@ -8,40 +8,36 @@ class Exception extends \Exception {
     const INCORRECT_PARAMETERS_FOR_MESSAGE = 10002;
 
     const STACK_INVALID_INDEX = 10101;
-    const STACK_FRAGMENT_CONTEXT_DOMELEMENT_DOMDOCUMENT_DOMDOCUMENTFRAG_EXPECTED = 10102;
+    const STACK_DOCUMENTFRAG_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED = 10102;
 
     const DATA_NODATA = 10201;
     const DATA_INVALID_DATA_CONSUMPTION_LENGTH = 10202;
 
-    const DOM_DOMDOCUMENT_EXPECTED = 10301;
-    const DOM_DOMELEMENT_STRING_OR_CLOSURE_EXPECTED = 10302;
+    const DOM_DOMNODE_STRING_OR_CLOSURE_EXPECTED = 10301;
+    const DOM_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED = 10302;
 
     const TOKENIZER_INVALID_STATE = 10401;
 
     const TREEBUILDER_FORMELEMENT_EXPECTED = 10501;
-    const TREEBUILDER_FRAGMENT_CONTEXT_DOMELEMENT_DOMDOCUMENT_DOMDOCUMENTFRAG_EXPECTED = 10502;
-
-    const PRINTER_DOMELEMENT_DOMDOCUMENT_DOMDOCUMENTFRAG_EXPECTED = 10601;
+    const TREEBUILDER_DOCUMENTFRAG_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED = 10502;
 
     protected static $messages = [10000 => 'Invalid error code',
                                   10001 => 'Unknown error; escaping',
                                   10002 => 'Incorrect number of parameters for Exception message; %s expected',
 
                                   10101 => '%s is an invalid Stack index',
-                                  10102 => 'DOMElement, DOMDocument, or DOMDocumentFragment expected for fragment context; found %s',
+                                  10102 => 'Element, Document, or DOMDocumentFragment expected for fragment context; found %s',
 
                                   10201 => 'Data string expected; found %s',
                                   10202 => '%s is an invalid data consumption length; a value of 1 or above is expected',
 
-                                  10301 => 'The first argument must be an instance of \DOMElement or null; found %s',
-                                  10302 => 'The first argument must either be an instance of \DOMElement, a string, or a closure; found %s',
+                                  10301 => 'The first argument must either be an instance of \DOMNode, a string, or a closure; found %s',
+                                  10302 => 'Element, Document, or DOMDocumentFragment expected; found %s',
 
                                   10401 => 'The Tokenizer has entered an invalid state',
 
                                   10501 => 'Form element expected, found %s',
-                                  10502 => 'DOMElement, DOMDocument, or DOMDocumentFragment expected; found %s',
-
-                                  10601 => 'DOMElement, DOMDocument, or DOMDocumentFragment expected; found %s',];
+                                  10502 => 'Element, Document, or DOMDocumentFragment expected; found %s'];
 
     public function __construct(int $code, ...$args) {
         if (!isset(static::$messages[$code])) {

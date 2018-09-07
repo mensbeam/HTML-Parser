@@ -6,7 +6,7 @@ class TreeBuilder {
     // The list of active formatting elements, used when elements are improperly nested
     protected $activeFormattingElementsList;
     // The DOMDocument that is assembled by this class
-    protected $DOM;
+    public $DOM;
     // The form element pointer points to the last form element that was opened and
     // whose end tag has not yet been seen. It is used to make form controls associate
     // with forms in the face of dramatically bad markup, for historical reasons. It is
@@ -76,7 +76,7 @@ class TreeBuilder {
     const QUIRKS_MODE_LIMITED = 2;
 
 
-    public function __construct(DOM $dom, $formElement, bool $fragmentCase = false, $fragmentContext = null, OpenElementsStack $stack, Stack $templateInsertionModes, Tokenizer $tokenizer) {
+    public function __construct(DOM\Document $dom, $formElement, bool $fragmentCase = false, $fragmentContext = null, OpenElementsStack $stack, Stack $templateInsertionModes, Tokenizer $tokenizer) {
         // If the form element isn't an instance of DOMElement that has a node name of
         // "form" or null then there's a problem.
         if (!is_null($formElement) && !($formElement instanceof DOMElement && $formElement->nodeName === 'form')) {
@@ -89,7 +89,7 @@ class TreeBuilder {
         // too.
         if ((!is_null($fragmentContext) && !$fragmentContext instanceof DOMDocumentFragment && !$fragmentContext instanceof DOMDocument && !$fragmentContext instanceof DOMElement) ||
             (is_null($fragmentContext) && $fragmentCase)) {
-            throw new Exception(Exception::TREEBUILDER_FRAGMENT_CONTEXT_DOMELEMENT_DOMDOCUMENT_DOMDOCUMENTFRAG_EXPECTED, gettype($fragmentContext));
+            throw new Exception(Exception::TREEBUILDER_DOCUMENTFRAG_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED, gettype($fragmentContext));
         }
 
         $this->DOM = $dom;
@@ -279,11 +279,7 @@ class TreeBuilder {
                         # attributes specific to DocumentType objects set to null and empty lists as
                         # appropriate. Associate the DocumentType node with the Document object so that
                         # it is returned as the value of the doctype attribute of the Document object.
-                        // PHP's DOM cannot just append a DOCTYPE node to the document, so a document is
-                        // created with the specified DOCTYPE instead.
-                        // DEVIATION: PHP's DOMImplementation::createDocumentType() method cannot accept
-                        // an empty name, so if it is missing it is replaced with 'html' instead.
-                        $this->DOM->document = $this->DOM->implementation->createDocument('', '', $this->DOM->implementation->createDocumentType((!is_null($token->name)) ? $token->name : 'html', $token->public, $token->system));
+                        $this->DOM->appendChild($this->DOM->implementation->createDocumentType((!is_null($token->name)) ? $token->name : 'html', $token->public, $token->system));
 
                         $public = strtolower($token->public);
 
@@ -432,7 +428,7 @@ class TreeBuilder {
                         # Create an element for the token in the HTML namespace, with the Document as
                         # the intended parent. Append it to the Document object. Put this element in the
                         # stack of open elements.
-                        $element = static::insertStartTagToken($token, $this->DOM->document);
+                        $element = static::insertStartTagToken($token, $this->DOM);
 
                         # Switch the insertion mode to "before head".
                         $this->insertionMode = self::BEFORE_HEAD_MODE;
@@ -447,8 +443,8 @@ class TreeBuilder {
                     else {
                         # Create an html element whose node document is the Document object. Append it
                         # to the Document object. Put this element in the stack of open elements.
-                        $element = $this->DOM->document->createElement('html');
-                        $this->DOM->document->appendChild($element);
+                        $element = $this->DOM->createElement('html');
+                        $this->DOM->appendChild($element);
                         $this->stack[] = $element;
 
                         # Switch the insertion mode to "before head", then reprocess the token.
@@ -583,7 +579,7 @@ class TreeBuilder {
                         # A start tag whose tag name is "title"
                         elseif ($token->name === 'title') {
                             # Follow the generic RCDATA element parsing algorithm.
-                            $this->parseGenericRCDATA();
+                            $this->parseGenericRCDATA($token);
                         }
                         # A start tag whose tag name is "noscript", if the scripting flag is enabled
                         # A start tag whose tag name is one of: "noframes", "style"
@@ -591,7 +587,7 @@ class TreeBuilder {
                         // flag is always disabled.
                         elseif ($token->name === 'noframes' || $token->name === 'style') {
                             # Follow the generic raw text element parsing algorithm.
-                            $this->parseGenericRawText();
+                            $this->parseGenericRawText($token);
                         }
                         # A start tag whose tag name is "noscript", if the scripting flag is disabled
                         // DEVIATION: There is no scripting in this implementation, so the scripting
@@ -1670,7 +1666,7 @@ class TreeBuilder {
 
         # 1. Let document be intended parent’s node document.
         // DEVIATION: Unnecessary because there aren't any nested contexts to consider.
-        // The document will always be $this->DOM->document.
+        // The document will always be $this->DOM.
 
         # 2. Let local name be the tag name of the token.
         // Nope. Don't need it because when creating elements with
@@ -1685,9 +1681,9 @@ class TreeBuilder {
         // DEVIATION: There is no point to setting the synchronous custom elements flag
         // and custom element definition; there is no scripting in this implementation.
         if ($namespace === Parser::HTML_NAMESPACE) {
-            $element = static::$instance->DOM->document->createElement($token->name);
+            $element = static::$instance->DOM->createElement($token->name);
         } else {
-            $element = static::$instance->DOM->document->createElementNS($namespace, $token->name);
+            $element = static::$instance->DOM->createElementNS($namespace, $token->name);
         }
 
         # 8. Append each attribute in the given token to element.

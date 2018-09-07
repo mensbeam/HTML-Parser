@@ -1,13 +1,17 @@
 <?php
 declare(strict_types=1);
-namespace dW\HTML5;
+namespace dW\HTML5\DOM;
 
-class Printer {
-    protected static $selfClosing = ['area', 'base', 'basefont', 'bgsound', 'br', 'col', 'embed', 'frame', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'];
+trait Printer {
+    protected $selfClosingElements = ['area', 'base', 'basefont', 'bgsound', 'br', 'col', 'embed', 'frame', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'];
 
-    public static function serialize($node): string {
+    public function saveHTML(\DOMNode $node = null): string {
+        if (is_null($node)) {
+            $node = $this;
+        }
+
         if (!$node instanceof \DOMElement && !$node instanceof \DOMDocument && !$node instanceof \DOMDocumentFragment) {
-            throw new Exception(Exception::PRINTER_DOMELEMENT_DOMDOCUMENT_DOMDOCUMENTFRAG_EXPECTED, gettype($node));
+            throw new \dW\HTML5\Exception(\dW\HTML5\Exception::DOM_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED, gettype($node));
         }
 
         # 1. Let s be a string, and initialize it to the empty string.
@@ -87,7 +91,7 @@ class Printer {
                             $name = $attr->name;
                     }
 
-                    $value = static::escapeString($attr->value, true);
+                    $value = $this->escapeString($attr->value, true);
 
                     $s .= " $name=\"$value\"";
                 }
@@ -104,7 +108,7 @@ class Printer {
                 # If current node is an area, base, basefont, bgsound, br, col, embed, frame,
                 # hr, img, input, link, meta, param, source, track or wbr element, then continue
                 # on to the next child node at this point.
-                if (in_array($currentNodeName, static::$selfClosing)) {
+                if (in_array($currentNodeName, $this->selfClosingElements)) {
                     continue;
                 }
 
@@ -112,7 +116,7 @@ class Printer {
                 # current node element (thus recursing into this algorithm for that element),
                 # followed by a U+003C LESS-THAN SIGN character (<), a U+002F SOLIDUS character (/),
                 # tagname again, and finally a U+003E GREATER-THAN SIGN character (>).
-                $s .= static::serialize($currentNode);
+                $s .= $this->saveHTML($currentNode);
                 $s .= "</$currentNodeName>";
             }
             # If current node is a Text node
@@ -125,7 +129,7 @@ class Printer {
 
                 # Otherwise, append the value of current node’s data IDL attribute, escaped as
                 # described below.
-                $s .= static::escapeString($currentNode->data);
+                $s .= $this->escapeString($currentNode->data);
             }
             # If current node is a Comment
             elseif ($currentNode instanceof \DOMComment) {
@@ -160,7 +164,11 @@ class Printer {
         return $s;
     }
 
-    protected static function escapeString(string $string, bool $attribute = false): string {
+    public function save($filename, $options = null) {}
+    public function saveHTMLFile($filename) {}
+    public function saveXML(\DOMNode $node = null, $options = null) {}
+
+    protected function escapeString(string $string, bool $attribute = false): string {
         # Escaping a string (for the purposes of the algorithm above) consists of
         # running the following steps:
 
