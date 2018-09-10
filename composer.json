@@ -18,7 +18,10 @@
     ],
     "autoload": {
         "psr-4": {
-            "dW\\HTML5\\": "lib/"
+            "dW\\HTML5\\": [
+                "lib/",
+                "lib/DOM"
+            ]
         },
         "classmap": ["lib/Token.php"]
     },

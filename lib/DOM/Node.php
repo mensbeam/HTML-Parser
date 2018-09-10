@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-namespace dW\HTML5\DOM;
+namespace dW\HTML5;
 
 trait Node {
     public function getAncestor($needle): Element {
@@ -37,7 +37,7 @@ trait Node {
                 return $context;
             }
         } else {
-            throw new \dW\HTML5\Exception(\dW\HTML5\Exception::DOM_DOMNODE_STRING_OR_CLOSURE_EXPECTED, gettype($needle));
+            throw new Exception(Exception::DOM_DOMNODE_STRING_OR_CLOSURE_EXPECTED, gettype($needle));
         }
 
         return null;

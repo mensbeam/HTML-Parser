@@ -53,10 +53,11 @@ class Parser {
     }
 
     public function __destruct() {
+        $this->treeBuilder->__destruct();
         static::$instance = null;
     }
 
-    public static function parse(string $data, bool $file = false) {
+    public static function parse(string $data, Document $document = null, bool $file = false) {
         // If parse() is called by parseFragment() then don't create an instance. It has
         // already been created.
         $c = __CLASS__;
@@ -64,8 +65,14 @@ class Parser {
             static::$instance = new $c;
         }
 
-        if (is_null(static::$instance->DOM)) {
-            static::$instance->DOM = new DOM\Document();
+        if (is_null($document)) {
+            static::$instance->DOM = new Document();
+        } else {
+            if ($document->hasChildNodes()) {
+                throw new Exception(Exception::PARSER_NONEMPTY_DOCUMENT);
+            }
+
+            static::$instance->DOM = $document;
         }
 
         // Process the input stream.
@@ -109,7 +116,7 @@ class Parser {
         $c = __CLASS__;
         static::$instance = new $c;
 
-        static::$instance->DOM = (is_null($context)) ? new DOM\Document() : $context->ownerDocument;
+        static::$instance->DOM = (is_null($context)) ? new Document() : $context->ownerDocument;
         static::$instance->DOMFragment = static::$instance->DOM->createDocumentFragment();
 
         // DEVIATION: The spec says to let the document be in quirks mode if the

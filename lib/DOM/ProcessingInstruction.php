@@ -2,6 +2,6 @@
 declare(strict_types=1);
 namespace dW\HTML5;
 
-class Comment extends \DOMComment {
+class ProcessingInstruction extends \DOMProcessingInstruction {
     use Node;
 }

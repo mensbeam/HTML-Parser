@@ -21,6 +21,8 @@ class Exception extends \Exception {
     const TREEBUILDER_FORMELEMENT_EXPECTED = 10501;
     const TREEBUILDER_DOCUMENTFRAG_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED = 10502;
 
+    const PARSER_NONEMPTY_DOCUMENT = 10601;
+
     protected static $messages = [10000 => 'Invalid error code',
                                   10001 => 'Unknown error; escaping',
                                   10002 => 'Incorrect number of parameters for Exception message; %s expected',
@@ -37,7 +39,9 @@ class Exception extends \Exception {
                                   10401 => 'The Tokenizer has entered an invalid state',
 
                                   10501 => 'Form element expected, found %s',
-                                  10502 => 'Element, Document, or DOMDocumentFragment expected; found %s'];
+                                  10502 => 'Element, Document, or DOMDocumentFragment expected; found %s',
+
+                                  10601 => 'Non-empty Document supplied as argument for Parser'];
 
     public function __construct(int $code, ...$args) {
         if (!isset(static::$messages[$code])) {

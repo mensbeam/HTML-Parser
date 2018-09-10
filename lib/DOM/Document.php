@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-namespace dW\HTML5\DOM;
+namespace dW\HTML5;
 
 class Document extends \DOMDocument {
     use Printer;
@@ -8,9 +8,11 @@ class Document extends \DOMDocument {
     public function __construct() {
         parent::__construct();
 
-        $this->registerNodeClass('DOMComment', '\dW\HTML5\DOM\Comment');
-        $this->registerNodeClass('DOMElement', '\dW\HTML5\DOM\Element');
-        $this->registerNodeClass('DOMText', '\dW\HTML5\DOM\Text');
+        $this->registerNodeClass('DOMComment', '\dW\HTML5\Comment');
+        $this->registerNodeClass('DOMDocumentFragment', '\dW\HTML5\DocumentFragment');
+        $this->registerNodeClass('DOMElement', '\dW\HTML5\Element');
+        $this->registerNodeClass('DOMProcessingInstruction', '\dW\HTML5\ProcessingInstruction');
+        $this->registerNodeClass('DOMText', '\dW\HTML5\Text');
     }
 
     public function fixIdAttributes() {
@@ -44,7 +46,17 @@ class Document extends \DOMDocument {
         $this->normalize();
     }
 
-    public function load($source, $options = null) {}
-    public function loadHTML($source, $options = null) {}
+    public function load($source, $options = null): bool {
+        Parser::parse((string)$source, $this, true);
+
+        return true;
+    }
+
+    public function loadHTML($source, $options = null): bool {
+        Parser::parse((string)$source, $this);
+
+        return true;
+    }
+
     public function loadXML($source, $options = null) {}
 }

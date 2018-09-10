@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-namespace dW\HTML5\DOM;
+namespace dW\HTML5;
 
 trait Printer {
     protected $selfClosingElements = ['area', 'base', 'basefont', 'bgsound', 'br', 'col', 'embed', 'frame', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'];
@@ -11,7 +11,7 @@ trait Printer {
         }
 
         if (!$node instanceof \DOMElement && !$node instanceof \DOMDocument && !$node instanceof \DOMDocumentFragment) {
-            throw new \dW\HTML5\Exception(\dW\HTML5\Exception::DOM_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED, gettype($node));
+            throw new Exception(Exception::DOM_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED, gettype($node));
         }
 
         # 1. Let s be a string, and initialize it to the empty string.
