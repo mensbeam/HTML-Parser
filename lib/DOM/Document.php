@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace dW\HTML5;
 
 class Document extends \DOMDocument {
-    use Printer;
+    use Descendant, Printing;
 
     public function __construct() {
         parent::__construct();

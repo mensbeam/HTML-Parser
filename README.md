@@ -12,7 +12,7 @@ or:
 
 ```php
 <?php
-$dom = new dW\HTML\Document;
+$dom = new dW\HTML5\Document;
 $dom->loadHTML('<!DOCTYPE html><html lang="en" charset="utf-8"><head><title>Ook!</title></head><body><h1>Ook!</h1><p>Ook-ook? Oooook. Ook ook oook ook oooooook ook ooook ook.</p><p>Eek!</p></body></html>');
 ?>
 ```

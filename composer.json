@@ -20,7 +20,8 @@
         "psr-4": {
             "dW\\HTML5\\": [
                 "lib/",
-                "lib/DOM"
+                "lib/DOM",
+                "lib/DOM/traits"
             ]
         },
         "classmap": ["lib/Token.php"]
