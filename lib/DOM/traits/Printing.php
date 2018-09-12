@@ -5,15 +5,17 @@ namespace dW\HTML5;
 trait Printing {
     protected $selfClosingElements = ['area', 'base', 'basefont', 'bgsound', 'br', 'col', 'embed', 'frame', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'];
 
-    public function saveHTML(\DOMNode $node = null): string {
+    protected function serialize(\DOMNode $node = null): string {
         if (is_null($node)) {
             $node = $this;
         }
 
-        if (!$node instanceof \DOMElement && !$node instanceof \DOMDocument && !$node instanceof \DOMDocumentFragment) {
+        if (!$node instanceof Element && !$node instanceof Document && !$node instanceof DocumentFragment) {
             throw new Exception(Exception::DOM_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED, gettype($node));
         }
 
+        # 8.3. Serializing HTML fragments
+        #
         # 1. Let s be a string, and initialize it to the empty string.
         $s = '';
 
@@ -30,7 +32,7 @@ trait Printing {
             # 2. Append the appropriate string from the following list to s:
 
             # If current node is an Element
-            if ($currentNode instanceof \DOMElement) {
+            if ($currentNode instanceof Element) {
                 # If current node is an element in the HTML namespace, the MathML namespace,
                 # or the SVG namespace, then let tagname be current node’s local name.
                 # Otherwise, let tagname be current node’s qualified name.
@@ -116,11 +118,11 @@ trait Printing {
                 # current node element (thus recursing into this algorithm for that element),
                 # followed by a U+003C LESS-THAN SIGN character (<), a U+002F SOLIDUS character (/),
                 # tagname again, and finally a U+003E GREATER-THAN SIGN character (>).
-                $s .= $this->saveHTML($currentNode);
+                $s .= $this->serialize($currentNode);
                 $s .= "</$currentNodeName>";
             }
             # If current node is a Text node
-            elseif ($currentNode instanceof \DOMText) {
+            elseif ($currentNode instanceof Text) {
                 # If the parent of current node is a style, script, xmp, iframe, noembed,
                 # noframes, or plaintext element, or if the parent of current node is a noscript
                 # element and scripting is enabled for the node, then append the value of
@@ -132,7 +134,7 @@ trait Printing {
                 $s .= $this->escapeString($currentNode->data);
             }
             # If current node is a Comment
-            elseif ($currentNode instanceof \DOMComment) {
+            elseif ($currentNode instanceof Comment) {
                 # Append the literal string "<!--" (U+003C LESS-THAN SIGN, U+0021 EXCLAMATION
                 # MARK, U+002D HYPHEN-MINUS, U+002D HYPHEN-MINUS), followed by the value of
                 # current node’s data IDL attribute, followed by the literal string "-->"
@@ -140,7 +142,7 @@ trait Printing {
                 $s .= "<!--{$currentNode->data}-->";
             }
             # If current node is a ProcessingInstruction
-            elseif ($currentNode instanceof \DOMProcessingInstruction) {
+            elseif ($currentNode instanceof ProcessingInstruction) {
                 # Append the literal string "<?" (U+003C LESS-THAN SIGN, U+003F QUESTION MARK),
                 # followed by the value of current node’s target IDL attribute, followed by a
                 # single U+0020 SPACE character, followed by the value of current node’s data
@@ -163,10 +165,6 @@ trait Printing {
         # 4. The result of the algorithm is the string s.
         return $s;
     }
-
-    public function save($filename, $options = null) {}
-    public function saveHTMLFile($filename) {}
-    public function saveXML(\DOMNode $node = null, $options = null) {}
 
     protected function escapeString(string $string, bool $attribute = false): string {
         # Escaping a string (for the purposes of the algorithm above) consists of

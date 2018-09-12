@@ -58,5 +58,25 @@ class Document extends \DOMDocument {
         return true;
     }
 
-    public function loadXML($source, $options = null) {}
+    public function loadXML($source, $options = null) {
+        throw new Exception(Exception::DOM_DISABLED_METHOD, __CLASS__, __FUNCTION__);
+    }
+
+    public function save($filename, $options = null) {
+        throw new Exception(Exception::DOM_DISABLED_METHOD, __CLASS__, __FUNCTION__);
+    }
+
+    public function saveHTML(\DOMNode $node = null): string {
+        return $this->serialize($node);
+    }
+
+    public function saveHTMLFile($filename) {}
+
+    public function saveXML(\DOMNode $node = null, $options = null) {
+        throw new Exception(Exception::DOM_DISABLED_METHOD, __CLASS__, __FUNCTION__);
+    }
+
+    public function __toString() {
+        return $this->serialize();
+    }
 }
