@@ -3,13 +3,14 @@ declare(strict_types=1);
 namespace dW\HTML5;
 
 class Document extends \DOMDocument {
-    use Descendant, Printing;
+    use Descendant, Serialize;
 
     public function __construct() {
         parent::__construct();
 
         $this->registerNodeClass('DOMComment', '\dW\HTML5\Comment');
         $this->registerNodeClass('DOMDocumentFragment', '\dW\HTML5\DocumentFragment');
+        $this->registerNodeClass('DOMDocumentType', '\dW\HTML5\DocumentType');
         $this->registerNodeClass('DOMElement', '\dW\HTML5\Element');
         $this->registerNodeClass('DOMProcessingInstruction', '\dW\HTML5\ProcessingInstruction');
         $this->registerNodeClass('DOMText', '\dW\HTML5\Text');
