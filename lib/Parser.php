@@ -86,7 +86,7 @@ class Parser {
         static::$instance->stack = new OpenElementsStack(static::$instance->fragmentCase, static::$instance->fragmentContext);
         // Initialize the template insertion modes stack if necessary.
         if (is_null(static::$instance->templateInsertionModes)) {
-            static::$instance->templateInsertionModes = new Stack();
+            static::$instance->templateInsertionModes = new TemplateInsertionModesStack();
         }
         // Initialize the tokenizer.
         static::$instance->tokenizer = new Tokenizer(static::$instance->data, static::$instance->stack);
@@ -158,7 +158,7 @@ class Parser {
         # If the context element is a template element, push "in template" onto the
         # stack of template insertion modes so that it is the new current template
         # insertion mode.
-        if ($context instanceof \DOMElement && $context->nodeName === 'template') {
+        if ($context instanceof Element && $context->nodeName === 'template') {
             static::$templateInsertionModes = new Stack();
             static::$templateInsertionModes[] = TreeBuilder::IN_TEMPLATE_MODE;
         }

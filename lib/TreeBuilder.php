@@ -1029,6 +1029,14 @@ class TreeBuilder {
                                     }
                                 }
                             }
+                            # A start tag whose tag name is one of: "address", "article", "aside",
+                            # "blockquote", "center", "details", "dialog", "dir", "div", "dl", "fieldset",
+                            # "figcaption", "figure", "footer", "header", "main", "nav", "ol", "p",
+                            # "section", "summary", "ul"
+                            elseif ($token->name === 'address' || $token->name === 'article' || $token->name === 'aside' || $token->name === 'blockquote' || $token->name === 'center' || $token->name === 'details' || $token->name === 'dialog' || $token->name === 'dir' || $token->name === 'div' || $token->name === 'dl' || $token->name === 'fieldset' || $token->name === 'figcaption' || $token->name === 'figure' || $token->name === 'footer' || $token->name === 'header' || $token->name === 'main' || $token->name === 'nav' || $token->name === 'ol' || $token->name === 'p' || $token->name === 'section' || $token->name === 'summary' || $token->name === 'ul') {
+                                # If the stack of open elements has a p element in button scope, then close a p
+                                # element.
+                            }
                         }
                         # A start tag whose tag name is "frameset"
                         elseif ($token->name === 'frameset') {
@@ -1068,6 +1076,73 @@ class TreeBuilder {
                             $insertionMode = self::IN_HEAD_MODE;
                             continue 2;
                         }
+                        # An end tag whose tag name is "body"
+                        # An end tag whose tag name is "html"
+                        elseif ($token->name === 'body' || $token->name === 'html') {
+                            # If the stack of open elements does not have a body element in scope, this is a
+                            # parse error; ignore the token.
+                            if ($this->stack->search('body') === -1) {
+                                ParseError::trigger(ParseError::UNEXPECTED_END_TAG, 'body', (string)$this->stack.' end tag');
+                            }
+                            # Otherwise, if there is a node in the stack of open elements that is not either
+                            # a dd element, a dt element, an li element, an optgroup element, an option
+                            # element, a p element, an rb element, an rp element, an rt element, an rtc
+                            # element, a tbody element, a td element, a tfoot element, a th element, a thead
+                            # element, a tr element, the body element, or the html element, then this is a
+                            # parse error.
+                            else {
+                                if ($this->stack->search(function($node) {
+                                    $n = $node->nodeName;
+                                    if ($n !== 'dd' && $n !== 'dt' && $n !== 'li' && $n !== 'optgroup' && $n !== 'option' && $n !== 'p' && $n !== 'rb' && $n !== 'rp' && $n !== 'rt' && $n !== 'rtc' && $n !== 'tbody' && $n !== 'td' && $n !== 'tfoot' && $n !== 'th' && $n !== 'thead' && $n !== 'tr' && $n !== 'body' && $n !== 'html') {
+                                        return true;
+                                    }
+
+                                    return false;
+                                }) !== -1) {
+                                    ParseError::trigger(ParseError::UNEXPECTED_END_TAG, 'body', (string)$this->stack.' end tag');
+                                    break;
+                                }
+
+                                # Switch the insertion mode to "after body".
+                                self::$insertionMode = self::AFTER_BODY_MODE;
+
+                                // The only thing different between body and html here is that when processing
+                                // an html end tag the token is reprocessed.
+                                if ($token->name === 'html') {
+                                    # Reprocess the token.
+                                    continue 2;
+                                }
+                            }
+                        }
+                    }
+                    # An end-of-file token
+                    elseif ($token instanceof EOFToken) {
+                        # If the stack of template insertion modes is not empty, then process the token using the rules for the "in template" insertion mode.
+                        if ($this->templateInsertionModes->length !== 0) {
+                            $insertionMode = self::IN_TEMPLATE_MODE;
+                            continue 2;
+                        }
+
+                        # Otherwise, follow these steps:
+                        # 1. If there is a node in the stack of open elements that is not either a dd
+                        # element, a dt element, an li element, an optgroup element, an option element,
+                        # a p element, an rb element, an rp element, an rt element, an rtc element, a
+                        # tbody element, a td element, a tfoot element, a th element, a thead element, a
+                        # tr element, the body element, or the html element, then this is a parse error.
+                        if ($this->stack->search(function($node) {
+                            $n = $node->nodeName;
+                            if ($n !== 'dd' && $n !== 'dt' && $n !== 'li' && $n !== 'optgroup' && $n !== 'option' && $n !== 'p' && $n !== 'rb' && $n !== 'rp' && $n !== 'rt' && $n !== 'rtc' && $n !== 'tbody' && $n !== 'td' && $n !== 'tfoot' && $n !== 'th' && $n !== 'thead' && $n !== 'tr' && $n !== 'body' && $n !== 'html') {
+                                return true;
+                            }
+
+                            return false;
+                        }) !== -1) {
+                            ParseError::trigger(ParseError::UNEXPECTED_END_TAG, 'body', (string)$this->stack.' end tag');
+                            break;
+                        }
+
+                        # 2. Stop parsing.
+                        // Abort!
                     }
                 break;
             }
@@ -1163,6 +1238,7 @@ class TreeBuilder {
             }
             # Any other start tag
             else {
+                // ¡TEMPORARY!
                 foreignContentAnyOtherStartTag:
 
                 # If the adjusted current node is an element in the SVG namespace, and the
@@ -1526,12 +1602,8 @@ class TreeBuilder {
             # stack of open elements, then: let adjusted insertion location be inside last
             # template’s template contents, after its last child (if any), and abort these
             # substeps.
-            // DEVIATION: PHP's DOM does not have a special element for template and
-            // therefore no API for putting the template's contents into a
-            // DOMDocumentFragment in a property of the element, so the contents are just
-            // going to be children of the template element instead.
             if ($lastTemplate && (!$lastTable || $lastTable && $lastTemplateKey > $lastTableKey)) {
-                $insertionLocation = $lastTemplate;
+                $insertionLocation = $lastTemplate->content;
                 // Abort!
             }
 
@@ -1570,11 +1642,9 @@ class TreeBuilder {
         # 3. If the adjusted insertion location is inside a template element, let it
         # instead be inside the template element’s template contents, after its last
         # child (if any).
-        // DEVIATION: PHP's DOM does not have a special element for template and
-        // therefore no API for putting the template's contents into a
-        // DOMDocumentFragment in a property of the element, so the contents are just
-        // going to be children of the template element instead, so there's nothing to
-        // do.
+        if ($insertionLocation instanceof Element && $insertionLocation->nodeName === 'template') {
+            $insertionLocation = $insertionLocation->content;
+        }
 
         # 4. Return the adjusted insertion location.
         return [
@@ -1908,7 +1978,7 @@ class TreeBuilder {
             # 11. If node is a template element, then switch the insertion mode to the
             # current template insertion mode and abort these steps.
             elseif ($nodeName === 'template') {
-                // FIXME: NOT SURE WHAT TO DO HERE YET.
+                $this->insertionMode = $this->templateInsertionModes->currentMode;
                 return;
             }
             # 12. If node is a head element and last is false, then switch the insertion

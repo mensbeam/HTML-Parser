@@ -22,6 +22,7 @@ class Exception extends \Exception {
 
     const TREEBUILDER_FORMELEMENT_EXPECTED = 10601;
     const TREEBUILDER_DOCUMENTFRAG_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED = 10602;
+    const TREEBUILDER_UNEXPECTED_END_OF_FILE = 10603;
 
     const DOM_DISABLED_METHOD = 10701;
 
@@ -44,6 +45,7 @@ class Exception extends \Exception {
 
                                   10601 => 'Form element expected, found %s',
                                   10602 => 'Element, Document, or DOMDocumentFragment expected; found %s',
+                                  10603 => 'Unexpected end of file',
 
                                   10701 => 'Method %1$s::%2$s has been disabled from %1$s'];
 

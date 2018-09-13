@@ -37,6 +37,12 @@ class OpenElementsStack extends Stack {
                     return $key;
                 }
             }
+        } elseif ($needle instanceof \Closure) {
+            foreach (array_reverse($this->_storage) as $key=>$value) {
+                if ($needle($value) === true) {
+                    return $key;
+                }
+            }
         }
 
         return -1;
