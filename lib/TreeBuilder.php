@@ -1029,14 +1029,6 @@ class TreeBuilder {
                                     }
                                 }
                             }
-                            # A start tag whose tag name is one of: "address", "article", "aside",
-                            # "blockquote", "center", "details", "dialog", "dir", "div", "dl", "fieldset",
-                            # "figcaption", "figure", "footer", "header", "main", "nav", "ol", "p",
-                            # "section", "summary", "ul"
-                            elseif ($token->name === 'address' || $token->name === 'article' || $token->name === 'aside' || $token->name === 'blockquote' || $token->name === 'center' || $token->name === 'details' || $token->name === 'dialog' || $token->name === 'dir' || $token->name === 'div' || $token->name === 'dl' || $token->name === 'fieldset' || $token->name === 'figcaption' || $token->name === 'figure' || $token->name === 'footer' || $token->name === 'header' || $token->name === 'main' || $token->name === 'nav' || $token->name === 'ol' || $token->name === 'p' || $token->name === 'section' || $token->name === 'summary' || $token->name === 'ul') {
-                                # If the stack of open elements has a p element in button scope, then close a p
-                                # element.
-                            }
                         }
                         # A start tag whose tag name is "frameset"
                         elseif ($token->name === 'frameset') {
@@ -1067,7 +1059,41 @@ class TreeBuilder {
                                 $this->insertionMode = self::IN_FRAMESET_MODE;
                             }
                         }
+                        # A start tag whose tag name is one of: "address", "article", "aside",
+                        # "blockquote", "center", "details", "dialog", "dir", "div", "dl", "fieldset",
+                        # "figcaption", "figure", "footer", "header", "main", "nav", "ol", "p",
+                        # "section", "summary", "ul"
+                        elseif ($token->name === 'address' || $token->name === 'article' || $token->name === 'aside' || $token->name === 'blockquote' || $token->name === 'center' || $token->name === 'details' || $token->name === 'dialog' || $token->name === 'dir' || $token->name === 'div' || $token->name === 'dl' || $token->name === 'fieldset' || $token->name === 'figcaption' || $token->name === 'figure' || $token->name === 'footer' || $token->name === 'header' || $token->name === 'main' || $token->name === 'nav' || $token->name === 'ol' || $token->name === 'p' || $token->name === 'section' || $token->name === 'summary' || $token->name === 'ul') {
+                            # If the stack of open elements has a p element in button scope, then close a p
+                            # element.
+                            if ($this->stack->hasElementInButtonScope('p')) {
+                                $this->closePElement();
+                            }
 
+                            # Insert an HTML element for the token.
+                            $this->insertStartTagToken($token);
+                        }
+                        # A start tag whose tag name is one of: "h1", "h2", "h3", "h4", "h5", "h6"
+                        elseif ($token->name === 'h1' || $token->name === 'h2' || $token->name === 'h3' || $token->name === 'h4' || $token->name === 'h5' || $token->name === 'h6') {
+                            # If the stack of open elements has a p element in button scope, then close a p
+                            # element.
+                            if ($this->stack->hasElementInButtonScope('p')) {
+                                $this->closePElement();
+                            }
+
+                            # If the current node is an HTML element whose tag name is one of "h1", "h2",
+                            # "h3", "h4", "h5", or "h6", then this is a parse error; pop the current node
+                            # off the stack of open elements.
+                            $currentNodeName = $this->stack->currentNodeName;
+                            $currentNodeNamespace = $this->stack->currentNodeNamespace;
+                            if ($currentNodeNamespace === '' && ($currentNodeName === 'h1' || $currentNodeName === 'h2' || $currentNodeName === 'h3' || $currentNodeName === 'h4' || $currentNodeName === 'h5' || $currentNodeName === 'h6')) {
+                                ParseError::trigger(ParseError::UNEXPECTED_START_TAG, $token->name, $currentNodeName . ' content or end tag');
+                                $this->stack->pop();
+                            }
+
+                            # Insert an HTML element for the token.
+                            $this->insertStartTagToken($token);
+                        }
                     }
                     elseif ($token instanceof EndTagToken) {
                         # An end tag whose tag name is "template"
@@ -2025,5 +2051,23 @@ class TreeBuilder {
 
             # 18. Return to the step labeled Loop.
         }
+    }
+
+    protected function closePElement() {
+        # When the steps above say the UA is to close a p element, it means that the UA
+        # must run the following steps:
+
+        # 1. Generate implied end tags, except for p elements.
+        $this->stack->generateImpliedEndTags('p');
+        # 2. If the current node is not a p element, then this is a parse error.
+        $currentNodeName = $this->stack->currentNodeName;
+        if ($currentNodeName !== 'p') {
+            ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $currentNodeName, (string)$this->stack . ' end tag');
+        }
+        # 3. Pop elements from the stack of open elements until a p element has been
+        # popped from the stack.
+        do {
+            $poppedNodeName = $this->stack->pop()->nodeName;
+        } while ($poppedNodeName !== 'p');
     }
 }

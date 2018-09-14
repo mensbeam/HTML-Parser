@@ -26,19 +26,19 @@ class OpenElementsStack extends Stack {
         }
 
         if ($needle instanceof DOMElement) {
-            foreach (array_reverse($this->_storage) as $key=>$value) {
+            foreach (array_reverse($this->_storage) as $key => $value) {
                 if ($value->isSameNode($needle)) {
                     return $key;
                 }
             }
         } elseif (is_string($needle)) {
-            foreach (array_reverse($this->_storage) as $key=>$value) {
+            foreach (array_reverse($this->_storage) as $key => $value) {
                 if ($value->nodeName === $needle) {
                     return $key;
                 }
             }
         } elseif ($needle instanceof \Closure) {
-            foreach (array_reverse($this->_storage) as $key=>$value) {
+            foreach (array_reverse($this->_storage) as $key => $value) {
                 if ($needle($value) === true) {
                     return $key;
                 }
@@ -48,12 +48,60 @@ class OpenElementsStack extends Stack {
         return -1;
     }
 
-    public function generateImpliedEndTags() {
+    public function generateImpliedEndTags(string $exclude = null) {
+        $tags = ['caption', 'colgroup', 'dd', 'dt', 'li', 'optgroup', 'option', 'p', 'rb', 'rp', 'rt', 'rtc', 'tbody', 'td', 'tfoot', 'th', 'thead', 'tr'];
+
+        if (!is_null($exclude)) {
+            $key = array_search($exclude, $tags);
+            if ($key !== false) {
+                unset($tags[$key]);
+                $tags = array_values($tags);
+            }
+        }
+
         $currentNodeName = end($this->_storage)->nodeName;
-        while ($currentNodeName === 'caption' || $currentNodeName === 'colgroup' || $currentNodeName === 'dd' || $currentNodeName === 'dt' || $currentNodeName === 'li' || $currentNodeName === 'optgroup' || $currentNodeName === 'option' || $currentNodeName === 'p' || $currentNodeName === 'rb' || $currentNodeName === 'rp' || $currentNodeName === 'rt' || $currentNodeName === 'rtc' || $currentNodeName === 'tbody' || $currentNodeName === 'td' || $currentNodeName === 'tfoot' || $currentNodeName === 'th' || $currentNodeName === 'thead' || $currentNodeName === 'tr') {
+        while (in_array($currentNodeName, $tags)) {
             $this->pop();
             $currentNodeName = end($this->_storage)->nodeName;
         }
+    }
+
+    public function hasElementInListItemScope(string $elementName): bool {
+        return $this->hasElementInScope($elementName, 0);
+    }
+
+    public function hasElementInButtonScope(string $elementName): bool {
+        return $this->hasElementInScope($elementName, 1);
+    }
+
+    public function hasElementInTableScope(string $elementName): bool {
+        return $this->hasElementInScope($elementName, 2);
+    }
+
+    public function hasElementInSelectScope(string $elementName): bool {
+        return $this->hasElementInScope($elementName, 3);
+    }
+
+    protected function hasElementInScope(string $elementName, int $type): bool {
+        switch ($type) {
+            case 0: $func = 'isInListScope';
+            break;
+            case 1: $func = 'isInButtonScope';
+            break;
+            case 2: $func = 'isInTableScope';
+            break;
+            case 3: $func = 'isInSelectScope';
+            break;
+            default: return false;
+        }
+
+        foreach (array_reverse($this->_storage) as $key => $value) {
+            if ($value->$func()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function __get($property) {
