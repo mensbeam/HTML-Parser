@@ -6,7 +6,7 @@ class TreeBuilder {
     // The list of active formatting elements, used when elements are improperly nested
     protected $activeFormattingElementsList;
     // The DOMDocument that is assembled by this class
-    public $DOM;
+    protected $DOM;
     // The form element pointer points to the last form element that was opened and
     // whose end tag has not yet been seen. It is used to make form controls associate
     // with forms in the face of dramatically bad markup, for historical reasons. It is
@@ -1093,6 +1093,38 @@ class TreeBuilder {
 
                             # Insert an HTML element for the token.
                             $this->insertStartTagToken($token);
+                        }
+                        # A start tag whose tag name is one of: "pre", "listing"
+                        elseif ($token->name === 'pre' || $token->name === 'listing') {
+                            # If the stack of open elements has a p element in button scope, then close a p
+                            # element.
+                            if ($this->stack->hasElementInButtonScope('p')) {
+                                $this->closePElement();
+                            }
+
+                            # Insert an HTML element for the token.
+                            $this->insertStartTagToken($token);
+
+                            # Set the frameset-ok flag to "not ok".
+                            $this->framesetOk = false;
+
+                            # If the next token is a U+000A LINE FEED (LF) character token, then ignore that
+                            # token and move on to the next one. (Newlines at the start of pre blocks are
+                            # ignored as an authoring convenience.)
+                            $nextToken = $this->tokenizer->createToken();
+                            if ($token instanceof CharacterToken) {
+                                // Character tokens in this implementation can have more than one character in
+                                // them.
+                                if (strlen($token->data) === 1 && $token->data === "\n") {
+                                    return true;
+                                } elseif (strpos($token->data, "\n") === 0) {
+                                    $token->data = substr($token->data, 1);
+                                }
+                            }
+
+                            // Process the next token 
+                            $token = $nextToken;
+                            continue 2;
                         }
                     }
                     elseif ($token instanceof EndTagToken) {
