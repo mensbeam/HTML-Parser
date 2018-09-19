@@ -703,9 +703,7 @@ class TreeBuilder {
                                 }
 
                                 # 3. Pop elements from the stack of open elements until a template element has been popped from the stack.
-                                do {
-                                    $poppedNodeName = $this->stack->pop()->nodeName;
-                                } while ($poppedNodeName !== 'template');
+                                $this->stack->popUntil('template');
 
                                 # 4. Clear the list of active formatting elements up to the last marker.
                                 $this->activeFormattingElementsList->clearToTheLastMarker();
@@ -1154,6 +1152,7 @@ class TreeBuilder {
                         elseif ($token->name === 'li') {
                             # 1. Set the frameset-ok flag to "not ok".
                             $this->framesetOk = false;
+
                             # 2. Initialize node to be the current node (the bottommost node of the stack).
                             # 3. Loop: If node is an li element, then run these substeps:
                             for ($i = $this->stack->length - 1; $i >= 0; $i--) {
@@ -1165,16 +1164,13 @@ class TreeBuilder {
                                     $this->stack->generateImpliedEndTags('li');
 
                                     # 2. If the current node is not an li element, then this is a parse error.
-                                    $currentNodeName = $this->stack->currentNodeName;
-                                    if ($currentNodeName !== 'li') {
-                                        ParseError::trigger(ParseError::UNEXPECTED_START_TAG, $currentNodeName);
+                                    if ($this->stack->currentNodeName !== 'li') {
+                                        ParseError::trigger(ParseError::UNEXPECTED_START_TAG, $nodeName);
                                     }
 
                                     # 3. Pop elements from the stack of open elements until an li element has been
                                     # popped from the stack.
-                                    do {
-                                        $poppedNodeName = $this->stack->pop()->nodeName;
-                                    } while ($poppedNodeName !== 'li');
+                                    $this->stack->popUntil('li');
 
                                     # 4. Jump to the step labeled Done below.
                                     break;
@@ -1182,7 +1178,7 @@ class TreeBuilder {
 
                                 # 4. If node is in the special category, but is not an address, div, or p
                                 # element, then jump to the step labeled Done below.
-                                elseif ($nodeName !== 'address' && $nodeName !== 'div' && $nodeName !== 'p' && $this->isElementSpecial($node)) {
+                                if ($nodeName !== 'address' && $nodeName !== 'div' && $nodeName !== 'p' && $this->isElementSpecial($node)) {
                                     break;
                                 }
 
@@ -1199,6 +1195,96 @@ class TreeBuilder {
 
                             # 7. Finally, insert an HTML element for the token.
                             $this->insertStartTagToken($token);
+                        }
+                        # A start tag whose tag name is one of: "dd", "dt"
+                        elseif ($token->name === 'dd' || $token->name === 'dt') {
+                            # 1. Set the frameset-ok flag to "not ok".
+                            $this->framesetOk = false;
+
+                            # 2. Initialize node to be the current node (the bottommost node of the stack).
+                            for ($i = $this->stack->length - 1; $i >= 0; $i--) {
+                                $node = $this->stack[$i];
+                                $nodeName = $node->nodeName;
+
+                                // Combining these two sets of instructions as they're identical except for the
+                                // element name.
+                                # 3. Loop: If node is a dd element, then run these substeps:
+                                # 4. If node is a dt element, then run these substeps:
+                                if ($nodeName === 'dd' || $nodeName === 'dt') {
+                                    # 1. Generate implied end tags, except for dd or dt elements.
+                                    $this->stack->generateImpliedEndTags(['dd', 'dt']);
+
+                                    # 2. If the current node is not a dd or dt element, then this is a parse error.
+                                    if ($this->stack->currentNodeName !== $nodeName) {
+                                        ParseError::trigger(ParseError::UNEXPECTED_START_TAG, $nodeName);
+                                    }
+
+                                    # 3. Pop elements from the stack of open elements until a dd or dt element has been
+                                    # popped from the stack.
+                                    $this->stack->popUntil(['dd', 'dt']);
+
+                                    # 4. Jump to the step labeled Done below.
+                                    break;
+                                }
+
+                                # 5. If node is in the special category, but is not an address, div, or p
+                                # element, then jump to the step labeled Done below.
+                                if ($nodeName !== 'address' && $nodeName !== 'div' && $nodeName !== 'p' && $this->isElementSpecial($node)) {
+                                    break;
+                                }
+
+                                # 6. Otherwise, set node to the previous entry in the stack of open elements and
+                                # return to the step labeled Loop.
+                                // The loop handles that.
+                            }
+
+                            # 7. Done: If the stack of open elements has a p element in button scope, then
+                            # close a p element.
+                            if ($this->stack->hasElementInButtonScope('p')) {
+                                $this->closePElement();
+                            }
+
+                            # 8. Finally, insert an HTML element for the token.
+                            $this->insertStartTagToken($token);
+                        }
+                        # A start tag whose tag name is "plaintext"
+                        elseif ($token->name === 'plaintext') {
+                            # If the stack of open elements has a p element in button scope, then close a p
+                            # element.
+                            if ($this->stack->hasElementInButtonScope('p')) {
+                                $this->closePElement();
+                            }
+
+                            # Insert an HTML element for the token.
+                            $this->insertStartTagToken($token);
+
+                            # Switch the tokenizer to the §8.2.4.5 PLAINTEXT state.
+                            $this->tokenizer->state = Tokenizer::PLAINTEXT_STATE;
+                        }
+                        # A start tag whose tag name is "button"
+                        elseif ($token->name === 'button') {
+                            # 1. If the stack of open elements has a button element in scope, then run these
+                            # substeps:
+                            if ($this->stack->hasElementInScope('button')) {
+                                # 1. Parse error.
+                                ParseError::trigger(ParseError::UNEXPECTED_START_TAG, $token->name);
+
+                                # 2. Generate implied end tags.
+                                $this->stack->generateImpliedEndTags();
+
+                                # 3. Pop elements from the stack of open elements until a button element has
+                                # been popped from the stack.
+                                $this->stack->popUntil('button');
+                            }
+
+                            # 2. Reconstruct the active formatting elements, if any.
+                            $this->activeFormattingElementsList->reconstruct();
+
+                            # 3. Insert an HTML element for the token.
+                            $this->insertStartTagToken($token);
+
+                            # 4. Set the frameset-ok flag to "not ok".
+                            $this->framesetOk = false;
                         }
                     }
                     elseif ($token instanceof EndTagToken) {
@@ -1668,10 +1754,7 @@ class TreeBuilder {
             $count = $this->stack->length - 1;
             while (true) {
                 if (strtolower($nodeName) === $token->name) {
-                    do {
-                        $popped = $this->stack->pop();
-                    } while ($popped !== $node && !is_null($popped));
-
+                    $this->stack->popUntil($node);
                     break;
                 }
 
@@ -2172,9 +2255,7 @@ class TreeBuilder {
         }
         # 3. Pop elements from the stack of open elements until a p element has been
         # popped from the stack.
-        do {
-            $poppedNodeName = $this->stack->pop()->nodeName;
-        } while ($poppedNodeName !== 'p');
+        $this->stack->popUntil('p');
     }
 
     protected function isElementSpecial(Element $element): bool {
@@ -2191,6 +2272,6 @@ class TreeBuilder {
         # tbody, td, template, textarea, tfoot, th, thead, title, tr, track, ul, wbr,
         # xmp; MathML mi, MathML mo, MathML mn, MathML ms, MathML mtext, and MathML
         # annotation-xml; and SVG foreignObject, SVG desc, and SVG title.
-        return (($ns === '' && ($name === 'address' || $name === 'applet' || $name === 'area' || $name === 'article' || $name === 'aside' || $name === 'base' || $name === 'basefont' || $name === 'bgsound' || $name === 'blockquote' || $name === 'body' || $name === 'br' || $name === 'button' || $name === 'caption' || $name === 'center' || $name === 'col' || $name === 'colgroup' || $name === 'dd' || $name === 'details' || $name === 'dir' || $name === 'div' || $name === 'dl' || $name === 'dt' || $name === 'embed' || $name === 'fieldset' || $name === 'figcaption' || $name === 'figure' || $name === 'footer' || $name === 'form' || $name === 'frame' || $name === 'frameset' || $name === 'h1' || $name === 'h2' || $name === 'h3' || $name === 'h4' || $name === 'h5' || $name === 'h6' || $name === 'head' || $name === 'header' || $name === 'hr' || $name === 'html' || $name === 'iframe' || $name === 'img' || $name === 'input' || $name === 'li' || $name === 'link' || $name === 'listing' || $name === 'main' || $name === 'marquee' || $name === 'meta' || $name === 'nav' || $name === 'noembed' || $name === 'noframes' || $name === 'noscript' || $name === 'object' || $name === 'ol' || $name === 'p' || $name === 'param' || $name === 'plaintext' || $name === 'pre' || $name === 'script' || $name === 'section' || $name === 'select' || $name === 'source' || $name === 'style' || $name === 'summary' || $name === 'table' || $name === 'tbody' || $name === 'td' || $name === 'template' || $name === 'textarea' || $name === 'tfoot' || $name === 'th' || $name === 'thead' || $name === 'title' || $name === 'tr' || $name === 'track' || $name === 'ul' || $name === 'wbr' || $name === 'xmp')) || ($ns === Parser::MATHML_NAMESPACE && ($name === 'mi' || $name === 'mo' || $name === 'mn' || $name === 'ms' || $name === 'mtext' || $name === 'annotation-xml')) || ($ns === Parser::SVG_NAMESPACE && ($name === 'foreignObject' || $name === 'desc' || $name === 'title'));
+        return (($ns === '' && ($name === 'address' || $name === 'applet' || $name === 'area' || $name === 'article' || $name === 'aside' || $name === 'base' || $name === 'basefont' || $name === 'bgsound' || $name === 'blockquote' || $name === 'body' || $name === 'br' || $name === 'button' || $name === 'caption' || $name === 'center' || $name === 'col' || $name === 'colgroup' || $name === 'dd' || $name === 'details' || $name === 'dir' || $name === 'div' || $name === 'dl' || $name === 'dt' || $name === 'embed' || $name === 'fieldset' || $name === 'figcaption' || $name === 'figure' || $name === 'footer' || $name === 'form' || $name === 'frame' || $name === 'frameset' || $name === 'h1' || $name === 'h2' || $name === 'h3' || $name === 'h4' || $name === 'h5' || $name === 'h6' || $name === 'head' || $name === 'header' || $name === 'hr' || $name === 'html' || $name === 'iframe' || $name === 'img' || $name === 'input' || $name === 'li' || $name === 'link' || $name === 'listing' || $name === 'main' || $name === 'marquee' || $name === 'meta' || $name === 'nav' || $name === 'noembed' || $name === 'noframes' || $name === 'noscript' || $name === 'object' || $name === 'ol' || $name === 'p' || $name === 'param' || $name === 'plaintext' || $name === 'pre' || $name === 'script' || $name === 'section' || $name === 'select' || $name === 'source' || $name === 'style' || $name === 'summary' || $name === 'table' || $name === 'tbody' || $name === 'td' || $name === 'template' || $name === 'textarea' || $name === 'tfoot' || $name === 'th' || $name === 'thead' || $name === 'title' || $name === 'tr' || $name === 'track' || $name === 'ul' || $name === 'wbr' || $name === 'xmp')) || ($ns === Parser::MATHML_NAMESPACE && ($name === 'mi' || $name === 'mo' || $name === 'mn' || $name === 'ms' || $name === 'mtext' || $name === 'annotation-xml')) || ($ns === Parser::SVG_NAMESPACE && ($name === 'foreignObject' || $name === 'desc' || $name === 'title')));
     }
 }

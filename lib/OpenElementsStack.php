@@ -13,11 +13,29 @@ class OpenElementsStack extends Stack {
         // too.
         if ((!is_null($fragmentContext) && !$fragmentContext instanceof DOMDocumentFragment && !$fragmentContext instanceof DOMDocument && !$fragmentContext instanceof DOMElement) ||
             (is_null($fragmentContext) && $fragmentCase)) {
-            throw new Exception(Exception::STACK_DOCUMENTFRAG_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED, gettype($fragmentContext));
+            throw new Exception(Exception::STACK_DOCUMENTFRAG_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED);
         }
 
         $this->fragmentCase = $fragmentCase;
         $this->fragmentContext = $fragmentContext;
+    }
+
+    public function popUntil($target) {
+        if ($target instanceof Element) {
+            do {
+                $node = $this->pop;
+            } while (!$node->isSameNode($target));
+        } elseif (is_string($target)) {
+            do {
+                $poppedNodeName = $this->pop()->nodeName;
+            } while ($poppedNodeName !== $target);
+        } elseif (is_array($target)) {
+            do {
+                $poppedNodeName = $this->pop()->nodeName;
+            } while (!in_array($poppedNodeName, $target));
+        } else {
+            throw new Exception(Exception::STACK_ELEMENT_STRING_ARRAY_EXPECTED);
+        }
     }
 
     public function search($needle): int {
@@ -48,13 +66,28 @@ class OpenElementsStack extends Stack {
         return -1;
     }
 
-    public function generateImpliedEndTags(string $exclude = null) {
+    public function generateImpliedEndTags($exclude = []) {
         $tags = ['caption', 'colgroup', 'dd', 'dt', 'li', 'optgroup', 'option', 'p', 'rb', 'rp', 'rt', 'rtc', 'tbody', 'td', 'tfoot', 'th', 'thead', 'tr'];
 
-        if (!is_null($exclude)) {
-            $key = array_search($exclude, $tags);
-            if ($key !== false) {
-                unset($tags[$key]);
+        if (is_string($exclude)) {
+            $exclude = [$exclude];
+        }
+
+        if (!is_array($exclude)) {
+            throw new Exception(Exception::STACK_STRING_ARRAY_EXPECTED);
+        }
+
+        if (count($exclude) > 0) {
+            $modified = false;
+            foreach ($exclude as $e) {
+                $key = array_search($e, $tags);
+                if ($key !== false) {
+                    unset($tags[$key]);
+                    $modified = true;
+                }
+            }
+
+            if ($modified) {
                 $tags = array_values($tags);
             }
         }
@@ -66,39 +99,58 @@ class OpenElementsStack extends Stack {
         }
     }
 
-    public function hasElementInListItemScope(string $elementName): bool {
-        return $this->hasElementInScope($elementName, 0);
+    public function hasElementInScope(string $target): bool {
+        return $this->hasElementInScopeHandler($target);
     }
 
-    public function hasElementInButtonScope(string $elementName): bool {
-        return $this->hasElementInScope($elementName, 1);
+    public function hasElementInListItemScope(string $target): bool {
+        return $this->hasElementInScopeHandler($target, 1);
     }
 
-    public function hasElementInTableScope(string $elementName): bool {
-        return $this->hasElementInScope($elementName, 2);
+    public function hasElementInButtonScope(string $target): bool {
+        return $this->hasElementInScopeHandler($target, 2);
     }
 
-    public function hasElementInSelectScope(string $elementName): bool {
-        return $this->hasElementInScope($elementName, 3);
+    public function hasElementInTableScope(string $target): bool {
+        return $this->hasElementInScopeHandler($target, 3);
     }
 
-    protected function hasElementInScope(string $elementName, int $type): bool {
+    public function hasElementInSelectScope(string $target): bool {
+        return $this->hasElementInScopeHandler($target, 4);
+    }
+
+    protected function hasElementInScopeHandler(string $target, int $type = 0): bool {
         switch ($type) {
-            case 0: $func = 'isElementInListScope';
+            case 0: $func = 'isElementInScope';
             break;
-            case 1: $func = 'isElementInButtonScope';
+            case 1: $func = 'isElementInListScope';
             break;
-            case 2: $func = 'isElementInTableScope';
+            case 2: $func = 'isElementInButtonScope';
             break;
-            case 3: $func = 'isElementInSelectScope';
+            case 3: $func = 'isElementInTableScope';
+            break;
+            case 4: $func = 'isElementInSelectScope';
             break;
             default: return false;
         }
 
-        foreach (array_reverse($this->_storage) as $key => $value) {
-            if ($this->$func($value)) {
+        # 1. Initialize node to be the current node (the bottommost node of the stack).
+        // Handled by loop.
+        foreach (array_reverse($this->_storage) as $node) {
+            # 2. If node is the target node, terminate in a match state.
+            if ($node->nodeName === $target) {
                 return true;
             }
+            # 3. Otherwise, if node is one of the element types in list, terminate in a
+            # failure state.
+            elseif ($this->$func($node)) {
+                return false;
+            }
+
+            # Otherwise, set node to the previous entry in the stack of open elements and
+            # return to step 2. (This will never fail, since the loop will always terminate
+            # in the previous step if the top of the stack — an html element — is reached.)
+            // Handled by loop.
         }
 
         return false;

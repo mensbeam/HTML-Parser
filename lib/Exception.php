@@ -11,6 +11,8 @@ class Exception extends \Exception {
 
     const STACK_INVALID_INDEX = 10201;
     const STACK_DOCUMENTFRAG_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED = 10202;
+    const STACK_ELEMENT_STRING_ARRAY_EXPECTED = 10203;
+    const STACK_STRING_ARRAY_EXPECTED = 10204;
 
     const DATA_NODATA = 10301;
     const DATA_INVALID_DATA_CONSUMPTION_LENGTH = 10302;
@@ -33,7 +35,9 @@ class Exception extends \Exception {
                                   10101 => 'Non-empty Document supplied as argument for Parser',
 
                                   10201 => '%s is an invalid Stack index',
-                                  10202 => 'Element, Document, or DOMDocumentFragment expected for fragment context; found %s',
+                                  10202 => 'Element, Document, or DOMDocumentFragment expected for fragment context',
+                                  10203 => 'Element, string, or array expected',
+                                  10203 => 'String or array expected',
 
                                   10301 => 'Data string expected; found %s',
                                   10302 => '%s is an invalid data consumption length; a value of 1 or above is expected',
