@@ -431,7 +431,7 @@ class Tokenizer {
                     if ($char !== '') {
                         ParseError::trigger(ParseError::TAG_NAME_EXPECTED, $char);
                     } else {
-                        ParseError::trigger(ParseError::UNEXPECTED_EOF, 'tag name');
+                        ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     }
 
                     $this->state = self::BOGUS_COMMENT_STATE;
@@ -445,7 +445,7 @@ class Tokenizer {
                     if ($char !== '') {
                         ParseError::trigger(ParseError::TAG_NAME_EXPECTED, $char);
                     } else {
-                        ParseError::trigger(ParseError::UNEXPECTED_EOF, 'tag name');
+                        ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     }
 
                     $this->state = self::DATA_STATE;
@@ -491,7 +491,7 @@ class Tokenizer {
                     # Parse error. Switch to the data state. Emit a U+003C LESS-THAN SIGN character
                     # token and a U+002F SOLIDUS character token. Reconsume the EOF character.
                     // Making errors more expressive.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'tag name');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $this->data->unconsume();
                     return new CharacterToken('</');
@@ -547,7 +547,7 @@ class Tokenizer {
                     if ($char !== '') {
                         ParseError::trigger(ParseError::TAG_NAME_EXPECTED, $char);
                     } else {
-                        ParseError::trigger(ParseError::UNEXPECTED_EOF, 'tag name');
+                        ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     }
 
                     $this->state = self::DATA_STATE;
@@ -1072,7 +1072,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Switch to the data state. Parse error. Reconsume the EOF character.
                     $this->state = self::DATA_STATE;
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'script data');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->data->unconsume();
                 }
                 # Anything else
@@ -1107,7 +1107,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Switch to the data state. Parse error. Reconsume the EOF character.
                     $this->state = self::DATA_STATE;
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'script data');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->data->unconsume();
                 }
                 # Anything else
@@ -1147,7 +1147,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Switch to the data state. Parse error. Reconsume the EOF character.
                     $this->state = self::DATA_STATE;
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'script data');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->data->unconsume();
                 }
                 # Anything else
@@ -1356,7 +1356,7 @@ class Tokenizer {
                 # EOF
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'script data');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $this->data->unconsume();
                 }
@@ -1489,7 +1489,7 @@ class Tokenizer {
                 # EOF
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'attribute name');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $this->data->unconsume();
                 }
@@ -1507,7 +1507,7 @@ class Tokenizer {
                     # attribute name state.
 
                     if ($char === '"' || $char === "'" || $char === '<' || $char === '=') {
-                        ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'attribute name');
+                        ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char);
                     }
 
                     // Need to add the current attribute to the token, if necessary.
@@ -1573,7 +1573,7 @@ class Tokenizer {
                     # Append the current input character to the current attribute's name.
 
                     if ($char === '"' || $char === "'" || $char === '<' || $char === '=') {
-                        ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'attribute name');
+                        ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char);
                     }
 
                     // OPTIMIZATION: Will just check for alpha characters and strtolower the
@@ -1648,7 +1648,7 @@ class Tokenizer {
                 # EOF
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'attribute name, attribute value, or tag end');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $this->data->unconsume();
                 }
@@ -1666,7 +1666,7 @@ class Tokenizer {
                     # attribute name state.
 
                     if ($char === '"' || $char === "'" || $char === '<' || $char === '=') {
-                        ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'attribute name, attribute value, or tag end');
+                        ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char);
                     }
 
                     // Need to add the current attribute to the token, if necessary.
@@ -1714,7 +1714,7 @@ class Tokenizer {
                 # ">" (U+003E)
                 elseif ($char === '>') {
                     # Parse error. Switch to the data state. Emit the current tag token.
-                    ParseError::trigger(ParseError::UNEXPECTED_END_OF_TAG, 'attribute value');
+                    ParseError::trigger(ParseError::UNEXPECTED_END_OF_TAG);
                     $this->state = self::DATA_STATE;
 
                     // Need to add the current attribute to the token, if necessary.
@@ -1728,7 +1728,7 @@ class Tokenizer {
                 # EOF
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'attribute value');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $this->data->unconsume();
                 }
@@ -1744,7 +1744,7 @@ class Tokenizer {
                     # the attribute value (unquoted) state.
 
                     if ($char === '<' || $char === '=' || $char === '`') {
-                        ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'attribute value');
+                        ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char);
                     }
 
                     $attribute->value .= $char;
@@ -1783,7 +1783,7 @@ class Tokenizer {
                 # EOF
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'attribute value');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $this->data->unconsume();
                 }
@@ -1828,7 +1828,7 @@ class Tokenizer {
                 # EOF
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'attribute value');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $this->data->unconsume();
                 }
@@ -1892,7 +1892,7 @@ class Tokenizer {
                 }
                 # Parse error. Switch to the data state. Reconsume the EOF character.
                 elseif ($char === '') {
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'attribute value');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $this->data->unconsume();
                 }
@@ -1909,7 +1909,7 @@ class Tokenizer {
                     # Append the current input character to the current attribute's value.
 
                     if ($char === '"' || $char === "'" || $char === '<' || $char === '=' || $char === '`') {
-                        ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'attribute value');
+                        ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char);
                     }
 
                     // OPTIMIZATION: Consume all characters that aren't listed above to prevent having
@@ -1954,14 +1954,14 @@ class Tokenizer {
                 # EOF
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'attribute name or tag end');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $this->data->unconsume();
                 }
                 # Anything else
                 else {
                     # Parse error. Switch to the before attribute name state. Reconsume the character.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'attribute name or tag end');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char);
                     $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
                     $this->data->unconsume();
                 }
@@ -1992,14 +1992,14 @@ class Tokenizer {
                 # EOF
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Reconsume the EOF character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'tag end');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $this->data->unconsume();
                 }
                 # Anything else
                 else {
                     # Parse error. Switch to the before attribute name state. Reconsume the character.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'tag end');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char);
                     $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
                     $this->data->unconsume();
                 }
@@ -2067,9 +2067,9 @@ class Tokenizer {
                     else {
                         $char = $this->data->consume();
                         if ($char !== '') {
-                            ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'markup declaration');
+                            ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char);
                         } else {
-                            ParseError::trigger(ParseError::UNEXPECTED_EOF, 'markup declaration');
+                            ParseError::trigger(ParseError::UNEXPECTED_EOF);
                         }
 
                         $this->state = self::BOGUS_COMMENT_STATE;
@@ -2092,7 +2092,7 @@ class Tokenizer {
                 # ">" (U+003E)
                 elseif ($char === '>') {
                     # Parse error. Switch to the data state. Emit the comment token.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>', 'comment');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>');
                     $this->state = self::DATA_STATE;
                     return $token;
                 }
@@ -2100,7 +2100,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Emit the comment token. Reconsume the EOF
                     # character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'comment');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $this->data->unconsume();
                     return $token;
@@ -2129,7 +2129,7 @@ class Tokenizer {
                 # ">" (U+003E)
                 elseif ($char === '>') {
                     # Parse error. Switch to the data state. Emit the comment token.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>', 'comment');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>');
                     $this->state = self::DATA_STATE;
                     return $token;
                 }
@@ -2137,7 +2137,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Emit the comment token. Reconsume the EOF
                     # character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'comment');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $this->data->unconsume();
                     return $token;
@@ -2167,7 +2167,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Emit the comment token. Reconsume the EOF
                     # character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'comment');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $this->data->unconsume();
                     return $token;
@@ -2198,7 +2198,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Emit the comment token. Reconsume the EOF
                     # character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'comment');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $this->data->unconsume();
                     return $token;
@@ -2228,7 +2228,7 @@ class Tokenizer {
                 # "!" (U+0021)
                 elseif ($char === '!') {
                     # Parse error. Switch to the comment end bang state.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '!', 'comment end');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '!');
                     $this->state = self::COMMENT_END_BANG_STATE;
                 }
                 # "-" (U+002D)
@@ -2239,7 +2239,7 @@ class Tokenizer {
                     // here every single time.
                     $char .= $this->data->consumeWhile('-');
                     for ($i = 0; $i < strlen($char); $i++) {
-                        ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '-', 'comment end');
+                        ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '-');
                     }
 
                     $token->data .= $char;
@@ -2248,7 +2248,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Emit the comment token. Reconsume the EOF
                     # character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'comment end');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $this->data->unconsume();
                     return $token;
@@ -2257,7 +2257,7 @@ class Tokenizer {
                 else {
                     # Parse error. Append two "-" (U+002D) characters and the current input character
                     # to the comment token's data. Switch to the comment state.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'comment end');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char);
                     $token->data .= '--'.$char;
                     $this->state = self::COMMENT_STATE;
                 }
@@ -2287,7 +2287,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Emit the comment token. Reconsume the EOF
                     # character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'comment end');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $this->data->unconsume();
                     return $token;
@@ -2324,7 +2324,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Create a new DOCTYPE token. Set its
                     # force-quirks flag to on. Emit the token. Reconsume the EOF character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $token = new DOCTYPEToken();
                     $token->forceQuirks = true;
@@ -2334,7 +2334,7 @@ class Tokenizer {
                 # Anything else
                 else {
                     # Parse error. Switch to the before DOCTYPE name state. Reconsume the character.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'DOCTYPE');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char);
                     $this->state = self::DOCTYPE_NAME_STATE;
                     $this->data->unconsume();
                 }
@@ -2366,7 +2366,7 @@ class Tokenizer {
                 elseif ($char === '>') {
                     # Parse error. Create a new DOCTYPE token. Set its force-quirks flag to on. Switch
                     # to the data state. Emit the token.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>', 'DOCTYPE');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>');
                     $token = new DOCTYPEToken();
                     $token->forceQuirks = true;
                     $this->state = self::DATA_STATE;
@@ -2376,7 +2376,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Create a new DOCTYPE token. Set its
                     # force-quirks flag to on. Emit the token. Reconsume the EOF character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $token = new DOCTYPEToken();
                     $token->forceQuirks = true;
@@ -2428,7 +2428,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     $this->data->unconsume();
@@ -2469,7 +2469,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE name');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     $this->data->unconsume();
@@ -2496,7 +2496,7 @@ class Tokenizer {
                     else {
                         // Need to unconsume what was consumed earlier.
                         $this->data->unconsume(5);
-                        ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char[0], 'DOCTYPE name');
+                        ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char[0]);
                         $token->forceQuirks = true;
                         $this->state = self::BOGUS_DOCTYPE_STATE;
                     }
@@ -2522,7 +2522,7 @@ class Tokenizer {
                 elseif ($char === '"') {
                     # Parse error. Set the DOCTYPE token's public identifier to the empty string (not
                     # missing), then switch to the DOCTYPE public identifier (double-quoted) state.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '"', 'DOCTYPE public keyword');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '"');
                     $token->public = '';
                     $this->state = self::DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED_STATE;
                 }
@@ -2530,7 +2530,7 @@ class Tokenizer {
                 elseif ($char === "'") {
                     # Parse error. Set the DOCTYPE token's public identifier to the empty string (not
                     # missing), then switch to the DOCTYPE public identifier (single-quoted) state.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, "'", 'DOCTYPE public keyword');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, "'");
                     $token->public = '';
                     $this->state = self::DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED_STATE;
                 }
@@ -2538,7 +2538,7 @@ class Tokenizer {
                 elseif ($char === '>') {
                     # Parse error. Set the DOCTYPE token's force-quirks flag to on. Switch to the data
                     # state. Emit that DOCTYPE token.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>', 'DOCTYPE public keyword');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>');
                     $token->forceQuirks = true;
                     $this->state = self::DATA_STATE;
                     return $token;
@@ -2547,7 +2547,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE public keyword');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     $this->data->unconsume();
@@ -2557,7 +2557,7 @@ class Tokenizer {
                 else {
                     # Parse error. Set the DOCTYPE token's force-quirks flag to on. Switch to the
                     # bogus DOCTYPE state.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'DOCTYPE public keyword');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char);
                     $token->forceQuirks = true;
                     $this->state = self::BOGUS_DOCTYPE_STATE;
                 }
@@ -2595,7 +2595,7 @@ class Tokenizer {
                 elseif ($char === '>') {
                     # Parse error. Set the DOCTYPE token's force-quirks flag to on. Switch to the data
                     # state. Emit that DOCTYPE token.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>', 'DOCTYPE public identifier');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>');
                     $token->forceQuirks = true;
                     $this->state = self::DATA_STATE;
                     return $token;
@@ -2604,7 +2604,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE public identifier');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     $this->data->unconsume();
@@ -2614,7 +2614,7 @@ class Tokenizer {
                 else {
                     # Parse error. Set the DOCTYPE token's force-quirks flag to on. Switch to the
                     # bogus DOCTYPE state.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'DOCTYPE public identifier');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char);
                     $token->forceQuirks = true;
                     $this->state = self::BOGUS_DOCTYPE_STATE;
                 }
@@ -2636,7 +2636,7 @@ class Tokenizer {
                 elseif ($char === '>') {
                     # Parse error. Set the DOCTYPE token's force-quirks flag to on. Switch to the data
                     # state. Emit that DOCTYPE token.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>', 'DOCTYPE public identifier');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>');
                     $token->forceQuirks = true;
                     $this->state = self::DATA_STATE;
                     return $token;
@@ -2645,7 +2645,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE public identifier');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     $this->data->unconsume();
@@ -2677,7 +2677,7 @@ class Tokenizer {
                 elseif ($char === '>') {
                     # Parse error. Set the DOCTYPE token's force-quirks flag to on. Switch to the data
                     # state. Emit that DOCTYPE token.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>', 'DOCTYPE public identifier');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>');
                     $this->state = self::DATA_STATE;
                     return $token;
                 }
@@ -2685,7 +2685,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE public identifier');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     $this->data->unconsume();
@@ -2740,7 +2740,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE public identifier');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     $this->data->unconsume();
@@ -2750,7 +2750,7 @@ class Tokenizer {
                 else {
                     # Parse error. Set the DOCTYPE token's force-quirks flag to on. Switch to the
                     # bogus DOCTYPE state.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'DOCTYPE public identifier');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char);
                     $token->forceQuirks = true;
                     $this->state = self::BOGUS_DOCTYPE_STATE;
                 }
@@ -2829,7 +2829,7 @@ class Tokenizer {
                 elseif ($char === '"') {
                     # Parse error. Set the DOCTYPE token's system identifier to the empty string (not
                     # missing), then switch to the DOCTYPE system identifier (double-quoted) state.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '"', 'DOCTYPE system keyword');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '"');
                     $token->system = '';
                     $this->state = self::DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED_STATE;
                 }
@@ -2837,7 +2837,7 @@ class Tokenizer {
                 elseif ($char === "'") {
                     # Parse error. Set the DOCTYPE token's system identifier to the empty string (not
                     # missing), then switch to the DOCTYPE system identifier (single-quoted) state.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, "'", 'DOCTYPE system keyword');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, "'");
                     $token->system = '';
                     $this->state = self::DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED_STATE;
                 }
@@ -2845,7 +2845,7 @@ class Tokenizer {
                 elseif ($char === '>') {
                     # Parse error. Set the DOCTYPE token's force-quirks flag to on. Switch to the data
                     # state. Emit that DOCTYPE token.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>', 'DOCTYPE system keyword');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>');
                     $token->forceQuirks = true;
                     $this->state = self::DATA_STATE;
                     return $token;
@@ -2854,7 +2854,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE system keyword');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     $this->data->unconsume();
@@ -2864,7 +2864,7 @@ class Tokenizer {
                 else {
                     # Parse error. Set the DOCTYPE token's force-quirks flag to on. Switch to the
                     # bogus DOCTYPE state.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'DOCTYPE system keyword');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char);
                     $token->forceQuirks = true;
                     $this->state = self::BOGUS_DOCTYPE_STATE;
                 }
@@ -2902,7 +2902,7 @@ class Tokenizer {
                 elseif ($char === '>') {
                     # Parse error. Set the DOCTYPE token's force-quirks flag to on. Switch to the data
                     # state. Emit that DOCTYPE token.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>', 'DOCTYPE system identifier');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>');
                     $token->forceQuirks = true;
                     $this->state = self::DATA_STATE;
                     return $token;
@@ -2911,7 +2911,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE system identifier');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     $this->data->unconsume();
@@ -2921,7 +2921,7 @@ class Tokenizer {
                 else {
                     # Parse error. Set the DOCTYPE token's force-quirks flag to on. Switch to the
                     # bogus DOCTYPE state.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'DOCTYPE system identifier');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char);
                     $token->forceQuirks = true;
                     $this->state = self::BOGUS_DOCTYPE_STATE;
                 }
@@ -2943,7 +2943,7 @@ class Tokenizer {
                 elseif ($char === '>') {
                     # Parse error. Set the DOCTYPE token's force-quirks flag to on. Switch to the data
                     # state. Emit that DOCTYPE token.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>', 'DOCTYPE system identifier');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>');
                     $this->state = self::DATA_STATE;
                     return $token;
                 }
@@ -2951,7 +2951,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE system identifier');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     $this->data->unconsume();
@@ -2983,7 +2983,7 @@ class Tokenizer {
                 elseif ($char === '>') {
                     # Parse error. Set the DOCTYPE token's force-quirks flag to on. Switch to the data
                     # state. Emit that DOCTYPE token.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>', 'DOCTYPE system identifier');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, '>');
                     $this->state = self::DATA_STATE;
                     return $token;
                 }
@@ -2991,7 +2991,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE system identifier');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     $this->data->unconsume();
@@ -3046,7 +3046,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Parse error. Switch to the data state. Set the DOCTYPE token's force-quirks flag
                     # to on. Emit that DOCTYPE token. Reconsume the EOF character.
-                    ParseError::trigger(ParseError::UNEXPECTED_EOF, 'DOCTYPE system identifier');
+                    ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     $this->state = self::DATA_STATE;
                     $token->forceQuirks = true;
                     $this->data->unconsume();
@@ -3056,7 +3056,7 @@ class Tokenizer {
                 else {
                     # Parse error. Set the DOCTYPE token's force-quirks flag to on. Switch to the
                     # bogus DOCTYPE state.
-                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char, 'DOCTYPE system identifier');
+                    ParseError::trigger(ParseError::UNEXPECTED_CHARACTER, $char);
                     $token->forceQuirks = true;
                     $this->state = self::BOGUS_DOCTYPE_STATE;
                 }

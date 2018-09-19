@@ -21,18 +21,18 @@ class ParseError {
     const INVALID_NAMED_ENTITY = 14;
     const INVALID_CODEPOINT = 15;
 
-    protected static $messages = ['Tag name expected; found %s',
-                                  'Unexpected end-of-file; %s expected',
-                                  'Unexpected "%s" character; %s expected',
+    protected static $messages = ['Tag name expected',
+                                  'Unexpected end-of-file',
+                                  'Unexpected "%s" character',
                                   '%s attribute already exists; discarding',
-                                  'Unexpected end-of-tag; %s expected',
-                                  'Unexpected %s start tag; %s expected',
-                                  'Unexpected %s end tag; %s expected',
-                                  'Unexpected DOCTYPE; %s expected',
+                                  'Unexpected end-of-tag',
+                                  'Unexpected %s start tag',
+                                  'Unexpected %s end tag',
+                                  'Unexpected DOCTYPE',
                                   'Invalid DOCTYPE',
                                   'Invalid Control or Non-character; removing',
-                                  'Unexpected xmlns attribute value; %s expected',
-                                  'Unexpected "%s" character in entity; %s expected',
+                                  'Unexpected xmlns attribute value',
+                                  'Unexpected "%s" character in entity',
                                   '"%s" is an invalid numeric entity',
                                   '"%s" is an invalid name for an entity',
                                   '"%s" is an invalid character codepoint'];

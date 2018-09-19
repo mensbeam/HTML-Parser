@@ -84,24 +84,115 @@ class OpenElementsStack extends Stack {
 
     protected function hasElementInScope(string $elementName, int $type): bool {
         switch ($type) {
-            case 0: $func = 'isInListScope';
+            case 0: $func = 'isElementInListScope';
             break;
-            case 1: $func = 'isInButtonScope';
+            case 1: $func = 'isElementInButtonScope';
             break;
-            case 2: $func = 'isInTableScope';
+            case 2: $func = 'isElementInTableScope';
             break;
-            case 3: $func = 'isInSelectScope';
+            case 3: $func = 'isElementInSelectScope';
             break;
             default: return false;
         }
 
         foreach (array_reverse($this->_storage) as $key => $value) {
-            if ($value->$func()) {
+            if ($this->$func($value)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    protected function isElementInListItemScope(Element $element): bool {
+        $name = $element->name;
+        $ns = $element->namespaceURI;
+
+        # The stack of open elements is said to have a particular element in list item
+        # scope when it has that element in the specific scope consisting of the
+        # following element types:
+        #
+        # All the element types listed above for the has an element in scope
+        # algorithm.
+        # ol in the HTML namespace
+        # ul in the HTML namespace
+
+        return ($this->isElementInScope($element) || ($ns === '' && ($name === 'ol' || $name === 'ul'))) ? true : false;
+    }
+
+    protected function isElementInButtonScope(Element $element): bool {
+        $name = $element->name;
+        $ns = $element->namespaceURI;
+
+        # The stack of open elements is said to have a particular element in button
+        # scope when it has that element in the specific scope consisting of the
+        # following element types:
+        #
+        # All the element types listed above for the has an element in scope
+        # algorithm.
+        # button in the HTML namespace
+
+        return ($this->isElementInScope($element) || ($ns === '' && $name === 'button')) ? true : false;
+    }
+
+    protected function isElementInTableScope(Element $element): bool {
+        $name = $element->name;
+
+        # The stack of open elements is said to have a particular element in table scope
+        # when it has that element in the specific scope consisting of the following
+        # element types:
+        #
+        # html in the HTML namespace
+        # table in the HTML namespace
+        # template in the HTML namespace
+
+        return ($element->namespaceURI === '' && ($name === 'html' || $name === 'table' || $name === 'template')) ? true : false;
+    }
+
+    protected function isElementInSelectScope(Element $element): bool {
+        $name = $element->name;
+        $ns = $element->namespaceURI;
+
+        # The stack of open elements is said to have a particular element in select
+        # scope when it has that element in the specific scope consisting of all element
+        # types except the following:
+        #
+        # optgroup in the HTML namespace
+        # option in the HTML namespace
+
+        return ($element->namespaceURI === '' && ($name === 'optgroup' || $name === 'option')) ? false : true;
+    }
+
+    protected function isElementInScope(Element $element): bool {
+        $name = $element->name;
+        $ns = $element->namespaceURI;
+
+        # The stack of open elements is said to have a particular element in scope when
+        # it has that element in the specific scope consisting of the following element
+        # types:
+        #
+        # applet
+        # caption
+        # html
+        # table
+        # td
+        # th
+        # marquee
+        # object
+        # template
+        # MathML mi
+        # MathML mo
+        # MathML mn
+        # MathML ms
+        # MathML mtext
+        # MathML annotation-xml
+        # SVG foreignObject
+        # SVG desc
+        # SVG title
+
+        return (($ns === '' && ($name === 'applet' || $name === 'caption' || $name === 'html' || $name === 'table' || $name === 'td' || $name === 'th' || $name === 'marquee' || $name === 'object' || $name === 'template')) ||
+            ($ns === Parser::MATHML_NAMESPACE && ($name === 'mi' || $name === 'mo' || $name === 'mn' || $name === 'ms' || $name === 'mtext' || $name === 'annotation-xml')) ||
+            ($ns === Parser::SVG_NAMESPACE && ($name === 'foreignObject' || $name === 'desc' || $name === 'title'))) ? true : false;
     }
 
     public function __get($property) {

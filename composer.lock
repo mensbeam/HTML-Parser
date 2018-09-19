@@ -8,11 +8,11 @@
     "packages": [
         {
             "name": "mensbeam/intl",
-            "version": "0.3.0",
+            "version": "0.4.0",
             "source": {
                 "type": "git",
                 "url": "https://code.mensbeam.com/MensBeam/intl",
-                "reference": "61993bb900ebd6150c8b762c4b0158f0f4a5fc78"
+                "reference": "58328b7524b6889889ef0a60ab9e622b3d071a4a"
             },
             "require": {
                 "php": "^7.0"
@@ -40,6 +40,7 @@
             ],
             "description": "A set of dependency-free basic internationalization tools",
             "keywords": [
+                "WHATWG",
                 "charset",
                 "encoding",
                 "internationalization",
@@ -48,7 +49,7 @@
                 "utf-8",
                 "utf8"
             ],
-            "time": "2018-08-29T21:37:44+00:00"
+            "time": "2018-09-15T23:52:16+00:00"
         }
     ],
     "packages-dev": [],
