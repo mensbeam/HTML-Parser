@@ -13,7 +13,7 @@ class OpenElementsStack extends Stack {
         // too.
         if ((!is_null($fragmentContext) && !$fragmentContext instanceof DOMDocumentFragment && !$fragmentContext instanceof DOMDocument && !$fragmentContext instanceof DOMElement) ||
             (is_null($fragmentContext) && $fragmentCase)) {
-            throw new Exception(Exception::STACK_DOCUMENTFRAG_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED);
+            throw new Exception(Exception::STACK_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED);
         }
 
         $this->fragmentCase = $fragmentCase;

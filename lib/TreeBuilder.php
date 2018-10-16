@@ -1332,6 +1332,33 @@ class TreeBuilder {
                                 }
                             }
                         }
+                        # An end tag whose tag name is one of: "address", "article", "aside",
+                        # "blockquote", "button", "center", "details", "dialog", "dir", "div", "dl",
+                        # "fieldset", "figcaption", "figure", "footer", "header", "listing", "main",
+                        # "nav", "ol", "pre", "section", "summary", "ul"
+                        elseif ($token->name === 'address' || $token->name === 'article' || $token->name === 'aside' || $token->name === 'blockquote' || $token->name === 'button' || $token->name === 'center' || $token->name === 'details' || $token->name === 'dialog' || $token->name === 'dir' || $token->name === 'div' || $token->name === 'dl' || $token->name === 'fieldset' || $token->name === 'figcaption' || $token->name === 'figure' || $token->name === 'footer' || $token->name === 'header' || $token->name === 'listing' || $token->name === 'main' || $token->name === 'nav' || $token->name === 'ol' || $token->name === 'pre' || $token->name === 'section' || $token->name === 'summary' || $token->name === 'ul') {
+                            # If the stack of open elements does not have an element in scope that is an
+                            # HTML element with the same tag name as that of the token, then this is a parse
+                            # error; ignore the token.
+                            if (!$this->stack->hasElementInScope($token->name)) {
+                                ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $token->name);
+                            }
+                            # Otherwise, run these steps:
+                            else {
+                                # 1. Generate implied end tags.
+                                $this->stack->generateImpliedEndTags();
+
+                                # 2. If the current node is not an HTML element with the same tag name as that
+                                # of the token, then this is a parse error.
+                                if ($this->stack->currentNodeName !== $token->name) {
+                                    ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $token->name);
+                                }
+
+                                # 3. Pop elements from the stack of open elements until an HTML element with the
+                                # same tag name as the token has been popped from the stack.
+                                $this->stack->popUntil($token->name);
+                            }
+                        }
                     }
                     # An end-of-file token
                     elseif ($token instanceof EOFToken) {
