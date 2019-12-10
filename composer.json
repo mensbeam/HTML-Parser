@@ -8,12 +8,21 @@
         "ext-hash": "*",
         "mensbeam/intl": "*"
     },
+    "scripts": {
+        "post-install-cmd": ["@composer bin all install"],
+        "post-update-cmd": ["@composer bin all update"]
+    },
     "license": "MIT",
     "authors": [
         {
             "name": "Dustin Wilson",
             "email": "dustin@dustinwilson.com",
             "homepage": "https://dustinwilson.com/"
+        },
+        {
+            "name": "J. King",
+            "email": "jking@jkingweb.ca",
+            "homepage": "https://jkingweb.ca/"
         }
     ],
     "autoload": {
@@ -27,6 +36,13 @@
         "classmap": ["lib/Token.php"]
     },
     "autoload-dev": {
-        "files": ["lib/Token.php"]
+        "files": ["lib/Token.php"],
+        "psr-4": {
+            "dW\\HTML5\\Test\\": "tests/lib/",
+            "dW\\HTML5\\TestCase\\": "tests/cases/"
+        }
+    },
+    "require-dev": {
+        "bamarni/composer-bin-plugin": "^1.3"
     }
 }

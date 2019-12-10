@@ -67,3 +67,6 @@ $RECYCLE.BIN/
 .nfs*
 
 /vendor/
+/vendor-bin/*/vendor
+/tests/html5lib-tests
+/tests/.phpunit.result.cache
