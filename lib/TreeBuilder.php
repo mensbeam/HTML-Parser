@@ -1299,7 +1299,7 @@ class TreeBuilder {
                         elseif ($token->name === 'body' || $token->name === 'html') {
                             # If the stack of open elements does not have a body element in scope, this is a
                             # parse error; ignore the token.
-                            if ($this->stack->search('body') === -1) {
+                            if (!$this->stack->hasElementInScope('body')) {
                                 ParseError::trigger(ParseError::UNEXPECTED_END_TAG, 'body');
                             }
                             # Otherwise, if there is a node in the stack of open elements that is not either
@@ -1357,6 +1357,51 @@ class TreeBuilder {
                                 # 3. Pop elements from the stack of open elements until an HTML element with the
                                 # same tag name as the token has been popped from the stack.
                                 $this->stack->popUntil($token->name);
+                            }
+                        }
+                        # An end tag whose tag name is "form"
+                        elseif ($token->name === 'form') {
+                            # If there is no template element on the stack of open elements, then run these
+                            # substeps:
+                            if ($this->stack->search('template') === -1) {
+                                # 1. Let node be the element that the form element pointer is set to, or null if it
+                                # is not set to an element.
+                                $node = $this->formElement;
+                                # 2. Set the form element pointer to null.
+                                $this->formElement = null;
+                                # 3. If node is null or if the stack of open elements does not have node in
+                                # scope, then this is a parse error; return and ignore the token.
+                                if (is_null($node) || !$this->stack->hasElementInScope($node)) {
+                                    ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $token->name);
+                                    return true;
+                                }
+                                # 4. Generate implied end tags.
+                                $this->stack->generateImpliedEndTags();
+                                # 5. If the current node is not node, then this is a parse error.
+                                if (!$this->stack->currentNode->isSameNode($node)) {
+                                    ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $token->name);
+                                }
+                                # 6. Remove node from the stack of open elements
+                                $this->stack->remove($node);
+                            }
+                            # If there is a template element on the stack of open elements, then run these
+                            # substeps instead:
+                            else {
+                                # 1. If the stack of open elements does not have a form element in scope, then
+                                # this is a parse error; return and ignore the token.
+                                if ($this->stack->hasElementInScope('form')) {
+                                    ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $token->name);
+                                    return true;
+                                }
+                                # 2. Generate implied end tags.
+                                $this->stack->generateImpliedEndTags();
+                                # 3. If the current node is not a form element, then this is a parse error.
+                                if (!$this->stack->currentNodeName !== 'form') {
+                                    ParseError::trigger(ParseError::UNEXPECTED_END_TAG, $token->name);
+                                }
+                                # 4. Pop elements from the stack of open elements until a form element has been
+                                # popped from the stack.
+                                $this->stack->popUntil('form');
                             }
                         }
                     }

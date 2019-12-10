@@ -66,6 +66,20 @@ class OpenElementsStack extends Stack {
         return -1;
     }
 
+    // Remove an arbitrary element from the array.
+    public function remove($target) {
+        $key = $this->search($target);
+        if ($key === -1) {
+            return;
+        } elseif ($key === count($this->_storage) - 1) {
+            $this->pop();
+            return;
+        }
+
+        unset($this->_storage[$key]);
+        $this->_storage = array_values($this->_storage);
+    }
+
     public function generateImpliedEndTags($exclude = []) {
         $tags = ['caption', 'colgroup', 'dd', 'dt', 'li', 'optgroup', 'option', 'p', 'rb', 'rp', 'rt', 'rtc', 'tbody', 'td', 'tfoot', 'th', 'thead', 'tr'];
 
@@ -99,126 +113,7 @@ class OpenElementsStack extends Stack {
         }
     }
 
-    public function hasElementInScope(string $target): bool {
-        return $this->hasElementInScopeHandler($target);
-    }
-
-    public function hasElementInListItemScope(string $target): bool {
-        return $this->hasElementInScopeHandler($target, 1);
-    }
-
-    public function hasElementInButtonScope(string $target): bool {
-        return $this->hasElementInScopeHandler($target, 2);
-    }
-
-    public function hasElementInTableScope(string $target): bool {
-        return $this->hasElementInScopeHandler($target, 3);
-    }
-
-    public function hasElementInSelectScope(string $target): bool {
-        return $this->hasElementInScopeHandler($target, 4);
-    }
-
-    protected function hasElementInScopeHandler(string $target, int $type = 0): bool {
-        switch ($type) {
-            case 0: $func = 'isElementInScope';
-            break;
-            case 1: $func = 'isElementInListScope';
-            break;
-            case 2: $func = 'isElementInButtonScope';
-            break;
-            case 3: $func = 'isElementInTableScope';
-            break;
-            case 4: $func = 'isElementInSelectScope';
-            break;
-            default: return false;
-        }
-
-        # 1. Initialize node to be the current node (the bottommost node of the stack).
-        // Handled by loop.
-        foreach (array_reverse($this->_storage) as $node) {
-            # 2. If node is the target node, terminate in a match state.
-            if ($node->nodeName === $target) {
-                return true;
-            }
-            # 3. Otherwise, if node is one of the element types in list, terminate in a
-            # failure state.
-            elseif ($this->$func($node)) {
-                return false;
-            }
-
-            # Otherwise, set node to the previous entry in the stack of open elements and
-            # return to step 2. (This will never fail, since the loop will always terminate
-            # in the previous step if the top of the stack — an html element — is reached.)
-            // Handled by loop.
-        }
-
-        return false;
-    }
-
-    protected function isElementInListItemScope(Element $element): bool {
-        $name = $element->name;
-        $ns = $element->namespaceURI;
-
-        # The stack of open elements is said to have a particular element in list item
-        # scope when it has that element in the specific scope consisting of the
-        # following element types:
-        #
-        # All the element types listed above for the has an element in scope
-        # algorithm.
-        # ol in the HTML namespace
-        # ul in the HTML namespace
-
-        return ($this->isElementInScope($element) || ($ns === '' && ($name === 'ol' || $name === 'ul'))) ? true : false;
-    }
-
-    protected function isElementInButtonScope(Element $element): bool {
-        $name = $element->name;
-        $ns = $element->namespaceURI;
-
-        # The stack of open elements is said to have a particular element in button
-        # scope when it has that element in the specific scope consisting of the
-        # following element types:
-        #
-        # All the element types listed above for the has an element in scope
-        # algorithm.
-        # button in the HTML namespace
-
-        return ($this->isElementInScope($element) || ($ns === '' && $name === 'button')) ? true : false;
-    }
-
-    protected function isElementInTableScope(Element $element): bool {
-        $name = $element->name;
-
-        # The stack of open elements is said to have a particular element in table scope
-        # when it has that element in the specific scope consisting of the following
-        # element types:
-        #
-        # html in the HTML namespace
-        # table in the HTML namespace
-        # template in the HTML namespace
-
-        return ($element->namespaceURI === '' && ($name === 'html' || $name === 'table' || $name === 'template')) ? true : false;
-    }
-
-    protected function isElementInSelectScope(Element $element): bool {
-        $name = $element->name;
-        $ns = $element->namespaceURI;
-
-        # The stack of open elements is said to have a particular element in select
-        # scope when it has that element in the specific scope consisting of all element
-        # types except the following:
-        #
-        # optgroup in the HTML namespace
-        # option in the HTML namespace
-
-        return ($element->namespaceURI === '' && ($name === 'optgroup' || $name === 'option')) ? false : true;
-    }
-
-    protected function isElementInScope(Element $element): bool {
-        $name = $element->name;
-        $ns = $element->namespaceURI;
-
+    public function hasElementInScope($target): bool {
         # The stack of open elements is said to have a particular element in scope when
         # it has that element in the specific scope consisting of the following element
         # types:
@@ -242,10 +137,227 @@ class OpenElementsStack extends Stack {
         # SVG desc
         # SVG title
 
-        return (($ns === '' && ($name === 'applet' || $name === 'caption' || $name === 'html' || $name === 'table' || $name === 'td' || $name === 'th' || $name === 'marquee' || $name === 'object' || $name === 'template')) ||
-            ($ns === Parser::MATHML_NAMESPACE && ($name === 'mi' || $name === 'mo' || $name === 'mn' || $name === 'ms' || $name === 'mtext' || $name === 'annotation-xml')) ||
-            ($ns === Parser::SVG_NAMESPACE && ($name === 'foreignObject' || $name === 'desc' || $name === 'title'))) ? true : false;
+        $list = [
+            Parser::HTML_NAMESPACE => [
+                'applet',
+                'caption',
+                'html',
+                'table',
+                'td',
+                'th',
+                'marquee',
+                'object',
+                'template'
+            ],
+
+            Parser::MATHML_NAMESPACE => [
+                'mi',
+                'mo',
+                'mn',
+                'ms',
+                'mtext',
+                'annotation-xml'
+            ],
+
+            Parser::SVG_NAMESPACE => [
+                'foreignObject',
+                'desc',
+                'title'
+            ]
+        ];
+
+        return $this->hasElementInScopeHandler($target, $list);
     }
+
+    public function hasElementInListItemScope($target): bool {
+        # The stack of open elements is said to have a particular element in list item scope when it has that element in the specific scope consisting of the following element types:
+        #
+        # All the element types listed above for the has an element in scope algorithm.
+        # ol in the HTML namespace
+        # ul in the HTML namespace
+
+        $list = [
+            Parser::HTML_NAMESPACE => [
+                'applet',
+                'caption',
+                'html',
+                'table',
+                'td',
+                'th',
+                'marquee',
+                'object',
+                'template',
+                'ol',
+                'ul'
+            ],
+
+            Parser::MATHML_NAMESPACE => [
+                'mi',
+                'mo',
+                'mn',
+                'ms',
+                'mtext',
+                'annotation-xml'
+            ],
+
+            Parser::SVG_NAMESPACE => [
+                'foreignObject',
+                'desc',
+                'title'
+            ]
+        ];
+
+        return $this->hasElementInScopeHandler($target, $list);
+    }
+
+    public function hasElementInButtonScope($target): bool {
+        # The stack of open elements is said to have a particular element in button
+        # scope when it has that element in the specific scope consisting of the
+        # following element types:
+        #
+        # All the element types listed above for the has an element in scope algorithm.
+        # button in the HTML namespace
+
+        $list = [
+            Parser::HTML_NAMESPACE => [
+                'applet',
+                'caption',
+                'html',
+                'table',
+                'td',
+                'th',
+                'marquee',
+                'object',
+                'template',
+                'button'
+            ],
+
+            Parser::MATHML_NAMESPACE => [
+                'mi',
+                'mo',
+                'mn',
+                'ms',
+                'mtext',
+                'annotation-xml'
+            ],
+
+            Parser::SVG_NAMESPACE => [
+                'foreignObject',
+                'desc',
+                'title'
+            ]
+        ];
+
+        return $this->hasElementInScopeHandler($target, $list);
+    }
+
+    public function hasElementInTableScope($target): bool {
+        # The stack of open elements is said to have a particular element in table scope
+        # when it has that element in the specific scope consisting of the following
+        # element types:
+        #
+        # All the element types listed above for the has an element in scope algorithm.
+        # html in the HTML namespace
+        # table in the HTML namespace
+        # template in the HTML namespace
+
+        // Not sure what to do here. I am going to assume the elements without a
+        // namespace in the element types listed above are meant for the HTML namespace.
+        // If so then these listed here are redundant. My interpretation therefore has
+        // this being an alias for hasElementInScope.
+
+        return $this->hasElementInScope($target);
+    }
+
+    public function hasElementInSelectScope(string $target): bool {
+        # The stack of open elements is said to have a particular element in select
+        # scope when it has that element in the specific scope consisting of all element
+        # types except the following:
+        #
+        # All the element types listed above for the has an element in scope algorithm.
+        # optgroup in the HTML namespace
+        # option in the HTML namespace
+
+        $list = [
+            Parser::HTML_NAMESPACE => [
+                'applet',
+                'caption',
+                'html',
+                'table',
+                'td',
+                'th',
+                'marquee',
+                'object',
+                'template',
+                'button',
+                'optgroup',
+                'option'
+            ],
+
+            Parser::MATHML_NAMESPACE => [
+                'mi',
+                'mo',
+                'mn',
+                'ms',
+                'mtext',
+                'annotation-xml'
+            ],
+
+            Parser::SVG_NAMESPACE => [
+                'foreignObject',
+                'desc',
+                'title'
+            ]
+        ];
+
+        return $this->hasElementInScopeHandler($target, $list);
+    }
+
+
+    protected function hasElementInScopeHandler($target, array $list): bool {
+        # 1. Initialize node to be the current node (the bottommost node of the stack).
+        // Handled by loop.
+        foreach (array_reverse($this->_storage) as $node) {
+            # 2. If node is the target node, terminate in a match state.
+            if ($target instanceof DOMElement) {
+                if ($node->isSameNode($target)) {
+                    return true;
+                }
+            } elseif (is_string($target)) {
+                if ($node->nodeName === $target) {
+                    return true;
+                }
+            }
+
+            # 3. Otherwise, if node is one of the element types in list, terminate in a
+            # failure state.
+            else {
+                foreach ($list as $namespace => $subList) {
+                    if ($namespace === Parser::HTML_NAMESPACE) {
+                        $namespace = '';
+                    }
+
+                    if ($node->namespaceURI !== $namespace) {
+                        continue;
+                    }
+
+                    foreach ($subList as $name) {
+                        if ($node->nodeName === $name) {
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            # Otherwise, set node to the previous entry in the stack of open elements and
+            # return to step 2. (This will never fail, since the loop will always terminate
+            # in the previous step if the top of the stack — an html element — is reached.)
+            // Handled by loop.
+        }
+
+        return false;
+    }
+
 
     public function __get($property) {
         $value = parent::__get($property);
