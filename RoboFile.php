@@ -47,6 +47,16 @@ class RoboFile extends \Robo\Tasks {
         return $this->runTests(escapeshellarg(\PHP_BINARY), "quick", $args);
     }
 
+    /** Manually updates the imported html5lib test suite */
+    public function testUpdate(): Result {
+        $dir = BASE_TEST."html5lib-tests";
+        if (is_dir($dir)) {
+            return $this->taskGitStack()->dir($dir)->pull()->run();
+        } else {
+            return $this->taskGitStack()->cloneRepo("https://github.com/html5lib/html5lib-tests", $dir)->run();
+        }
+    }
+
     /** Produces a code coverage report
      *
      * By default this task produces an HTML-format coverage report in
@@ -123,7 +133,10 @@ class RoboFile extends \Robo\Tasks {
         }
         $execpath = norm(BASE."vendor-bin/phpunit/vendor/phpunit/phpunit/phpunit");
         $confpath = realpath(BASE_TEST."phpunit.dist.xml") ?: norm(BASE_TEST."phpunit.xml");
-        //$this->taskServer(8000)->host("localhost")->dir(BASE_TEST."docroot")->rawArg("-n")->arg(BASE_TEST."server.php")->rawArg($this->blackhole())->background()->run();
+        // clone the html5lib test suite if it's not already present
+        if (!is_dir(BASE_TEST."html5lib-tests")) {
+            $this->testUpdate();
+        }
         return $this->taskExec($executor)->option("-d", "zend.assertions=1")->arg($execpath)->option("-c", $confpath)->args(array_merge($set, $args))->run();
     }
 }
