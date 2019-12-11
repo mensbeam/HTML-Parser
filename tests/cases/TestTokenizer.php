@@ -8,6 +8,14 @@ use dW\HTML5\OpenElementsStack;
 use dW\HTML5\Tokenizer;
 
 class TestTokenizer extends \dW\HTML5\Test\StandardTest {
+    const DEBUG = false;
+
+    public function setUp(): void {
+        if (self::DEBUG) {
+            ob_end_clean();
+            Tokenizer::$debug = true;
+        }
+    }
     /** @dataProvider provideStandardTokenizerTests */
     public function testStandardTokenizerTests(string $input, array $expected, int $state, string $open = null, array $errors) {
         $data = new Data($input);
@@ -18,14 +26,15 @@ class TestTokenizer extends \dW\HTML5\Test\StandardTest {
         $tokenizer = new Tokenizer($data, $stack);
         $tokenizer->state = $state;
         $actual = [];
-        while (!($t = $tokenizer->createToken()) instanceof EOFToken) {
+        do {
+            $t = $tokenizer->createToken();
             $actual[] = $t;
-        }
-        $this->assertEquals($expected, $actual);
+        } while (!($t instanceof EOFToken));
+        array_pop($actual);
+        $this->assertEquals($expected, $actual);       
     }
 
     public function provideStandardTokenizerTests() {
-        $out = $this->makeTokenTests(__DIR__."/../html5lib-tests/tokenizer/test1.test");
-        return array_slice(iterator_to_array($out), 0, 3);
+        return $this->makeTokenTests(__DIR__."/../html5lib-tests/tokenizer/test1.test");
     }
 }

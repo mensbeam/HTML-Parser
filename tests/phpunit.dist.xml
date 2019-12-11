@@ -7,10 +7,7 @@
     convertWarningsToExceptions="false"
     beStrictAboutTestsThatDoNotTestAnything="true"
     forceCoversAnnotation="true"
-    executionOrder="defects"
 >
-
-<!--    beStrictAboutOutputDuringTests="true" -->
 
 <filter>
   <whitelist processUncoveredFilesFromWhitelist="true">
