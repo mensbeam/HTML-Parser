@@ -472,7 +472,16 @@ class Data
             }
         }
 
-        $this->data->seek(($advancePointer) ? -1 : 0 - $count - 2);
+        // If the end is reached the pointer isn't moved when the last character
+        // is checked, so it only needs to be moved backwards if not wanting the
+        // pointer to move.
+        if ($char === '') {
+            if (!$advancePointer) {
+                $this->data->seek(0 - $count - 1);
+            }
+        } else {
+            $this->data->seek(($advancePointer) ? -1 : 0 - $count - 2);
+        }
 
         if (self::$debug) {
             echo ($advancePointer) ? "\nconsume" : "\npeek";
