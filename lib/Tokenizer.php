@@ -443,7 +443,7 @@ class Tokenizer {
 
                     // Making errors more expressive.
                     if ($char !== '') {
-                        ParseError::trigger(ParseError::TAG_NAME_EXPECTED, $char);
+                        ParseError::trigger(ParseError::TAG_NAME_EXPECTED);
                     } else {
                         ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     }
@@ -483,7 +483,7 @@ class Tokenizer {
                 # ">" (U+003E)
                 elseif ($char === '>') {
                     # Parse error. Switch to the data state.
-                    ParseError::trigger(ParseError::TAG_NAME_EXPECTED, $char);
+                    ParseError::trigger(ParseError::TAG_NAME_EXPECTED);
                     $this->state = self::DATA_STATE;
                 }
                 # EOF
@@ -1511,7 +1511,7 @@ class Tokenizer {
                     }
 
                     // Need to add the current attribute to the token, if necessary.
-                    if ($attribute) {
+                    if ($attribute ?? null) {
                         $token->attributes[] = $attribute;
                         $attribute = null;
                     }
@@ -1546,7 +1546,7 @@ class Tokenizer {
                 }
                 # "=" (U+003D)
                 elseif ($char === '=') {
-                    if ($token->hasAttribute($attribute->name)) {
+                    if ($token instanceof StartTagToken && $token->hasAttribute($attribute->name)) {
                         ParseError::trigger(ParseError::ATTRIBUTE_EXISTS, $attribute->name);
                     }
 
