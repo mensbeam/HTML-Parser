@@ -21,9 +21,7 @@ class StandardTest extends \PHPUnit\Framework\TestCase {
 
     protected function makeTokenTests(string $file): iterable {
         $testSet = json_decode(file_get_contents($file), true);
-        $index = 0;
-        foreach ($testSet['tests'] as $test) {
-            $index += 1;
+        foreach ($testSet['tests'] as $index => $test) {
             $test['initialStates'] = $test['initialStates'] ?? ["Data state"];
             for ($a = 0; $a < sizeof($test['initialStates']); $a++) {
                 $tokens = [];
@@ -54,15 +52,14 @@ class StandardTest extends \PHPUnit\Framework\TestCase {
                             throw new \Exception("Token type '{$token[0]}' not implemented in standard test interpreter");
                     }
                     unset($t);
-                    //yield "#$index {$test['description']} ({$test['initialStates'][$a]})" => [
-                    yield [
-                        $test['input'],                                 // input
-                        $tokens,                                        // output
-                        self::STATE_MAP[$test['initialStates'][$a]],    // initial state
-                        $test['lastStartTag'] ?? null,                  // open element, if any
-                        $test['errors'] ?? [],                          // errors, if any
-                    ];
                 }
+                yield "{$test['description']} ({$test['initialStates'][$a]})" => [
+                    $test['input'],                                 // input
+                    $tokens,                                        // output
+                    self::STATE_MAP[$test['initialStates'][$a]],    // initial state
+                    $test['lastStartTag'] ?? null,                  // open element, if any
+                    $test['errors'] ?? [],                          // errors, if any
+                ];
             }
         }
     }
