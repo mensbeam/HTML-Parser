@@ -21,21 +21,23 @@ class ParseError {
     const INVALID_NAMED_ENTITY = 13;
     const INVALID_CODEPOINT = 14;
 
-    protected static $messages = ['Tag name expected',
-                                  'Unexpected end-of-file',
-                                  'Unexpected "%s" character',
-                                  '%s attribute already exists; discarding',
-                                  'Unexpected end-of-tag',
-                                  'Unexpected %s start tag',
-                                  'Unexpected %s end tag',
-                                  'Unexpected DOCTYPE',
-                                  'Invalid DOCTYPE',
-                                  'Invalid Control or Non-character; removing',
-                                  'Unexpected xmlns attribute value',
-                                  'Unexpected "%s" character in entity; %s expected',
-                                  '"%s" is an invalid numeric entity',
-                                  '"%s" is an invalid name for an entity',
-                                  '"%s" is an invalid character codepoint'];
+    protected static $messages = [
+        self::TAG_NAME_EXPECTED                => 'Tag name expected',
+        self::UNEXPECTED_EOF                   => 'Unexpected end-of-file',
+        self::UNEXPECTED_CHARACTER             => 'Unexpected "%s" character',
+        self::ATTRIBUTE_EXISTS                 => '%s attribute already exists; discarding',
+        self::UNEXPECTED_END_OF_TAG            => 'Unexpected end-of-tag',
+        self::UNEXPECTED_START_TAG             => 'Unexpected %s start tag',
+        self::UNEXPECTED_END_TAG               => 'Unexpected %s end tag',
+        self::UNEXPECTED_DOCTYPE               => 'Unexpected DOCTYPE',
+        self::INVALID_DOCTYPE                  => 'Invalid DOCTYPE',
+        self::INVALID_CONTROL_OR_NONCHARACTERS => 'Invalid Control or Non-character; removing',
+        self::UNEXPECTED_XMLNS_ATTRIBUTE_VALUE => 'Unexpected xmlns attribute value',
+        self::ENTITY_UNEXPECTED_CHARACTER      => 'Unexpected "%s" character in entity; %s expected',
+        self::INVALID_NUMERIC_ENTITY           => '"%s" is an invalid numeric entity',
+        self::INVALID_NAMED_ENTITY             => '"%s" is an invalid name for an entity',
+        self::INVALID_CODEPOINT                => '"%s" is an invalid character codepoint'
+    ];
 
     public function __construct(Data $data) {
         $this->data = $data;

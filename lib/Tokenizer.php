@@ -76,6 +76,74 @@ class Tokenizer {
     const BOGUS_DOCTYPE_STATE = 63;
     const CDATA_SECTION_STATE = 64;
 
+    const STATE_NAMES = [
+        self::DATA_STATE                                          => "Data",
+        self::RCDATA_STATE                                        => "RCDATA",
+        self::RAWTEXT_STATE                                       => "RAWTEXT",
+        self::SCRIPT_DATA_STATE                                   => "Script data",
+        self::PLAINTEXT_STATE                                     => "PLAINTEXT",
+        self::TAG_OPEN_STATE                                      => "Tag open",
+        self::END_TAG_OPEN_STATE                                  => "End tag open",
+        self::TAG_NAME_STATE                                      => "Tag name",
+        self::RCDATA_LESS_THAN_SIGN_STATE                         => "RCDATA less-than sign",
+        self::RCDATA_END_TAG_OPEN_STATE                           => "RCDATA end tag open",
+        self::RCDATA_END_TAG_NAME_STATE                           => "RCDATA end tag name",
+        self::RAWTEXT_LESS_THAN_SIGN_STATE                        => "RAWTEXT less than sign",
+        self::RAWTEXT_END_TAG_OPEN_STATE                          => "RAWTEXT end tag open",
+        self::RAWTEXT_END_TAG_NAME_STATE                          => "RAWTEXT end tag name",
+        self::SCRIPT_DATA_LESS_THAN_SIGN_STATE                    => "Script data less-than sign",
+        self::SCRIPT_DATA_END_TAG_OPEN_STATE                      => "Script data end tag open",
+        self::SCRIPT_DATA_END_TAG_NAME_STATE                      => "Script data end tag name",
+        self::SCRIPT_DATA_ESCAPE_START_STATE                      => "Script data escape start",
+        self::SCRIPT_DATA_ESCAPE_START_DASH_STATE                 => "Script data escape start dash",
+        self::SCRIPT_DATA_ESCAPED_STATE                           => "Script data escaped",
+        self::SCRIPT_DATA_ESCAPED_DASH_STATE                      => "Script data escaped dash",
+        self::SCRIPT_DATA_ESCAPED_DASH_DASH_STATE                 => "Script data escaped dash dash",
+        self::SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN_STATE            => "Script data escaped less-than sign",
+        self::SCRIPT_DATA_ESCAPED_END_TAG_OPEN_STATE              => "Script data escaped end tag open",
+        self::SCRIPT_DATA_ESCAPED_END_TAG_NAME_STATE              => "Script data escaped end tag name",
+        self::SCRIPT_DATA_DOUBLE_ESCAPE_START_STATE               => "Script data double escape start",
+        self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE                    => "Script data double escaped",
+        self::SCRIPT_DATA_DOUBLE_ESCAPED_DASH_STATE               => "Script data double escaped dash",
+        self::SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH_STATE          => "Script data double escaped dash dash",
+        self::SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN_STATE     => "Script data double escaped less-than sign",
+        self::SCRIPT_DATA_DOUBLE_ESCAPE_END_STATE                 => "Script data double escape end",
+        self::BEFORE_ATTRIBUTE_NAME_STATE                         => "Before attribute",
+        self::ATTRIBUTE_NAME_STATE                                => "Attribute name",
+        self::AFTER_ATTRIBUTE_NAME_STATE                          => "After attribute name",
+        self::BEFORE_ATTRIBUTE_VALUE_STATE                        => "Before attribute value",
+        self::ATTRIBUTE_VALUE_DOUBLE_QUOTED_STATE                 => "Attribute value (double quoted)",
+        self::ATTRIBUTE_VALUE_SINGLE_QUOTED_STATE                 => "Attribute value (single quoted)",
+        self::ATTRIBUTE_VALUE_UNQUOTED_STATE                      => "Attribute value (unquoted)",
+        self::AFTER_ATTRIBUTE_VALUE_QUOTED_STATE                  => "After attribute value (quoted)",
+        self::SELF_CLOSING_START_TAG_STATE                        => "Self-closing start tag",
+        self::BOGUS_COMMENT_STATE                                 => "Bogus comment",
+        self::MARKUP_DECLARATION_OPEN_STATE                       => "Markup declaration open",
+        self::COMMENT_START_STATE                                 => "Comment start",
+        self::COMMENT_START_DASH_STATE                            => "Comment start dash",
+        self::COMMENT_STATE                                       => "Comment",
+        self::COMMENT_END_DASH_STATE                              => "Comment end dash",
+        self::COMMENT_END_STATE                                   => "Comment end",
+        self::COMMENT_END_BANG_STATE                              => "Comment end bang",
+        self::DOCTYPE_STATE                                       => "DOCTYPE",
+        self::BEFORE_DOCTYPE_NAME_STATE                           => "Before DOCTYPE name",
+        self::DOCTYPE_NAME_STATE                                  => "DOCTYPE name",
+        self::AFTER_DOCTYPE_NAME_STATE                            => "After DOCTYPE name",
+        self::AFTER_DOCTYPE_PUBLIC_KEYWORD_STATE                  => "After DOCTYPE public keyword",
+        self::BEFORE_DOCTYPE_PUBLIC_IDENTIFIER_STATE              => "Before DOCTYPE public identifier",
+        self::DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED_STATE       => "DOCTYPE public identifier (double quoted)",
+        self::DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED_STATE       => "DOCTYPE public identifier (single quoted)",
+        self::AFTER_DOCTYPE_PUBLIC_IDENTIFIER_STATE               => "After DOCTYPE public identifier",
+        self::BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS_STATE => "Between DOCTYPE public and system identifiers",
+        self::AFTER_DOCTYPE_SYSTEM_KEYWORD_STATE                  => "After DOCTYPE system keyword",
+        self::BEFORE_DOCTYPE_SYSTEM_IDENTIFIER_STATE              => "Before DOCTYPE system identifier",
+        self::DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED_STATE       => "DOCTYPE system identifier (double-quoted)",
+        self::DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED_STATE       => "DOCTYPE system identifier (single-quoted)",
+        self::AFTER_DOCTYPE_SYSTEM_IDENTIFIER_STATE               => "After DOCTYPE system identifier",
+        self::BOGUS_DOCTYPE_STATE                                 => "Bogus comment",
+        self::CDATA_SECTION_STATE                                 => "CDATA section",
+    ];
+
     // Ctype constants
     const CTYPE_ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
     const CTYPE_UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -89,141 +157,13 @@ class Tokenizer {
     public function createToken(): Token {
         while (true) {
             if (self::$debug) {
-                switch ($this->state) {
-                    case self::DATA_STATE: $state = "Data";
-                    break;
-                    case self::RCDATA_STATE: $state = "RCDATA";
-                    break;
-                    case self::RAWTEXT_STATE: $state = "RAWTEXT";
-                    break;
-                    case self::SCRIPT_DATA_STATE: $state = "Script data";
-                    break;
-                    case self::PLAINTEXT_STATE: $state = "PLAINTEXT";
-                    break;
-                    case self::TAG_OPEN_STATE: $state = "Tag open";
-                    break;
-                    case self::END_TAG_OPEN_STATE: $state = "End tag open";
-                    break;
-                    case self::TAG_NAME_STATE: $state = "Tag name";
-                    break;
-                    case self::RCDATA_LESS_THAN_SIGN_STATE: $state = "RCDATA less-than sign";
-                    break;
-                    case self::RCDATA_END_TAG_OPEN_STATE: $state = "RCDATA end tag open";
-                    break;
-                    case self::RCDATA_END_TAG_NAME_STATE: $state = "RCDATA end tag name";
-                    break;
-                    case self::RAWTEXT_LESS_THAN_SIGN_STATE: $state = "RAWTEXT less than sign";
-                    break;
-                    case self::RAWTEXT_END_TAG_OPEN_STATE: $state = "RAWTEXT end tag open";
-                    break;
-                    case self::RAWTEXT_END_TAG_NAME_STATE: $state = "RAWTEXT end tag name";
-                    break;
-                    case self::SCRIPT_DATA_LESS_THAN_SIGN_STATE: $state = "Script data less-than sign";
-                    break;
-                    case self::SCRIPT_DATA_END_TAG_OPEN_STATE: $state = "Script data end tag open";
-                    break;
-                    case self::SCRIPT_DATA_END_TAG_NAME_STATE: $state = "Script data end tag name";
-                    break;
-                    case self::SCRIPT_DATA_ESCAPE_START_STATE: $state = "Script data escape start";
-                    break;
-                    case self::SCRIPT_DATA_ESCAPE_START_DASH_STATE: $state = "Script data escape start dash";
-                    break;
-                    case self::SCRIPT_DATA_ESCAPED_STATE: $state = "Script data escaped";
-                    break;
-                    case self::SCRIPT_DATA_ESCAPED_DASH_STATE: $state = "Script data escaped dash";
-                    break;
-                    case self::SCRIPT_DATA_ESCAPED_DASH_DASH_STATE: $state = "Script data escaped dash dash";
-                    break;
-                    case self::SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN_STATE: $state = "Script data escaped less-than sign";
-                    break;
-                    case self::SCRIPT_DATA_ESCAPED_END_TAG_OPEN_STATE: $state = "Script data escaped end tag open";
-                    break;
-                    case self::SCRIPT_DATA_ESCAPED_END_TAG_NAME_STATE: $state = "Script data escaped end tag name";
-                    break;
-                    case self::SCRIPT_DATA_DOUBLE_ESCAPE_START_STATE: $state = "Script data double escape start";
-                    break;
-                    case self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE: $state = "Script data double escaped";
-                    break;
-                    case self::SCRIPT_DATA_DOUBLE_ESCAPED_DASH_STATE: $state = "Script data double escaped dash";
-                    break;
-                    case self::SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH_STATE: $state = "Script data double escaped dash dash";
-                    break;
-                    case self::SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN_STATE: $state = "Script data double escaped less-than sign";
-                    break;
-                    case self::SCRIPT_DATA_DOUBLE_ESCAPE_END_STATE: $state = "Script data double escape end";
-                    break;
-                    case self::BEFORE_ATTRIBUTE_NAME_STATE: $state = "Before attribute";
-                    break;
-                    case self::ATTRIBUTE_NAME_STATE: $state = "Attribute name";
-                    break;
-                    case self::AFTER_ATTRIBUTE_NAME_STATE: $state = "After attribute name";
-                    break;
-                    case self::BEFORE_ATTRIBUTE_VALUE_STATE: $state = "Before attribute value";
-                    break;
-                    case self::ATTRIBUTE_VALUE_DOUBLE_QUOTED_STATE: $state = "Attribute value (double quoted)";
-                    break;
-                    case self::ATTRIBUTE_VALUE_SINGLE_QUOTED_STATE: $state = "Attribute value (single quoted)";
-                    break;
-                    case self::ATTRIBUTE_VALUE_UNQUOTED_STATE: $state = "Attribute value (unquoted)";
-                    break;
-                    case self::AFTER_ATTRIBUTE_VALUE_QUOTED_STATE: $state = "After attribute value (quoted)";
-                    break;
-                    case self::SELF_CLOSING_START_TAG_STATE: $state = "Self-closing start tag";
-                    break;
-                    case self::BOGUS_COMMENT_STATE: $state = "Bogus comment";
-                    break;
-                    case self::MARKUP_DECLARATION_OPEN_STATE: $state = "Markup declaration open";
-                    break;
-                    case self::COMMENT_START_STATE: $state = "Comment start";
-                    break;
-                    case self::COMMENT_START_DASH_STATE: $state = "Comment start dash";
-                    break;
-                    case self::COMMENT_STATE: $state = "Comment";
-                    break;
-                    case self::COMMENT_END_DASH_STATE: $state = "Comment end dash";
-                    break;
-                    case self::COMMENT_END_STATE: $state = "Comment end";
-                    break;
-                    case self::COMMENT_END_BANG_STATE: $state = "Comment end bang";
-                    break;
-                    case self::DOCTYPE_STATE: $state = "DOCTYPE";
-                    break;
-                    case self::BEFORE_DOCTYPE_NAME_STATE: $state = "Before DOCTYPE name";
-                    break;
-                    case self::DOCTYPE_NAME_STATE: $state = "DOCTYPE name";
-                    break;
-                    case self::AFTER_DOCTYPE_NAME_STATE: $state = "After DOCTYPE name";
-                    break;
-                    case self::AFTER_DOCTYPE_PUBLIC_KEYWORD_STATE: $state = "After DOCTYPE public keyword";
-                    break;
-                    case self::BEFORE_DOCTYPE_PUBLIC_IDENTIFIER_STATE: $state = "Before DOCTYPE public identifier";
-                    break;
-                    case self::DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED_STATE: $state = "DOCTYPE public identifier (double quoted)";
-                    break;
-                    case self::DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED_STATE: $state = "DOCTYPE public identifier (single quoted)";
-                    break;
-                    case self::AFTER_DOCTYPE_PUBLIC_IDENTIFIER_STATE: $state = "After DOCTYPE public identifier";
-                    break;
-                    case self::BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS_STATE: $state = "Between DOCTYPE public and system identifiers";
-                    break;
-                    case self::AFTER_DOCTYPE_SYSTEM_KEYWORD_STATE: $state = "After DOCTYPE system keyword";
-                    break;
-                    case self::BEFORE_DOCTYPE_SYSTEM_IDENTIFIER_STATE: $state = "Before DOCTYPE system identifier";
-                    break;
-                    case self::DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED_STATE: $state = "DOCTYPE system identifier (double-quoted)";
-                    break;
-                    case self::DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED_STATE: $state = "DOCTYPE system identifier (single-quoted)";
-                    break;
-                    case self::AFTER_DOCTYPE_SYSTEM_IDENTIFIER_STATE: $state = "After DOCTYPE system identifier";
-                    break;
-                    case self::BOGUS_DOCTYPE_STATE: $state = "Bogus comment";
-                    break;
-                    case self::CDATA_SECTION_STATE: $state = "CDATA section";
-                    break;
-                    default: throw new Exception(Exception::UNKNOWN_ERROR);
+                $state = self::STATE_NAMES[$this->state] ?? "";
+                if ($state) {
+                    echo "State: $state\n";
+                    unset($state);
+                } else {
+                    throw new Exception(Exception::UNKNOWN_ERROR);
                 }
-
-                echo "State: $state\n";
             }
 
             # 12.2.4.1 Data state
