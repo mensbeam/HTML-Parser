@@ -2,8 +2,9 @@
 declare(strict_types=1);
 namespace dW\HTML5;
 
-class Data
-{
+class Data {
+    use ParseErrorEmitter;
+
     // Used to get the file path for error reporting.
     public $filePath;
 
@@ -28,7 +29,8 @@ class Data
     const WHITESPACE = "\t\n\x0c\x0d ";
 
 
-    public function __construct(string $data, string $filePath = 'STDIN') {
+    public function __construct(string $data, string $filePath = 'STDIN', ParseError $errorHandler = null) {
+        $this->errorHandler = $errorHandler ?? new ParseError;
         if ($filePath !== 'STDIN') {
             $this->filePath = realpath($filePath);
             $data = file_get_contents($this->filePath);
@@ -55,7 +57,7 @@ class Data
         // Won't provide line or column counts for this as it's done before that
         // information is available. It will be rare that this is triggered.
         $data = preg_replace_callback('/(?:[\x01-\x08\x0B\x0E-\x1F\x7F]|\xC2[\x80-\x9F]|\xED(?:\xA0[\x80-\xFF]|[\xA1-\xBE][\x00-\xFF]|\xBF[\x00-\xBF])|\xEF\xB7[\x90-\xAF]|\xEF\xBF[\xBE\xBF]|[\xF0-\xF4][\x8F-\xBF]\xBF[\xBE\xBF])/u', function($matches) {
-            ParseError::trigger(ParseError::INVALID_CONTROL_OR_NONCHARACTERS);
+            $this->error(ParseError::INVALID_CONTROL_OR_NONCHARACTERS);
             return '';
         }, $data);
 
@@ -197,7 +199,7 @@ class Data
                 # unconsume the U+0023 NUMBER SIGN character and, if appropriate, the X
                 # character). This is a parse error; nothing is returned.
                 if (!$number) {
-                    ParseError::trigger(ParseError::ENTITY_UNEXPECTED_CHARACTER, $this->peek(), 'hexadecimal digit');
+                    $this->error(ParseError::ENTITY_UNEXPECTED_CHARACTER, $this->peek(), 'hexadecimal digit');
                     $this->unconsume(2);
                     return '&';
                 }
@@ -211,9 +213,9 @@ class Data
                 if (!$number) {
                     $peek = $this->peek();
                     if ($peek !== '') {
-                        ParseError::trigger(ParseError::ENTITY_UNEXPECTED_CHARACTER, $this->peek(), 'decimal digit');
+                        $this->error(ParseError::ENTITY_UNEXPECTED_CHARACTER, $this->peek(), 'decimal digit');
                     } else {
-                        ParseError::trigger(ParseError::UNEXPECTED_EOF);
+                        $this->error(ParseError::UNEXPECTED_EOF);
                     }
 
                     $this->unconsume();
@@ -227,9 +229,9 @@ class Data
             if ($char === ';') {
                 $this->consume();
             } elseif ($char === '') {
-                ParseError::trigger(ParseError::UNEXPECTED_EOF);
+                $this->error(ParseError::UNEXPECTED_EOF);
             } else {
-                ParseError::trigger(ParseError::ENTITY_UNEXPECTED_CHARACTER, $char, 'semicolon terminator');
+                $this->error(ParseError::ENTITY_UNEXPECTED_CHARACTER, $char, 'semicolon terminator');
             }
 
             # If one or more characters match the range, then take them all and interpret the
@@ -328,7 +330,7 @@ class Data
             }
 
             if ($returnValue) {
-                ParseError::trigger(ParseError::INVALID_NUMERIC_ENTITY, $number);
+                $this->error(ParseError::INVALID_NUMERIC_ENTITY, $number);
                 // Consume the ampersand but return the value instead.
                 $this->consume();
                 return $returnValue;
@@ -338,7 +340,7 @@ class Data
             # 0x10FFFF, then this is a parse error. Return a U+FFFD REPLACEMENT CHARACTER
             # character token.
             if (($number >= 0xD800 && $number <= 0xDFFF) || $number > 0x10FFFF) {
-                ParseError::trigger(ParseError::INVALID_CODEPOINT, $number);
+                $this->error(ParseError::INVALID_CODEPOINT, $number);
                 return '�';
             }
 
@@ -359,7 +361,7 @@ class Data
                  $number === 0xBFFFF || $number === 0xCFFFE || $number === 0xCFFFF || $number === 0xDFFFE ||
                  $number === 0xDFFFF || $number === 0xEFFFE || $number === 0xEFFFF || $number === 0xFFFFE ||
                  $number === 0xFFFFF || $number === 0x10FFFE || $number === 0x10FFFF) {
-                ParseError::trigger(ParseError::INVALID_CODEPOINT, $number);
+                $this->error(ParseError::INVALID_CODEPOINT, $number);
                 // Consume the ampersand.
                 $this->consume();
                 return '&';
@@ -403,7 +405,7 @@ class Data
             $next = $this->peek();
             if ($inAttribute && $lastChar !== ';' && ($next === '=' || ctype_alnum($next))) {
                 if ($next === '=') {
-                    ParseError::trigger(ParseError::ENTITY_UNEXPECTED_CHARACTER, $next, 'semicolon terminator');
+                    $this->error(ParseError::ENTITY_UNEXPECTED_CHARACTER, $next, 'semicolon terminator');
                 }
 
                 // Consume the ampersand.
@@ -419,7 +421,7 @@ class Data
                 // Used for PHP's entity decoder. Described below.
                 $sequence.=';';
 
-                ParseError::trigger(ParseError::ENTITY_UNEXPECTED_CHARACTER, $lastChar, 'semicolon terminator');
+                $this->error(ParseError::ENTITY_UNEXPECTED_CHARACTER, $lastChar, 'semicolon terminator');
             }
 
             # Return one or two character tokens for the character(s) corresponding to the
@@ -437,7 +439,7 @@ class Data
         # (&) consist of a sequence of one or more alphanumeric ASCII characters followed
         # by a U+003B SEMICOLON character (;), then this is a parse error.
         if (preg_match('/^[A-Za-z0-9]+;/', $char)) {
-            ParseError::trigger(ParseError::INVALID_NAMED_ENTITY, $char);
+            $this->error(ParseError::INVALID_NAMED_ENTITY, $char);
         }
 
         // Consume the ampersand.

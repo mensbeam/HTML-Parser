@@ -5,6 +5,7 @@ namespace dW\HTML5\TestCase;
 use dW\HTML5\Data;
 use dW\HTML5\EOFToken;
 use dW\HTML5\OpenElementsStack;
+use dW\HTML5\ParseError;
 use dW\HTML5\Tokenizer;
 
 class TestTokenizer extends \dW\HTML5\Test\StandardTest {
@@ -18,18 +19,25 @@ class TestTokenizer extends \dW\HTML5\Test\StandardTest {
     }
     /** @dataProvider provideStandardTokenizerTests */
     public function testStandardTokenizerTests(string $input, array $expected, int $state, string $open = null, array $errors) {
-        $data = new Data($input);
         $stack = new OpenElementsStack();
+        $errorHandler = new ParseError;
         if ($open) {
             $stack[] = (new \DOMDocument)->createElement($open);
         }
-        $tokenizer = new Tokenizer($data, $stack);
+        $errorHandler = new ParseError;
+        $errorHandler->setHandler();
+        $data = new Data($input, "STDIN", $errorHandler);
+        $tokenizer = new Tokenizer($data, $stack, $errorHandler);
         $tokenizer->state = $state;
         $actual = [];
-        do {
-            $t = $tokenizer->createToken();
-            $actual[] = $t;
-        } while (!($t instanceof EOFToken));
+        try {
+            do {
+                $t = $tokenizer->createToken();
+                $actual[] = $t;
+            } while (!($t instanceof EOFToken));
+        } finally {
+            $errorHandler->clearHandler();
+        }
         array_pop($actual);
         $actual = $this->combineCharacterTokens($actual);
         $this->assertEquals($expected, $actual);

@@ -39,49 +39,32 @@ class ParseError {
         self::INVALID_CODEPOINT                => '"%s" is an invalid character codepoint'
     ];
 
-    public function __construct(Data $data) {
-        $this->data = $data;
-
+    public function setHandler() {
         // Set the error handler and honor already-set error reporting rules.
         set_error_handler([$this, 'errorHandler'], error_reporting());
     }
 
-    public function __destruct() {
+    public function clearHandler() {
         restore_error_handler();
     }
 
-    public function errorHandler(int $code, string $message, string $file, int $line) {
-        if ($code === E_USER_WARNING) {
-            $errMsg = sprintf("HTML5 Parse Error: \"%s\" in %s", $message, $this->data->filePath);
-
-            if ($this->data->length !== 0) {
-                $errMsg .= sprintf(" on line %s, column %s\n", $this->data->line, $this->data->column);
-            } else {
-                $errMsg .= "\n";
-            }
-
-            echo $errMsg;
-        }
-    }
-
-    public static function trigger(int $code, ...$args): bool {
+    protected function prepareMessage(string $file, int $line, int $column, int $code, ...$arg): string {
         if (!isset(static::$messages[$code])) {
             throw new Exception(Exception::INVALID_CODE);
         }
 
         $message = static::$messages[$code];
-
         // Count the number of replacements needed in the message.
         $count = substr_count($message, '%s');
         // If the number of replacements don't match the arguments then oops.
-        if (count($args) !== $count) {
+        if (count($arg) !== $count) {
             throw new Exception(Exception::INCORRECT_PARAMETERS_FOR_MESSAGE, $count);
         }
 
         if ($count > 0) {
             // Convert newlines and tabs in the arguments to words to better express what they
             // are.
-            $args = array_map(function($value) {
+            $arg = array_map(function($value) {
                 if ($value === "\n") {
                     return 'Newline';
                 } elseif ($value === "\t") {
@@ -91,12 +74,27 @@ class ParseError {
                 } else {
                     return $value;
                 }
-            }, $args);
+            }, $arg);
 
             // Go through each of the arguments and run sprintf on the strings.
-            $message = call_user_func_array('sprintf', array_merge([$message], $args));
+            $message = sprintf($message, ...$arg);
         }
-        $output = trigger_error($message, E_USER_WARNING);
-        return $output;
+        // Wrap with preamble and location
+        // TODO: the file path should be middle-elided when necessary so that the message does not exceed 1024 bytes
+        $message = sprintf("HTML5 Parse Error: \"%s\" in %s", $message, $file);
+        if ($line) {
+            $message .= sprintf(" on line %s, column %s", $line, $column);
+        }
+        return $message;
+    }
+
+    public function emit(string $file, int $line, int $column, int $code, ...$arg): bool {
+        return trigger_error($this->prepareMessage($file, $line, $column, $code, ...$arg), \E_USER_WARNING);
+    }
+
+    public function errorHandler(int $code, string $message, string $file, int $line) {
+        if ($code === E_USER_WARNING) {
+            echo "$message\n";
+        }
     }
 }
