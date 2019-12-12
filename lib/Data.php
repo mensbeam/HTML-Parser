@@ -55,7 +55,7 @@ class Data
         // Won't provide line or column counts for this as it's done before that
         // information is available. It will be rare that this is triggered.
         $data = preg_replace_callback('/(?:[\x01-\x08\x0B\x0E-\x1F\x7F]|\xC2[\x80-\x9F]|\xED(?:\xA0[\x80-\xFF]|[\xA1-\xBE][\x00-\xFF]|\xBF[\x00-\xBF])|\xEF\xB7[\x90-\xAF]|\xEF\xBF[\xBE\xBF]|[\xF0-\xF4][\x8F-\xBF]\xBF[\xBE\xBF])/u', function($matches) {
-            ParseError::trigger(ParseError::INVALID_CONTROL_OR_NONCHARACTERS, $this);
+            ParseError::trigger(ParseError::INVALID_CONTROL_OR_NONCHARACTERS);
             return '';
         }, $data);
 
@@ -328,7 +328,7 @@ class Data
             }
 
             if ($returnValue) {
-                ParseError::trigger(Error::INVALID_NUMERIC_ENTITY, $number);
+                ParseError::trigger(ParseError::INVALID_NUMERIC_ENTITY, $number);
                 // Consume the ampersand but return the value instead.
                 $this->consume();
                 return $returnValue;
@@ -338,7 +338,7 @@ class Data
             # 0x10FFFF, then this is a parse error. Return a U+FFFD REPLACEMENT CHARACTER
             # character token.
             if (($number >= 0xD800 && $number <= 0xDFFF) || $number > 0x10FFFF) {
-                ParseError::trigger(Error::INVALID_CODEPOINT, $number);
+                ParseError::trigger(ParseError::INVALID_CODEPOINT, $number);
                 return '�';
             }
 
@@ -359,7 +359,7 @@ class Data
                  $number === 0xBFFFF || $number === 0xCFFFE || $number === 0xCFFFF || $number === 0xDFFFE ||
                  $number === 0xDFFFF || $number === 0xEFFFE || $number === 0xEFFFF || $number === 0xFFFFE ||
                  $number === 0xFFFFF || $number === 0x10FFFE || $number === 0x10FFFF) {
-                ParseError::trigger(Error::INVALID_CODEPOINT, $number);
+                ParseError::trigger(ParseError::INVALID_CODEPOINT, $number);
                 // Consume the ampersand.
                 $this->consume();
                 return '&';
@@ -367,7 +367,7 @@ class Data
 
             # Otherwise, return a character token for the Unicode character whose code point
             # is that number.
-            return \MensBeam\Intl\Encoding\UTF8::encode($number);
+            return \MensBeam\Intl\Encoding\UTF8::encode((int) $number);
         }
 
         # Consume the maximum number of characters possible, with the consumed characters

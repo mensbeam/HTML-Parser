@@ -18,8 +18,8 @@ class ParseError {
     const UNEXPECTED_XMLNS_ATTRIBUTE_VALUE = 10;
     const ENTITY_UNEXPECTED_CHARACTER = 11;
     const INVALID_NUMERIC_ENTITY = 12;
-    const INVALID_NAMED_ENTITY = 14;
-    const INVALID_CODEPOINT = 15;
+    const INVALID_NAMED_ENTITY = 13;
+    const INVALID_CODEPOINT = 14;
 
     protected static $messages = ['Tag name expected',
                                   'Unexpected end-of-file',
@@ -94,7 +94,6 @@ class ParseError {
             // Go through each of the arguments and run sprintf on the strings.
             $message = call_user_func_array('sprintf', array_merge([$message], $args));
         }
-
         $output = trigger_error($message, E_USER_WARNING);
         return $output;
     }

@@ -429,7 +429,7 @@ class Tokenizer {
 
                     // Making errors more expressive.
                     if ($char !== '') {
-                        ParseError::trigger(ParseError::TAG_NAME_EXPECTED, $char);
+                        ParseError::trigger(ParseError::TAG_NAME_EXPECTED);
                     } else {
                         ParseError::trigger(ParseError::UNEXPECTED_EOF);
                     }
@@ -499,7 +499,7 @@ class Tokenizer {
                 # Anything else
                 else {
                    # Parse error. Switch to the bogus comment state.
-                   ParseError::trigger(ParseError::TAG_NAME_EXPECTED, $char);
+                   ParseError::trigger(ParseError::TAG_NAME_EXPECTED);
                    $this->state = self::BOGUS_COMMENT_STATE;
                 }
 
@@ -1478,7 +1478,7 @@ class Tokenizer {
                     # state.
 
                     // Need to add the current attribute to the token, if necessary.
-                    if ($attribute) {
+                    if ($attribute ?? null) {
                         $token->attributes[] = $attribute;
                         $attribute = null;
                     }
@@ -1982,7 +1982,7 @@ class Tokenizer {
                     $this->state = self::DATA_STATE;
 
                     // Need to add the current attribute to the token, if necessary.
-                    if ($attribute) {
+                    if ($attribute ?? null) {
                         $token->attributes[] = $attribute;
                         $attribute = null;
                     }
@@ -2057,7 +2057,7 @@ class Tokenizer {
                 # the CDATA section state.
                 else {
                     $adjustedCurrentNode = $this->stack->adjustedCurrentNode;
-                    if ($adjustedCurrentNode && $adjustedCurrentNode->namespace !== self::HTML_NAMESPACE && $this->data->peek(7) === '[CDATA[') {
+                    if ($adjustedCurrentNode && $adjustedCurrentNode->namespace !== Parser::HTML_NAMESPACE && $this->data->peek(7) === '[CDATA[') {
                         $this->data->consume(7);
                         $this->state = self::CDATA_SECTION_STATE;
                     }
