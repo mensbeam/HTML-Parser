@@ -21,7 +21,7 @@ class TestTokenizer extends \dW\HTML5\Test\StandardTest {
         $data = new Data($input);
         $stack = new OpenElementsStack();
         if ($open) {
-            $stack[] = $open;
+            $stack[] = (new \DOMDocument)->createElement($open);
         }
         $tokenizer = new Tokenizer($data, $stack);
         $tokenizer->state = $state;
@@ -35,6 +35,13 @@ class TestTokenizer extends \dW\HTML5\Test\StandardTest {
     }
 
     public function provideStandardTokenizerTests() {
-        return $this->makeTokenTests(__DIR__."/../html5lib-tests/tokenizer/test1.test");
+        $tests = [];
+        $blacklist = ["pendingSpecChanges.test", "xmlViolation.test"];
+        foreach (new \GlobIterator(\dW\HTML5\BASE."tests/html5lib-tests/tokenizer/*.test", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME) as $file) {
+            if (!in_array(basename($file), $blacklist)) {
+                $tests[] = $file;
+            }
+        }
+        return $this->makeTokenTests(...$tests);
     }
 }
