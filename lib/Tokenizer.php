@@ -161,12 +161,9 @@ class Tokenizer {
         while (true) {
             if (self::$debug) {
                 $state = self::STATE_NAMES[$this->state] ?? "";
-                if ($state) {
-                    echo "State: $state\n";
-                    unset($state);
-                } else {
-                    throw new Exception(Exception::UNKNOWN_ERROR);
-                }
+                assert($state, new Exception(Exception::UNKNOWN_ERROR));
+                echo "State: $state\n";
+                unset($state);
             }
 
             # 12.2.4.1 Data state

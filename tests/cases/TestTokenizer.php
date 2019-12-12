@@ -45,7 +45,7 @@ class TestTokenizer extends \dW\HTML5\Test\StandardTest {
     public function provideStandardTokenizerTests() {
         $tests = [];
         $blacklist = ["pendingSpecChanges.test", "xmlViolation.test"];
-        foreach (new \GlobIterator(\dW\HTML5\BASE."tests/html5lib-tests/tokenizer/*.test", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME) as $file) {
+        foreach (new \GlobIterator(\dW\HTML5\BASE."tests/html5lib-tests/tokenizer/test*.test", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME) as $file) {
             if (!in_array(basename($file), $blacklist)) {
                 $tests[] = $file;
             }

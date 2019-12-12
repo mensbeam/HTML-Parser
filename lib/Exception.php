@@ -54,9 +54,7 @@ class Exception extends \Exception {
                                   10701 => 'Method %1$s::%2$s has been disabled from %1$s'];
 
     public function __construct(int $code, ...$args) {
-        if (!isset(static::$messages[$code])) {
-            throw new Exception(self::INVALID_CODE);
-        }
+        assert(isset(static::$message[$code]), new Exception(self::INVALID_CODE));
 
         $message = static::$messages[$code];
         $previous = null;
@@ -75,9 +73,7 @@ class Exception extends \Exception {
         $count = count(array_unique($matches[1]));
 
         // If the number of replacements don't match the arguments then oops.
-        if (count($args) !== $count) {
-            throw new Exception(self::INCORRECT_PARAMETERS_FOR_MESSAGE, $count);
-        }
+        assert(count($args) === $count, new Exception(self::INCORRECT_PARAMETERS_FOR_MESSAGE, $count));
 
         if ($count > 0) {
             // Go through each of the arguments and run sprintf on the strings.

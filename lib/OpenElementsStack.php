@@ -11,10 +11,8 @@ class OpenElementsStack extends Stack {
         // or element then we have a problem. Additionally, if the parser is created for
         // parsing a fragment and the fragment context is null then we have a problem,
         // too.
-        if ((!is_null($fragmentContext) && !$fragmentContext instanceof DOMDocumentFragment && !$fragmentContext instanceof DOMDocument && !$fragmentContext instanceof DOMElement) ||
-            (is_null($fragmentContext) && $fragmentCase)) {
-            throw new Exception(Exception::STACK_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED);
-        }
+        assert(is_null($fragmentContext) || $fragmentContext instanceof \DOMDocumentFragment || $fragmentContext instanceof \DOMDocument || $fragmentContext instanceof \DOMElement,new Exception(Exception::STACK_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED));
+        assert(!$fragmentCase || !is_null($fragmentContext), new Exception(Exception::STACK_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED));
 
         $this->fragmentCase = $fragmentCase;
         $this->fragmentContext = $fragmentContext;
@@ -43,7 +41,7 @@ class OpenElementsStack extends Stack {
             return -1;
         }
 
-        if ($needle instanceof DOMElement) {
+        if ($needle instanceof \DOMElement) {
             foreach (array_reverse($this->_storage) as $key => $value) {
                 if ($value->isSameNode($needle)) {
                     return $key;
@@ -87,9 +85,7 @@ class OpenElementsStack extends Stack {
             $exclude = [$exclude];
         }
 
-        if (!is_array($exclude)) {
-            throw new Exception(Exception::STACK_STRING_ARRAY_EXPECTED);
-        }
+        assert(is_array($exclude), new Exception(Exception::STACK_STRING_ARRAY_EXPECTED));
 
         if (count($exclude) > 0) {
             $modified = false;
@@ -319,7 +315,7 @@ class OpenElementsStack extends Stack {
         // Handled by loop.
         foreach (array_reverse($this->_storage) as $node) {
             # 2. If node is the target node, terminate in a match state.
-            if ($target instanceof DOMElement) {
+            if ($target instanceof \DOMElement) {
                 if ($node->isSameNode($target)) {
                     return true;
                 }

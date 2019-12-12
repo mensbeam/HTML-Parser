@@ -49,17 +49,13 @@ class ParseError {
     }
 
     protected function prepareMessage(string $file, int $line, int $column, int $code, ...$arg): string {
-        if (!isset(static::$messages[$code])) {
-            throw new Exception(Exception::INVALID_CODE);
-        }
+        assert(isset(static::$messages[$code]), new Exception(Exception::INVALID_CODE));
 
         $message = static::$messages[$code];
         // Count the number of replacements needed in the message.
         $count = substr_count($message, '%s');
         // If the number of replacements don't match the arguments then oops.
-        if (count($arg) !== $count) {
-            throw new Exception(Exception::INCORRECT_PARAMETERS_FOR_MESSAGE, $count);
-        }
+        assert(count($arg) === $count, new Exception(Exception::INCORRECT_PARAMETERS_FOR_MESSAGE, $count));
 
         if ($count > 0) {
             // Convert newlines and tabs in the arguments to words to better express what they

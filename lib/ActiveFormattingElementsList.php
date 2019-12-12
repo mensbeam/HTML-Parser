@@ -23,14 +23,12 @@ class ActiveFormattingElementsList extends Stack {
     }
 
     public function offsetSet($offset, $value) {
-        if ($offset < 0 || $offset > count($this->_storage) - 1) {
-            throw new Exception(Exception::STACK_INVALID_INDEX, $offset);
-        }
+        assert($offset >= 0 && $offset <= count($this->_storage), new Exception(Exception::STACK_INVALID_INDEX, $offset));
 
         if (is_null($offset)) {
             # When the steps below require the UA to push onto the list of active formatting
             # elements an element element, the UA must perform the following steps:
-            if ($value instanceof DOMElement) {
+            if ($value instanceof \DOMElement) {
                 # 1. If there are already three elements in the list of active formatting
                 # elements after the last marker, if any, or anywhere in the list if there are
                 # no markers, that have the same tag name, namespace, and attributes as element,
@@ -42,11 +40,11 @@ class ActiveFormattingElementsList extends Stack {
                 # order of the attributes does not matter).
                 $lastMarkerIndex = $this->lastMarker;
                 $start = ($lastMarkerIndex !== false) ? $lastMarkerIndex + 1 : 0;
-                $length = count($storage);
+                $length = count($this->_storage);
                 if ($start < $length - 3) {
                     $count = 0;
                     for ($i = $length - 1; $i > $start; $i--) {
-                        $cur = $storage[$i];
+                        $cur = $this->_storage[$i];
                         if ($cur->nodeName === $value->nodeName && $cur->namespaceURI === $value->namespaceURI && $cur->attributes->length === $value->attributes->length) {
                             $a = [];
                             for ($j = 0; $j < $cur->attributes->length; $cur++) {

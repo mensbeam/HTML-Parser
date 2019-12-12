@@ -68,9 +68,7 @@ class Data {
     }
 
     public function consume(int $length = 1): string {
-        if ($length <= 0) {
-            throw new Exception(Exception::DATA_INVALID_DATA_CONSUMPTION_LENGTH, $length);
-        }
+        assert($length > 0, new Exception(Exception::DATA_INVALID_DATA_CONSUMPTION_LENGTH, $length));
 
         for ($i = 0, $string = ''; $i < $length; $i++) {
             $char = $this->data->nextChar();
@@ -100,9 +98,7 @@ class Data {
     }
 
     public function unconsume(int $length = 1) {
-        if ($length <= 0) {
-            throw new Exception(Exception::DATA_INVALID_DATA_CONSUMPTION_LENGTH, $length);
-        }
+        assert($length > 0, new Exception(Exception::DATA_INVALID_DATA_CONSUMPTION_LENGTH, $length));
 
         $this->data->seek(0 - $length);
 
@@ -135,9 +131,7 @@ class Data {
     }
 
     public function peek(int $length = 1): string {
-        if ($length <= 0) {
-            throw new Exception(Exception::DATA_INVALID_DATA_CONSUMPTION_LENGTH, $length);
-        }
+        assert($length > 0, new Exception(Exception::DATA_INVALID_DATA_CONSUMPTION_LENGTH, $length));
 
         $string = $this->data->peekChar($length);
 

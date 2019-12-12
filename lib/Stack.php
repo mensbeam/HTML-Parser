@@ -8,9 +8,7 @@ abstract class Stack implements \ArrayAccess {
     protected $fragmentContext;
 
     public function offsetSet($offset, $value) {
-        if ($offset < 0) {
-            throw new Exception(Exception::STACK_INVALID_INDEX, $offset);
-        }
+        assert($offset >= 0, new Exception(Exception::STACK_INVALID_INDEX, $offset));
 
         if (is_null($offset)) {
             $this->_storage[] = $value;
@@ -24,9 +22,7 @@ abstract class Stack implements \ArrayAccess {
     }
 
     public function offsetUnset($offset) {
-        if ($offset < 0 || $offset > count($this->_storage) - 1) {
-            throw new Exception(Exception::STACK_INVALID_INDEX, $offset);
-        }
+        assert($offset >= 0 && $offset < count($this->_storage), new Exception(Exception::STACK_INVALID_INDEX, $offset));
 
         unset($this->_storage[$offset]);
         // Reindex the array.
@@ -34,9 +30,7 @@ abstract class Stack implements \ArrayAccess {
     }
 
     public function offsetGet($offset) {
-        if ($offset < 0 || $offset > count($this->_storage) - 1) {
-            throw new Exception(Exception::STACK_INVALID_INDEX, $offset);
-        }
+        assert($offset >= 0 && $offset < count($this->_storage), new Exception(Exception::STACK_INVALID_INDEX, $offset));
 
         return $this->_storage[$offset];
     }
