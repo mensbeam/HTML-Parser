@@ -30,6 +30,30 @@ class StandardTest extends \PHPUnit\Framework\TestCase {
         return $str;
     }
 
+    protected function combineCharacterTokens(array $tokens) : array {
+        $out = [];
+        $pending = null;
+        foreach ($tokens as $t) {
+            if ($t instanceof CharacterToken) {
+                if (!$pending) {
+                    $pending = $t;
+                } else {
+                    $pending->data .= $t->data;
+                }
+            } else {
+                if ($pending) {
+                    $out[] = $pending;
+                    $pending = null;
+                }
+                $out[] = $t;
+            }
+        }
+        if ($pending) {
+            $out[] = $pending;
+        }
+        return $out;
+    }
+
     protected function makeTokenTests(string ...$file): iterable {
         foreach ($file as $path) {
             $f = basename($path);
