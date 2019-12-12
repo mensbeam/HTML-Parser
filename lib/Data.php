@@ -175,7 +175,7 @@ class Data
         # LESS-THAN SIGN, U+0026 AMPERSAND, EOF, The additional allowed character, if
         # there is one. Not a character reference. No characters are consumed, and nothing
         # is returned. (This is not an error, either.)
-        if ($char === "\x09" || $char === "x0A" || $char === "\x0C" || $char === ' ' || $char === '<' || $char === '&' || $char === false || (!is_null($allowedCharacter) && $char === $allowedCharacter)) {
+        if ($char === "\x09" || $char === "x0A" || $char === "\x0C" || $char === ' ' || $char === '<' || $char === '&' || $char === '' || (!is_null($allowedCharacter) && $char === $allowedCharacter)) {
             return '&';
         }
         # U+0023 NUMBER SIGN (#)
