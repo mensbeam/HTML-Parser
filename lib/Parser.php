@@ -75,38 +75,43 @@ class Parser {
             static::$instance->DOM = $document;
         }
 
-        // Process the input stream.
-        static::$instance->data = new Data(($file === true) ? '' : $data, ($file === true) ? $data : 'STDIN');
-
-        // Set the locale for CTYPE to en_US.UTF8 so ctype functions and strtolower only
-        // work on basic latin characters. Used extensively when tokenizing.
-        setlocale(LC_CTYPE, 'en_US.UTF8');
-
-        // Initialize the stack of open elements.
-        static::$instance->stack = new OpenElementsStack(static::$instance->fragmentCase, static::$instance->fragmentContext);
-        // Initialize the template insertion modes stack if necessary.
-        if (is_null(static::$instance->templateInsertionModes)) {
-            static::$instance->templateInsertionModes = new TemplateInsertionModesStack();
-        }
-        // Initialize the tokenizer.
-        static::$instance->tokenizer = new Tokenizer(static::$instance->data, static::$instance->stack);
-        // Initialize the tree builder.
-        static::$instance->treeBuilder = new TreeBuilder(static::$instance->DOM, static::$instance->formElement, static::$instance->fragmentCase, static::$instance->fragmentContext, static::$instance->stack, static::$instance->templateInsertionModes, static::$instance->tokenizer);
         // Initialize the parse error handler.
-        static::$instance->parseError = new ParseError(static::$instance->data);
+        static::$instance->parseError = new ParseError;
+        static::$instance->parseError->setHandler();
+        try {
+            // Process the input stream.
+            static::$instance->data = new Data(($file === true) ? '' : $data, ($file === true) ? $data : 'STDIN', static::$instance->parseError);
 
-        // Run the tokenizer. Tokenizer runs until after the EOF token is emitted.
-        do {
-            $token = static::$instance->tokenizer->createToken();
-            static::$instance->treeBuilder->emitToken($token);
-        } while (!$token instanceof EOFToken);
+            // Set the locale for CTYPE to en_US.UTF8 so ctype functions and strtolower only
+            // work on basic latin characters. Used extensively when tokenizing.
+            setlocale(LC_CTYPE, 'en_US.UTF8');
 
-        // Fix id attributes before outputting.
-        static::$instance->DOM->fixIdAttributes();
+            // Initialize the stack of open elements.
+            static::$instance->stack = new OpenElementsStack(static::$instance->fragmentCase, static::$instance->fragmentContext);
+            // Initialize the template insertion modes stack if necessary.
+            if (is_null(static::$instance->templateInsertionModes)) {
+                static::$instance->templateInsertionModes = new TemplateInsertionModesStack();
+            }
+            // Initialize the tokenizer.
+            static::$instance->tokenizer = new Tokenizer(static::$instance->data, static::$instance->stack, static::$instance->parseError);
+            // Initialize the tree builder.
+            static::$instance->treeBuilder = new TreeBuilder(static::$instance->DOM, static::$instance->formElement, static::$instance->fragmentCase, static::$instance->fragmentContext, static::$instance->stack, static::$instance->templateInsertionModes, static::$instance->tokenizer, static::$instance->parseError, static::$instance->data);
 
-        // The Parser instance has no need to exist when finished.
-        $dom = static::$instance->DOM;
-        static::$instance->__destruct();
+            // Run the tokenizer. Tokenizer runs until after the EOF token is emitted.
+            do {
+                $token = static::$instance->tokenizer->createToken();
+                static::$instance->treeBuilder->emitToken($token);
+            } while (!$token instanceof EOFToken);
+
+            // Fix id attributes before outputting.
+            static::$instance->DOM->fixIdAttributes();
+
+            // The Parser instance has no need to exist when finished.
+            $dom = static::$instance->DOM;
+            static::$instance->__destruct();
+        } finally {
+            static::$instance->parseError->clearHandler();
+        }
 
         return $dom;
     }
