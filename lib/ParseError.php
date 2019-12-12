@@ -32,7 +32,7 @@ class ParseError {
                                   'Invalid DOCTYPE',
                                   'Invalid Control or Non-character; removing',
                                   'Unexpected xmlns attribute value',
-                                  'Unexpected "%s" character in entity',
+                                  'Unexpected "%s" character in entity; %s expected',
                                   '"%s" is an invalid numeric entity',
                                   '"%s" is an invalid name for an entity',
                                   '"%s" is an invalid character codepoint'];
