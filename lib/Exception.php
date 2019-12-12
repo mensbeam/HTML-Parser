@@ -61,11 +61,13 @@ class Exception extends \Exception {
         $message = static::$messages[$code];
         $previous = null;
 
-        // Grab a previous exception if there is one.
-        if ($args[0] instanceof \Throwable) {
-            $previous = array_shift($args);
-        } elseif (end($args) instanceof \Throwable) {
-            $previous = array_pop($args);
+        if ($args) {
+            // Grab a previous exception if there is one.
+            if ($args[0] instanceof \Throwable) {
+                $previous = array_shift($args);
+            } elseif (end($args) instanceof \Throwable) {
+                $previous = array_pop($args);
+            }
         }
 
         // Count the number of replacements needed in the message.
