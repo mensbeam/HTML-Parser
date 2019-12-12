@@ -19,25 +19,24 @@ class TestTokenizer extends \dW\HTML5\Test\StandardTest {
     }
     /** @dataProvider provideStandardTokenizerTests */
     public function testStandardTokenizerTests(string $input, array $expected, int $state, string $open = null, array $errors) {
+        // create a mock error handler which simply discards parse errors for now
+        $errorHandler = $this->createMock(ParseError::class);
+        $errorHandler->method("emit")->willReturn(true);
+        // initialize a stack of open elements, possibly with an open element
         $stack = new OpenElementsStack();
-        $errorHandler = new ParseError;
         if ($open) {
             $stack[] = (new \DOMDocument)->createElement($open);
         }
-        $errorHandler = new ParseError;
-        $errorHandler->setHandler();
+        // initialize the data stream and tokenizer
         $data = new Data($input, "STDIN", $errorHandler);
         $tokenizer = new Tokenizer($data, $stack, $errorHandler);
         $tokenizer->state = $state;
+        // perform the test
         $actual = [];
-        try {
-            do {
-                $t = $tokenizer->createToken();
-                $actual[] = $t;
-            } while (!($t instanceof EOFToken));
-        } finally {
-            $errorHandler->clearHandler();
-        }
+        do {
+            $t = $tokenizer->createToken();
+            $actual[] = $t;
+        } while (!($t instanceof EOFToken));
         array_pop($actual);
         $actual = $this->combineCharacterTokens($actual);
         $this->assertEquals($expected, $actual);
