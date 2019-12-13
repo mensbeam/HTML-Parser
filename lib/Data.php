@@ -100,19 +100,21 @@ class Data {
     public function unconsume(int $length = 1) {
         assert($length > 0, new Exception(Exception::DATA_INVALID_DATA_CONSUMPTION_LENGTH, $length));
 
-        $this->data->seek(0 - $length);
+        if ($this->data->peekChar($length) !== '') {
+            $this->data->seek(0 - $length);
 
-        $string = $this->data->peekChar($length);
-        $numOfNewlines = substr_count($string, "\n");
+            $string = $this->data->peekChar($length);
+            $numOfNewlines = substr_count($string, "\n");
 
-        if ($numOfNewlines > 0) {
-            $this->_line -= $numOfNewlines;
+            if ($numOfNewlines > 0) {
+                $this->_line -= $numOfNewlines;
 
-            $count = $this->newlines;
-            $index = count($this->newlines) - ($numOfNewlines - 1);
-            $this->_column = 1 + (($count > 0 && isset($this->newlines[$index])) ? $this->data->posChar() - $this->newlines[$index] : $this->data->posChar());
-        } else {
-            $this->_column -= $length;
+                $count = $this->newlines;
+                $index = count($this->newlines) - ($numOfNewlines - 1);
+                $this->_column = 1 + (($count > 0 && isset($this->newlines[$index])) ? $this->data->posChar() - $this->newlines[$index] : $this->data->posChar());
+            } else {
+                $this->_column -= $length;
+            }
         }
 
         if (self::$debug) {

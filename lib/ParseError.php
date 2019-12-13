@@ -58,8 +58,8 @@ class ParseError {
         assert(count($arg) === $count, new Exception(Exception::INCORRECT_PARAMETERS_FOR_MESSAGE, $count));
 
         if ($count > 0) {
-            // Convert newlines and tabs in the arguments to words to better express what they
-            // are.
+            // Convert newlines and tabs in the arguments to words to better
+            // express what they are.
             $arg = array_map(function($value) {
                 if ($value === "\n") {
                     return 'Newline';
@@ -76,7 +76,8 @@ class ParseError {
             $message = sprintf($message, ...$arg);
         }
         // Wrap with preamble and location
-        // TODO: the file path should be middle-elided when necessary so that the message does not exceed 1024 bytes
+        // TODO: the file path should be middle-elided when necessary so that
+        // the message does not exceed 1024 bytes
         $message = sprintf("HTML5 Parse Error: \"%s\" in %s", $message, $file);
         if ($line) {
             $message .= sprintf(" on line %s, column %s", $line, $column);

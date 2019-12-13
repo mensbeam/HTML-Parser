@@ -366,14 +366,7 @@ class Tokenizer {
                 # U+003F QUESTION MARK (?)
                 elseif ($char === '?') {
                     # Parse error. Switch to the bogus comment state.
-
-                    // Making errors more expressive.
-                    if ($char !== '') {
-                        $this->error(ParseError::TAG_NAME_EXPECTED);
-                    } else {
-                        $this->error(ParseError::UNEXPECTED_EOF);
-                    }
-
+                    $this->error(ParseError::TAG_NAME_EXPECTED);
                     $this->state = self::BOGUS_COMMENT_STATE;
                 }
                 # Anything else
