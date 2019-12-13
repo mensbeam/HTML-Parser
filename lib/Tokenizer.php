@@ -161,7 +161,7 @@ class Tokenizer {
         while (true) {
             if (self::$debug) {
                 $state = self::STATE_NAMES[$this->state] ?? "";
-                assert($state, new Exception(Exception::UNKNOWN_ERROR));
+                assert(strlen($state) > 0, new Exception(Exception::UNKNOWN_ERROR));
                 echo "State: $state\n";
                 unset($state);
             }
