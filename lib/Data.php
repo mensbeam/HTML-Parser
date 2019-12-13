@@ -100,7 +100,7 @@ class Data {
     public function unconsume(int $length = 1) {
         assert($length > 0, new Exception(Exception::DATA_INVALID_DATA_CONSUMPTION_LENGTH, $length));
 
-        if ($this->data->peekChar($length) !== '') {
+        if (!$this->data->eof()) {
             $this->data->seek(0 - $length);
 
             $string = $this->data->peekChar($length);

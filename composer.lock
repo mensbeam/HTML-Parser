@@ -8,11 +8,11 @@
     "packages": [
         {
             "name": "mensbeam/intl",
-            "version": "0.4.0",
+            "version": "0.5.0",
             "source": {
                 "type": "git",
                 "url": "https://code.mensbeam.com/MensBeam/intl",
-                "reference": "58328b7524b6889889ef0a60ab9e622b3d071a4a"
+                "reference": "2e47fde77465114c509bec270d44261da71bbf89"
             },
             "require": {
                 "php": "^7.0"
@@ -49,7 +49,7 @@
                 "utf-8",
                 "utf8"
             ],
-            "time": "2018-09-15T23:52:16+00:00"
+            "time": "2019-12-13T16:05:01+00:00"
         }
     ],
     "packages-dev": [
