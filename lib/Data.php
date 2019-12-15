@@ -42,29 +42,18 @@ class Data {
         // encoding. At this moment this implementation won't determine a character
         // encoding and will just assume UTF-8.
 
-        # One leading U+FEFF BYTE ORDER MARK character must be ignored if any are present
-        # in the input stream.
-
-        # Note: The handling of U+0000 NULL characters varies based on where the
-        # characters are found. In general, they are ignored except where doing so could
-        # plausibly introduce an attack vector. This handling is, by necessity, spread
-        # across both the tokenization stage and the tree construction stage.
-
-        // DEVIATION: Just going to remove NULL characters. There is no scripting involved
-        // in this implementation and therefore no attack vector possible due to it.
-        $data = preg_replace(['/^\xEF\xBB\xBF/','/\x00/'], '', $data);
-
-        // Won't provide line or column counts for this as it's done before that
-        // information is available. It will be rare that this is triggered.
-        $data = preg_replace_callback('/(?:[\x01-\x08\x0B\x0E-\x1F\x7F]|\xC2[\x80-\x9F]|\xED(?:\xA0[\x80-\xFF]|[\xA1-\xBE][\x00-\xFF]|\xBF[\x00-\xBF])|\xEF\xB7[\x90-\xAF]|\xEF\xBF[\xBE\xBF]|[\xF0-\xF4][\x8F-\xBF]\xBF[\xBE\xBF])/u', function($matches) {
-            $this->error(ParseError::INVALID_CONTROL_OR_NONCHARACTERS);
-            return '';
-        }, $data);
-
 
         // Normalize line breaks. Convert CRLF and CR to LF.
         // Break the string up into a traversable object.
         $this->data = new \MensBeam\Intl\Encoding\UTF8(str_replace(["\r\n", "\r"], "\n", $data));
+
+        # One leading U+FEFF BYTE ORDER MARK character must be ignored if any are present
+        # in the input stream.
+
+        if ($this->data->nextChar() !== '\xEF\xBB\xBF') {
+            // rewind to the start of the string if the first character was not a BOM
+            $this->data->rewind();
+        }
     }
 
     public function consume(int $length = 1): string {

@@ -12,24 +12,22 @@ abstract class DataToken extends Token {
     }
 }
 
-abstract class TagToken extends Token {
-    public $name;
-
-    public function __construct(string $name) {
-        $this->name = $name;
-    }
-}
-
-class EOFToken extends Token {}
-
 class DOCTYPEToken extends Token {
+    # DOCTYPE tokens have a name, a public identifier,
+    #   a system identifier, and a force-quirks flag.
+    # When a DOCTYPE token is created, its name,
+    #   public identifier, and system identifier must
+    #   be marked as missing (which is a distinct state
+    #   from the empty string), and the force-quirks flag
+    #   must be set to off (its other state is on).
     public $forceQuirks = false;
+    public $name;
     public $public;
     public $system;
 
-    public function __construct(string $name = null, string $public = '', string $system = '') {
+    public function __construct(string $name = null, string $public = null, string $system = null) {
+        // null stands in for the distinct "missing" state
         $this->name = $name;
-
         $this->public = $public;
         $this->system = $system;
     }
@@ -43,7 +41,14 @@ class CommentToken extends DataToken {
     }
 }
 
-class StartTagToken extends TagToken {
+abstract class TagToken extends Token {
+    # Start and end tag tokens have a tag name,
+    #   a self-closing flag, and a list of attributes,
+    #   each of which has a name and a value.
+    # When a start or end tag token is created, its
+    #   self-closing flag must be unset (its other state
+    #   is that it be set), and its attributes list must be empty.
+    public $name;
     public $namespace;
     public $selfClosing;
     public $attributes = [];
@@ -51,7 +56,7 @@ class StartTagToken extends TagToken {
     public function __construct(string $name, bool $selfClosing = false, string $namespace = Parser::HTML_NAMESPACE) {
         $this->selfClosing = $selfClosing;
         $this->namespace = $namespace;
-        parent::__construct($name);
+        $this->name = $name;
     }
 
      public function getAttribute(string $name) {
@@ -92,7 +97,11 @@ class StartTagToken extends TagToken {
      }
 }
 
+class StartTagToken extends TagToken {}
+
 class EndTagToken extends TagToken {}
+
+class EOFToken extends Token {}
 
 class TokenAttr {
     public $name;
