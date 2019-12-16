@@ -33,13 +33,17 @@ class TestTokenizer extends \dW\HTML5\Test\StandardTest {
         $tokenizer->state = $state;
         // perform the test
         $actual = [];
-        do {
-            $t = $tokenizer->createToken();
-            $actual[] = $t;
-        } while (!($t instanceof EOFToken));
-        array_pop($actual);
-        $actual = $this->combineCharacterTokens($actual);
-        $this->assertEquals($expected, $actual, $tokenizer->debugLog);
+        try {
+            do {
+                $t = $tokenizer->createToken();
+                if (!($t instanceof EOFToken)) {
+                    $actual[] = $t;
+                }
+            } while (!($t instanceof EOFToken));
+        } finally {
+            $actual = $this->combineCharacterTokens($actual);
+            $this->assertEquals($expected, $actual, $tokenizer->debugLog);
+        }
     }
 
     public function provideStandardTokenizerTests() {

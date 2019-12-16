@@ -85,6 +85,15 @@ class Tokenizer {
     const CDATA_SECTION_STATE = 69;
     const CDATA_SECTION_BRACKET_STATE = 70;
     const CDATA_SECTION_END_STATE = 71;
+    const CHARACTER_REFERENCE_STATE = 72;
+    const NAMED_CHARACTER_REFERENCE_STATE = 73;
+    const AMBIGUOUS_AMPERSAND_STATE = 74;
+    const NUMERIC_CHARACTER_REFERENCE_STATE = 75;
+    const HEXADECIMAL_CHARACTER_REFERENCE_START_STATE = 76;
+    const DECIMAL_CHARACTER_REFERENCE_START_STATE = 77;
+    const HEXADECIMAL_CHARACTER_REFERENCE_STATE = 78;
+    const DECIMAL_CHARACTER_REFERENCE_STATE = 79;
+    const NUMERIC_CHARACTER_REFERENCE_END_STATE = 80;
 
     const STATE_NAMES = [
         self::DATA_STATE                                          => "Data",
@@ -156,6 +165,15 @@ class Tokenizer {
         self::AFTER_DOCTYPE_SYSTEM_IDENTIFIER_STATE               => "After DOCTYPE system identifier",
         self::BOGUS_DOCTYPE_STATE                                 => "Bogus comment",
         self::CDATA_SECTION_STATE                                 => "CDATA section",
+        self::CHARACTER_REFERENCE_STATE                           => "Character reference",
+        self::NAMED_CHARACTER_REFERENCE_STATE                     => "Named character reference",
+        self::AMBIGUOUS_AMPERSAND_STATE                           => "Ambiguous ampersand",
+        self::NUMERIC_CHARACTER_REFERENCE_STATE                   => "Numeric character reference",
+        self::HEXADECIMAL_CHARACTER_REFERENCE_START_STATE         => "Hexadecimal character reference start",
+        self::DECIMAL_CHARACTER_REFERENCE_START_STATE             => "Decimal character reference start",
+        self::HEXADECIMAL_CHARACTER_REFERENCE_STATE               => "Hexadecimal character reference",
+        self::DECIMAL_CHARACTER_REFERENCE_STATE                   => "Decimal character reference",
+        self::NUMERIC_CHARACTER_REFERENCE_END_STATE               => "Numeric character reference",
     ];
 
     // Ctype constants
@@ -233,11 +251,8 @@ class Tokenizer {
                 if ($char === '&') {
                     # Set the return state to the data state.
                     # Switch to the character reference state.
-
-                    // DEVIATION:
-                    // This implementation does the character reference consuming in a
-                    // function for which it is more suited for.
-                    return new CharacterToken($this->data->consumeCharacterReference());
+                    $returnState = self::DATA_STATE;
+                    $this->state = self::CHARACTER_REFERENCE_STATE;
                 }
                 # U+003C LESS-THAN SIGN (<)
                 elseif ($char === '<') {
@@ -277,11 +292,8 @@ class Tokenizer {
                 if ($char === '&') {
                     # Set the return state to the RCDATA state.
                     # Switch to the character reference state.
-
-                    // DEVIATION:
-                    // This implementation does the character reference consuming in a
-                    // function for which it is more suited for.
-                    return new CharacterToken($this->data->consumeCharacterReference());
+                    $returnState = self::RCDATA_STATE;
+                    $this->state = self::CHARACTER_REFERENCE_STATE;
                 }
                 # U+003C LESS-THAN SIGN (<)
                 elseif ($char === '<') {
@@ -1596,6 +1608,7 @@ class Tokenizer {
                 if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ' || $char === '/' || $char === '>' || $char === '') {
                     # Reconsume in the after attribute name state.
                     assert(isset($token) && $token instanceof Token);
+                    assert(isset($attribute) && $attribute instanceof TokenAttr);
                     $this->keepOrDiscardAttribute($token, $attribute);
                     $this->data->unconsume();
                     $this->state = self::AFTER_ATTRIBUTE_NAME_STATE;
@@ -1604,6 +1617,7 @@ class Tokenizer {
                 elseif ($char === '=') {
                     # Switch to the before attribute value state.
                     assert(isset($token) && $token instanceof Token);
+                    assert(isset($attribute) && $attribute instanceof TokenAttr);
                     $this->keepOrDiscardAttribute($token, $attribute);
                     $this->state = self::BEFORE_ATTRIBUTE_VALUE_STATE;
                 }
@@ -1616,6 +1630,7 @@ class Tokenizer {
                     // OPTIMIZATION:
                     // Consume all characters that are uppercase ASCII letters to prevent
                     // having to loop back through here every single time.
+                    assert(isset($attribute) && $attribute instanceof TokenAttr);
                     $attribute->name .= strtolower($char.$this->data->consumeWhile(self::CTYPE_UPPER));
                 }
                 # U+0000 NULL
@@ -1623,6 +1638,7 @@ class Tokenizer {
                     # This is an unexpected-null-character parse error.
                     # Append a U+FFFD REPLACEMENT CHARACTER character to the current attribute's name.
                     $this->error(ParseError::UNEXPECTED_NULL_CHARACTER);
+                    assert(isset($attribute) && $attribute instanceof TokenAttr);
                     $attribute->name .= "\u{FFFD}";
                 }
                 # U+0022 QUOTATION MARK (")
@@ -1638,6 +1654,7 @@ class Tokenizer {
                 else {
                     attribute_name_state_anything_else:
                     # Append the current input character to the current attribute's name.
+                    assert(isset($attribute) && $attribute instanceof TokenAttr);
                     $attribute->name .= $char.$this->data->consumeUntil("\t\n\x0c /=>\0\"'<".self::CTYPE_UPPER);
                 }
             }
@@ -1746,17 +1763,15 @@ class Tokenizer {
                 elseif ($char === '&') {
                     # Set the return state to the attribute value (double-quoted) state.
                     # Switch to the character reference state.
-
-                    // DEVIATION:
-                    // This implementation does the character reference consuming in a
-                    // function for which it is more suited for.
-                    $attribute->value .= $this->data->consumeCharacterReference('"', true);
+                    $returnState = self::ATTRIBUTE_VALUE_DOUBLE_QUOTED_STATE;
+                    $this->state = self::CHARACTER_REFERENCE_STATE;
                 }
                 # U+0000 NULL
                 elseif ($char === "\0") {
                     # This is an unexpected-null-character parse error.
                     # Append a U+FFFD REPLACEMENT CHARACTER character to the current attribute's value.
                     $this->error(ParseError::UNEXPECTED_NULL_CHARACTER);
+                    assert(isset($attribute) && $attribute instanceof TokenAttr);
                     $attribute->value .= "\u{FFFD}";
                 }
                 # EOF
@@ -1773,6 +1788,7 @@ class Tokenizer {
                     // OPTIMIZATION:
                     // Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
+                    assert(isset($attribute) && $attribute instanceof TokenAttr);
                     $attribute->value .= $char.$this->data->consumeUntil("\"&\0");
                 }
             }
@@ -1791,17 +1807,15 @@ class Tokenizer {
                 elseif ($char === '&') {
                     # Set the return state to the attribute value (single-quoted) state.
                     # Switch to the character reference state.
-
-                    // DEVIATION:
-                    // This implementation does the character reference consuming in a
-                    // function for which it is more suited for.
-                    $attribute->value .= $this->data->consumeCharacterReference("'", true);
+                    $returnState = self::ATTRIBUTE_VALUE_SINGLE_QUOTED_STATE;
+                    $this->state = self::CHARACTER_REFERENCE_STATE;
                 }
                 # U+0000 NULL
                 elseif ($char === "\0") {
                     # This is an unexpected-null-character parse error.
                     # Append a U+FFFD REPLACEMENT CHARACTER character to the current attribute's value.
                     $this->error(ParseError::UNEXPECTED_NULL_CHARACTER);
+                    assert(isset($attribute) && $attribute instanceof TokenAttr);
                     $attribute->value .= "\u{FFFD}";
                 }
                 # EOF
@@ -1818,6 +1832,7 @@ class Tokenizer {
                     // OPTIMIZATION:
                     // Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
+                    assert(isset($attribute) && $attribute instanceof TokenAttr);
                     $attribute->value .= $char.$this->data->consumeUntil("'&\0");
                 }
             }
@@ -1840,11 +1855,8 @@ class Tokenizer {
                 elseif ($char === '&') {
                     # Set the return state to the attribute value (unquoted) state.
                     # Switch to the character reference state.
-
-                    // DEVIATION:
-                    // This implementation does the character reference consuming in a
-                    // function for which it is more suited for.
-                    $attribute->value .= $this->data->consumeCharacterReference('>', true);
+                    $returnState = self::ATTRIBUTE_VALUE_UNQUOTED_STATE;
+                    $this->state = self::CHARACTER_REFERENCE_STATE;
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
@@ -1859,6 +1871,7 @@ class Tokenizer {
                     # This is an unexpected-null-character parse error.
                     # Append a U+FFFD REPLACEMENT CHARACTER character to the current attribute's value.
                     $this->error(ParseError::UNEXPECTED_NULL_CHARACTER);
+                    assert(isset($attribute) && $attribute instanceof TokenAttr);
                     $attribute->value .= "\u{FFFD}";
                 }
                 # U+0022 QUOTATION MARK (")
@@ -1886,6 +1899,7 @@ class Tokenizer {
 
                     // OPTIMIZATION: Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
+                    assert(isset($attribute) && $attribute instanceof TokenAttr);
                     $attribute->value .= $char.$this->data->consumeUntil("\t\n\x0c &>\0\"'<=`");
                 }
             }
@@ -2426,7 +2440,7 @@ class Tokenizer {
                 # U+0020 SPACE
                 if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
                     # Switch to the before DOCTYPE name state.
-                    $this->state = self::DOCTYPE_NAME_STATE;
+                    $this->state = self::BEFORE_DOCTYPE_NAME_STATE;
                 }
                 # EOF
                 elseif ($char === '') {
@@ -3470,9 +3484,16 @@ class Tokenizer {
                 }
             }
 
+            #12.2.5.72 Character reference state
+            elseif ($this->state === self::CHARACTER_REFERENCE_STATE) {
+                // Not implemented
+                $this->state = $returnState;
+                return new CharacterToken('&');
+            }
+
             # Not a valid state
             else {
-                throw new \Exception("Tokenizer state: ".$this->state);
+                throw new \Exception("Unimplemented state: ".(self::STATE_NAMES[$this->state] ?? $this->state));
             }
         }
     }
