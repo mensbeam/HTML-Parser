@@ -6,6 +6,8 @@ class Tokenizer {
     use ParseErrorEmitter;
 
     public $state;
+    public $debugLog = '';
+    public $debugCount = 0;
 
     protected $data;
     protected $stack;
@@ -133,6 +135,7 @@ class Tokenizer {
         self::COMMENT_LESS_THAN_SIGN_STATE                        => "Comment less-than sign",
         self::COMMENT_LESS_THAN_SIGN_BANG_STATE                   => "Comment less-than sign bang",
         self::COMMENT_LESS_THAN_SIGN_BANG_DASH_STATE              => "Comment less-than sign bang dash",
+        self::COMMENT_LESS_THAN_SIGN_BANG_DASH_DASH_STATE         => "Comment less-than sign bang dash dash",
         self::COMMENT_END_DASH_STATE                              => "Comment end dash",
         self::COMMENT_END_STATE                                   => "Comment end",
         self::COMMENT_END_BANG_STATE                              => "Comment end bang",
@@ -166,6 +169,24 @@ class Tokenizer {
         $this->errorHandler = $errorHandler;
     }
 
+    protected function sanitizeTag(TagToken $token): void {
+        if ($token instanceof EndTagToken) {
+            # When an end tag token is emitted with attributes, 
+            #   that is an end-tag-with-attributes parse error.
+            if ($token->attributes) {
+                $this->error(ParseError::END_TAG_WITH_ATTRIBUTES);
+                $token->attributes = [];
+            }
+            # When an end tag token is emitted with its self-closing 
+            #   flag set, that is an end-tag-with-trailing-solidus parse error.
+            if ($token->selfClosing) {
+                $this->error(ParseError::END_TAG_WITH_TRAILING_SOLIDUS);
+                $token->selfClosing = false;
+            }
+        }
+
+    }
+
     protected function keepOrDiscardAttribute(TagToken $token, TokenAttr $attribute): void {
         // See 12.2.5.33 Attribute name state
 
@@ -190,13 +211,17 @@ class Tokenizer {
     }
 
     public function createToken(): Token {
+        assert((function() {
+            $this->debugLog .= "TOKEN ".++$this->debugCount."\n";
+            return true;
+        })());
+
         while (true) {
-            if (self::$debug) {
-                $state = self::STATE_NAMES[$this->state] ?? "";
-                assert(strlen($state) > 0);
-                echo "State: $state\n";
-                unset($state);
-            }
+            assert((function() {
+                $state = self::STATE_NAMES[$this->state] ?? $this->state;
+                $this->debugLog .= "    State: $state\n";
+                return true;
+            })());
 
             # 12.2.5.1 Data state
             if ($this->state === self::DATA_STATE) {
@@ -513,6 +538,7 @@ class Tokenizer {
                     # Switch to the data state. Emit the current tag token.
                     $this->state = self::DATA_STATE;
                     assert(isset($token) && $token instanceof TagToken);
+                    $this->sanitizeTag($token);
                     return $token;
                 }
                 # Uppercase ASCII letter
@@ -639,6 +665,7 @@ class Tokenizer {
                     assert(isset($token) && $token instanceof Token);
                     if ($token->name === $this->stack->currentNodeName) {
                         $this->state = self::DATA_STATE;
+                        $this->sanitizeTag($token);
                         return $token;
                     } else {
                         goto RCDATA_end_tag_name_state_anything_else;
@@ -765,6 +792,7 @@ class Tokenizer {
                     assert(isset($token) && $token instanceof Token);
                     if ($token->name === $this->stack->currentNodeName) {
                         $this->state = self::DATA_STATE;
+                        $this->sanitizeTag($token);
                         return $token;
                     } else {
                         goto RAWTEXT_end_tag_name_state_anything_else;
@@ -898,6 +926,7 @@ class Tokenizer {
                     assert(isset($token) && $token instanceof Token);
                     if ($token->name === $this->stack->currentNodeName) {
                         $this->state = self::DATA_STATE;
+                        $this->sanitizeTag($token);
                         return $token;
                     } else {
                         goto script_data_end_tag_name_state_anything_else;
@@ -1211,6 +1240,7 @@ class Tokenizer {
                     assert(isset($token) && $token instanceof Token);
                     if ($token->name === $this->stack->currentNodeName) {
                         $this->state = self::DATA_STATE;
+                        $this->sanitizeTag($token);
                         return $token;
                     } else {
                         goto script_data_escaped_end_tag_name_state_anything_else;
@@ -1639,6 +1669,7 @@ class Tokenizer {
                     # Emit the current tag token.
                     $this->state = self::DATA_STATE;
                     assert(isset($token) && $token instanceof Token);
+                    $this->sanitizeTag($token);
                     return $token;
                 }
                 # EOF
@@ -1689,6 +1720,7 @@ class Tokenizer {
                     $this->error(ParseError::MISSING_ATTRIBUTE_VALUE);
                     $this->state = self::DATA_STATE;
                     assert(isset($token) && $token instanceof Token);
+                    $this->sanitizeTag($token);
                     return $token;
                 }
                 # Anything else
@@ -1818,6 +1850,7 @@ class Tokenizer {
                     # Switch to the data state. Emit the current tag token.
                     $this->state = self::DATA_STATE;
                     assert(isset($token) && $token instanceof Token);
+                    $this->sanitizeTag($token);
                     return $token;
                 }
                 # U+0000 NULL
@@ -1880,6 +1913,7 @@ class Tokenizer {
                     # Emit the current tag token.
                     $this->state = self::DATA_STATE;
                     assert(isset($token) && $token instanceof Token);
+                    $this->sanitizeTag($token);
                     return $token;
                 }
                 # EOF
@@ -1912,6 +1946,7 @@ class Tokenizer {
                     assert(isset($token) && $token instanceof Token);
                     $token->selfClosing = true;
                     $this->state = self::DATA_STATE;
+                    $this->sanitizeTag($token);
                     return $token;
                 }
                 # EOF

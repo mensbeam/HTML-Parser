@@ -47,6 +47,8 @@ class ParseError {
     const ABRUPT_DOCTYPE_SYSTEM_IDENTIFIER                                  = 133;
     const UNEXPECTED_CHARACTER_AFTER_DOCTYPE_SYSTEM_IDENTIFIER              = 134;
     const EOF_IN_CDATA                                                      = 135;
+    const END_TAG_WITH_ATTRIBUTES                                           = 136;
+    const END_TAG_WITH_TRAILING_SOLIDUS                                     = 137;
 
     protected static $messages = [
         self::UNEXPECTED_NULL_CHARACTER                                         => 'Unexpected null character',
@@ -84,10 +86,12 @@ class ParseError {
         self::ABRUPT_DOCTYPE_SYSTEM_IDENTIFIER                                  => 'Abrupt DOCTYPE "SYSTEM" identifier',
         self::UNEXPECTED_CHARACTER_AFTER_DOCTYPE_SYSTEM_IDENTIFIER              => 'Unexpected character "%s" after DOCTYPE "SYSTEM" identifier',
         self::EOF_IN_CDATA                                                      => 'End-of-file in CDATA section',
+        self::END_TAG_WITH_ATTRIBUTES                                           => 'End-tag with attributes',
+        self::END_TAG_WITH_TRAILING_SOLIDUS                                     => 'End-tag with trailing solidus',
     ];
 
     public function setHandler() {
-        // Set the error handler and honor already-set error reporting rules.
+        // Set the errror handler and honor already-set error reporting rules.
         set_error_handler([$this, 'errorHandler'], error_reporting());
     }
 

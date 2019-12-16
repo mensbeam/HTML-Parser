@@ -39,7 +39,7 @@ class TestTokenizer extends \dW\HTML5\Test\StandardTest {
         } while (!($t instanceof EOFToken));
         array_pop($actual);
         $actual = $this->combineCharacterTokens($actual);
-        $this->assertEquals($expected, $actual);
+        $this->assertEquals($expected, $actual, $tokenizer->debugLog);
     }
 
     public function provideStandardTokenizerTests() {

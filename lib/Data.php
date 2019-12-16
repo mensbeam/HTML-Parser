@@ -17,6 +17,8 @@ class Data {
     // Used for error reporting when unconsuming to calculate column number from
     // last newline.
     protected $newlines = [];
+    // Whether the EOF imaginary character has been consumed
+    protected $eof = false;
 
 
     // Used for debugging to print out information as data is consumed.
@@ -73,6 +75,10 @@ class Data {
             $string .= $char;
         }
 
+        if ($char === '') {
+            $this->eof = true;
+        }
+
         if (self::$debug) {
             echo "\nConsume\n==========\n";
             echo "Length: $length\n";
@@ -89,7 +95,7 @@ class Data {
     public function unconsume(int $length = 1) {
         assert($length > 0, new Exception(Exception::DATA_INVALID_DATA_CONSUMPTION_LENGTH, $length));
 
-        if (!$this->data->eof()) {
+        if (!$this->eof) {
             $this->data->seek(0 - $length);
 
             $string = $this->data->peekChar($length);
