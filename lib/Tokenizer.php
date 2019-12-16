@@ -171,13 +171,13 @@ class Tokenizer {
 
     protected function sanitizeTag(TagToken $token): void {
         if ($token instanceof EndTagToken) {
-            # When an end tag token is emitted with attributes, 
+            # When an end tag token is emitted with attributes,
             #   that is an end-tag-with-attributes parse error.
             if ($token->attributes) {
                 $this->error(ParseError::END_TAG_WITH_ATTRIBUTES);
                 $token->attributes = [];
             }
-            # When an end tag token is emitted with its self-closing 
+            # When an end tag token is emitted with its self-closing
             #   flag set, that is an end-tag-with-trailing-solidus parse error.
             if ($token->selfClosing) {
                 $this->error(ParseError::END_TAG_WITH_TRAILING_SOLIDUS);
@@ -1295,9 +1295,9 @@ class Tokenizer {
                 # U+002F SOLIDUS (/)
                 # U+003E GREATER-THAN SIGN (>)
                 if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ' || $char === '/' || $char === '>') {
-                    # If the temporary buffer is the string "script", 
-                    #   then switch to the script data double escaped state. 
-                    # Otherwise, switch to the script data escaped state. 
+                    # If the temporary buffer is the string "script",
+                    #   then switch to the script data double escaped state.
+                    # Otherwise, switch to the script data escaped state.
                     #   Emit the current input character as a character token.
                     if ($temporaryBuffer === 'script') {
                         $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE;
@@ -1314,7 +1314,7 @@ class Tokenizer {
                     # Emit the current input character as a character token.
 
                     // OPTIMIZATION: Combine upper and lower alpha
-                    // OPTIMIZATION: 
+                    // OPTIMIZATION:
                     // Consume all characters that are ASCII characters to prevent having
                     // to loop back through here every single time.
                     $char = $char.$this->data->consumeWhile(self::CTYPE_ALPHA);
@@ -2576,7 +2576,7 @@ class Tokenizer {
                     # Append the current input character to the current DOCTYPE token's name.
 
                     // OPTIMIZATION: Also handle ASCII upper alpha
-                    // OPTIMIZATION: 
+                    // OPTIMIZATION:
                     // Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
                     assert(isset($token) && $token instanceof Token);
@@ -2598,7 +2598,7 @@ class Tokenizer {
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
-                    # Switch to the data state. 
+                    # Switch to the data state.
                     # Emit the current DOCTYPE token.
                     $this->state = self::DATA_STATE;
                     assert(isset($token) && $token instanceof Token);
@@ -2624,26 +2624,26 @@ class Tokenizer {
                 else {
                     // OPTIMIZATION: Peek only once; we peek because consuming could alter the order of errors
                     $peek = strtoupper($char.$this->data->peek(5));
-                    # If the six characters starting from the current input 
-                    #   character are an ASCII case-insensitive match for the 
-                    #   word "PUBLIC", then consume those characters and 
+                    # If the six characters starting from the current input
+                    #   character are an ASCII case-insensitive match for the
+                    #   word "PUBLIC", then consume those characters and
                     #   switch to the after DOCTYPE public keyword state.
                     if($peek === 'PUBLIC') {
                         $this->data->consume(5);
                         $this->state = self::AFTER_DOCTYPE_PUBLIC_KEYWORD_STATE;
                     }
-                    # Otherwise, if the six characters starting from the current input 
-                    #   character are an ASCII case-insensitive match for the 
-                    #   word "SYSTEM", then consume those characters and 
+                    # Otherwise, if the six characters starting from the current input
+                    #   character are an ASCII case-insensitive match for the
+                    #   word "SYSTEM", then consume those characters and
                     #   switch to the after DOCTYPE system keyword state.
                     elseif ($peek === 'SYSTEM') {
                         $this->data->consume(5);
                         $this->state = self::AFTER_DOCTYPE_SYSTEM_KEYWORD_STATE;
                     }
-                    # Otherwise, this is an 
-                    #   invalid-character-sequence-after-doctype-name 
-                    #   parse error. 
-                    # Set the DOCTYPE token's force-quirks flag to on. 
+                    # Otherwise, this is an
+                    #   invalid-character-sequence-after-doctype-name
+                    #   parse error.
+                    # Set the DOCTYPE token's force-quirks flag to on.
                     # Reconsume in the bogus DOCTYPE state.
                     $this->error(ParseError::INVALID_CHARACTER_SEQUENCE_AFTER_DOCTYPE_NAME);
                     assert(isset($token) && $token instanceof Token);
@@ -2668,8 +2668,8 @@ class Tokenizer {
                 }
                 # U+0022 QUOTATION MARK (")
                 elseif ($char === '"') {
-                    # This is a missing-whitespace-after-doctype-public-keyword parse error. 
-                    # Set the DOCTYPE token's public identifier to the empty string (not missing), 
+                    # This is a missing-whitespace-after-doctype-public-keyword parse error.
+                    # Set the DOCTYPE token's public identifier to the empty string (not missing),
                     #   then switch to the DOCTYPE public identifier (double-quoted) state.
                     $this->error(ParseError::MISSING_WHITESPACE_AFTER_DOCTYPE_PUBLIC_KEYWORD);
                     assert(isset($token) && $token instanceof Token);
@@ -2678,8 +2678,8 @@ class Tokenizer {
                 }
                 # "'" (U+0027)
                 elseif ($char === "'") {
-                    # This is a missing-whitespace-after-doctype-public-keyword parse error. 
-                    # Set the DOCTYPE token's public identifier to the empty string (not missing), 
+                    # This is a missing-whitespace-after-doctype-public-keyword parse error.
+                    # Set the DOCTYPE token's public identifier to the empty string (not missing),
                     #   then switch to the DOCTYPE public identifier (single-quoted) state.
                     $this->error(ParseError::MISSING_WHITESPACE_AFTER_DOCTYPE_PUBLIC_KEYWORD);
                     assert(isset($token) && $token instanceof Token);
@@ -2741,7 +2741,7 @@ class Tokenizer {
                 }
                 # U+0022 QUOTATION MARK (")
                 elseif ($char === '"') {
-                    # Set the DOCTYPE token's public identifier to the empty string (not missing), 
+                    # Set the DOCTYPE token's public identifier to the empty string (not missing),
                     #   then switch to the DOCTYPE public identifier (double-quoted) state.
                     assert(isset($token) && $token instanceof Token);
                     $token->public = '';
@@ -2749,7 +2749,7 @@ class Tokenizer {
                 }
                 # "'" (U+0027)
                 elseif ($char === "'") {
-                    # Set the DOCTYPE token's public identifier to the empty string (not missing), 
+                    # Set the DOCTYPE token's public identifier to the empty string (not missing),
                     #   then switch to the DOCTYPE public identifier (single-quoted) state.
                     assert(isset($token) && $token instanceof Token);
                     $token->public = '';
@@ -2845,10 +2845,10 @@ class Tokenizer {
                 }
                 # Anything else
                 else {
-                    # Append the current input character to the 
+                    # Append the current input character to the
                     #   current DOCTYPE token's public identifier.
 
-                    // OPTIMIZATION: 
+                    // OPTIMIZATION:
                     // Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
                     assert(isset($token) && $token instanceof Token);
@@ -2905,10 +2905,10 @@ class Tokenizer {
                 }
                 # Anything else
                 else {
-                    # Append the current input character to the 
+                    # Append the current input character to the
                     #   current DOCTYPE token's public identifier.
 
-                    // OPTIMIZATION: 
+                    // OPTIMIZATION:
                     // Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
                     assert(isset($token) && $token instanceof Token);
@@ -2940,7 +2940,7 @@ class Tokenizer {
                 # U+0022 QUOTATION MARK (")
                 elseif ($char === '"') {
                     # This is a missing-whitespace-between-doctype-public-and-system-identifiers parse error.
-                    # Set the DOCTYPE token's system identifier to the empty string (not missing), 
+                    # Set the DOCTYPE token's system identifier to the empty string (not missing),
                     #   then switch to the DOCTYPE system identifier (double-quoted) state.
                     $this->error(ParseError::MISSING_WHITESPACE_BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS);
                     $this->system = '';
@@ -2949,7 +2949,7 @@ class Tokenizer {
                 # "'" (U+0027)
                 elseif ($char === "'") {
                     # This is a missing-whitespace-between-doctype-public-and-system-identifiers parse error.
-                    # Set the DOCTYPE token's system identifier to the empty string (not missing), 
+                    # Set the DOCTYPE token's system identifier to the empty string (not missing),
                     #   then switch to the DOCTYPE system identifier (single-quoted) state.
                     $this->error(ParseError::MISSING_WHITESPACE_BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS);
                     $this->system = '';
@@ -3006,16 +3006,16 @@ class Tokenizer {
                 }
                 # U+0022 QUOTATION MARK (")
                 elseif ($char === '"') {
-                    # Set the DOCTYPE token's system identifier to the 
-                    #   empty string (not missing), then switch to the 
+                    # Set the DOCTYPE token's system identifier to the
+                    #   empty string (not missing), then switch to the
                     #   DOCTYPE system identifier (double-quoted) state.
                     $this->system = '';
                     $this->state = self::DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED_STATE;
                 }
                 # "'" (U+0027)
                 elseif ($char === "'") {
-                    # Set the DOCTYPE token's system identifier to the 
-                    #   empty string (not missing), then switch to the 
+                    # Set the DOCTYPE token's system identifier to the
+                    #   empty string (not missing), then switch to the
                     #   DOCTYPE system identifier (single-quoted) state.
                     $this->system = '';
                     $this->state = self::DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED_STATE;
@@ -3064,7 +3064,7 @@ class Tokenizer {
                 # U+0022 QUOTATION MARK (")
                 elseif ($char === '"') {
                     # This is a missing-whitespace-after-doctype-system-keyword parse error.
-                    # Set the DOCTYPE token's system identifier to the empty string (not missing), 
+                    # Set the DOCTYPE token's system identifier to the empty string (not missing),
                     #   then switch to the DOCTYPE system identifier (double-quoted) state.
                     $this->error(ParseError::MISSING_WHITESPACE_AFTER_DOCTYPE_SYSTEM_KEYWORD);
                     assert(isset($token) && $token instanceof Token);
@@ -3074,7 +3074,7 @@ class Tokenizer {
                 # "'" (U+0027)
                 elseif ($char === "'") {
                     # This is a missing-whitespace-after-doctype-system-keyword parse error.
-                    # Set the DOCTYPE token's system identifier to the empty string (not missing), 
+                    # Set the DOCTYPE token's system identifier to the empty string (not missing),
                     #   then switch to the DOCTYPE system identifier (single-quoted) state.
                     $this->error(ParseError::MISSING_WHITESPACE_AFTER_DOCTYPE_SYSTEM_KEYWORD);
                     assert(isset($token) && $token instanceof Token);
@@ -3136,8 +3136,8 @@ class Tokenizer {
                 }
                 # U+0022 QUOTATION MARK (")
                 elseif ($char === '"') {
-                    # Set the DOCTYPE token's system identifier to the 
-                    #   empty string (not missing), then switch to the 
+                    # Set the DOCTYPE token's system identifier to the
+                    #   empty string (not missing), then switch to the
                     #   DOCTYPE system identifier (double-quoted) state.
                     assert(isset($token) && $token instanceof Token);
                     $token->system = '';
@@ -3145,8 +3145,8 @@ class Tokenizer {
                 }
                 # "'" (U+0027)
                 elseif ($char === "'") {
-                    # Set the DOCTYPE token's system identifier to the 
-                    #   empty string (not missing), then switch to the 
+                    # Set the DOCTYPE token's system identifier to the
+                    #   empty string (not missing), then switch to the
                     #   DOCTYPE system identifier (single-quoted) state.
                     assert(isset($token) && $token instanceof Token);
                     $token->system = '';
@@ -3382,7 +3382,7 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Emit the DOCTYPE token.
                     # Emit an end-of-file token.
-                    
+
                     // DEVIATION:
                     // We cannot emit two tokens, so we switch to
                     // the data state, which will emit the EOF token
@@ -3451,7 +3451,7 @@ class Tokenizer {
                 # U+005D RIGHT SQUARE BRACKET (])
                 if ($char === ']') {
                     # Emit a U+005D RIGHT SQUARE BRACKET character token.
-                    
+
                     // OTPIMIZATION: Consume any additional right square brackets
                     return new CharacterToken($char.$this->data->consumeWhile(']'));
                 }
@@ -3468,9 +3468,9 @@ class Tokenizer {
                     // OPTIMIZATION: Not necessary to reconsume
                     return new CharacterToken(']'.$char);
                 }
-            } 
-            
-            # Not a valid state 
+            }
+
+            # Not a valid state
             else {
                 throw new \Exception("Tokenizer state: ".$this->state);
             }
