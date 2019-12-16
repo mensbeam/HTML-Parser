@@ -219,7 +219,8 @@ class Tokenizer {
         while (true) {
             assert((function() {
                 $state = self::STATE_NAMES[$this->state] ?? $this->state;
-                $this->debugLog .= "    State: $state\n";
+                $char = bin2hex($this->data->peek(1));
+                $this->debugLog .= "    State: $state ($char)\n";
                 return true;
             })());
 
@@ -2088,8 +2089,8 @@ class Tokenizer {
                 # Anything else
                 else {
                     # Reconsume in the comment state.
-                    $this->data->unconsume();
                     $this->state = self::COMMENT_STATE;
+                    $this->data->unconsume();
                 }
             }
 
@@ -2356,7 +2357,7 @@ class Tokenizer {
                     # Append two U+002D HYPHEN-MINUS characters (-) to the comment token's data.
                     # Reconsume in the comment state.
                     assert(isset($token) && $token instanceof Token);
-                    $token->data .= '--'.$char;
+                    $token->data .= '--';
                     $this->state = self::COMMENT_STATE;
                     $this->data->unconsume();
                 }
