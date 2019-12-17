@@ -79,16 +79,6 @@ class Data {
             $this->eof = true;
         }
 
-        if (self::$debug) {
-            echo "\nConsume\n==========\n";
-            echo "Length: $length\n";
-            echo "Data: ";
-            var_export($string);
-            echo "\n";
-            echo "Pointer: {$this->data->posChar()}\n";
-            echo "==========\n\n";
-        }
-
         return $string;
     }
 
@@ -111,12 +101,6 @@ class Data {
                 $this->_column -= $length;
             }
         }
-
-        if (self::$debug) {
-            echo "\nUnconsume\n==========\n";
-            echo "Pointer: {$this->data->posChar()}\n";
-            echo "==========\n\n";
-        }
     }
 
     public function consumeWhile(string $match, int $limit = 0): string {
@@ -131,15 +115,6 @@ class Data {
         assert($length > 0, new Exception(Exception::DATA_INVALID_DATA_CONSUMPTION_LENGTH, $length));
 
         $string = $this->data->peekChar($length);
-
-        if (self::$debug) {
-            echo "\nPeek\n==========\n";
-            echo "Data: ";
-            var_export($string);
-            echo "\n";
-            echo "Pointer: {$this->data->posChar()}\n";
-            echo "==========\n\n";
-        }
 
         return $string;
     }
@@ -202,16 +177,6 @@ class Data {
             }
         } else {
             $this->data->seek(($advancePointer) ? -1 : 0 - $count - 2);
-        }
-
-        if (self::$debug) {
-            echo ($advancePointer) ? "\nconsume" : "\npeek";
-            echo ($while) ? 'While' : 'Until';
-            echo "\n==========\nPattern: ";
-            var_export(str_replace(["\t", "\n", "\x0c", "\x0d"], ['\t', '\n', '\x0c', '\x0d'], implode('', $match)));
-            echo "\nData: ";
-            var_export($string);
-            echo "\nPointer: {$this->data->posChar()}\n==========\n\n";
         }
 
         return $string;

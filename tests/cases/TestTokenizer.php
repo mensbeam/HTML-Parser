@@ -8,7 +8,16 @@ use dW\HTML5\OpenElementsStack;
 use dW\HTML5\ParseError;
 use dW\HTML5\Tokenizer;
 
-/** @covers \dW\HTML5\Tokenizer */
+/** 
+ * @covers \dW\HTML5\Tokenizer
+ * @covers \dW\HTML5\Data
+ * @covers \dW\HTML5\CharacterToken
+ * @covers \dW\HTML5\CommentToken
+ * @covers \dW\HTML5\DataToken
+ * @covers \dW\HTML5\TagToken
+ * @covers \dW\HTML5\DOCTYPEToken
+ * @covers \dW\HTML5\TokenAttr
+ */
 class TestTokenizer extends \dW\HTML5\Test\StandardTest {
     const DEBUG = false;
 

@@ -997,7 +997,8 @@ class Tokenizer {
                 }
                 # Anything else
                 else {
-                    # Switch to the script data state. Reconsume the current input character.
+                    # Switch to the script data state.
+                    # Reconsume the current input character.
                     $this->state = self::SCRIPT_DATA_STATE;
                     $this->data->unconsume();
                 }
@@ -3389,7 +3390,7 @@ class Tokenizer {
 
             # Not a valid state, unimplemented, or implemented elsewhere
             else {
-                throw new \Exception("Unimplemented state: ".(self::STATE_NAMES[$this->state] ?? $this->state));
+                throw new \Exception("Unimplemented state: ".(self::STATE_NAMES[$this->state] ?? $this->state)); // @codeCoverageIgnore
             }
         }
     }
@@ -3635,7 +3636,7 @@ class Tokenizer {
 
                     // OPTIMIZATION: Combine all digit types
                     // NOTE: This branch should never be reached 
-                    $charRefCode = ($charRefCode * 16) + hexdec($char);
+                    $charRefCode = ($charRefCode * 16) + hexdec($char); // @codeCoverageIgnore
                 }
                 # U+003B SEMICOLON
                 elseif ($char === ';') {
@@ -3665,7 +3666,7 @@ class Tokenizer {
 
                     // OPTIMIZATION: Combine all digit types
                     // NOTE: This branch should never be reached 
-                    $charRefCode = ($charRefCode * 10) + ((int) ($char));
+                    $charRefCode = ($charRefCode * 10) + ((int) ($char)); // @codeCoverageIgnore
                 }
                 # U+003B SEMICOLON
                 elseif ($char === ';') {
@@ -3728,7 +3729,7 @@ class Tokenizer {
 
             # Not a valid state, unimplemented, or implemented elsewhere
             else {
-                throw new \Exception("Unimplemented character reference consumption state: ".(self::STATE_NAMES[$this->state] ?? $this->state));
+                throw new \Exception("Unimplemented character reference consumption state: ".(self::STATE_NAMES[$this->state] ?? $this->state)); // @codeCoverageIgnore
             }
         }        
     }
