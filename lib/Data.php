@@ -152,7 +152,7 @@ class Data {
         return $this->span($match, false, false, $limit);
     }
 
-    protected function span(string $match, bool $while = true, bool $advancePointer = true, int $limit = 0): string {
+    protected function span(string $match, bool $while = true, bool $advancePointer = true, int $limit = -1): string {
         // Break the matching characters into an array of characters. Unicode friendly.
         $match = preg_split('/(?<!^)(?!$)/Su', $match);
 
@@ -160,6 +160,7 @@ class Data {
         $string = '';
         while (true) {
             $char = $this->data->nextChar();
+            $count++;
 
             if ($char === '') {
                 break;
@@ -187,16 +188,15 @@ class Data {
             }
 
             $string .= $char;
-            $count++;
             if ($count === $limit) {
                 break;
             }
         }
 
-        // If the end is reached the pointer isn't moved when the last character
+        // If the end (or limit) is reached the pointer isn't moved when the last character
         // is checked, so it only needs to be moved backwards if not wanting the
         // pointer to move.
-        if ($char === '') {
+        if ($char === '' || $count === $limit) {
             if (!$advancePointer) {
                 $this->data->seek(0 - $count - 1);
             }
