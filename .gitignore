@@ -70,3 +70,4 @@ $RECYCLE.BIN/
 /vendor-bin/*/vendor
 /tests/html5lib-tests
 /tests/.phpunit.result.cache
+/tests/coverage

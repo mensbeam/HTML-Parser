@@ -267,7 +267,7 @@ class Tokenizer {
                     # Switch to the character reference state.
 
                     // DEVIATION: Character reference consumption implemented as a function
-                    return new CharacterToken($this->switchToCharacterReferenceState(self::RCDATA_STATE));
+                    return new CharacterToken($this->switchToCharacterReferenceState(self::DATA_STATE));
                 }
                 # U+003C LESS-THAN SIGN (<)
                 elseif ($char === '<') {
@@ -3579,15 +3579,16 @@ class Tokenizer {
                 $match = CharacterReference::NAMES[$candidate] ?? null;
                 if (is_null($match) && !in_array($returnState, self::ATTRIBUTE_VALUE_STATE_SET)) {
                     $match = (preg_match(CharacterReference::PREFIX_PATTERN, $candidate, $match)) ? $match[0] : null;
-                    // If a prefix match is found, unconsume to the end of the prefix
+                    // If a prefix match is found, unconsume to the end of the prefix and look up the entry in the table
                     if (!is_null($match)) {
                         $this->data->unconsume(strlen($candidate) - strlen($match));
                         $next = $candidate[strlen($match)];
+                        $match = CharacterReference::NAMES[$match];
                     }
                 }
                 
                 # Append each character to the temporary buffer when it's consumed.
-                $temporaryBuffer .= ($match ?? $candidate);
+                $temporaryBuffer .= $candidate;
 
                 # If there is a match
                 if (!is_null($match)) {
@@ -3643,8 +3644,7 @@ class Tokenizer {
                     # Otherwise, emit the current input character as a character token.
 
                     // DEVIATION: We just continue to buffer characters until it's time to return
-                    // NOTE: this branch should never be reached
-                    $temporaryBuffer .= $char;
+                    $temporaryBuffer .= $char.$this->data->consumeWhile(self::CTYPE_ALNUM);
                 }
                 # U+003B SEMICOLON (;)
                 elseif ($char === ';') {
@@ -3724,7 +3724,7 @@ class Tokenizer {
 
                     // OPTIMIZATION:
                     // Just consume the digits here
-                    $charRefCode = hexdec($char.$this->data->consumeWhile(self::CTYPE_NUM));
+                    $charRefCode = (int) ($char.$this->data->consumeWhile(self::CTYPE_NUM));
                     $this->state = self::DECIMAL_CHARACTER_REFERENCE_STATE;
                 }
                 # Anything else
