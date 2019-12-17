@@ -49,6 +49,14 @@ class ParseError {
     const EOF_IN_CDATA                                                      = 135;
     const END_TAG_WITH_ATTRIBUTES                                           = 136;
     const END_TAG_WITH_TRAILING_SOLIDUS                                     = 137;
+    const MISSING_SEMICOLON_AFTER_CHARACTER_REFERENCE                       = 138;
+    const UNKNOWN_NAMED_CHARACTER_REFERENCE                                 = 139;
+    const ABSENCE_OF_DIGITS_IN_CHARACTER_REFERENCE                          = 140;
+    const NULL_CHARACTER_REFRERENCE                                         = 141;
+    const CHARACTER_REFERENCE_OUTSIDE_UNICODE_RANGE                         = 142;
+    const SURROGATE_CHARACTER_REFERENCE                                     = 143;
+    const NONCHARACTER_CHARACTER_REFERENCE                                  = 144;
+    const CONTROL_CHARACTER_REFERENCE                                       = 145;
 
     protected static $messages = [
         self::UNEXPECTED_NULL_CHARACTER                                         => 'Unexpected null character',
@@ -88,6 +96,14 @@ class ParseError {
         self::EOF_IN_CDATA                                                      => 'End-of-file in CDATA section',
         self::END_TAG_WITH_ATTRIBUTES                                           => 'End-tag with attributes',
         self::END_TAG_WITH_TRAILING_SOLIDUS                                     => 'End-tag with trailing solidus',
+        self::MISSING_SEMICOLON_AFTER_CHARACTER_REFERENCE                       => 'Missing semicolon after character reference',
+        self::UNKNOWN_NAMED_CHARACTER_REFERENCE                                 => 'Unknown named character reference "%s"',
+        self::ABSENCE_OF_DIGITS_IN_CHARACTER_REFERENCE                          => 'Absence of digits in character reference',
+        self::NULL_CHARACTER_REFRERENCE                                         => 'Null character reference',
+        self::CHARACTER_REFERENCE_OUTSIDE_UNICODE_RANGE                         => 'Character reference outside Unicode range',
+        self::SURROGATE_CHARACTER_REFERENCE                                     => 'Surrogate character rereference',
+        self::NONCHARACTER_CHARACTER_REFERENCE                                  => 'Non-character character reference',
+        self::CONTROL_CHARACTER_REFERENCE                                       => 'Control-character character reference',
     ];
 
     public function setHandler() {

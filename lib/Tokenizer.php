@@ -2,6 +2,8 @@
 declare(strict_types=1);
 namespace dW\HTML5;
 
+use MensBeam\Intl\Encoding\UTF8;
+
 class Tokenizer {
     use ParseErrorEmitter;
 
@@ -176,9 +178,21 @@ class Tokenizer {
         self::NUMERIC_CHARACTER_REFERENCE_END_STATE               => "Numeric character reference",
     ];
 
+    const ATTRIBUTE_VALUE_STATE_SET = [
+        # A character reference is said to be consumed as part of an attribute 
+        #   if the return state is either attribute value (double-quoted) state, 
+        #   attribute value (single-quoted) state or attribute value (unquoted) state.
+        self::ATTRIBUTE_VALUE_DOUBLE_QUOTED_STATE, 
+        self::ATTRIBUTE_VALUE_SINGLE_QUOTED_STATE, 
+        self::ATTRIBUTE_VALUE_UNQUOTED_STATE
+    ];
+
     // Ctype constants
-    const CTYPE_ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
     const CTYPE_UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const CTYPE_ALPHA = self::CTYPE_UPPER.'abcdefghijklmnopqrstuvwxyz';
+    const CTYPE_NUM   = '0123456789';
+    const CTYPE_ALNUM = self::CTYPE_ALPHA.self::CTYPE_NUM;
+    const CTYPE_HEX   = self::CTYPE_NUM.'ABCDEFabcdef';
 
     public function __construct(Data $data, OpenElementsStack $stack, ParseError $errorHandler) {
         $this->state = self::DATA_STATE;
@@ -251,8 +265,9 @@ class Tokenizer {
                 if ($char === '&') {
                     # Set the return state to the data state.
                     # Switch to the character reference state.
-                    $returnState = self::DATA_STATE;
-                    $this->state = self::CHARACTER_REFERENCE_STATE;
+
+                    // DEVIATION: Character reference consumption implemented as a function
+                    return new CharacterToken($this->switchToCharacterReferenceState(self::RCDATA_STATE));
                 }
                 # U+003C LESS-THAN SIGN (<)
                 elseif ($char === '<') {
@@ -292,8 +307,9 @@ class Tokenizer {
                 if ($char === '&') {
                     # Set the return state to the RCDATA state.
                     # Switch to the character reference state.
-                    $returnState = self::RCDATA_STATE;
-                    $this->state = self::CHARACTER_REFERENCE_STATE;
+
+                    // DEVIATION: Character reference consumption implemented as a function
+                    return new CharacterToken($this->switchToCharacterReferenceState(self::RCDATA_STATE));
                 }
                 # U+003C LESS-THAN SIGN (<)
                 elseif ($char === '<') {
@@ -1763,8 +1779,10 @@ class Tokenizer {
                 elseif ($char === '&') {
                     # Set the return state to the attribute value (double-quoted) state.
                     # Switch to the character reference state.
-                    $returnState = self::ATTRIBUTE_VALUE_DOUBLE_QUOTED_STATE;
-                    $this->state = self::CHARACTER_REFERENCE_STATE;
+
+                    // DEVIATION: Character reference consumption implemented as a function
+                    assert(isset($attribute) && $attribute instanceof TokenAttr);
+                    $attribute->value .= $this->switchToCharacterReferenceState(self::ATTRIBUTE_VALUE_DOUBLE_QUOTED_STATE);
                 }
                 # U+0000 NULL
                 elseif ($char === "\0") {
@@ -1807,8 +1825,10 @@ class Tokenizer {
                 elseif ($char === '&') {
                     # Set the return state to the attribute value (single-quoted) state.
                     # Switch to the character reference state.
-                    $returnState = self::ATTRIBUTE_VALUE_SINGLE_QUOTED_STATE;
-                    $this->state = self::CHARACTER_REFERENCE_STATE;
+
+                    // DEVIATION: Character reference consumption implemented as a function
+                    assert(isset($attribute) && $attribute instanceof TokenAttr);
+                    $attribute->value .= $this->switchToCharacterReferenceState(self::ATTRIBUTE_VALUE_SINGLE_QUOTED_STATE);
                 }
                 # U+0000 NULL
                 elseif ($char === "\0") {
@@ -1855,8 +1875,10 @@ class Tokenizer {
                 elseif ($char === '&') {
                     # Set the return state to the attribute value (unquoted) state.
                     # Switch to the character reference state.
-                    $returnState = self::ATTRIBUTE_VALUE_UNQUOTED_STATE;
-                    $this->state = self::CHARACTER_REFERENCE_STATE;
+
+                    // DEVIATION: Character reference consumption implemented as a function
+                    assert(isset($attribute) && $attribute instanceof TokenAttr);
+                    $attribute->value .= $this->switchToCharacterReferenceState(self::ATTRIBUTE_VALUE_UNQUOTED_STATE);
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
@@ -3484,17 +3506,349 @@ class Tokenizer {
                 }
             }
 
-            #12.2.5.72 Character reference state
-            elseif ($this->state === self::CHARACTER_REFERENCE_STATE) {
-                // Not implemented
-                $this->state = $returnState;
-                return new CharacterToken('&');
-            }
-
-            # Not a valid state
+            # Not a valid state, unimplemented, or implemented elsewhere
             else {
                 throw new \Exception("Unimplemented state: ".(self::STATE_NAMES[$this->state] ?? $this->state));
             }
         }
+    }
+
+    protected function switchToCharacterReferenceState(int $returnState): string {
+        // This function implements states 72 through 80, 
+        // "Character reference" through "Numeric character reference end" states 
+        $this->state = self::CHARACTER_REFERENCE_STATE;
+
+        while (true) {
+            assert((function() {
+                $state = self::STATE_NAMES[$this->state] ?? $this->state;
+                $char = bin2hex($this->data->peek(1));
+                $this->debugLog .= "    State: $state ($char)\n";
+                return true;
+            })());
+
+            # 12.2.5.72 Character reference state
+            if ($this->state === self::CHARACTER_REFERENCE_STATE) {
+                # Set the temporary buffer to the empty string.
+                # Append a U+0026 AMPERSAND (&) character to the temporary buffer.
+                # Consume the next input character.
+                $temporaryBuffer = '&';
+                $char = $this->data->consume();
+
+                # ASCII alphanumeric
+                if (ctype_alnum($char)) {
+                    # Reconsume in the named character reference state.
+                    $this->state = self::NAMED_CHARACTER_REFERENCE_STATE;
+                    $this->data->unconsume();
+                }
+                # U+0023 NUMBER SIGN (#)
+                elseif ($char === '#') {
+                    # Append the current input character to the temporary buffer.
+                    # Switch to the numeric character reference state.
+                    $temporaryBuffer .= $char;
+                    $this->state = self::NUMERIC_CHARACTER_REFERENCE_STATE;
+                }
+                # Anything else
+                else {
+                    # Flush code points consumed as a character reference.
+                    # Reconsume in the return state.
+                    $this->state = $returnState;
+                    $this->data->unconsume();
+                    return $temporaryBuffer;
+                }
+            }
+
+            # 12.2.5.73 Named character reference state
+            elseif ($this->state === self::NAMED_CHARACTER_REFERENCE_STATE) {
+                # Consume the maximum number of characters possible, 
+                #   with the consumed characters matching one of the 
+                #   identifiers in the first column of the named character 
+                #   references table (in a case-sensitive manner).
+                
+                // DEVIATION:
+                // We consume all possible alphanumeric characters, 
+                // up to the length of the longest in the table
+                $candidate = $this->data->consumeWhile(self::CTYPE_ALNUM, CharacterReference::LONGEST_NAME);
+                // Keep a record of the terminating character, which is used later
+                $next = $this->data->peek(1);
+                if ($next === ';') {
+                    // consume the following character if it is a proper terminator
+                    $candidate .= $this->data->consume();
+                }
+                // Look for an exact match 
+                // If not found look for a prefix match if not consuming in an attribute
+                $match = CharacterReference::NAMES[$candidate] ?? null;
+                if (is_null($match) && !in_array($returnState, self::ATTRIBUTE_VALUE_STATE_SET)) {
+                    $match = (preg_match(CharacterReference::PREFIX_PATTERN, $candidate, $match)) ? $match[0] : null;
+                    // If a prefix match is found, unconsume to the end of the prefix
+                    if (!is_null($match)) {
+                        $this->data->unconsume(strlen($candidate) - strlen($match));
+                        $next = $candidate[strlen($match)];
+                    }
+                }
+                
+                # Append each character to the temporary buffer when it's consumed.
+                $temporaryBuffer .= ($match ?? $candidate);
+
+                # If there is a match
+                if (!is_null($match)) {
+                    # If the character reference was consumed as part of an attribute, 
+                    #   and the last character matched is not a U+003B SEMICOLON character (;), 
+                    #   and the next input character is either a U+003D EQUALS SIGN character (=)
+                    #   or an ASCII alphanumeric...
+                    if (in_array($returnState, self::ATTRIBUTE_VALUE_STATE_SET) && $next !== ';' && ($next === '=' || ctype_alnum($next))) {
+                        # ... then, for historical reasons, flush code points consumed 
+                        #   as a character reference and switch to the return state.
+                        $this->state = $returnState;
+                        return $temporaryBuffer;
+                    } 
+                    # Otherwise:
+                    else {
+                        # If the last character matched is not a U+003B SEMICOLON character (;), 
+                        #   then this is a missing-semicolon-after-character-reference parse error.
+                        if ($next !== ';') {
+                            $this->error(ParseError::MISSING_SEMICOLON_AFTER_CHARACTER_REFERENCE);
+                        }
+                        # Set the temporary buffer to the empty string. 
+                        # Append one or two characters corresponding to the 
+                        #   character reference name (as given by the second 
+                        #   column of the named character references table) 
+                        #   to the temporary buffer.
+                        # Flush code points consumed as a character reference.
+                        # Switch to the return state.
+
+                        // In other words: return the match
+                        $this->state = $returnState;
+                        return $match;
+                    }
+                }
+                # Otherwise:
+                else {
+                    # Flush code points consumed as a character reference. 
+                    # Switch to the ambiguous ampersand state.
+
+                    // DEVIATION: We flush only when switching to the return state
+                    $this->state = self::AMBIGUOUS_AMPERSAND_STATE;
+                }
+            }
+
+            # 12.2.5.74 Ambiguous ampersand state
+            elseif ($this->state === self::AMBIGUOUS_AMPERSAND_STATE) {
+                # Consume the next input character.
+                $char = $this->data->consume();
+
+                # ASCII alphanumeric
+                if (ctype_alnum($char)) {
+                    # If the character reference was consumed as part of an attribute, 
+                    #   then append the current input character to the current attribute's value.
+                    # Otherwise, emit the current input character as a character token.
+
+                    // DEVIATION: We just continue to buffer characters until it's time to return
+                    // NOTE: this branch should never be reached
+                    $temporaryBuffer .= $char;
+                }
+                # U+003B SEMICOLON (;)
+                elseif ($char === ';') {
+                    # This is an unknown-named-character-reference parse error.
+                    # Reconsume in the return state.
+                    $this->error(ParseError::UNKNOWN_NAMED_CHARACTER_REFERENCE, $temporaryBuffer.';');
+                    $this->state = $returnState;
+                    $this->data->unconsume();
+                    return $temporaryBuffer;
+                }
+                # Anything else
+                else {
+                    # Reconsume in the return state.
+                    $this->state = $returnState;
+                    $this->data->unconsume();
+                    return $temporaryBuffer;
+                }
+            }
+
+            # 12.2.5.75 Numeric character reference state
+            elseif ($this->state === self::NUMERIC_CHARACTER_REFERENCE_STATE) {
+                # Set the character reference code to zero (0).
+                $charRefCode = 0;
+                # Consume the next input character.
+                $char = $this->data->consume();
+                
+                # U+0078 LATIN SMALL LETTER X
+                #U+0058 LATIN CAPITAL LETTER X
+                if ($char === 'x' || $char === 'X') {
+                    # Append the current input character to the temporary buffer.
+                    # Switch to the hexadecimal character reference start state.
+                    $temporaryBuffer .= $char;
+                    $this->state = self::HEXADECIMAL_CHARACTER_REFERENCE_START_STATE;
+                }
+                # Anything else
+                else {
+                    # Reconsume in the decimal character reference start state.
+                    $this->state = self::DECIMAL_CHARACTER_REFERENCE_START_STATE;
+                    $this->data->unconsume();
+                }
+            }
+
+            # 12.2.5.76 Hexadecimal character reference start state
+            elseif ($this->state === self::HEXADECIMAL_CHARACTER_REFERENCE_START_STATE) {
+                # Consume the next input character.
+                $char = $this->data->consume();
+                
+                # ASCII hex digit
+                if (ctype_xdigit($char)) {
+                    # Reconsume in the hexadecimal character reference state.
+
+                    // OPTIMIZATION:
+                    // Just consume the digits here
+                    $charRefCode = hexdec($char.$this->data->consumeWhile(self::CTYPE_HEX));
+                    $this->state = self::HEXADECIMAL_CHARACTER_REFERENCE_STATE;
+                }
+                # Anything else
+                else {
+                    # This is an absence-of-digits-in-numeric-character-reference parse error.
+                    # Flush code points consumed as a character reference.
+                    # Reconsume in the return state.
+                    $this->error(ParseError::ABSENCE_OF_DIGITS_IN_CHARACTER_REFERENCE);
+                    $this->state = $returnState;
+                    $this->data->unconsume();
+                    return $temporaryBuffer;
+                }
+            }
+
+            # 12.2.5.77 Decimal character reference start state
+            elseif ($this->state === self::DECIMAL_CHARACTER_REFERENCE_START_STATE) {
+                # Consume the next input character.
+                $char = $this->data->consume();
+                
+                # ASCII digit
+                if (ctype_digit($char)) {
+                    # Reconsume in the decimal character reference state.
+
+                    // OPTIMIZATION:
+                    // Just consume the digits here
+                    $charRefCode = hexdec($char.$this->data->consumeWhile(self::CTYPE_NUM));
+                    $this->state = self::DECIMAL_CHARACTER_REFERENCE_STATE;
+                }
+                # Anything else
+                else {
+                    # This is an absence-of-digits-in-numeric-character-reference parse error.
+                    # Flush code points consumed as a character reference.
+                    # Reconsume in the return state.
+                    $this->error(ParseError::ABSENCE_OF_DIGITS_IN_CHARACTER_REFERENCE);
+                    $this->state = $returnState;
+                    $this->data->unconsume();
+                    return $temporaryBuffer;
+                }
+            }
+
+            # 12.2.5.78 Hexadecimal character reference state
+            elseif ($this->state === self::HEXADECIMAL_CHARACTER_REFERENCE_STATE) {
+                # Consume the next input character.
+                $char = $this->data->consume();
+                
+                # ASCII digit
+                # ASCII upper hex digit
+                # ASCII lower hex digit
+                if (ctype_xdigit($char)) {
+                    # Multiply the character reference code by 16. 
+                    # Add a numeric version of the current input 
+                    #   character to the character reference code.
+
+                    // OPTIMIZATION: Combine all digit types
+                    // NOTE: This branch should never be reached 
+                    $charRefCode = ($charRefCode * 16) + hexdec($char);
+                }
+                # U+003B SEMICOLON
+                elseif ($char === ';') {
+                    # Switch to the numeric character reference end state.
+                    $this->state = self::NUMERIC_CHARACTER_REFERENCE_END_STATE;
+                }
+                # Anything else
+                else {
+                    # This is a missing-semicolon-after-character-reference parse error.
+                    # Reconsume in the numeric character reference end state.
+                    $this->error(ParseError::MISSING_SEMICOLON_AFTER_CHARACTER_REFERENCE);
+                    $this->state = self::NUMERIC_CHARACTER_REFERENCE_END_STATE;
+                    $this->data->unconsume();
+                }
+            }
+
+            # 12.2.5.79 Decimal character reference state
+            elseif ($this->state === self::DECIMAL_CHARACTER_REFERENCE_STATE) {
+                # Consume the next input character.
+                $char = $this->data->consume();
+                
+                # ASCII digit
+                if (ctype_digit($char)) {
+                    # Multiply the character reference code by 10. 
+                    # Add a numeric version of the current input 
+                    #   character to the character reference code.
+
+                    // OPTIMIZATION: Combine all digit types
+                    // NOTE: This branch should never be reached 
+                    $charRefCode = ($charRefCode * 10) + ((int) ($char));
+                }
+                # U+003B SEMICOLON
+                elseif ($char === ';') {
+                    # Switch to the numeric character reference end state.
+                    $this->state = self::NUMERIC_CHARACTER_REFERENCE_END_STATE;
+                }
+                # Anything else
+                else {
+                    # This is a missing-semicolon-after-character-reference parse error.
+                    # Reconsume in the numeric character reference end state.
+                    $this->error(ParseError::MISSING_SEMICOLON_AFTER_CHARACTER_REFERENCE);
+                    $this->state = self::NUMERIC_CHARACTER_REFERENCE_END_STATE;
+                    $this->data->unconsume();
+                }
+            }
+
+            # 12.2.5.80 Numeric character reference end state
+            elseif ($this->state === self::NUMERIC_CHARACTER_REFERENCE_END_STATE) {
+                # Check the character reference code:
+
+                # If the number is 0x00, then this is a null-character-reference parse error.
+                # Set the character reference code to 0xFFFD.
+                if ($charRefCode === 0) {
+                    $this->error(ParseError::NULL_CHARACTER_REFRERENCE);
+                    $charRefCode = 0xFFFD;
+                }
+                # If the number is greater than 0x10FFFF, then this is a 
+                #   character-reference-outside-unicode-range parse error.
+                # Set the character reference code to 0xFFFD.
+                elseif ($charRefCode > 0x10FFFF) {
+                    $this->error(ParseError::CHARACTER_REFERENCE_OUTSIDE_UNICODE_RANGE);
+                    $charRefCode = 0xFFFD;
+                }
+                # If the number is a surrogate, then this is a 
+                #   surrogate-character-reference parse error.
+                # Set the character reference code to 0xFFFD.
+                elseif ($charRefCode >= 0xD800 && $charRefCode <= 0xDFFF) {
+                    $this->error(ParseError::SURROGATE_CHARACTER_REFERENCE);
+                    $charRefCode = 0xFFFD;
+                }
+                # If the number is a noncharacter, then this is a 
+                #   noncharacter-character-reference parse error.
+                elseif (($charRefCode >= 0xFDD0 && $charRefCode <= 0xFDEF) || ($charRefCode % 0x10000 & 0xFFFE) === 0xFFFE) {
+                    $this->error(ParseError::NONCHARACTER_CHARACTER_REFERENCE);
+                }
+                # If the number is 0x0D, or a control that's not ASCII whitespace, then 
+                #   this is a control-character-reference parse error. 
+                # If the number is one of the numbers in the first column of the following 
+                #   table, then find the row with that number in the first column, and set 
+                #   the character reference code to the number in the second column of that row.
+                elseif (($charRefCode < 0x20 && !in_array($charRefCode, [0x9, 0xA, 0xC])) || ($charRefCode >= 0x7F && $charRefCode <= 0x9F)) {
+                    // NOTE: Table elided
+                    $this->error(ParseError::CONTROL_CHARACTER_REFERENCE);
+                    $charRefCode = CharacterReference::C1_TABLE[$charRefCode] ?? $charRefCode;
+                }
+                $temporaryBuffer = UTF8::encode($charRefCode);
+                $this->state = $returnState;
+                return $temporaryBuffer;
+            }
+
+            # Not a valid state, unimplemented, or implemented elsewhere
+            else {
+                throw new \Exception("Unimplemented character reference consumption state: ".(self::STATE_NAMES[$this->state] ?? $this->state));
+            }
+        }        
     }
 }
