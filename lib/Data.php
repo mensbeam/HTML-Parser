@@ -47,7 +47,7 @@ class Data {
 
         // Normalize line breaks. Convert CRLF and CR to LF.
         // Break the string up into a traversable object.
-        $this->data = new \MensBeam\Intl\Encoding\UTF8(str_replace(["\r\n", "\r"], "\n", $data));
+        $this->data = new \MensBeam\Intl\Encoding\UTF8(str_replace(["\r\n", "\r"], "\n", $data), false, true);
 
         # One leading U+FEFF BYTE ORDER MARK character must be ignored if any are present
         # in the input stream.
