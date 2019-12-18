@@ -14,8 +14,9 @@ class Data {
     protected $_line = 1;
     // Used for error reporting to display column number.
     protected $_column = 0;
-    // Used for error reporting when unconsuming to calculate column number from
-    // last newline.
+    // array of normalized CR+LF pairs, denoted by the character offset of the LF
+    protected $normalized = [];
+    // Holds the character position and column number of each newline
     protected $newlines = [];
     // Whether the EOF imaginary character has been consumed
     protected $eof = false;
@@ -44,62 +45,82 @@ class Data {
         // encoding. At this moment this implementation won't determine a character
         // encoding and will just assume UTF-8.
 
-
-        // Normalize line breaks. Convert CRLF and CR to LF.
-        // Break the string up into a traversable object.
-        $this->data = new \MensBeam\Intl\Encoding\UTF8(str_replace(["\r\n", "\r"], "\n", $data), false, true);
-
-        # One leading U+FEFF BYTE ORDER MARK character must be ignored if any are present
-        # in the input stream.
-
-        if ($this->data->nextChar() !== '\xEF\xBB\xBF') {
-            // rewind to the start of the string if the first character was not a BOM
-            $this->data->rewind();
-        }
+        $this->data = new \MensBeam\Intl\Encoding\UTF8($data, false, true);
     }
 
-    public function consume(int $length = 1): string {
+    public function consume(int $length = 1, $advancePointer = true): string {
         assert($length > 0, new Exception(Exception::DATA_INVALID_DATA_CONSUMPTION_LENGTH, $length));
 
         for ($i = 0, $string = ''; $i < $length; $i++) {
             $char = $this->data->nextChar();
 
-            if ($char === "\n") {
-                $this->newlines[] = $this->data->posChar();
-                $this->_column = 1;
-                $this->_line++;
-            } else {
-                $this->_column++;
+            # Before the tokenization stage, the input stream must be 
+            #   preprocessed by normalizing newlines.
+            # Thus, newlines in HTML DOMs are represented by U+000A LF characters, 
+            #   and there are never any U+000D CR characters in the input to the tokenization stage.
+            if ($char === "\r") {
+                // if this is a CR+LF pair, skip the CR and note the normalization
+                if ($this->data->peekChar() === "\n") {
+                    $char = $this->data->nextChar();
+                    $this->normalized[$this->data->posChar()] = true;
+                }
+                // otherwise just silently change the character to LF; 
+                // the bare CR will be trivial to process when seeking backwards
+                else {
+                    $char = "\n";
+                }
             }
-
+            // append the character to the output string
             $string .= $char;
+            // unless we're peeking, track line and column position, and whether we've hit EOF
+            if ($advancePointer) {
+                if (!$this->checkChar($char)) {
+                    break;
+                }
+            }
         }
-
-        if ($char === '') {
-            $this->eof = true;
-        }
-
         return $string;
     }
 
-    public function unconsume(int $length = 1) {
+    protected function checkChar(string $char): bool {
+        if ($char === "\n") {
+            $this->newlines[$this->data->posChar()] = $this->_column;
+            $this->_column = 1;
+            $this->_line++;
+        } elseif ($char === '') {
+            $this->eof = true;
+            $this->_column++;
+            return false;
+        } else {
+            $this->_column++;
+        }
+        return true;
+    }
+
+    public function unconsume(int $length = 1, bool $retreatPointer = true): void {
         assert($length > 0, new Exception(Exception::DATA_INVALID_DATA_CONSUMPTION_LENGTH, $length));
 
-        if (!$this->eof) {
-            $this->data->seek(0 - $length);
-
-            $string = $this->data->peekChar($length);
-            $numOfNewlines = substr_count($string, "\n");
-
-            if ($numOfNewlines > 0) {
-                $this->_line -= $numOfNewlines;
-
-                $count = $this->newlines;
-                $index = count($this->newlines) - ($numOfNewlines - 1);
-                $this->_column = 1 + (($count > 0 && isset($this->newlines[$index])) ? $this->data->posChar() - $this->newlines[$index] : $this->data->posChar());
-            } else {
-                $this->_column -= $length;
+        if ($this->eof) {
+            $length--;
+            $this->eof = false;
+        }
+        while ($length-- > 0) {
+            $here = $this->data->posChar();
+            // if the previous character was a normalized CR+LF pair, we need to go back two
+            if (isset($this->normalized[$here])) {
+                $this->data->seek(-1);
             }
+            // recalculate line and column positions, if requested
+            if ($retreatPointer) {
+                $col = $this->newlines[$here] ?? 0;
+                if ($col) {
+                    $this->_column = $col;
+                    $this->_line--;
+                } else {
+                    $this->_column--;
+                }
+            }
+            $this->data->seek(-1);
         }
     }
 
@@ -131,11 +152,11 @@ class Data {
         // Break the matching characters into an array of characters. Unicode friendly.
         $match = preg_split('/(?<!^)(?!$)/Su', $match);
 
+        $start = $this->data->posChar();
         $count = 0;
         $string = '';
         while (true) {
-            $char = $this->data->nextChar();
-            $count++;
+            $char = $this->consume(1, false);
 
             if ($char === '') {
                 break;
@@ -145,38 +166,28 @@ class Data {
 
             // strspn
             if ($while && !$inArray) {
+                $this->unconsume(1, false);
                 break;
             }
             // strcspn
             elseif (!$while && $inArray) {
+                $this->unconsume(1, false);
                 break;
             }
 
             if ($advancePointer) {
-                if ($char === "\n") {
-                    $this->newlines[] = $this->data->posChar();
-                    $this->_column = 1;
-                    $this->_line++;
-                } else {
-                    $this->_column++;
-                }
+                $this->checkChar($char);
             }
 
+            $count++;
             $string .= $char;
             if ($count === $limit) {
                 break;
             }
         }
 
-        // If the end (or limit) is reached the pointer isn't moved when the last character
-        // is checked, so it only needs to be moved backwards if not wanting the
-        // pointer to move.
-        if ($char === '' || $count === $limit) {
-            if (!$advancePointer) {
-                $this->data->seek(0 - $count - 1);
-            }
-        } else {
-            $this->data->seek(($advancePointer) ? -1 : 0 - $count - 2);
+        if (!$advancePointer && $count) {
+            $this->data->seek(-($this->data->posChar - $start));
         }
 
         return $string;
