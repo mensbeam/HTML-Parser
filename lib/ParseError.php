@@ -5,13 +5,7 @@ namespace dW\HTML5;
 class ParseError {
     protected $data;
 
-    const UNEXPECTED_EOF = 1;
-    const INVALID_CONTROL_OR_NONCHARACTERS = 9;
-    const ENTITY_UNEXPECTED_CHARACTER = 11;
-    const INVALID_NUMERIC_ENTITY = 12;
-    const INVALID_NAMED_ENTITY = 13;
-    const INVALID_CODEPOINT = 14;
-
+    const ENCODING_ERROR                                                    = 100;
     const UNEXPECTED_NULL_CHARACTER                                         = 101;
     const UNEXPECTED_QUESTION_MARK_INSTEAD_OF_TAG_NAME                      = 102;
     const EOF_BEFORE_TAG_NAME                                               = 103;
@@ -57,8 +51,13 @@ class ParseError {
     const SURROGATE_CHARACTER_REFERENCE                                     = 143;
     const NONCHARACTER_CHARACTER_REFERENCE                                  = 144;
     const CONTROL_CHARACTER_REFERENCE                                       = 145;
+    const SURROGATE_IN_INPUT_STREAM                                         = 146;
+    const NONCHARACTER_IN_INPUT_STREAM                                      = 147;
+    const CONTROL_CHARACTER_IN_INPUT_STREAM                                 = 148;
+    
 
     protected static $messages = [
+        self::ENCODING_ERROR                                                    => 'Corrupt encoding near byte position %s',
         self::UNEXPECTED_NULL_CHARACTER                                         => 'Unexpected null character',
         self::UNEXPECTED_QUESTION_MARK_INSTEAD_OF_TAG_NAME                      => 'Unexpected "?" character instead of tag name',
         self::EOF_BEFORE_TAG_NAME                                               => 'End-of-file before tag name',

@@ -18,6 +18,8 @@ class Data {
     protected $normalized = [];
     // Holds the character position and column number of each newline
     protected $newlines = [];
+    // The forward-most input stream error emitted
+    protected $lastError = 0;
     // Whether the EOF imaginary character has been consumed
     protected $eof = false;
 
@@ -83,6 +85,7 @@ class Data {
     }
 
     protected function checkChar(string $char): bool {
+        // track line and column number, and EOF
         if ($char === "\n") {
             $this->newlines[$this->data->posChar()] = $this->_column;
             $this->_column = 1;
@@ -93,6 +96,50 @@ class Data {
             return false;
         } else {
             $this->_column++;
+            $here = $this->data->posChar();
+            if ($this->lastError < $here) {
+                // look for erroneous characters
+                $len = strlen($char);
+                if ($len === 1) {
+                    $ord = ord($char);
+                    if (($ord < 0x20 && !in_array($ord, [0x9, 0xA, 0xC])) || $ord === 0x7F) {
+                        $this->error(ParseError::CONTROL_CHARACTER_IN_INPUT_STREAM);
+                        $this->lastError = $here;
+                    }
+                } elseif ($len === 2) {
+                    if  (ord($char[0]) == 0xC2) {
+                        $ord = ord($char[1]);
+                        if ($ord >= 0x80 && $ord <= 0x9F) {
+                            $this->error(ParseError::CONTROL_CHARACTER_IN_INPUT_STREAM);
+                            $this->lastError = $here;
+                        }
+                    }
+                } elseif ($len ===3) {
+                    $head = ord($char[0]);
+                    if ($head === 0xED) {
+                        $tail = (ord($char[1]) << 8) + ord($char[2]);
+                        if ($tail >= 0xA080 && $tail <= 0xBFBF) {
+                            $this->error(ParseError::SURROGATE_IN_INPUT_STREAM);
+                            $this->lastError = $here;
+                        }
+                    } elseif ($head === 0xEF) {
+                        $tail = (ord($char[1]) << 8) + ord($char[2]);
+                        if (($tail >= 0xB790 && $tail <= 0xB7AF) || $tail >= 0xBFBE) {
+                            $this->error(ParseError::NONCHARACTER_IN_INPUT_STREAM);
+                            $this->lastError = $here;
+                        } elseif ($tail === 0xBFBD && $this->data->posErr === $here) {
+                            $this->error(ParseError::NONCHARACTER_IN_INPUT_STREAM, $this->data->posByte);
+                            $this->lastError = $here;
+                        }
+                    }
+                } elseif ($len === 4) {
+                    $tail = (ord($char[1]) << 8) + ord($char[2]);
+                    if ($tail >= 0xBFBE) {
+                        $this->error(ParseError::NONCHARACTER_IN_INPUT_STREAM);
+                        $this->lastError = $here;
+                    }
+                }
+            }
         }
         return true;
     }
