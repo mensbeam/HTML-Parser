@@ -13,7 +13,7 @@ class Data {
     // Used for error reporting to display line number.
     protected $_line = 1;
     // Used for error reporting to display column number.
-    protected $_column = 0;
+    protected $_column = 1;
     // array of normalized CR+LF pairs, denoted by the character offset of the LF
     protected $normalized = [];
     // Holds the character position and column number of each newline
@@ -22,11 +22,6 @@ class Data {
     protected $lastError = 0;
     // Whether the EOF imaginary character has been consumed
     protected $eof = false;
-
-
-    // Used for debugging to print out information as data is consumed.
-    public static $debug = false;
-
 
     const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
     const DIGIT = '0123456789';
@@ -102,7 +97,7 @@ class Data {
                 $len = strlen($char);
                 if ($len === 1) {
                     $ord = ord($char);
-                    if (($ord < 0x20 && !in_array($ord, [0x9, 0xA, 0xC])) || $ord === 0x7F) {
+                    if (($ord < 0x20 && !in_array($ord, [0x0, 0x9, 0xA, 0xC])) || $ord === 0x7F) {
                         $this->error(ParseError::CONTROL_CHARACTER_IN_INPUT_STREAM);
                         $this->lastError = $here;
                     }
@@ -114,7 +109,7 @@ class Data {
                             $this->lastError = $here;
                         }
                     }
-                } elseif ($len ===3) {
+                } elseif ($len === 3) {
                     $head = ord($char[0]);
                     if ($head === 0xED) {
                         $tail = (ord($char[1]) << 8) + ord($char[2]);
@@ -133,7 +128,7 @@ class Data {
                         }
                     }
                 } elseif ($len === 4) {
-                    $tail = (ord($char[1]) << 8) + ord($char[2]);
+                    $tail = (ord($char[2]) << 8) + ord($char[3]);
                     if ($tail >= 0xBFBE) {
                         $this->error(ParseError::NONCHARACTER_IN_INPUT_STREAM);
                         $this->lastError = $here;

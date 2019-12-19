@@ -2399,6 +2399,12 @@ class Tokenizer {
                     # Switch to the before DOCTYPE name state.
                     $this->state = self::BEFORE_DOCTYPE_NAME_STATE;
                 }
+                # U+003E GREATER-THAN SIGN (>)
+                elseif ($char === '>') {
+                    # Reconsume in the before DOCTYPE name state.
+                    $this->state = self::BEFORE_DOCTYPE_NAME_STATE;
+                    $this->data->unconsume();
+                }
                 # EOF
                 elseif ($char === '') {
                     # This is an eof-in-doctype parse error.
@@ -2986,6 +2992,7 @@ class Tokenizer {
                     $this->error(ParseError::MISSING_QUOTE_BEFORE_DOCTYPE_SYSTEM_IDENTIFIER);
                     $token->forceQuirks = true;
                     $this->state = self::BOGUS_DOCTYPE_STATE;
+                    $this->data->unconsume();
                 }
             }
 
@@ -3456,15 +3463,15 @@ class Tokenizer {
                     // consume the following character if it is a proper terminator
                     $candidate .= $this->data->consume();
                 }
-                // Look for an exact match 
-                // If not found look for a prefix match if not consuming in an attribute
+                // Look for an exact match; if not found look for a prefix match
                 $match = CharacterReference::NAMES[$candidate] ?? null;
-                if (is_null($match) && !in_array($returnState, self::ATTRIBUTE_VALUE_STATE_SET)) {
+                if (is_null($match)) {
                     $match = (preg_match(CharacterReference::PREFIX_PATTERN, $candidate, $match)) ? $match[0] : null;
                     // If a prefix match is found, unconsume to the end of the prefix and look up the entry in the table
                     if (!is_null($match)) {
                         $this->data->unconsume(strlen($candidate) - strlen($match));
                         $next = $candidate[strlen($match)];
+                        $candidate = $match;
                         $match = CharacterReference::NAMES[$match];
                     }
                 }
@@ -3511,6 +3518,11 @@ class Tokenizer {
 
                     // DEVIATION: We flush only when switching to the return state
                     $this->state = self::AMBIGUOUS_AMPERSAND_STATE;
+                    // If we consumed a semicolon earlier we need to undo this
+                    if ($next === ';') {
+                        $this->data->unconsume();
+                        $temporaryBuffer = substr($temporaryBuffer, 0, -1);
+                    }
                 }
             }
 
@@ -3588,7 +3600,7 @@ class Tokenizer {
                     # This is an absence-of-digits-in-numeric-character-reference parse error.
                     # Flush code points consumed as a character reference.
                     # Reconsume in the return state.
-                    $this->error(ParseError::ABSENCE_OF_DIGITS_IN_CHARACTER_REFERENCE);
+                    $this->error(ParseError::ABSENCE_OF_DIGITS_IN_NUMERIC_CHARACTER_REFERENCE);
                     $this->state = $returnState;
                     $this->data->unconsume();
                     return $temporaryBuffer;
@@ -3614,7 +3626,7 @@ class Tokenizer {
                     # This is an absence-of-digits-in-numeric-character-reference parse error.
                     # Flush code points consumed as a character reference.
                     # Reconsume in the return state.
-                    $this->error(ParseError::ABSENCE_OF_DIGITS_IN_CHARACTER_REFERENCE);
+                    $this->error(ParseError::ABSENCE_OF_DIGITS_IN_NUMERIC_CHARACTER_REFERENCE);
                     $this->state = $returnState;
                     $this->data->unconsume();
                     return $temporaryBuffer;
@@ -3690,7 +3702,7 @@ class Tokenizer {
                 # If the number is 0x00, then this is a null-character-reference parse error.
                 # Set the character reference code to 0xFFFD.
                 if ($charRefCode === 0) {
-                    $this->error(ParseError::NULL_CHARACTER_REFRERENCE);
+                    $this->error(ParseError::NULL_CHARACTER_REFERENCE);
                     $charRefCode = 0xFFFD;
                 }
                 # If the number is greater than 0x10FFFF, then this is a 

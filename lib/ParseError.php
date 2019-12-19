@@ -45,18 +45,17 @@ class ParseError {
     const END_TAG_WITH_TRAILING_SOLIDUS                                     = 137;
     const MISSING_SEMICOLON_AFTER_CHARACTER_REFERENCE                       = 138;
     const UNKNOWN_NAMED_CHARACTER_REFERENCE                                 = 139;
-    const ABSENCE_OF_DIGITS_IN_CHARACTER_REFERENCE                          = 140;
-    const NULL_CHARACTER_REFRERENCE                                         = 141;
+    const ABSENCE_OF_DIGITS_IN_NUMERIC_CHARACTER_REFERENCE                  = 140;
+    const NULL_CHARACTER_REFERENCE                                          = 141;
     const CHARACTER_REFERENCE_OUTSIDE_UNICODE_RANGE                         = 142;
     const SURROGATE_CHARACTER_REFERENCE                                     = 143;
     const NONCHARACTER_CHARACTER_REFERENCE                                  = 144;
     const CONTROL_CHARACTER_REFERENCE                                       = 145;
     const SURROGATE_IN_INPUT_STREAM                                         = 146;
     const NONCHARACTER_IN_INPUT_STREAM                                      = 147;
-    const CONTROL_CHARACTER_IN_INPUT_STREAM                                 = 148;
-    
+    const CONTROL_CHARACTER_IN_INPUT_STREAM                                 = 148;    
 
-    protected static $messages = [
+    const MESSAGES = [
         self::ENCODING_ERROR                                                    => 'Corrupt encoding near byte position %s',
         self::UNEXPECTED_NULL_CHARACTER                                         => 'Unexpected null character',
         self::UNEXPECTED_QUESTION_MARK_INSTEAD_OF_TAG_NAME                      => 'Unexpected "?" character instead of tag name',
@@ -97,12 +96,15 @@ class ParseError {
         self::END_TAG_WITH_TRAILING_SOLIDUS                                     => 'End-tag with trailing solidus',
         self::MISSING_SEMICOLON_AFTER_CHARACTER_REFERENCE                       => 'Missing semicolon after character reference',
         self::UNKNOWN_NAMED_CHARACTER_REFERENCE                                 => 'Unknown named character reference "%s"',
-        self::ABSENCE_OF_DIGITS_IN_CHARACTER_REFERENCE                          => 'Absence of digits in character reference',
-        self::NULL_CHARACTER_REFRERENCE                                         => 'Null character reference',
+        self::ABSENCE_OF_DIGITS_IN_NUMERIC_CHARACTER_REFERENCE                  => 'Absence of digits in character reference',
+        self::NULL_CHARACTER_REFERENCE                                          => 'Null character reference',
         self::CHARACTER_REFERENCE_OUTSIDE_UNICODE_RANGE                         => 'Character reference outside Unicode range',
         self::SURROGATE_CHARACTER_REFERENCE                                     => 'Surrogate character rereference',
         self::NONCHARACTER_CHARACTER_REFERENCE                                  => 'Non-character character reference',
         self::CONTROL_CHARACTER_REFERENCE                                       => 'Control-character character reference',
+        self::SURROGATE_IN_INPUT_STREAM                                         => 'Surrogate character in input stream',
+        self::NONCHARACTER_IN_INPUT_STREAM                                      => 'Non-character character in input stream',
+        self::CONTROL_CHARACTER_IN_INPUT_STREAM                                 => 'Control character in input stream',
     ];
 
     public function setHandler() {
@@ -115,9 +117,9 @@ class ParseError {
     }
 
     protected function prepareMessage(string $file, int $line, int $column, int $code, ...$arg): string {
-        assert(isset(static::$messages[$code]), new Exception(Exception::INVALID_CODE));
+        assert(isset(self::MESSAGES[$code]), new Exception(Exception::INVALID_CODE));
 
-        $message = static::$messages[$code];
+        $message = self::MESSAGES[$code];
         // Count the number of replacements needed in the message.
         $count = substr_count($message, '%s');
         // If the number of replacements don't match the arguments then oops.

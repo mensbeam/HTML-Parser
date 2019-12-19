@@ -28,10 +28,20 @@ class TestTokenizer extends \dW\HTML5\Test\StandardTest {
         }
     }
     /** @dataProvider provideStandardTokenizerTests */
-    public function testStandardTokenizerTests(string $input, array $expected, int $state, string $open = null, array $errors) {
-        // create a mock error handler which simply discards parse errors for now
-        $errorHandler = $this->createMock(ParseError::class);
-        $errorHandler->method("emit")->willReturn(true);
+    public function testStandardTokenizerTests(string $input, array $expected, int $state, string $open = null, array $expErrors) {
+        // convert parse error constants into standard symbols in specification
+        $errorMap = array_map(function($str) {
+            return strtolower(str_replace("_", "-", $str));
+        }, array_flip(array_filter((new \ReflectionClass(ParseError::class))->getConstants(), function($v) {
+            return is_int($v);
+        })));
+        // create a stub error handler which collects parse errors
+        $errors = [];
+        $errorHandler = $this->createStub(ParseError::class);
+        $errorHandler->method("emit")->willReturnCallback(function($file, $line, $col, $code) use (&$errors, $errorMap) {
+            $errors[] = ['code' => $errorMap[$code], 'line' => $line, 'col' => $col];
+            return true;
+        });
         // initialize a stack of open elements, possibly with an open element
         $stack = new OpenElementsStack();
         if ($open) {
@@ -51,8 +61,11 @@ class TestTokenizer extends \dW\HTML5\Test\StandardTest {
                 }
             } while (!($t instanceof EOFToken));
         } finally {
+            $expErrors = $expErrors ? array_column($expErrors, "code") : [];
+            $errors = $errors ? array_column($errors, "code") : [];
             $actual = $this->combineCharacterTokens($actual);
             $this->assertEquals($expected, $actual, $tokenizer->debugLog);
+            $this->assertEquals($expErrors, $errors, $tokenizer->debugLog);
         }
     }
 
