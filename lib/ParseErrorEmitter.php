@@ -10,6 +10,7 @@ trait ParseErrorEmitter {
         $data = ($this instanceof Data) ? $this : ($this->data ?? null);
         assert($data instanceof Data);
         assert($this->errorHandler instanceof ParseError);
-        return $this->errorHandler->emit($data->filePath, $data->line, $data->column, $code, ...$arg);
+        list($line, $column) = $data->whereIs(ParseError::REPORT_OFFSETS[$code]);
+        return $this->errorHandler->emit($data->filePath, $line, $column, $code, ...$arg);
     }
 }

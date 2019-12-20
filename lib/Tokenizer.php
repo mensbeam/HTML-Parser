@@ -470,9 +470,9 @@ class Tokenizer {
                     # This is an unexpected-question-mark-instead-of-tag-name parse error.
                     # Create a comment token whose data is the empty string.
                     # Reconsume in the bogus comment state.
+                    $this->data->unconsume();
                     $this->error(ParseError::UNEXPECTED_QUESTION_MARK_INSTEAD_OF_TAG_NAME);
-                    // OPTIMIZATION: Not necessary to reconsume
-                    $token = new CommentToken('?');
+                    $token = new CommentToken('');
                     $this->state = self::BOGUS_COMMENT_STATE;
                 }
                 # EOF
@@ -491,10 +491,10 @@ class Tokenizer {
                     # This is an invalid-first-character-of-tag-name parse error.
                     # Emit a U+003C LESS-THAN SIGN character token.
                     # Reconsume in the data state.
+                    $this->data->unconsume();
                     $this->error(ParseError::INVALID_FIRST_CHARACTER_OF_TAG_NAME, $char);
                     // DEVIATION: unconsume and change state before emitting
                     $this->state = self::DATA_STATE;
-                    $this->data->unconsume();
                     return new CharacterToken('<');
                 }
             }
@@ -539,9 +539,9 @@ class Tokenizer {
                    # This is an invalid-first-character-of-tag-name parse error.
                    # Create a comment token whose data is the empty string.
                    # Reconsume in the bogus comment state.
+                   $this->data->unconsume();
                    $this->error(ParseError::INVALID_FIRST_CHARACTER_OF_TAG_NAME, $char);
                    $token = new CommentToken();
-                   $this->data->unconsume();
                    $this->state = self::BOGUS_COMMENT_STATE;
                 }
             }
@@ -1923,9 +1923,9 @@ class Tokenizer {
                 else {
                     # This is a missing-whitespace-between-attributes parse error.
                     # Reconsume in the before attribute name state.
+                    $this->data->unconsume();
                     $this->error(ParseError::MISSING_WHITESPACE_BETWEEN_ATTRIBUTES);
                     $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
-                    $this->data->unconsume();
                 }
             }
 
@@ -1955,9 +1955,9 @@ class Tokenizer {
                 else {
                     # This is an unexpected-solidus-in-tag parse error.
                     # Reconsume in the before attribute name state.
+                    $this->data->unconsume();
                     $this->error(ParseError::UNEXPECTED_SOLIDUS_IN_TAG);
                     $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
-                    $this->data->unconsume();
                 }
             }
 
@@ -2250,9 +2250,9 @@ class Tokenizer {
                 else {
                     # This is a nested-comment parse error.
                     # Reconsume in the comment end state.
+                    $this->data->unconsume();
                     $this->error(ParseError::NESTED_COMMENT);
                     $this->state = self::COMMENT_END_STATE;
-                    $this->data->unconsume();
                 }
             }
 
@@ -2426,9 +2426,9 @@ class Tokenizer {
                 else {
                     # This is a missing-whitespace-before-doctype-name parse error.
                     # Reconsume in the before DOCTYPE name state.
+                    $this->data->unconsume();
                     $this->error(ParseError::MISSING_WHITESPACE_BEFORE_DOCTYPE_NAME);
                     $this->state = self::BEFORE_DOCTYPE_NAME_STATE;
-                    $this->data->unconsume();
                 }
             }
 
@@ -2616,10 +2616,10 @@ class Tokenizer {
                     # Set the DOCTYPE token's force-quirks flag to on.
                     # Reconsume in the bogus DOCTYPE state.
                     else {
+                        $this->data->unconsume();
                         $this->error(ParseError::INVALID_CHARACTER_SEQUENCE_AFTER_DOCTYPE_NAME);
                         $token->forceQuirks = true;
                         $this->state = self::BOGUS_DOCTYPE_STATE;
-                        $this->data->unconsume();
                     }
                 }
             }
@@ -2686,10 +2686,10 @@ class Tokenizer {
                     # This is a missing-quote-before-doctype-public-identifier parse error.
                     # Set the DOCTYPE token's force-quirks flag to on.
                     # Reconsume in the bogus DOCTYPE state.
+                    $this->data->unconsume();
                     $this->error(ParseError::MISSING_QUOTE_BEFORE_DOCTYPE_PUBLIC_IDENTIFIER);
                     $token->forceQuirks = true;
                     $this->state = self::BOGUS_DOCTYPE_STATE;
-                    $this->data->unconsume();
                 }
             }
 
@@ -2750,10 +2750,10 @@ class Tokenizer {
                     # This is a missing-quote-before-doctype-public-identifier parse error.
                     # Set the DOCTYPE token's force-quirks flag to on.
                     # Reconsume in the bogus DOCTYPE state.
+                    $this->data->unconsume();
                     $this->error(ParseError::MISSING_QUOTE_BEFORE_DOCTYPE_PUBLIC_IDENTIFIER);
                     $token->forceQuirks = true;
                     $this->state = self::BOGUS_DOCTYPE_STATE;
-                    $this->data->unconsume();
                 }
             }
 
@@ -2927,10 +2927,10 @@ class Tokenizer {
                     # This is a missing-quote-before-doctype-system-identifier parse error.
                     # Set the DOCTYPE token's force-quirks flag to on.
                     # Reconsume in the bogus DOCTYPE state.
+                    $this->data->unconsume();
                     $this->error(ParseError::MISSING_QUOTE_BEFORE_DOCTYPE_SYSTEM_IDENTIFIER);
                     $token->forceQuirks = true;
                     $this->state = self::BOGUS_DOCTYPE_STATE;
-                    $this->data->unconsume();
                 }
             }
 
@@ -2989,10 +2989,10 @@ class Tokenizer {
                     # This is a missing-quote-before-doctype-system-identifier parse error.
                     # Set the DOCTYPE token's force-quirks flag to on.
                     # Reconsume in the bogus DOCTYPE state.
+                    $this->data->unconsume();
                     $this->error(ParseError::MISSING_QUOTE_BEFORE_DOCTYPE_SYSTEM_IDENTIFIER);
                     $token->forceQuirks = true;
                     $this->state = self::BOGUS_DOCTYPE_STATE;
-                    $this->data->unconsume();
                 }
             }
 
@@ -3058,10 +3058,10 @@ class Tokenizer {
                     # This is a missing-quote-before-doctype-system-identifier parse error.
                     # Set the DOCTYPE token's force-quirks flag to on.
                     # Reconsume in the bogus DOCTYPE state.
+                    $this->data->unconsume();
                     $this->error(ParseError::MISSING_QUOTE_BEFORE_DOCTYPE_SYSTEM_IDENTIFIER);
                     $token->forceQuirks = true;
                     $this->state = self::BOGUS_DOCTYPE_STATE;
-                    $this->data->unconsume();
                 }
             }
 
@@ -3124,10 +3124,10 @@ class Tokenizer {
                     # This is a missing-quote-before-doctype-system-identifier parse error.
                     # Set the DOCTYPE token's force-quirks flag to on.
                     # Reconsume in the bogus DOCTYPE state.
+                    $this->data->unconsume();
                     $this->error(ParseError::MISSING_QUOTE_BEFORE_DOCTYPE_SYSTEM_IDENTIFIER);
                     $token->forceQuirks = true;
                     $this->state = self::BOGUS_DOCTYPE_STATE;
-                    $this->data->unconsume();
                 }
             }
 
@@ -3280,9 +3280,9 @@ class Tokenizer {
                     # This is an unexpected-character-after-doctype-system-identifier parse error.
                     # Reconsume in the bogus DOCTYPE state.
                     # (This does not set the DOCTYPE token's force-quirks flag to on.)
+                    $this->data->unconsume();
                     $this->error(ParseError::UNEXPECTED_CHARACTER_AFTER_DOCTYPE_SYSTEM_IDENTIFIER, $char);
                     $this->state = self::BOGUS_DOCTYPE_STATE;
-                    $this->data->unconsume();
                 }
             }
 
@@ -3544,9 +3544,9 @@ class Tokenizer {
                 elseif ($char === ';') {
                     # This is an unknown-named-character-reference parse error.
                     # Reconsume in the return state.
+                    $this->data->unconsume();
                     $this->error(ParseError::UNKNOWN_NAMED_CHARACTER_REFERENCE, $temporaryBuffer.';');
                     $this->state = $returnState;
-                    $this->data->unconsume();
                     return $temporaryBuffer;
                 }
                 # Anything else
@@ -3600,9 +3600,9 @@ class Tokenizer {
                     # This is an absence-of-digits-in-numeric-character-reference parse error.
                     # Flush code points consumed as a character reference.
                     # Reconsume in the return state.
+                    $this->data->unconsume();
                     $this->error(ParseError::ABSENCE_OF_DIGITS_IN_NUMERIC_CHARACTER_REFERENCE);
                     $this->state = $returnState;
-                    $this->data->unconsume();
                     return $temporaryBuffer;
                 }
             }
@@ -3626,9 +3626,9 @@ class Tokenizer {
                     # This is an absence-of-digits-in-numeric-character-reference parse error.
                     # Flush code points consumed as a character reference.
                     # Reconsume in the return state.
+                    $this->data->unconsume();
                     $this->error(ParseError::ABSENCE_OF_DIGITS_IN_NUMERIC_CHARACTER_REFERENCE);
                     $this->state = $returnState;
-                    $this->data->unconsume();
                     return $temporaryBuffer;
                 }
             }
@@ -3659,9 +3659,9 @@ class Tokenizer {
                 else {
                     # This is a missing-semicolon-after-character-reference parse error.
                     # Reconsume in the numeric character reference end state.
+                    $this->data->unconsume();
                     $this->error(ParseError::MISSING_SEMICOLON_AFTER_CHARACTER_REFERENCE);
                     $this->state = self::NUMERIC_CHARACTER_REFERENCE_END_STATE;
-                    $this->data->unconsume();
                 }
             }
 
@@ -3689,9 +3689,9 @@ class Tokenizer {
                 else {
                     # This is a missing-semicolon-after-character-reference parse error.
                     # Reconsume in the numeric character reference end state.
+                    $this->data->unconsume();
                     $this->error(ParseError::MISSING_SEMICOLON_AFTER_CHARACTER_REFERENCE);
                     $this->state = self::NUMERIC_CHARACTER_REFERENCE_END_STATE;
-                    $this->data->unconsume();
                 }
             }
 

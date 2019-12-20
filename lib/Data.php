@@ -18,7 +18,9 @@ class Data {
     protected $normalized = [];
     // Holds the character position and column number of each newline
     protected $newlines = [];
-    // The forward-most input stream error emitted
+    // Holds the character position of each supplementary plane character, which count as two columns when reporting errors
+    protected $astrals = [];
+    // The character position of the forward-most input stream error emitted
     protected $lastError = 0;
     // Whether the EOF imaginary character has been consumed
     protected $eof = false;
@@ -87,14 +89,12 @@ class Data {
             $this->_line++;
         } elseif ($char === '') {
             $this->eof = true;
-            $this->_column++;
             return false;
         } else {
-            $this->_column++;
+            $len = strlen($char);    
             $here = $this->data->posChar();
             if ($this->lastError < $here) {
                 // look for erroneous characters
-                $len = strlen($char);
                 if ($len === 1) {
                     $ord = ord($char);
                     if (($ord < 0x20 && !in_array($ord, [0x0, 0x9, 0xA, 0xC])) || $ord === 0x7F) {
@@ -135,6 +135,13 @@ class Data {
                     }
                 }
             }
+            $this->_column++;
+            if ($len === 4) {
+                // If the character is on a supplementary Unicode plane, 
+                //  it counts as two columns for the purposes of error reporting
+                $this->astrals[$here] = true;
+                $this->_column++;
+            }
         }
         return true;
     }
@@ -160,6 +167,9 @@ class Data {
                     $this->_line--;
                 } else {
                     $this->_column--;
+                    if ($this->astrals[$here] ?? false) {
+                        $this->_column--;
+                    }
                 }
             }
             $this->data->seek(-1);
@@ -233,6 +243,38 @@ class Data {
         }
 
         return $string;
+    }
+
+    /** Returns an indexed array with the line and column positions of the requested offset from the current position */
+    public function whereIs(int $relativePos): array {
+        if ($relativePos === 0) {
+            return [$this->_line, $this->_column];
+        } elseif ($relativePos < 0) {
+            $pos = $this->data->posChar();
+            $line = $this->_line;
+            $col = $this->_column;
+            do {
+                // If the current position is the start of a line, 
+                //  get the column position of the end of the previous line
+                if (isset($this->newlines[$pos])) {
+                    $line--;
+                    $col = $this->newlines[$pos];
+                    // If the newline was a normalized CR+LF pair, 
+                    //  go back one extra character
+                    if (isset($this->normalized[$pos])) {
+                        $pos--;
+                    }
+                } else {
+                    $col--;
+                    // supplementary plane characters count as two
+                    if ($this->astrals[$pos] ?? false) {
+                        $this->_column--;
+                    }
+                }
+                $pos--;
+            } while (++$relativePos < 0);
+            return [$line, $col];
+        }
     }
 
     public function __get($property) {

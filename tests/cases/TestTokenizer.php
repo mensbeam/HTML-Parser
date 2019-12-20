@@ -61,8 +61,8 @@ class TestTokenizer extends \dW\HTML5\Test\StandardTest {
                 }
             } while (!($t instanceof EOFToken));
         } finally {
-            $expErrors = $expErrors ? array_column($expErrors, "code") : [];
-            $errors = $errors ? array_column($errors, "code") : [];
+            //$expErrors = $expErrors ? array_column($expErrors, "code") : [];
+            //$errors = $errors ? array_column($errors, "code") : [];
             $actual = $this->combineCharacterTokens($actual);
             $this->assertEquals($expected, $actual, $tokenizer->debugLog);
             $this->assertEquals($expErrors, $errors, $tokenizer->debugLog);
