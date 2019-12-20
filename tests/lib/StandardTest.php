@@ -59,6 +59,7 @@ class StandardTest extends \PHPUnit\Framework\TestCase {
             $f = basename($path);
             $testSet = json_decode(file_get_contents($path), true);
             foreach ($testSet['tests'] ?? $testSet['xmlViolationTests'] as $index => $test) {
+                $testId = "$f #$index";
                 if ($test['doubleEscaped'] ?? false) {
                     $test['input'] = $this->reverseDoubleEscape($test['input']);
                     for ($a = 0; $a < sizeof($test['output']); $a++) {
@@ -70,6 +71,8 @@ class StandardTest extends \PHPUnit\Framework\TestCase {
                     }
                 }
                 $test['initialStates'] = $test['initialStates'] ?? ["Data state"];
+                // check if a test needs a patch due to trivial differences in implementation
+                $this->patchTest($testId, $test);
                 for ($a = 0; $a < sizeof($test['initialStates']); $a++) {
                     $tokens = [];
                     foreach ($test['output'] as $token) {
@@ -100,7 +103,7 @@ class StandardTest extends \PHPUnit\Framework\TestCase {
                         }
                         unset($t);
                     }
-                    yield "$f #$index: {$test['description']} ({$test['initialStates'][$a]})" => [
+                    yield "$testId: {$test['description']} ({$test['initialStates'][$a]})" => [
                         $test['input'],                                 // input
                         $tokens,                                        // output
                         self::STATE_MAP[$test['initialStates'][$a]],    // initial state
@@ -110,5 +113,26 @@ class StandardTest extends \PHPUnit\Framework\TestCase {
                 }
             }
         }
+    }
+
+    protected function patchTest(string $id, &$test): void {
+        switch ($id) {
+            // test emits input stream error first despite peeking 
+            case "test3.test #30":
+                $test['errors'] = array_reverse($test['errors']);
+                break;
+            // eof-in-comment positions in some tests don't make sense
+            // https://github.com/html5lib/html5lib-tests/issues/125
+            case "test3.test #143":
+                $test['errors'][0]['col'] = 10;
+                break;
+            case "test3.test #144":
+            case "test3.test #145":
+            case "test3.test #146":
+                $test['errors'][0]['line'] = 2;
+                $test['errors'][0]['col'] = 2;
+                break;
+        }
+
     }
 }
