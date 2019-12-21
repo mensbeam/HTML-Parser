@@ -17,6 +17,7 @@
 
 <testsuites>
     <testsuite name="Tokenizer">
+        <file>cases/TestCharset.php</file>
         <file>cases/TestTokenizer.php</file>
     </testsuite>
 </testsuites>

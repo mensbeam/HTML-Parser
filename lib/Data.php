@@ -2,11 +2,14 @@
 declare(strict_types=1);
 namespace dW\HTML5;
 
+use MensBeam\Intl\Encoding;
+
 class Data {
     use ParseErrorEmitter;
 
     // Used to get the file path for error reporting.
     public $filePath;
+    public $encodingCertain = false;
 
     // Internal storage for the Intl data object.
     protected $data;
@@ -31,7 +34,7 @@ class Data {
     const WHITESPACE = "\t\n\x0c\x0d ";
 
 
-    public function __construct(string $data, string $filePath = 'STDIN', ParseError $errorHandler = null) {
+    public function __construct(string $data, string $filePath = 'STDIN', ParseError $errorHandler = null, string $encodingOrContentType = '') {
         $this->errorHandler = $errorHandler ?? new ParseError;
         if ($filePath !== 'STDIN') {
             $this->filePath = realpath($filePath);
@@ -40,12 +43,19 @@ class Data {
             $this->filePath = $filePath;
         }
 
-        // DEVIATION: The spec has steps for parsing and determining the character
-        // encoding. At this moment this implementation won't determine a character
-        // encoding and will just assume UTF-8.
-
-        $this->data = new \MensBeam\Intl\Encoding\UTF8($data, false, true);
+        if ($encoding = Charset::fromCharset($encodingOrContentType)) {
+            $this->encodingCertain = true;
+        } elseif ($encoding = Charset::fromTransport($encodingOrContentType)) {
+            $this->encodingCertain = true;
+        } elseif ($encoding = Charset::fromPrescan($data)) {
+            // Encoding is tentative
+        } else {
+            // Encoding is tentative; fall back to windows 1252
+            $encoding = \MensBeam\Intl\Encoding\Windows1252::class;
+        }
+        $this->data = new $encoding($data, false, true);
     }
+
 
     public function consume(int $length = 1, $advancePointer = true): string {
         assert($length > 0, new Exception(Exception::DATA_INVALID_DATA_CONSUMPTION_LENGTH, $length));
