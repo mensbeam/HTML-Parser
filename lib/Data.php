@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace dW\HTML5;
 
 use MensBeam\Intl\Encoding;
+use MensBeam\Intl\Encoding\Encoding as EncodingEncoding;
 
 class Data {
     use ParseErrorEmitter;
@@ -50,10 +51,10 @@ class Data {
         } elseif ($encoding = Charset::fromPrescan($data)) {
             // Encoding is tentative
         } else {
-            // Encoding is tentative; fall back to windows 1252
-            $encoding = \MensBeam\Intl\Encoding\Windows1252::class;
+            // Encoding is tentative; fall back to the configured default encoding
+            $encoding = Parser::$fallbackEncoding;
         }
-        $this->data = new $encoding($data, false, true);
+        $this->data = Encoding::createDecoder($encoding, $data, false, true);
     }
 
 

@@ -3,8 +3,6 @@ declare(strict_types=1);
 namespace dW\HTML5\TestCase;
 
 use dW\HTML5\Charset;
-use MensBeam\Intl\Encoding\UTF8;
-use MensBeam\Intl\Encoding\Windows1252;
 
 /** 
  * @covers \dW\HTML5\Charset
@@ -17,9 +15,9 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
 
     public function provideCharsets() {
         return [
-            ["UTF-8",                   UTF8::class],
-            ["  utf8  ",                UTF8::class],
-            ["ISO-8859-1",              Windows1252::class],
+            ["UTF-8",                   "UTF-8"],
+            ["  utf8  ",                "UTF-8"],
+            ["ISO-8859-1",              "windows-1252"],
             ["text/html; charset=utf8", null],
         ];
     }
@@ -35,12 +33,12 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
             ["charset=utf8",                                      null],
             ["text/html",                                         null],
             ["text/html charset=utf8",                            null],
-            ["text/html; charset=utf8",                           UTF8::class],
-            ["text/html;charset=utf8",                            UTF8::class],
-            ["text/html; charset=\"utf8\"",                       UTF8::class],
-            ["image/svg+xml; param=value; charset=utf8",          UTF8::class],
-            ["image/svg+xml; charset=utf8; charset=big5",         UTF8::class],
-            ["image/svg+xml; charset=utf8;charset=big5",          UTF8::class],
+            ["text/html; charset=utf8",                           "UTF-8"],
+            ["text/html;charset=utf8",                            "UTF-8"],
+            ["text/html; charset=\"utf8\"",                       "UTF-8"],
+            ["image/svg+xml; param=value; charset=utf8",          "UTF-8"],
+            ["image/svg+xml; charset=utf8; charset=big5",         "UTF-8"],
+            ["image/svg+xml; charset=utf8;charset=big5",          "UTF-8"],
             ["text/html; charset=not-valid; charset=big5",        null],
             ["text/html; charset=not-valid",                      null],
             ["text/html; charsaaet=\"a \\\"fancy\\\" encoding\"", null],

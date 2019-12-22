@@ -34,6 +34,8 @@ class Parser {
 
     /* Static properties */
 
+    public static $fallbackEncoding = "UTF-8";
+
     // Property used as an instance for the non-static properties
     protected static $instance;
 
