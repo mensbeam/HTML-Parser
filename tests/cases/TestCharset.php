@@ -31,18 +31,19 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
 
     public function provideContentTypes() {
         return [
-            ["UTF-8",                                          null],
-            ["charset=utf8",                                   null],
-            ["text/html",                                      null],
-            ["text/html charset=utf8",                         null],
-            ["text/html; charset=utf8",                        UTF8::class],
-            ["text/html;charset=utf8",                         UTF8::class],
-            ["text/html; charset=\"utf8\"",                    UTF8::class],
-            ["image/svg+xml; param=value; charset=utf8",       UTF8::class],
-            ["image/svg+xml; charset=utf8; charset=big5",      UTF8::class],
-            ["image/svg+xml; charset=utf8;charset=big5",       UTF8::class],
-            ["text/html; charset=not-valid; charset=big5",     null],
-            ["text/html; charset=not-valid",                   null],
+            ["UTF-8",                                             null],
+            ["charset=utf8",                                      null],
+            ["text/html",                                         null],
+            ["text/html charset=utf8",                            null],
+            ["text/html; charset=utf8",                           UTF8::class],
+            ["text/html;charset=utf8",                            UTF8::class],
+            ["text/html; charset=\"utf8\"",                       UTF8::class],
+            ["image/svg+xml; param=value; charset=utf8",          UTF8::class],
+            ["image/svg+xml; charset=utf8; charset=big5",         UTF8::class],
+            ["image/svg+xml; charset=utf8;charset=big5",          UTF8::class],
+            ["text/html; charset=not-valid; charset=big5",        null],
+            ["text/html; charset=not-valid",                      null],
+            ["text/html; charsaaet=\"a \\\"fancy\\\" encoding\"", null],
         ];
     }
 }
