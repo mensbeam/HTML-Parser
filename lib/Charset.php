@@ -6,11 +6,11 @@ use MensBeam\Intl\Encoding;
 
 abstract class Charset {
     public static function fromBOM(string $data): ?string {
-        if (substr($data, 0, 3 ) === "\u{FEFF}") {
+        if (substr($data, 0, 3) === "\u{FEFF}") {
             return "UTF-8";
-        } elseif ($data[0] === "\xFE" && $data[1] === "\xFF") {
+        } elseif (substr($data, 0, 2) === "\xFE\xFF") {
             return "UTF-6BE";
-        } elseif ($data[0] === "\xFF" && $data[1] === "\xFE") {
+        } elseif (substr($data, 0, 2) === "\xFF\xFE") {
             return "UTF-6LE";
         } else {
             return null;
@@ -218,7 +218,7 @@ abstract class Charset {
                 }
                 # A sequence of bytes starting with a 0x3C byte (<), optionally a 0x2F byte (/), 
                 #   and finally a byte in the range 0x41-0x5A or 0x61-0x7A (A-Z or a-z)
-                elseif (($s[$pos] === "/" && ctype_alpha($s[$pos + 1])) || (ctype_alpha($s[$pos]))) {
+                elseif ((@$s[$pos] === "/" && ctype_alpha(@$s[$pos + 1])) || (ctype_alpha(@$s[$pos]))) {
                     # Advance the position pointer so that it points at the next 
                     #   0x09 (HT), 0x0A (LF), 0x0C (FF), 0x0D (CR), 0x20 (SP), or 0x3E (>) byte.
                     while (!in_array(@$s[++$pos], ["\x09", "\x0A", "\x0C", "\x0D", " ", ">", ""]));

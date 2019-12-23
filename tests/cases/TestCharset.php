@@ -99,7 +99,7 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
                 if (in_array($testId,["tests1.dat #54", "tests1.dat #55"])) {
                     continue;
                 }
-                yield $testId => [$data, trim($test[$l++])];
+                yield $testId => [trim($data), trim($test[$l++])];
             }
         }
     }
