@@ -101,17 +101,22 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
         foreach ($file as $path) {
             $f = basename($path);
             $test = file($path);
+            $end = sizeof($test);
             $l = 0;
             $index = 0;
-            while ($l < sizeof($test)) {
+            while ($l < $end) {
                 $testId = "$f #".$index++;
                 $data = "";
-                while (!preg_match("/^#data\s+$/", $test[$l++]));
-                while (!preg_match("/^#encoding\s+$/", ($line = $test[$l++]))) {
+                while ($l < $end && !preg_match("/^#data\s+$/", @$test[$l++]));
+                while ($l < $end && !preg_match("/^#encoding\s+$/", ($line = @$test[$l++]))) {
                     $data .= $line;
                 }
-                if (in_array($testId,["tests1.dat #54", "tests1.dat #55"])) {
+                // suppress test that requires scripting to pass
+                if (in_array($testId,["tests1.dat #54"])) {
                     continue;
+                }
+                if ($l >= $end) {
+                    return;
                 }
                 yield $testId => [trim($data), trim($test[$l++])];
             }
