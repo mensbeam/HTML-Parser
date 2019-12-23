@@ -5,7 +5,19 @@ namespace dW\HTML5;
 use MensBeam\Intl\Encoding;
 
 abstract class Charset {
-    /** Matches an encoding label (e.g. "utf-8") to a compatible decoder class.
+    public static function fromBOM(string $data): ?string {
+        if (substr($data, 0, 3 ) === "\u{FEFF}") {
+            return "UTF-8";
+        } elseif ($data[0] === "\xFE" && $data[1] === "\xFF") {
+            return "UTF-6BE";
+        } elseif ($data[0] === "\xFF" && $data[1] === "\xFE") {
+            return "UTF-6LE";
+        } else {
+            return null;
+        }
+    }
+
+    /** Matches an encoding label (e.g. "utf-8") to its canonical name.
      * 
      * @param string $value The encoding label to match
      */
@@ -18,7 +30,7 @@ abstract class Charset {
     }
 
     /** Extracts an encoding from an HTTP Content-Type header-field
-     * and returns the class name of a compatible decoder.
+     * and returns the associated canonical encoding name.
      * 
      * @param string $contentType The value of a Content-Type header-field
      */
@@ -80,6 +92,11 @@ abstract class Charset {
         return null;
     }
 
+    /** Inspects the head of an HTML string to guess its encoding
+     * 
+     * @param string $data The HTML string to scan
+     * @param int $endAfter The number of bytes of the string to stop after 
+     */
     public static function fromPrescan(string $data, int $endAfter = 1024): ?string {
         # When an algorithm requires a user agent to prescan a byte stream to 
         #   determine its encoding, given some defined end condition, then it 
@@ -93,6 +110,7 @@ abstract class Charset {
         #   abort the prescan a byte stream to determine its encoding 
         #   algorithm unsuccessfully.
         $s = substr($data, 0, $endAfter);
+        $endAfter = strlen($s);
 
         # Let position be a pointer to a byte in the input byte stream, 
         #   initially pointing at the first byte.
@@ -187,7 +205,7 @@ abstract class Charset {
                         continue;
                     }
                     # If charset is a UTF-16 encoding, then set charset to UTF-8.
-                    elseif ($charset === "UTF-16") {
+                    elseif ($charset === "UTF-16" || $charset === "UTF-16LE" || $charset === "UTF-16BE") {
                         $charset = "UTF-8";
                     }
                     # If charset is x-user-defined, then set charset to windows-1252.
@@ -203,7 +221,7 @@ abstract class Charset {
                 elseif (($s[$pos] === "/" && ctype_alpha($s[$pos + 1])) || (ctype_alpha($s[$pos]))) {
                     # Advance the position pointer so that it points at the next 
                     #   0x09 (HT), 0x0A (LF), 0x0C (FF), 0x0D (CR), 0x20 (SP), or 0x3E (>) byte.
-                    while (!in_array(@$s[$pos++], ["\x09", "\x0A", "\x0C", "\x0D", " ", ">", ""]));
+                    while (!in_array(@$s[++$pos], ["\x09", "\x0A", "\x0C", "\x0D", " ", ">", ""]));
                     # Repeatedly get an attribute until no further attributes can be found, 
                     #   then jump to the step below labeled next byte.
                     while(self::getAttribute($s, $pos));
@@ -223,8 +241,10 @@ abstract class Charset {
                 $pos++;
             }
         }
+        return null;
     }
 
+    /** Scans an attribute during the encoding detection pre-scan */
     protected static function getAttribute(string $s, &$pos): array {
         # When the prescan a byte stream to determine its encoding 
         #   algorithm says to get an attribute, it means doing this:
@@ -378,6 +398,7 @@ abstract class Charset {
         }
     }
 
+    /** Interprets a quasi-Content-Type value during the encoding detection pre-scan */
     protected static function fromMeta(string $s): ?string {
         # The algorithm for extracting a character encoding from a meta element, 
         #   given a string s, is as follows.

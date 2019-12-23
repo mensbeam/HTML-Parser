@@ -44,7 +44,10 @@ class Data {
             $this->filePath = $filePath;
         }
 
-        if ($encoding = Charset::fromCharset($encodingOrContentType)) {
+        if ($encoding = Charset::fromBOM($data)) {
+            // encoding determined from Unicode byte order mark
+            $this->encodingCertain = true;
+        } elseif ($encoding = Charset::fromCharset($encodingOrContentType)) {
             $this->encodingCertain = true;
         } elseif ($encoding = Charset::fromTransport($encodingOrContentType)) {
             $this->encodingCertain = true;
