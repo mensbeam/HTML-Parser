@@ -11,9 +11,9 @@ abstract class Charset {
         if (substr($data, 0, 3) === "\u{FEFF}") {
             return "UTF-8";
         } elseif (substr($data, 0, 2) === "\xFE\xFF") {
-            return "UTF-6BE";
+            return "UTF-16BE";
         } elseif (substr($data, 0, 2) === "\xFF\xFE") {
-            return "UTF-6LE";
+            return "UTF-16LE";
         } else {
             return null;
         }

@@ -41,8 +41,8 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
     }
 
     /** @dataProvider provideContentTypes */
-    public function testDetermineEncodingFromContentType(string $in, ?string $exp) {
-        $this->assertSame($exp, Charset::fromTransport($in));
+    public function testDetermineEncodingFromContentType(string $input, ?string $exp) {
+        $this->assertSame($exp, Charset::fromTransport($input));
     }
 
     public function provideContentTypes() {
@@ -62,7 +62,21 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
             ["text/html; charsaaet=\"a \\\"fancy\\\" encoding\"", null],
         ];
     }
+
+    /** @dataProvider provideBOMs */
+    public function testDetermineEncodingFromByteOrderMark(string $input, ?string $exp) {
+        $this->assertSame($exp, Charset::fromBOM($input));
+    }
     
+    public function provideBOMs() {
+        return [
+            'UTF-8'                  => ["\u{FEFF}Hello world!", "UTF-8"],
+            'UTF-16 (big-endian)'    => ["\xFE\xFF\0H\0e\0l\0l\0o\0 \0w\0o\0r\0l\0d\0!", "UTF-16BE"],
+            'UTF-16 (little-endian)' => ["\xFF\xFEH\0e\0l\0l\0o\0 \0w\0o\0r\0l\0d\0!\0", "UTF-16LE"],
+            'No byte order mark'     => ["Hello world!", null],
+        ];
+    }
+
     /** @dataProvider provideStandardEncodingTests */
     public function testStandardEncoderTests(string $input, string $exp) {
         $exp = strtolower($exp);
