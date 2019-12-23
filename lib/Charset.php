@@ -5,6 +5,8 @@ namespace dW\HTML5;
 use MensBeam\Intl\Encoding;
 
 abstract class Charset {
+    /** Finds a Unicode byte order mark by a byte stream 
+     * and returns the detected encoding, if any */
     public static function fromBOM(string $data): ?string {
         if (substr($data, 0, 3) === "\u{FEFF}") {
             return "UTF-8";
