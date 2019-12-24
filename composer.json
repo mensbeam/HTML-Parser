@@ -4,9 +4,11 @@
     "type": "library",
     "require": {
         "php": "^7.0",
-        "ext-ctype": "*",
-        "ext-hash": "*",
+        "ext-dom": "*",
         "mensbeam/intl": "*"
+    },
+    "suggest": {
+        "ext-ctype": "Improved performance"
     },
     "scripts": {
         "post-install-cmd": ["@composer bin all install"],
@@ -33,10 +35,10 @@
                 "lib/DOM/traits"
             ]
         },
-        "classmap": ["lib/Token.php"]
+        "classmap": ["lib/Token.php"],
+        "files": ["lib/ctype.php"]
     },
     "autoload-dev": {
-        "files": ["lib/Token.php"],
         "psr-4": {
             "dW\\HTML5\\Test\\": "tests/lib/",
             "dW\\HTML5\\TestCase\\": "tests/cases/"

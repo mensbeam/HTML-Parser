@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7f73d57a54597e507dfcbd1a6d40b779",
+    "content-hash": "037fcc961f6e8f68b15379be21f45854",
     "packages": [
         {
             "name": "mensbeam/intl",
@@ -100,8 +100,7 @@
     "prefer-lowest": false,
     "platform": {
         "php": "^7.0",
-        "ext-ctype": "*",
-        "ext-hash": "*"
+        "ext-dom": "*"
     },
     "platform-dev": []
 }
