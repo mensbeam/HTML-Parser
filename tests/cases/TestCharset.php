@@ -111,10 +111,6 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
                 while ($l < $end && !preg_match("/^#encoding\s+$/", ($line = @$test[$l++]))) {
                     $data .= $line;
                 }
-                // suppress test that requires scripting to pass
-                if (in_array($testId,["tests1.dat #54"])) {
-                    continue;
-                }
                 if ($l >= $end) {
                     return;
                 }
