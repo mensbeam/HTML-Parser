@@ -13,6 +13,7 @@ class Tokenizer {
 
     protected $data;
     protected $stack;
+    protected $temporaryBuffer = "";
 
     public static $debug = false;
 
@@ -167,6 +168,8 @@ class Tokenizer {
         self::AFTER_DOCTYPE_SYSTEM_IDENTIFIER_STATE               => "After DOCTYPE system identifier",
         self::BOGUS_DOCTYPE_STATE                                 => "Bogus DOCTYPE",
         self::CDATA_SECTION_STATE                                 => "CDATA section",
+        self::CDATA_SECTION_BRACKET_STATE                         => "CDATA section bracket",
+        self::CDATA_SECTION_END_STATE                             => "CDATA section end",
         self::CHARACTER_REFERENCE_STATE                           => "Character reference",
         self::NAMED_CHARACTER_REFERENCE_STATE                     => "Named character reference",
         self::AMBIGUOUS_AMPERSAND_STATE                           => "Ambiguous ampersand",
@@ -247,8 +250,6 @@ class Tokenizer {
             $this->debugLog .= "TOKEN ".++$this->debugCount."\n";
             return true;
         })());
-
-        $temporaryBuffer = '';
 
         while (true) {
             assert((function() {
@@ -617,7 +618,7 @@ class Tokenizer {
                 if ($char === '/') {
                     # Set the temporary buffer to the empty string.
                     # Switch to the RCDATA end tag open state.
-                    $temporaryBuffer = '';
+                    $this->temporaryBuffer = '';
                     $this->state = self::RCDATA_END_TAG_OPEN_STATE;
                 }
                 # Anything else
@@ -715,7 +716,7 @@ class Tokenizer {
                     // to loop back through here every single time.
                     $char .= $this->data->consumeWhile(self::CTYPE_ALPHA);
                     $token->name .= strtolower($char);
-                    $temporaryBuffer .= $char;
+                    $this->temporaryBuffer .= $char;
                 }
                 # Anything else
                 else {
@@ -727,7 +728,7 @@ class Tokenizer {
                     # Reconsume in the RCDATA state.
                     $this->state = self::RCDATA_STATE;
                     $this->data->unconsume();
-                    return new CharacterToken('</'.$temporaryBuffer);
+                    return new CharacterToken('</'.$this->temporaryBuffer);
                 }
             }
 
@@ -740,7 +741,7 @@ class Tokenizer {
                 if ($char === '/') {
                     # Set the temporary buffer to the empty string.
                     # Switch to the RAWTEXT end tag open state.
-                    $temporaryBuffer = '';
+                    $this->temporaryBuffer = '';
                     $this->state = self::RAWTEXT_END_TAG_OPEN_STATE;
                 }
                 # Anything else
@@ -838,7 +839,7 @@ class Tokenizer {
                     // to loop back through here every single time.
                     $char .= $this->data->consumeWhile(self::CTYPE_ALPHA);
                     $token->name .= strtolower($char);
-                    $temporaryBuffer .= $char;
+                    $this->temporaryBuffer .= $char;
                 }
                 # Anything else
                 else {
@@ -850,7 +851,7 @@ class Tokenizer {
                     # Reconsume in the RAWTEXT state.
                     $this->state = self::RAWTEXT_STATE;
                     $this->data->unconsume();
-                    return new CharacterToken('</'.$temporaryBuffer);
+                    return new CharacterToken('</'.$this->temporaryBuffer);
                 }
             }
 
@@ -863,7 +864,7 @@ class Tokenizer {
                 if ($char === '/') {
                     # Set the temporary buffer to the empty string.
                     # Switch to the script data end tag open state.
-                    $temporaryBuffer = '';
+                    $this->temporaryBuffer = '';
                     $this->state = self::SCRIPT_DATA_END_TAG_OPEN_STATE;
                 }
                 # "!" (U+0021)
@@ -966,8 +967,9 @@ class Tokenizer {
                     // OPTIMIZATION: Combine upper and lower alpha
                     // OPTIMIZATION: Consume all characters that are ASCII characters to prevent having
                     // to loop back through here every single time.
-                    $token->name .= strtolower($char.strtolower($this->data->consumeWhile(self::CTYPE_ALPHA)));
-                    $temporaryBuffer .= $char;
+                    $char = strtolower($char.$this->data->consumeWhile(self::CTYPE_ALPHA));
+                    $token->name .= $char;
+                    $this->temporaryBuffer .= $char;
                 }
                 # Anything else
                 else {
@@ -979,7 +981,7 @@ class Tokenizer {
                     # Reconsume in the script data state.
                     $this->state = self::SCRIPT_DATA_STATE;
                     $this->data->unconsume();
-                    return new CharacterToken('</'.$temporaryBuffer);
+                    return new CharacterToken('</'.$this->temporaryBuffer);
                 }
             }
 
@@ -1164,7 +1166,7 @@ class Tokenizer {
                 if ($char === '/') {
                     # Set the temporary buffer to the empty string.
                     # Switch to the script data escaped end tag open state.
-                    $temporaryBuffer = '';
+                    $this->temporaryBuffer = '';
                     $this->state = self::SCRIPT_DATA_ESCAPED_END_TAG_OPEN_STATE;
                 }
                 # ASCII alpha
@@ -1173,7 +1175,7 @@ class Tokenizer {
                     # Emit a U+003C LESS-THAN SIGN character token.
                     # Reconsume in the script data double escape start state.
 
-                    $temporaryBuffer = '';
+                    $this->temporaryBuffer = '';
                     $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPE_START_STATE;
                     $this->data->unconsume();
                     return new CharacterToken('<');
@@ -1184,7 +1186,7 @@ class Tokenizer {
                     # Reconsume in the script data escaped state.
                     $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
                     $this->data->unconsume();
-                    return new CharacterToken($char);
+                    return new CharacterToken("<");
                 }
             }
 
@@ -1202,7 +1204,7 @@ class Tokenizer {
                     // Set the tag name to the lowercase
                     // Append the original to the temporary buffer
                     $token = new EndTagToken(strtolower($char));
-                    $temporaryBuffer = $char;
+                    $this->temporaryBuffer = $char;
                     $this->state = self::SCRIPT_DATA_ESCAPED_END_TAG_NAME_STATE;
                 }
                 # Anything else
@@ -1276,7 +1278,7 @@ class Tokenizer {
                     // to loop back through here every single time.
                     $char .= $this->data->consumeWhile(self::CTYPE_ALPHA);
                     $token->name .= strtolower($char);
-                    $temporaryBuffer .= $char;
+                    $this->temporaryBuffer .= $char;
                 }
                 # Anything else
                 else {
@@ -1288,7 +1290,7 @@ class Tokenizer {
                     # Reconsume in the script data escaped state.
                     $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
                     $this->data->unconsume();
-                    return new CharacterToken('</'.$temporaryBuffer);
+                    return new CharacterToken('</'.$this->temporaryBuffer);
                 }
             }
 
@@ -1308,16 +1310,16 @@ class Tokenizer {
                     #   then switch to the script data double escaped state.
                     # Otherwise, switch to the script data escaped state.
                     #   Emit the current input character as a character token.
-                    if ($temporaryBuffer === 'script') {
+                    if ($this->temporaryBuffer === 'script') {
                         $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE;
                     } else {
                         $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
-                        return new CharacterToken($char);
                     }
+                    return new CharacterToken($char);
                 }
                 # ASCII upper alpha
                 # ASCII lower alpha
-                if (ctype_alpha($char)) {
+                elseif (ctype_alpha($char)) {
                     # Append the lowercase version of the current input character
                     #   (add 0x0020 to the character's code point) to the temporary buffer.
                     # Emit the current input character as a character token.
@@ -1327,7 +1329,7 @@ class Tokenizer {
                     // Consume all characters that are ASCII characters to prevent having
                     // to loop back through here every single time.
                     $char = $char.$this->data->consumeWhile(self::CTYPE_ALPHA);
-                    $temporaryBuffer .= strtolower($char);
+                    $this->temporaryBuffer .= strtolower($char);
                     return new CharacterToken($char);
                 }
                 # Anything else
@@ -1485,14 +1487,14 @@ class Tokenizer {
                     # Set the temporary buffer to the empty string.
                     # Switch to the script data double escape end state.
                     # Emit a U+002F SOLIDUS character token.
-                    $temporaryBuffer = '';
-                    $this->state === self::SCRIPT_DATA_DOUBLE_ESCAPE_END_STATE;
+                    $this->temporaryBuffer = '';
+                    $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPE_END_STATE;
                     return new CharacterToken('/');
                 }
                 # Anything else
                 else {
                     # Reconsume in the script data double escaped state.
-                    $this->state === self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE;
+                    $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE;
                     $this->data->unconsume();
                 }
             }
@@ -1513,12 +1515,12 @@ class Tokenizer {
                     #   then switch to the script data escaped state.
                     # Otherwise, switch to the script data double escaped state.
                     #   Emit the current input character as a character token.
-                    if ($temporaryBuffer === 'script') {
+                    if ($this->temporaryBuffer === 'script') {
                         $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
                     } else {
                         $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE;
-                        return new CharacterToken($char);
                     }
+                    return new CharacterToken($char);
                 }
                 # ASCII upper alpha
                 # ASCII lower alpha
@@ -1535,7 +1537,7 @@ class Tokenizer {
                     // OPTIMIZATION: Consume all characters that are ASCII characters to prevent having
                     // to loop back through here every single time.
                     $char = $char.$this->data->consumeWhile(self::CTYPE_ALPHA);
-                    $temporaryBuffer .= strtolower($char);
+                    $this->temporaryBuffer .= strtolower($char);
                     return new CharacterToken($char);
                 }
                 # Anything else
@@ -3363,7 +3365,7 @@ class Tokenizer {
                     # Emit a U+005D RIGHT SQUARE BRACKET character token.
                     # Reconsume in the CDATA section state.
                     $this->state = self::CDATA_SECTION_STATE;
-                    // OPTIMIZATION: Not necessary to reconsume
+                    $this->data->unconsume();
                     return new CharacterToken(']'.$char);
                 }
             }
@@ -3390,8 +3392,8 @@ class Tokenizer {
                     # Emit two U+005D RIGHT SQUARE BRACKET character tokens.
                     # Reconsume in the CDATA section state.
                     $this->state = self::CDATA_SECTION_STATE;
-                    // OPTIMIZATION: Not necessary to reconsume
-                    return new CharacterToken(']'.$char);
+                    $char = $this->data->unconsume();
+                    return new CharacterToken(']]'.$char);
                 }
             }
 
@@ -3420,7 +3422,7 @@ class Tokenizer {
                 # Set the temporary buffer to the empty string.
                 # Append a U+0026 AMPERSAND (&) character to the temporary buffer.
                 # Consume the next input character.
-                $temporaryBuffer = '&';
+                $this->temporaryBuffer = '&';
                 $char = $this->data->consume();
 
                 # ASCII alphanumeric
@@ -3433,7 +3435,7 @@ class Tokenizer {
                 elseif ($char === '#') {
                     # Append the current input character to the temporary buffer.
                     # Switch to the numeric character reference state.
-                    $temporaryBuffer .= $char;
+                    $this->temporaryBuffer .= $char;
                     $this->state = self::NUMERIC_CHARACTER_REFERENCE_STATE;
                 }
                 # Anything else
@@ -3442,7 +3444,7 @@ class Tokenizer {
                     # Reconsume in the return state.
                     $this->state = $returnState;
                     $this->data->unconsume();
-                    return $temporaryBuffer;
+                    return $this->temporaryBuffer;
                 }
             }
 
@@ -3477,7 +3479,7 @@ class Tokenizer {
                 }
                 
                 # Append each character to the temporary buffer when it's consumed.
-                $temporaryBuffer .= $candidate;
+                $this->temporaryBuffer .= $candidate;
 
                 # If there is a match
                 if (!is_null($match)) {
@@ -3489,7 +3491,7 @@ class Tokenizer {
                         # ... then, for historical reasons, flush code points consumed 
                         #   as a character reference and switch to the return state.
                         $this->state = $returnState;
-                        return $temporaryBuffer;
+                        return $this->temporaryBuffer;
                     } 
                     # Otherwise:
                     else {
@@ -3521,7 +3523,7 @@ class Tokenizer {
                     // If we consumed a semicolon earlier we need to undo this
                     if ($next === ';') {
                         $this->data->unconsume();
-                        $temporaryBuffer = substr($temporaryBuffer, 0, -1);
+                        $this->temporaryBuffer = substr($this->temporaryBuffer, 0, -1);
                     }
                 }
             }
@@ -3538,23 +3540,23 @@ class Tokenizer {
                     # Otherwise, emit the current input character as a character token.
 
                     // DEVIATION: We just continue to buffer characters until it's time to return
-                    $temporaryBuffer .= $char.$this->data->consumeWhile(self::CTYPE_ALNUM);
+                    $this->temporaryBuffer .= $char.$this->data->consumeWhile(self::CTYPE_ALNUM);
                 }
                 # U+003B SEMICOLON (;)
                 elseif ($char === ';') {
                     # This is an unknown-named-character-reference parse error.
                     # Reconsume in the return state.
                     $this->data->unconsume();
-                    $this->error(ParseError::UNKNOWN_NAMED_CHARACTER_REFERENCE, $temporaryBuffer.';');
+                    $this->error(ParseError::UNKNOWN_NAMED_CHARACTER_REFERENCE, $this->temporaryBuffer.';');
                     $this->state = $returnState;
-                    return $temporaryBuffer;
+                    return $this->temporaryBuffer;
                 }
                 # Anything else
                 else {
                     # Reconsume in the return state.
                     $this->state = $returnState;
                     $this->data->unconsume();
-                    return $temporaryBuffer;
+                    return $this->temporaryBuffer;
                 }
             }
 
@@ -3570,7 +3572,7 @@ class Tokenizer {
                 if ($char === 'x' || $char === 'X') {
                     # Append the current input character to the temporary buffer.
                     # Switch to the hexadecimal character reference start state.
-                    $temporaryBuffer .= $char;
+                    $this->temporaryBuffer .= $char;
                     $this->state = self::HEXADECIMAL_CHARACTER_REFERENCE_START_STATE;
                 }
                 # Anything else
@@ -3603,7 +3605,7 @@ class Tokenizer {
                     $this->data->unconsume();
                     $this->error(ParseError::ABSENCE_OF_DIGITS_IN_NUMERIC_CHARACTER_REFERENCE);
                     $this->state = $returnState;
-                    return $temporaryBuffer;
+                    return $this->temporaryBuffer;
                 }
             }
 
@@ -3629,7 +3631,7 @@ class Tokenizer {
                     $this->data->unconsume();
                     $this->error(ParseError::ABSENCE_OF_DIGITS_IN_NUMERIC_CHARACTER_REFERENCE);
                     $this->state = $returnState;
-                    return $temporaryBuffer;
+                    return $this->temporaryBuffer;
                 }
             }
 
@@ -3734,9 +3736,9 @@ class Tokenizer {
                     $this->error(ParseError::CONTROL_CHARACTER_REFERENCE);
                     $charRefCode = CharacterReference::C1_TABLE[$charRefCode] ?? $charRefCode;
                 }
-                $temporaryBuffer = UTF8::encode($charRefCode);
+                $this->temporaryBuffer = UTF8::encode($charRefCode);
                 $this->state = $returnState;
-                return $temporaryBuffer;
+                return $this->temporaryBuffer;
             }
 
             # Not a valid state, unimplemented, or implemented elsewhere
