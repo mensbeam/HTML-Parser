@@ -136,7 +136,7 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
                 }
                 $test['initialStates'] = $test['initialStates'] ?? ["Data state"];
                 // check if a test needs a patch due to trivial differences in implementation
-                $this->patchTest($testId, $test);
+                $this->patchTest($test);
                 for ($a = 0; $a < sizeof($test['initialStates']); $a++) {
                     $tokens = [];
                     foreach ($test['output'] as $token) {
@@ -179,22 +179,38 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
         }
     }
 
-    protected function patchTest(string $id, &$test): void {
+    protected function patchTest(&$test): void {
+        $id = [$test['input'], $test['initialStates']];
         switch ($id) {
             // test emits input stream error first despite peeking 
-            case "test3.test #30":
+            case ["<!\u{B}", ["Data state"]]:
                 $test['errors'] = array_reverse($test['errors']);
                 break;
-            // eof-in-comment positions in some tests don't make sense
+            // eof-in-<whatever> positions in some tests don't make sense
             // https://github.com/html5lib/html5lib-tests/issues/125
-            case "test3.test #143":
-                $test['errors'][0]['col'] = 10;
+            case ["", ["CDATA section state"]]:
+                // there is no position 2
+                $test['errors'][0]['col']--;
                 break;
-            case "test3.test #144":
-            case "test3.test #145":
-            case "test3.test #146":
-                $test['errors'][0]['line'] = 2;
+            case ["\u{A}", ["CDATA section state"]]:
+                // the line break is, for some reason, not counted in the test
+                $test['errors'][0]['line']++;
+                $test['errors'][0]['col'] = 1;
+                break;
+            case ["<!----!\r\n>", ["Data state"]]:
+            case ["<!----!\n>", ["Data state"]]:
+            case ["<!----!\r>", ["Data state"]]:
+                // the line break is, for some reason, not counted in the test
+                $test['errors'][0]['line']++;
                 $test['errors'][0]['col'] = 2;
+                break;
+            case ["<!----! >", ["Data state"]]:
+                $test['errors'][0]['col']++;
+                break;
+            case [hex2bin("f4808080"), ["CDATA section state"]]:
+            case [hex2bin("3bf4808080"), ["CDATA section state"]]:
+                // malpaired surrogates count as two characters
+                $test['errors'][0]['col']++;
                 break;
         }
     }
