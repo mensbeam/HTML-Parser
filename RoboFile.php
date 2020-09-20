@@ -85,17 +85,30 @@ class RoboFile extends \Robo\Tasks {
     }
 
     protected function findCoverageEngine(): string {
-        if (IS_WIN) {
-            $dbg = dirname(\PHP_BINARY)."\\phpdbg.exe";
-            $dbg = file_exists($dbg) ? $dbg : "";
+        $dir = rtrim(ini_get("extension_dir"), "/").\DIRECTORY_SEPARATOR;
+        $ext = IS_WIN ? "dll" : (IS_MAC ? "dylib" : "so");
+        $php = escapeshellarg(\PHP_BINARY);
+        $code = escapeshellarg(BASE."lib");
+        if (extension_loaded("pcov")) {
+            return "$php -d pcov.enabled=1 -d pcov.directory=$code";
+        } elseif (extension_loaded("xdebug")) {
+            return $php;
+        } elseif (file_exists($dir."pcov.$ext")) {
+            return "$php -d extension=pcov.$ext -d pcov.enabled=1 -d pcov.directory=$code";
+        } elseif (file_exists($dir."pcov.$ext")) {
+            return "$php -d zend_extension=xdebug.$ext";
         } else {
-            $dbg = trim(`which phpdbg 2>/dev/null`);
-        }
-        if ($dbg) {
-            return escapeshellarg($dbg)." -qrr";
-        } else {
-            $ext = IS_WIN ? "dll" : (IS_MAC ? "dylib" : "so");
-            return escapeshellarg(\PHP_BINARY)." -d zend_extension=xdebug.$ext";
+            if (IS_WIN) {
+                $dbg = dirname(\PHP_BINARY)."\\phpdbg.exe";
+                $dbg = file_exists($dbg) ? $dbg : "";
+            } else {
+                $dbg = trim(`which phpdbg 2>/dev/null`);
+            }
+            if ($dbg) {
+                return escapeshellarg($dbg)." -qrr";
+            } else {
+                return $php;
+            }
         }
     }
 
