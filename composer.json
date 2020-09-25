@@ -3,9 +3,10 @@
     "description": "Parses HTML5 text into a php DOMDocument",
     "type": "library",
     "require": {
-        "php": "^7.0",
+        "php": "^7.1",
         "ext-dom": "*",
-        "mensbeam/intl": "*"
+        "mensbeam/intl": "*",
+        "mensbeam/mimesniff": "^0.2.0"
     },
     "suggest": {
         "ext-ctype": "Improved performance"

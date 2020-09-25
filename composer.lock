@@ -4,15 +4,21 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "037fcc961f6e8f68b15379be21f45854",
+    "content-hash": "96a5c225aba74182ddfac27fa5cee1e8",
     "packages": [
         {
             "name": "mensbeam/intl",
             "version": "0.7.0",
             "source": {
                 "type": "git",
-                "url": "https://code.mensbeam.com/MensBeam/intl",
+                "url": "https://github.com/mensbeam/intl.git",
                 "reference": "c4a2ae17142a1846c841c5b5b9246e67d56c568e"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/mensbeam/intl/zipball/c4a2ae17142a1846c841c5b5b9246e67d56c568e",
+                "reference": "c4a2ae17142a1846c841c5b5b9246e67d56c568e",
+                "shasum": ""
             },
             "require": {
                 "php": "^7.0"
@@ -50,36 +56,80 @@
                 "utf8"
             ],
             "time": "2019-12-21T01:56:59+00:00"
+        },
+        {
+            "name": "mensbeam/mimesniff",
+            "version": "0.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/mensbeam/mime.git",
+                "reference": "d3f6c031687d532c1bb32e3eb362da4a948d4750"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/mensbeam/mime/zipball/d3f6c031687d532c1bb32e3eb362da4a948d4750",
+                "reference": "d3f6c031687d532c1bb32e3eb362da4a948d4750",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^7.1"
+            },
+            "require-dev": {
+                "bamarni/composer-bin-plugin": "^1.3",
+                "ext-intl": "*"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MensBeam\\Mime\\": "lib/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "J. King",
+                    "email": "jking@jkingweb.ca",
+                    "homepage": "https://jkingweb.ca/"
+                }
+            ],
+            "description": "An implementation of the WHATWG MIME Sniffing specification",
+            "keywords": [
+                "WHATWG",
+                "mime",
+                "mimesniff"
+            ],
+            "time": "2020-04-19T16:07:41+00:00"
         }
     ],
     "packages-dev": [
         {
             "name": "bamarni/composer-bin-plugin",
-            "version": "v1.3.0",
+            "version": "1.4.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/bamarni/composer-bin-plugin.git",
-                "reference": "67f9d314dc7ecf7245b8637906e151ccc62b8d24"
+                "reference": "9329fb0fbe29e0e1b2db8f4639a193e4f5406225"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bamarni/composer-bin-plugin/zipball/67f9d314dc7ecf7245b8637906e151ccc62b8d24",
-                "reference": "67f9d314dc7ecf7245b8637906e151ccc62b8d24",
+                "url": "https://api.github.com/repos/bamarni/composer-bin-plugin/zipball/9329fb0fbe29e0e1b2db8f4639a193e4f5406225",
+                "reference": "9329fb0fbe29e0e1b2db8f4639a193e4f5406225",
                 "shasum": ""
             },
             "require": {
-                "composer-plugin-api": "^1.0"
+                "composer-plugin-api": "^1.0 || ^2.0",
+                "php": "^5.5.9 || ^7.0 || ^8.0"
             },
             "require-dev": {
-                "composer/composer": "dev-master",
+                "composer/composer": "^1.0 || ^2.0",
                 "symfony/console": "^2.5 || ^3.0 || ^4.0"
             },
             "type": "composer-plugin",
             "extra": {
-                "class": "Bamarni\\Composer\\Bin\\Plugin",
-                "branch-alias": {
-                    "dev-master": "1.1-dev"
-                }
+                "class": "Bamarni\\Composer\\Bin\\Plugin"
             },
             "autoload": {
                 "psr-4": {
@@ -90,7 +140,16 @@
             "license": [
                 "MIT"
             ],
-            "time": "2019-03-17T12:38:04+00:00"
+            "description": "No conflicts for your bin dependencies",
+            "keywords": [
+                "composer",
+                "conflict",
+                "dependency",
+                "executable",
+                "isolation",
+                "tool"
+            ],
+            "time": "2020-05-03T08:27:20+00:00"
         }
     ],
     "aliases": [],
@@ -99,8 +158,9 @@
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
-        "php": "^7.0",
+        "php": "^7.1",
         "ext-dom": "*"
     },
-    "platform-dev": []
+    "platform-dev": [],
+    "plugin-api-version": "1.1.0"
 }
