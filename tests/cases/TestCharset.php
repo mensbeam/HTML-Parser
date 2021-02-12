@@ -80,9 +80,6 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
     /** @dataProvider provideStandardEncodingTests */
     public function testStandardEncoderTests(string $input, string $exp) {
         $exp = strtolower($exp);
-        if (in_array($exp, ["euc-jp", "iso-2022-jp", "shift-jis"])) {
-            $this->markTestIncomplete("Japanese encodings are not yet implemented");
-        }
         $this->assertSame(strtolower($exp), strtolower(Charset::fromBOM($input)?? Charset::fromPrescan($input, \PHP_INT_MAX) ?? "Windows-1252"));
     }
 
