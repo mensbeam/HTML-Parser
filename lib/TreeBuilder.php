@@ -109,12 +109,6 @@ class TreeBuilder {
 
         $this->insertionMode = self::INITIAL_MODE;
         $this->quirksMode = self::QUIRKS_MODE_OFF;
-
-        static::$instance = $this;
-    }
-
-    public function __destruct() {
-        static::$instance = null;
     }
 
     public function emitToken(Token $token) {
@@ -388,14 +382,16 @@ class TreeBuilder {
                         # set the Document to quirks mode.
                         // DEVIATION: There is no iframe srcdoc document because there are no nested
                         // browsing contexts in this implementation.
-                        switch (get_class($token)) {
-                            case 'StartTagToken': $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
-                            break;
-                            case 'EndTagToken': $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
-                            break;
-                            case 'EOFToken': $this->error(ParseError::UNEXPECTED_EOF);
-                            break;
-                            default: throw new Exception(Exception::UNKNOWN_ERROR);
+                        if ($token instanceof StartTagToken) {
+                            $this->error(ParseError::EXPECTED_DOCTYPE_BUT_GOT_START_TAG);
+                        } elseif ($token instanceof EndTagToken) {
+                            $this->error(ParseError::EXPECTED_DOCTYPE_BUT_GOT_END_TAG);
+                        } elseif ($token instanceof CharacterToken) {
+                            $this->error(ParseError::EXPECTED_DOCTYPE_BUT_GOT_CHARS);
+                        } elseif ($token instanceof EOFToken) {
+                            $this->error(ParseError::UNEXPECTED_EOF);
+                        } else {
+                            throw new \Exception("Unexpected token type".get_class($token));
                         }
 
                         $this->quirksMode = self::QUIRKS_MODE_ON;
@@ -431,7 +427,7 @@ class TreeBuilder {
                         # Create an element for the token in the HTML namespace, with the Document as
                         # the intended parent. Append it to the Document object. Put this element in the
                         # stack of open elements.
-                        $element = static::insertStartTagToken($token, $this->DOM);
+                        $element = $this->insertStartTagToken($token, $this->DOM);
 
                         # Switch the insertion mode to "before head".
                         $this->insertionMode = self::BEFORE_HEAD_MODE;
@@ -490,7 +486,7 @@ class TreeBuilder {
                         # A start tag whose tag name is "head"
                         elseif ($token->name === 'head') {
                             # Insert an HTML element for the token.
-                            $element = static::insertStartTagToken($token);
+                            $element = $this->insertStartTagToken($token);
                             # Set the head element pointer to the newly created head element.
                             $this->headElement = $element;
 
@@ -507,7 +503,7 @@ class TreeBuilder {
                     # Anything else
                     else {
                         # Insert an HTML element for a "head" start tag token with no attributes.
-                        $element = static::insertStartTagToken(new StartTagToken('head'));
+                        $element = $this->insertStartTagToken(new StartTagToken('head'));
                         # Set the head element pointer to the newly created head element.
                         $this->headElement = $element;
 
@@ -551,7 +547,7 @@ class TreeBuilder {
                         elseif ($token->name === 'base' || $token->name === 'basefont' || $token->name === 'bgsound' || $token->name === 'link') {
                             # Insert an HTML element for the token. Immediately pop the current node off the
                             # stack of open elements.
-                            static::insertStartTagToken($token);
+                            $this->insertStartTagToken($token);
                             $this->stack->pop();
 
                             # Acknowledge the token’s *self-closing flag*, if it is set.
@@ -561,7 +557,7 @@ class TreeBuilder {
                         elseif ($token->name === 'meta') {
                             # Insert an HTML element for the token. Immediately pop the current node off the
                             # stack of open elements.
-                            static::insertStartTagToken($token);
+                            $this->insertStartTagToken($token);
                             $this->stack->pop();
 
                             # Acknowledge the token’s *self-closing flag*, if it is set.
@@ -597,7 +593,7 @@ class TreeBuilder {
                         // flag is always disabled.
                         elseif ($token->name === 'noscript') {
                             # Insert an HTML element for the token.
-                            static::insertStartTagToken($token);
+                            $this->insertStartTagToken($token);
                             # Switch the insertion mode to "in head noscript".
                             $this->insertionMode = self::IN_HEAD_NOSCRIPT_MODE;
                         }
@@ -615,7 +611,7 @@ class TreeBuilder {
                             // intended parent isn't used when determining anything;
                             // Parser::createAndInsertElement will get the adjusted insertion location
                             // anyway.
-                            static::insertStartTagToken($token);
+                            $this->insertStartTagToken($token);
 
                             # 3. Mark the element as being "parser-inserted" and unset the element’s
                             # "non-blocking" flag.
@@ -637,7 +633,7 @@ class TreeBuilder {
                         # A start tag whose tag name is "template"
                         elseif ($token->name === 'template') {
                             # Insert an HTML element for the token.
-                            static::insertStartTagToken($token);
+                            $this->insertStartTagToken($token);
                             # Insert a marker at the end of the list of active formatting elements.
                             $this->activeFormattingElementsList->insertMarker();
                             # Set the frameset-ok flag to "not ok".
@@ -703,7 +699,7 @@ class TreeBuilder {
 
                                 # 2. If the current node is not a template element, then this is a parse error.
                                 if ($this->stack->currentNodeName !== 'template') {
-                                    $this->error(ParseError::UNEXPECTED_END_TAG, 'template');
+                                    $this->error(ParseError::UNEXPECTED_END_TAG);
                                 }
 
                                 # 3. Pop elements from the stack of open elements until a template element has been popped from the stack.
@@ -722,7 +718,7 @@ class TreeBuilder {
                         # Any other end tag
                         else {
                             # Parse error.
-                            $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                            $this->error(ParseError::UNEXPECTED_END_TAG);
                         }
                     }
                     # Anything else
@@ -1326,7 +1322,7 @@ class TreeBuilder {
                                 }
 
                                 # Switch the insertion mode to "after body".
-                                self::$insertionMode = self::AFTER_BODY_MODE;
+                                $this->insertionMode = self::AFTER_BODY_MODE;
 
                                 // The only thing different between body and html here is that when processing
                                 // an html end tag the token is reprocessed.
@@ -1789,7 +1785,7 @@ class TreeBuilder {
 
                 # Insert a foreign element for the token, in the same namespace as the adjusted
                 # current node.
-                static::insertStartTagToken($token, null, $this->stack->adjustedCurrentNode->namespaceURI);
+                $this->insertStartTagToken($token, null, $this->stack->adjustedCurrentNode->namespaceURI);
 
                 # If the token has its self-closing flag set, then run the appropriate steps
                 # from the following list:
@@ -1944,7 +1940,7 @@ class TreeBuilder {
         ];
     }
 
-    public static function insertCharacterToken(CharacterToken $token) {
+    public function insertCharacterToken(CharacterToken $token) {
         # 1. Let data be the characters passed to the algorithm, or, if no characters
         # were explicitly specified, the character of the character token being
         # processed.
@@ -1952,7 +1948,7 @@ class TreeBuilder {
 
         # 2. Let the adjusted insertion location be the appropriate place for inserting
         # a node.
-        $location = static::$instance->appropriatePlaceForInsertingNode();
+        $location = $this->appropriatePlaceForInsertingNode();
         $adjustedInsertionLocation = $location['node'];
         $insertBefore = $location['insert before'];
 
@@ -1998,7 +1994,7 @@ class TreeBuilder {
             $adjustedInsertionLocation = $position;
             $insertBefore = false;
         } else {
-            $location = static::$instance->appropriatePlaceForInsertingNode();
+            $location = $this->appropriatePlaceForInsertingNode();
             $adjustedInsertionLocation = $location['node'];
             $insertBefore = $location['insert before'];
         }
@@ -2016,7 +2012,7 @@ class TreeBuilder {
         }
     }
 
-    public static function insertStartTagToken(StartTagToken $token, \DOMNode $intendedParent = null, string $namespace = null): Element {
+    public function insertStartTagToken(StartTagToken $token, \DOMNode $intendedParent = null, string $namespace = null): Element {
         if (!is_null($namespace)) {
             $namespace = $token->namespace;
         }
@@ -2042,9 +2038,9 @@ class TreeBuilder {
         // DEVIATION: There is no point to setting the synchronous custom elements flag
         // and custom element definition; there is no scripting in this implementation.
         if ($namespace === Parser::HTML_NAMESPACE) {
-            $element = static::$instance->DOM->createElement($token->name);
+            $element = $this->DOM->createElement($token->name);
         } else {
-            $element = static::$instance->DOM->createElementNS($namespace, $token->name);
+            $element = $this->DOM->createElementNS($namespace, $token->name);
         }
 
         # 8. Append each attribute in the given token to element.
@@ -2108,7 +2104,7 @@ class TreeBuilder {
 
         # 1. Let the adjusted insertion location be the appropriate place for inserting
         # a node.
-        $location = static::$instance->appropriatePlaceForInsertingNode($intendedParent);
+        $location = $this->appropriatePlaceForInsertingNode($intendedParent);
 
         $adjustedInsertionLocation = $location['node'];
         $insertBefore = $location['insert before'];
@@ -2136,7 +2132,7 @@ class TreeBuilder {
         // DEVIATION: Unnecessary because there is no scripting in this implementation.
 
         # 4. Push element onto the stack of open elements so that it is the new current node.
-        static::$instance->stack[] = $element;
+        $this->stack[] = $element;
 
         # Return element.
         return $element;
@@ -2148,7 +2144,7 @@ class TreeBuilder {
         # invoked in response to a start tag token.
 
         # 1. Insert an HTML element for the token.
-        static::insertStartTagToken($token);
+        $this->insertStartTagToken($token);
 
         # 2. If the algorithm that was invoked is the generic raw text element parsing
         # algorithm, switch the tokenizer to the RAWTEXT state; otherwise the algorithm

@@ -78,14 +78,8 @@ class OpenElementsStack extends Stack {
         $this->_storage = array_values($this->_storage);
     }
 
-    public function generateImpliedEndTags($exclude = []) {
+    public function generateImpliedEndTags(array $exclude = []) {
         $tags = ['caption', 'colgroup', 'dd', 'dt', 'li', 'optgroup', 'option', 'p', 'rb', 'rp', 'rt', 'rtc', 'tbody', 'td', 'tfoot', 'th', 'thead', 'tr'];
-
-        if (is_string($exclude)) {
-            $exclude = [$exclude];
-        }
-
-        assert(is_array($exclude), new Exception(Exception::STACK_STRING_ARRAY_EXPECTED));
 
         if (count($exclude) > 0) {
             $modified = false;

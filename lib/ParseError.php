@@ -5,6 +5,7 @@ namespace dW\HTML5;
 class ParseError {
     protected $data;
 
+    // tokenization parse errors; these have been standardized
     const ENCODING_ERROR                                                    = 100;
     const UNEXPECTED_NULL_CHARACTER                                         = 101;
     const UNEXPECTED_QUESTION_MARK_INSTEAD_OF_TAG_NAME                      = 102;
@@ -53,9 +54,19 @@ class ParseError {
     const CONTROL_CHARACTER_REFERENCE                                       = 145;
     const SURROGATE_IN_INPUT_STREAM                                         = 146;
     const NONCHARACTER_IN_INPUT_STREAM                                      = 147;
-    const CONTROL_CHARACTER_IN_INPUT_STREAM                                 = 148;    
+    const CONTROL_CHARACTER_IN_INPUT_STREAM                                 = 148;
+    // tree construction parse errors; these have not been standardized, but html5lib's error names are likely to become standard in future
+    const EXPECTED_DOCTYPE_BUT_GOT_START_TAG                                = 200;
+    const EXPECTED_DOCTYPE_BUT_GOT_END_TAG                                  = 201;
+    const EXPECTED_DOCTYPE_BUT_GOT_CHARS                                    = 202;
+    const UNEXPECTED_END_TAG                                                = 203; // html5lib also uses 'adoption-agency-1.2' and 'adoption-agency-1.3' for this
 
     const MESSAGES = [
+        self::EXPECTED_DOCTYPE_BUT_GOT_START_TAG                                => 'Expected DOCTYPE but got start tag',
+        self::EXPECTED_DOCTYPE_BUT_GOT_END_TAG                                  => 'Expected DOCTYPE but got end tag',
+        self::EXPECTED_DOCTYPE_BUT_GOT_CHARS                                    => 'Expected DOCTYPE but got characters',
+        self::UNEXPECTED_END_TAG                                                => 'Unexpected end tag',
+
         self::ENCODING_ERROR                                                    => 'Corrupt encoding near byte position %s',
         self::UNEXPECTED_NULL_CHARACTER                                         => 'Unexpected null character',
         self::UNEXPECTED_QUESTION_MARK_INSTEAD_OF_TAG_NAME                      => 'Unexpected "?" character instead of tag name',
@@ -108,55 +119,26 @@ class ParseError {
     ];
 
     const REPORT_OFFSETS = [
-        self::ENCODING_ERROR                                                    => 0,
         self::UNEXPECTED_NULL_CHARACTER                                         => -1,
-        self::UNEXPECTED_QUESTION_MARK_INSTEAD_OF_TAG_NAME                      => 0,
-        self::EOF_BEFORE_TAG_NAME                                               => 0,
-        self::INVALID_FIRST_CHARACTER_OF_TAG_NAME                               => 0,
         self::MISSING_END_TAG_NAME                                              => -1,
-        self::EOF_IN_TAG                                                        => 0,
-        self::EOF_IN_SCRIPT_HTML_COMMENT_LIKE_TEXT                              => 0,
         self::UNEXPECTED_EQUALS_SIGN_BEFORE_ATTRIBUTE_NAME                      => -1,
         self::DUPLICATE_ATTRIBUTE                                               => -1,
         self::UNEXPECTED_CHARACTER_IN_ATTRIBUTE_NAME                            => -1,
         self::MISSING_ATTRIBUTE_VALUE                                           => -1,
         self::UNEXPECTED_CHARACTER_IN_UNQUOTED_ATTRIBUTE_VALUE                  => -1,
-        self::MISSING_WHITESPACE_BETWEEN_ATTRIBUTES                             => 0,
-        self::UNEXPECTED_SOLIDUS_IN_TAG                                         => 0,
         self::CDATA_IN_HTML_CONTENT                                             => -1,
-        self::INCORRECTLY_OPENED_COMMENT                                        => 0,
         self::ABRUPT_CLOSING_OF_EMPTY_COMMENT                                   => -1,
-        self::EOF_IN_COMMENT                                                    => 0,
-        self::NESTED_COMMENT                                                    => 0,
         self::INCORRECTLY_CLOSED_COMMENT                                        => -1,
-        self::EOF_IN_DOCTYPE                                                    => 0,
-        self::MISSING_WHITESPACE_BEFORE_DOCTYPE_NAME                            => 0,
         self::MISSING_DOCTYPE_NAME                                              => -1,
-        self::INVALID_CHARACTER_SEQUENCE_AFTER_DOCTYPE_NAME                     => 0,
         self::MISSING_WHITESPACE_AFTER_DOCTYPE_PUBLIC_KEYWORD                   => -1,
         self::MISSING_DOCTYPE_PUBLIC_IDENTIFIER                                 => -1,
-        self::MISSING_QUOTE_BEFORE_DOCTYPE_PUBLIC_IDENTIFIER                    => 0,
         self::ABRUPT_DOCTYPE_PUBLIC_IDENTIFIER                                  => -1,
         self::MISSING_WHITESPACE_BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS  => -1,
         self::MISSING_WHITESPACE_AFTER_DOCTYPE_SYSTEM_KEYWORD                   => -1,
         self::MISSING_DOCTYPE_SYSTEM_IDENTIFIER                                 => -1,
-        self::MISSING_QUOTE_BEFORE_DOCTYPE_SYSTEM_IDENTIFIER                    => 0,
         self::ABRUPT_DOCTYPE_SYSTEM_IDENTIFIER                                  => -1,
-        self::UNEXPECTED_CHARACTER_AFTER_DOCTYPE_SYSTEM_IDENTIFIER              => 0,
-        self::EOF_IN_CDATA                                                      => 0,
         self::END_TAG_WITH_ATTRIBUTES                                           => -1,
         self::END_TAG_WITH_TRAILING_SOLIDUS                                     => -1,
-        self::MISSING_SEMICOLON_AFTER_CHARACTER_REFERENCE                       => 0,
-        self::UNKNOWN_NAMED_CHARACTER_REFERENCE                                 => 0,
-        self::ABSENCE_OF_DIGITS_IN_NUMERIC_CHARACTER_REFERENCE                  => 0,
-        self::NULL_CHARACTER_REFERENCE                                          => 0,
-        self::CHARACTER_REFERENCE_OUTSIDE_UNICODE_RANGE                         => 0,
-        self::SURROGATE_CHARACTER_REFERENCE                                     => 0,
-        self::NONCHARACTER_CHARACTER_REFERENCE                                  => 0,
-        self::CONTROL_CHARACTER_REFERENCE                                       => 0,
-        self::SURROGATE_IN_INPUT_STREAM                                         => 0,
-        self::NONCHARACTER_IN_INPUT_STREAM                                      => 0,
-        self::CONTROL_CHARACTER_IN_INPUT_STREAM                                 => 0,    
     ];
 
     public function setHandler() {
