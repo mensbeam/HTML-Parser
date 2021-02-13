@@ -10,15 +10,18 @@
 >
 
 <filter>
-  <whitelist processUncoveredFilesFromWhitelist="true">
-    <directory suffix=".php">../lib</directory>
-  </whitelist>
+    <whitelist processUncoveredFilesFromWhitelist="true">
+        <directory suffix=".php">../lib</directory>
+    </whitelist>
 </filter>
 
 <testsuites>
     <testsuite name="Tokenizer">
         <file>cases/TestCharset.php</file>
         <file>cases/TestTokenizer.php</file>
+    </testsuite>
+    <testsuite name="Tree">
+        <file>cases/TestTreeConstructor.php</file>
     </testsuite>
 </testsuites>
 </phpunit>
