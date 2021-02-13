@@ -2,11 +2,18 @@
 declare(strict_types=1);
 namespace dW\HTML5\TestCase;
 
+use dW\HTML5\Data;
+use dW\HTML5\Document;
+use dW\HTML5\EOFToken;
+use dW\HTML5\OpenElementsStack;
+use dW\HTML5\ParseError;
 use dW\HTML5\Parser;
+use dW\HTML5\TemplateInsertionModesStack;
+use dW\HTML5\Tokenizer;
+use dW\HTML5\TreeBuilder;
 
 /** 
  * @covers \dW\HTML5\TreeBuilder
- * @covers \dW\HTML5\Parser
  */
 class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
     protected const NS = [
@@ -25,7 +32,30 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         } elseif ($fragment) {
             $this->markTestSkipped("Fragment tests still to be implemented");
         }
-        $doc = Parser::parse($data);
+        // convert parse error constants into standard symbols in specification
+        $errorMap = array_map(function($str) {
+            return strtolower(str_replace("_", "-", $str));
+        }, array_flip(array_filter((new \ReflectionClass(ParseError::class))->getConstants(), function($v) {
+            return is_int($v);
+        })));
+        // create a stub error handler which collects parse errors
+        $errors = [];
+        $errorHandler = $this->createStub(ParseError::class);
+        $errorHandler->method("emit")->willReturnCallback(function($file, $line, $col, $code) use (&$errors, $errorMap) {
+            $errors[] = ['code' => $errorMap[$code], 'line' => $line, 'col' => $col];
+            return true;
+        });
+        // initialize the classes we need
+        $decoder = new Data($data, "STDIN", $errorHandler);
+        $stack = new OpenElementsStack;
+        $tokenizer = new Tokenizer($decoder, $stack, $errorHandler);
+        $doc = new Document;
+        $treeBuilder = new TreeBuilder($doc, null, false, null, $stack, new TemplateInsertionModesStack, $tokenizer, $errorHandler, $decoder);
+        // run the tree builder
+        do {
+            $token = $tokenizer->createToken();
+            $treeBuilder->emitToken($token);
+        } while (!$token instanceof EOFToken);
         $act = $this->serializeTree($doc);
         $this->assertEquals($exp, $act);
         // TODO: evaluate errors
