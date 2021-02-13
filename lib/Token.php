@@ -13,6 +13,8 @@ abstract class DataToken extends Token {
 }
 
 class DOCTYPEToken extends Token {
+    public const NAME = "DOCTYPE token";
+
     # DOCTYPE tokens have a name, a public identifier,
     #   a system identifier, and a force-quirks flag.
     # When a DOCTYPE token is created, its name,
@@ -33,9 +35,13 @@ class DOCTYPEToken extends Token {
     }
 }
 
-class CharacterToken extends DataToken {}
+class CharacterToken extends DataToken {
+    public const NAME = "Character token";
+}
 
 class CommentToken extends DataToken {
+    public const NAME = "Comment token";
+
     public function __construct(string $data = '') {
         parent::__construct($data);
     }
@@ -97,11 +103,17 @@ abstract class TagToken extends Token {
      }
 }
 
-class StartTagToken extends TagToken {}
+class StartTagToken extends TagToken {
+    public const NAME = "Start tag token";
+}
 
-class EndTagToken extends TagToken {}
+class EndTagToken extends TagToken {
+    public const NAME = "End tag token";
+}
 
-class EOFToken extends Token {}
+class EOFToken extends Token {
+    public const NAME = "EOF token";
+}
 
 class TokenAttr {
     public $name;

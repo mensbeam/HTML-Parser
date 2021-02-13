@@ -5,6 +5,8 @@ namespace dW\HTML5;
 class TreeBuilder {
     use ParseErrorEmitter;
 
+    public $debugLog = "";
+
     // The list of active formatting elements, used when elements are improperly nested
     protected $activeFormattingElementsList;
     // The DOMDocument that is assembled by this class
@@ -41,42 +43,61 @@ class TreeBuilder {
     // Used to store the template insertion modes
     protected $templateInsertionModes;
 
-    // Used for debugging to print out information as the tree is built.
-    public static $debug = false;
-
-    // Instance used with the static token insertion methods.
-    protected static $instance;
-
     // Constants used for insertion modes
-    const INITIAL_MODE = 0;
-    const BEFORE_HTML_MODE = 1;
-    const BEFORE_HEAD_MODE = 2;
-    const IN_HEAD_MODE = 3;
-    const IN_HEAD_NOSCRIPT_MODE = 4;
-    const AFTER_HEAD_MODE = 5;
-    const IN_BODY_MODE = 6;
-    const TEXT_MODE = 7;
-    const IN_TABLE_MODE = 8;
-    const IN_TABLE_TEXT_MODE = 9;
-    const IN_CAPTION_MODE = 10;
-    const IN_COLUMN_GROUP_MODE = 11;
-    const IN_TABLE_BODY_MODE = 12;
-    const IN_ROW_MODE = 13;
-    const IN_CELL_MODE = 14;
-    const IN_SELECT_MODE = 15;
-    const IN_SELECT_IN_TABLE_MODE = 16;
-    const IN_TEMPLATE_MODE = 17;
-    const AFTER_BODY_MODE = 18;
-    const IN_FRAMESET_MODE = 19;
-    const AFTER_FRAMESET_MODE = 20;
-    const AFTER_AFTER_BODY_MODE = 21;
-    const AFTER_AFTER_FRAMESET_MODE = 22;
+    protected const INITIAL_MODE = 0;
+    protected const BEFORE_HTML_MODE = 1;
+    protected const BEFORE_HEAD_MODE = 2;
+    protected const IN_HEAD_MODE = 3;
+    protected const IN_HEAD_NOSCRIPT_MODE = 4;
+    protected const AFTER_HEAD_MODE = 5;
+    protected const IN_BODY_MODE = 6;
+    protected const TEXT_MODE = 7;
+    protected const IN_TABLE_MODE = 8;
+    protected const IN_TABLE_TEXT_MODE = 9;
+    protected const IN_CAPTION_MODE = 10;
+    protected const IN_COLUMN_GROUP_MODE = 11;
+    protected const IN_TABLE_BODY_MODE = 12;
+    protected const IN_ROW_MODE = 13;
+    protected const IN_CELL_MODE = 14;
+    protected const IN_SELECT_MODE = 15;
+    protected const IN_SELECT_IN_TABLE_MODE = 16;
+    protected const IN_TEMPLATE_MODE = 17;
+    protected const AFTER_BODY_MODE = 18;
+    protected const IN_FRAMESET_MODE = 19;
+    protected const AFTER_FRAMESET_MODE = 20;
+    protected const AFTER_AFTER_BODY_MODE = 21;
+    protected const AFTER_AFTER_FRAMESET_MODE = 22;
 
     // Quirks mode constants
-    const QUIRKS_MODE_OFF = 0;
-    const QUIRKS_MODE_ON = 1;
-    const QUIRKS_MODE_LIMITED = 2;
+    protected const QUIRKS_MODE_OFF = 0;
+    protected const QUIRKS_MODE_ON = 1;
+    protected const QUIRKS_MODE_LIMITED = 2;
 
+    protected const INSERTION_MODE_NAMES = [
+        self::INITIAL_MODE              => "Initial",
+        self::BEFORE_HTML_MODE          => "Before html",
+        self::BEFORE_HEAD_MODE          => "Before head",
+        self::IN_HEAD_MODE              => "In head",
+        self::IN_HEAD_NOSCRIPT_MODE     => "In head noscript",
+        self::AFTER_HEAD_MODE           => "After head",
+        self::IN_BODY_MODE              => "In body",
+        self::TEXT_MODE                 => "Text",
+        self::IN_TABLE_MODE             => "In table",
+        self::IN_TABLE_TEXT_MODE        => "In table text",
+        self::IN_CAPTION_MODE           => "In caption",
+        self::IN_COLUMN_GROUP_MODE      => "In column group",
+        self::IN_TABLE_BODY_MODE        => "In table body",
+        self::IN_ROW_MODE               => "In row",
+        self::IN_CELL_MODE              => "In cell",
+        self::IN_SELECT_MODE            => "In select",
+        self::IN_SELECT_IN_TABLE_MODE   => "In select in table",
+        self::IN_TEMPLATE_MODE          => "In template mode",
+        self::AFTER_BODY_MODE           => "After body",
+        self::IN_FRAMESET_MODE          => "In frameset",
+        self::AFTER_FRAMESET_MODE       => "After frameset",
+        self::AFTER_AFTER_BODY_MODE     => "After after body",
+        self::AFTER_AFTER_FRAMESET_MODE => "After after frameset",
+    ];
 
     public function __construct(Document $dom, $formElement, bool $fragmentCase = false, $fragmentContext = null, OpenElementsStack $stack, Stack $templateInsertionModes, Tokenizer $tokenizer, ParseError $errorHandler, Data $data) {
         // If the form element isn't an instance of DOMElement that has a node name of
@@ -112,20 +133,17 @@ class TreeBuilder {
     }
 
     public function emitToken(Token $token) {
+        assert((function() use ($token) {
+            $this->debugLog .= "EMITTED: ".constant(get_class($token)."::NAME")."\n";
+            return true;
+        })());
         // Loop used for reprocessing.
         while (true) {
             $adjustedCurrentNode = $this->stack->adjustedCurrentNode;
             $adjustedCurrentNodeName = $this->stack->adjustedCurrentNodeName;
             $adjustedCurrentNodeNamespace = $this->stack->adjustedCurrentNodeNamespace;
 
-            if (self::$debug) {
-                echo "Node: $adjustedCurrentNodeName\n";
-                echo "\nToken: \n";
-                var_export($token);
-                echo "\n\n";
-            }
-
-            # 8.2.5 Tree construction
+            # 13.2.6 Tree construction
             #
             # As each token is emitted from the tokenizer, the user agent must follow the
             # appropriate steps from the following list, known as the tree construction dispatcher:
@@ -182,67 +200,20 @@ class TreeBuilder {
     }
 
     protected function parseTokenInHTMLContent(Token $token, int $insertionMode = null) {
-        $insertionMode = (is_null($insertionMode)) ? $this->insertionMode : $insertionMode;
-
+        $insertionMode = $insertionMode ?? $this->insertionMode;
         // Loop used when processing the token under different rules; always breaks.
+        $iterations = 0;
         while (true) {
-            if (self::$debug) {
-                switch ($insertionMode) {
-                    case self::INITIAL_MODE: $mode = "Initial";
-                    break;
-                    case self::BEFORE_HTML_MODE: $mode = "Before html";
-                    break;
-                    case self::BEFORE_HEAD_MODE: $mode = "Before head";
-                    break;
-                    case self::IN_HEAD_MODE: $mode = "In head";
-                    break;
-                    case self::IN_HEAD_NOSCRIPT_MODE: $mode = "In head noscript";
-                    break;
-                    case self::AFTER_HEAD_MODE: $mode = "After head";
-                    break;
-                    case self::IN_BODY_MODE: $mode = "In body";
-                    break;
-                    case self::TEXT_MODE: $mode = "Text";
-                    break;
-                    case self::IN_TABLE_MODE: $mode = "In table";
-                    break;
-                    case self::IN_TABLE_TEXT_MODE: $mode = "In table text";
-                    break;
-                    case self::IN_CAPTION_MODE: $mode = "In caption";
-                    break;
-                    case self::IN_COLUMN_GROUP_MODE: $mode = "In column group";
-                    break;
-                    case self::IN_TABLE_BODY_MODE: $mode = "In table body";
-                    break;
-                    case self::IN_ROW_MODE: $mode = "In row";
-                    break;
-                    case self::IN_CELL_MODE: $mode = "In cell";
-                    break;
-                    case self::IN_SELECT_MODE: $mode = "In select";
-                    break;
-                    case self::IN_SELECT_IN_TABLE_MODE: $mode = "In select in table";
-                    break;
-                    case self::IN_TEMPLATE_MODE: $mode = "In template mode";
-                    break;
-                    case self::AFTER_BODY_MODE: $mode = "After body";
-                    break;
-                    case self::IN_FRAMESET_MODE: $mode = "In frameset";
-                    break;
-                    case self::AFTER_FRAMESET_MODE: $mode = "After frameset";
-                    break;
-                    case self::AFTER_AFTER_BODY_MODE: $mode = "After after body";
-                    break;
-                    case self::AFTER_AFTER_FRAMESET_MODE: $mode = "After after frameset";
-                    break;
-                    default: throw new Exception(Exception::UNKNOWN_ERROR);
-                }
+            assert((function() use ($insertionMode) {
+                $mode = self::INSERTION_MODE_NAMES[$insertionMode] ?? $insertionMode;
+                $this->debugLog .= "    Mode: $mode\n";
+                return true;
+            })());
+            assert($iterations++ < 50, new LoopException("Probable infinite loop detected in HTML content handling"));
 
-                echo "Mode: $mode\n";
-            }
-
-            # 8.2.5.4. The rules for parsing tokens in HTML content
+            # 13.2.6.4. The rules for parsing tokens in HTML content
             switch ($insertionMode) {
-                # 8.2.5.4.1. The "initial" insertion mode
+                # 13.2.6.4.1. The "initial" insertion mode
                 case self::INITIAL_MODE:
                     # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED
                     # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
@@ -404,7 +375,7 @@ class TreeBuilder {
                     }
                 break;
 
-                # 8.2.5.4.2. The "before html" insertion mode
+                # 13.2.6.4.2. The "before html" insertion mode
                 case self::BEFORE_HTML_MODE:
                     # A DOCTYPE token
                     if ($token instanceof DOCTYPEToken) {
@@ -458,7 +429,7 @@ class TreeBuilder {
                     // Good to know. There's no scripting in this implementation, though.
                 break;
 
-                # 8.2.5.4.3. The "before head" insertion mode
+                # 13.2.6.4.3. The "before head" insertion mode
                 case self::BEFORE_HEAD_MODE:
                     # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED
                     # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
@@ -469,6 +440,7 @@ class TreeBuilder {
                     }
                     # A comment token
                     elseif ($token instanceof CommentToken) {
+                        # insert a comment
                         $this->insertCommentToken($token);
                     }
                     # A DOCTYPE token
@@ -476,27 +448,27 @@ class TreeBuilder {
                         # Parse error.
                         $this->error(ParseError::UNEXPECTED_DOCTYPE);
                     }
-                    elseif ($token instanceof StartTagToken) {
-                        # A start tag whose tag name is "html"
-                        if ($token->name === 'html') {
-                            # Process the token using the rules for the "in body" insertion mode.
-                            $insertionMode = self::IN_BODY_MODE;
-                            continue 2;
-                        }
-                        # A start tag whose tag name is "head"
-                        elseif ($token->name === 'head') {
-                            # Insert an HTML element for the token.
-                            $element = $this->insertStartTagToken($token);
-                            # Set the head element pointer to the newly created head element.
-                            $this->headElement = $element;
-
-                            # Switch the insertion mode to "in head".
-                            $this->insertionMode = self::IN_HEAD_MODE;
-                        }
+                    # A start tag whose tag name is "html"
+                    elseif ($token instanceof StartTagToken && $token->name === 'html') {
+                        # Process the token using the rules for the "in body" insertion mode.
+                        $insertionMode = self::IN_BODY_MODE;
+                        continue 2;
                     }
+                    # A start tag whose tag name is "head"
+                    elseif ($token instanceof StartTagToken && $token->name === 'head') {
+                        # Insert an HTML element for the token.
+                        $element = $this->insertStartTagToken($token);
+                        # Set the head element pointer to the newly created head element.
+                        $this->headElement = $element;
+
+                        # Switch the insertion mode to "in head".
+                        $this->insertionMode = self::IN_HEAD_MODE;
+                    }
+                    # An end tag whose tag name is one of: "head", "body", "html", "br"
+                    // See "Anything else" below
                     # Any other end tag
                     elseif ($token instanceof EndTagToken && $token->name !== 'head' && $token->name !== 'body' && $token->name !== 'html' && $token->name === 'br') {
-                        # Parse error.
+                        # Parse error. Ignore the token
                         $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                     }
                     # An end tag whose tag name is one of: "head", "body", "html", "br"
@@ -516,7 +488,7 @@ class TreeBuilder {
                     }
                 break;
 
-                # 8.2.5.4.4. The "in head" insertion mode
+                # 13.2.6.4.4. The "in head" insertion mode
                 case self::IN_HEAD_MODE:
                     # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED
                     # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
@@ -734,7 +706,7 @@ class TreeBuilder {
                     }
                 break;
 
-                # 8.2.5.4.5. The "in head noscript" insertion mode
+                # 13.2.6.4.5. The "in head noscript" insertion mode
                 case self::IN_HEAD_NOSCRIPT_MODE:
                     # DOCTYPE token
                     if ($token instanceof DOCTYPEToken) {
@@ -832,7 +804,7 @@ class TreeBuilder {
                     }
                 break;
 
-                # 8.2.5.4.6. The "after head" insertion mode
+                # 13.2.6.4.6. The "after head" insertion mode
                 case self::AFTER_HEAD_MODE:
                     # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED
                     # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
@@ -947,7 +919,7 @@ class TreeBuilder {
                     }
                 break;
 
-                # 8.2.5.4.7. The "in body" insertion mode
+                # 13.2.6.4.7. The "in body" insertion mode
                 case self::IN_BODY_MODE:
                     if ($token instanceof CharacterToken) {
                         # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED
@@ -1161,7 +1133,7 @@ class TreeBuilder {
 
                                 if ($nodeName === 'li') {
                                     # 1. Generate implied end tags, except for li elements.
-                                    $this->stack->generateImpliedEndTags('li');
+                                    $this->stack->generateImpliedEndTags(["li"]);
 
                                     # 2. If the current node is not an li element, then this is a parse error.
                                     if ($this->stack->currentNodeName !== 'li') {
@@ -1451,7 +1423,7 @@ class TreeBuilder {
         $currentNode = $this->stack->currentNode;
         $currentNodeName = $this->stack->currentNodeName;
         $currentNodeNamespace = $this->stack->currentNodeNamespace;
-        # 8.2.5.5 The rules for parsing tokens in foreign content
+        # 13.2.6.5 The rules for parsing tokens in foreign content
         #
         # When the user agent is to apply the rules for parsing tokens in foreign
         # content, the user agent must handle the token as follows:
@@ -1854,7 +1826,7 @@ class TreeBuilder {
     protected function appropriatePlaceForInsertingNode(\DOMNode $overrideTarget = null): array {
         $insertBefore = false;
 
-        # 8.2.5.1. Creating and inserting nodes
+        # 13.2.6.1. Creating and inserting nodes
         #
         # While the parser is processing a token, it can enable or disable foster
         # parenting. This affects the following algorithm.
@@ -2319,7 +2291,7 @@ class TreeBuilder {
         # must run the following steps:
 
         # 1. Generate implied end tags, except for p elements.
-        $this->stack->generateImpliedEndTags('p');
+        $this->stack->generateImpliedEndTags(["p"]);
         # 2. If the current node is not a p element, then this is a parse error.
         $currentNodeName = $this->stack->currentNodeName;
         if ($currentNodeName !== 'p') {

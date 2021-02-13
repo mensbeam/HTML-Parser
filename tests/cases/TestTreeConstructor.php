@@ -5,6 +5,7 @@ namespace dW\HTML5\TestCase;
 use dW\HTML5\Data;
 use dW\HTML5\Document;
 use dW\HTML5\EOFToken;
+use dW\HTML5\LoopException;
 use dW\HTML5\OpenElementsStack;
 use dW\HTML5\ParseError;
 use dW\HTML5\Parser;
@@ -52,13 +53,19 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         $doc = new Document;
         $treeBuilder = new TreeBuilder($doc, null, false, null, $stack, new TemplateInsertionModesStack, $tokenizer, $errorHandler, $decoder);
         // run the tree builder
-        do {
-            $token = $tokenizer->createToken();
-            $treeBuilder->emitToken($token);
-        } while (!$token instanceof EOFToken);
-        $act = $this->serializeTree($doc);
-        $this->assertEquals($exp, $act);
-        // TODO: evaluate errors
+        try {
+            do {
+                $token = $tokenizer->createToken();
+                $treeBuilder->emitToken($token);
+            } while (!$token instanceof EOFToken);
+        } catch (LoopException $e) {
+            $act = $this->serializeTree($doc);
+            $this->assertEquals($exp, $act, $e->getMessage()."\n".$treeBuilder->debugLog);
+        } finally {
+            $act = $this->serializeTree($doc);
+            $this->assertEquals($exp, $act, $treeBuilder->debugLog);
+            // TODO: evaluate errors
+        }
     }
 
     protected function push(string $data): void {
