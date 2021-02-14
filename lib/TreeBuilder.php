@@ -138,7 +138,9 @@ class TreeBuilder {
             return true;
         })());
         // Loop used for reprocessing.
+        $iterations = 0;
         while (true) {
+            assert($iterations++ < 50, new LoopException("Probable infinite loop detected in HTML content handling"));
             $adjustedCurrentNode = $this->stack->adjustedCurrentNode;
             $adjustedCurrentNodeName = $this->stack->adjustedCurrentNodeName;
             $adjustedCurrentNodeNamespace = $this->stack->adjustedCurrentNodeNamespace;
@@ -206,7 +208,9 @@ class TreeBuilder {
     }
 
     protected function parseTokenInHTMLContent(Token $token, int $insertionMode = null): bool {
+        $iterations = 0;
         ProcessToken:
+        assert($iterations++ < 50, new LoopException("Probable infinite loop detected in HTML content handling"));
         $insertionMode = $insertionMode ?? $this->insertionMode;
         assert((function() use ($insertionMode) {
             $mode = self::INSERTION_MODE_NAMES[$insertionMode] ?? $insertionMode;
@@ -585,7 +589,7 @@ class TreeBuilder {
                     # 7. Switch the tokenizer to the script data state.
                     $this->tokenizer->state = Tokenizer::SCRIPT_DATA_STATE;
                     # 8. Let the original insertion mode be the current insertion mode.
-                    $this->originalInsertionMode = $this->currentInsertionMode;
+                    $this->originalInsertionMode = $this->insertionMode;
                     # 9. Switch the insertion mode to "text".
                     $this->insertionMode = self::TEXT_MODE;
                 }
@@ -940,7 +944,7 @@ class TreeBuilder {
                     # If the second element on the stack of open elements is not a body element, if
                     # the stack of open elements has only one node on it, or if there is a template
                     # element on the stack of open elements, then ignore the token. (fragment case)
-                    if (!($this->stack[1]->name !== 'body' || $this->stack->length === 1 || $this->stack->search('template') !== -1)) {
+                    if (!($this->stack[1]->tagName !== 'body' || $this->stack->length === 1 || $this->stack->search('template') !== -1)) {
                         # Otherwise, set the frameset-ok flag to "not ok"; then, for each attribute on
                         # the token, check to see if the attribute is already present on the body
                         # element (the second element) on the stack of open elements, and if it is not,
@@ -964,7 +968,7 @@ class TreeBuilder {
                     # element on the stack of open elements is not a body element, then ignore the
                     # token. (fragment case)
                     # If the frameset-ok flag is set to "not ok", ignore the token.
-                    if (!($this->stack->length === 1 || $this->stack[1]->name !== 'body' || $this->framesetOk === false)) {
+                    if (!($this->stack->length === 1 || $this->stack[1]->tagName !== 'body' || $this->framesetOk === false)) {
                         # Otherwise, run the following steps:
                         #
                         # 1. Remove the second element on the stack of open elements from its parent
