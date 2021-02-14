@@ -193,6 +193,12 @@ class TreeBuilder {
                 if ($this->parseTokenInForeignContent($token) === false) {
                     continue;
                 }
+                # When a start tag token is emitted with its self-closing flag set, if the flag
+                #   is not acknowledged when it is processed by the tree construction stage, that
+                #   is a non-void-html-element-start-tag-with-trailing-solidus parse error.
+                if ($token instanceof StartTagToken && $token->selfClosing && !$token->selfClosingAcknowledged) {
+                    $this->error(ParseError::NON_VOID_HTML_ELEMENT_START_TAG_WITH_TRAILING_SOLIDUS);
+                }
             }
 
             break;
@@ -212,7 +218,7 @@ class TreeBuilder {
         # 13.2.6.4.1. The "initial" insertion mode
         if ($insertionMode === self::INITIAL_MODE) {
             # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED
-            # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+            #   (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
             // OPTIMIZATION: Will check for multiple space characters at once as character
             // tokens can contain more than one character.
             if ($token instanceof CharacterToken && (strspn($token->data, Data::WHITESPACE) === strlen($token->data))) {
@@ -227,97 +233,97 @@ class TreeBuilder {
             }
             # A DOCTYPE token
             elseif ($token instanceof DOCTYPEToken) {
-                # If the DOCTYPE token’s name is not a case-sensitive match for the string
-                # "html", or the token’s public identifier is not missing, or the token’s system
-                # identifier is neither missing nor a case-sensitive match for the string
-                # "about:legacy-compat", then there is a parse error.
+                # If the DOCTYPE token's name is not "html", or the token's public identifier is
+                #   not missing, or the token's system identifier is neither missing nor 
+                #   "about:legacy-compat", then there is a parse error.
                 if ($token->name !== 'html' || $token->public !== '' || ($token->system !== '' && $token->system !== 'about:legacy-compat')) {
                     $this->error(ParseError::INVALID_DOCTYPE);
                 }
 
                 # Append a DocumentType node to the Document node, with the name attribute set
-                # to the name given in the DOCTYPE token, or the empty string if the name was
-                # missing; the publicId attribute set to the public identifier given in the
-                # DOCTYPE token, or the empty string if the public identifier was missing; the
-                # systemId attribute set to the system identifier given in the DOCTYPE token, or
-                # the empty string if the system identifier was missing; and the other
-                # attributes specific to DocumentType objects set to null and empty lists as
-                # appropriate. Associate the DocumentType node with the Document object so that
-                # it is returned as the value of the doctype attribute of the Document object.
-                $this->DOM->appendChild($this->DOM->implementation->createDocumentType((!is_null($token->name)) ? $token->name : 'html', $token->public, $token->system));
+                #   to the name given in the DOCTYPE token, or the empty string if the name was
+                #   missing; the publicId attribute set to the public identifier given in the
+                #   DOCTYPE token, or the empty string if the public identifier was missing; the
+                #   systemId attribute set to the system identifier given in the DOCTYPE token, or
+                #   the empty string if the system identifier was missing; and the other
+                #   attributes specific to DocumentType objects set to null and empty lists as
+                #   appropriate. Associate the DocumentType node with the Document object so that
+                #   it is returned as the value of the doctype attribute of the Document object.
+                $this->DOM->appendChild($this->DOM->implementation->createDocumentType((!is_null($token->name)) ? $token->name : '', $token->public, $token->system));
 
-                $public = strtolower($token->public);
-
+                
                 # Then, if the document is not an iframe srcdoc document, and the DOCTYPE token
                 # matches one of the conditions in the following list, then set the Document to
                 # quirks mode:
                 // DEVIATION: This implementation does not render, so there is no nested
                 // browsing contexts to consider.
-                if ($token->forceQuirks === true || $token->name !== 'html' ||
-                    $public === '-//w3o//dtd w3 html strict 3.0//en//' ||
-                    $public === '-/w3c/dtd html 4.0 transitional/en' ||
-                    $public === 'html' ||
-                    strtolower($token->system) === 'http://www.ibm.com/data/dtd/v11/ibmxhtml1-transitional.dtd' ||
-                    strpos($public, '+//silmaril//dtd html pro v0r11 19970101//') === 0 ||
-                    strpos($public, '-//as//dtd html 3.0 aswedit + extensions//') === 0 ||
-                    strpos($public, '+//silmaril//dtd html pro v0r11 19970101//') === 0 ||
-                    strpos($public, '-//as//dtd html 3.0 aswedit + extensions//') === 0 ||
-                    strpos($public, '-//advasoft ltd//dtd html 3.0 aswedit + extensions//') === 0 ||
-                    strpos($public, '-//ietf//dtd html 2.0 level 1//') === 0 ||
-                    strpos($public, '-//ietf//dtd html 2.0 level 2//') === 0 ||
-                    strpos($public, '-//ietf//dtd html 2.0 strict level 1//') === 0 ||
-                    strpos($public, '-//ietf//dtd html 2.0 strict level 2//') === 0 ||
-                    strpos($public, '-//ietf//dtd html 2.0 strict//') === 0 ||
-                    strpos($public, '-//ietf//dtd html 2.0//') === 0 ||
-                    strpos($public, '-//ietf//dtd html 2.1e//') === 0 ||
-                    strpos($public, '-//ietf//dtd html 3.0//') === 0 ||
-                    strpos($public, '-//ietf//dtd html 3.2 final//') === 0 ||
-                    strpos($public, '-//ietf//dtd html 3.2//') === 0 ||
-                    strpos($public, '-//ietf//dtd html 3//') === 0 ||
-                    strpos($public, '-//ietf//dtd html level 0//') === 0 ||
-                    strpos($public, '-//ietf//dtd html level 1//') === 0 ||
-                    strpos($public, '-//ietf//dtd html level 2//') === 0 ||
-                    strpos($public, '-//ietf//dtd html level 3//') === 0 ||
-                    strpos($public, '-//ietf//dtd html strict level 0//') === 0 ||
-                    strpos($public, '-//ietf//dtd html strict level 1//') === 0 ||
-                    strpos($public, '-//ietf//dtd html strict level 2//') === 0 ||
-                    strpos($public, '-//ietf//dtd html strict level 3//') === 0 ||
-                    strpos($public, '-//ietf//dtd html strict//') === 0 ||
-                    strpos($public, '-//ietf//dtd html//') === 0 ||
-                    strpos($public, '-//metrius//dtd metrius presentational//') === 0 ||
-                    strpos($public, '-//microsoft//dtd internet explorer 2.0 html strict//') === 0 ||
-                    strpos($public, '-//microsoft//dtd internet explorer 2.0 html//') === 0 ||
-                    strpos($public, '-//microsoft//dtd internet explorer 2.0 tables//') === 0 ||
-                    strpos($public, '-//microsoft//dtd internet explorer 3.0 html strict//') === 0 ||
-                    strpos($public, '-//microsoft//dtd internet explorer 3.0 html//') === 0 ||
-                    strpos($public, '-//microsoft//dtd internet explorer 3.0 tables//') === 0 ||
-                    strpos($public, '-//netscape comm. corp.//dtd html//') === 0 ||
-                    strpos($public, '-//netscape comm. corp.//dtd strict html//') === 0 ||
-                    strpos($public, '-//o\'reilly and associates//dtd html 2.0//') === 0 ||
-                    strpos($public, '-//o\'reilly and associates//dtd html extended 1.0//') === 0 ||
-                    strpos($public, '-//o\'reilly and associates//dtd html extended relaxed 1.0//') === 0 ||
-                    strpos($public, '-//sq//dtd html 2.0 hotmetal + extensions//') === 0 ||
-                    strpos($public, '-//softquad software//dtd hotmetal pro 6.0::19990601::extensions to html 4.0//') === 0 ||
-                    strpos($public, '-//softquad//dtd hotmetal pro 4.0::19971010::extensions to html 4.0//') === 0 ||
-                    strpos($public, '-//spyglass//dtd html 2.0 extended//') === 0 ||
-                    strpos($public, '-//sun microsystems corp.//dtd hotjava html//') === 0 ||
-                    strpos($public, '-//sun microsystems corp.//dtd hotjava strict html//') === 0 ||
-                    strpos($public, '-//w3c//dtd html 3 1995-03-24//') === 0 ||
-                    strpos($public, '-//w3c//dtd html 3.2 draft//') === 0 ||
-                    strpos($public, '-//w3c//dtd html 3.2 final//') === 0 ||
-                    strpos($public, '-//w3c//dtd html 3.2//') === 0 ||
-                    strpos($public, '-//w3c//dtd html 3.2s draft//') === 0 ||
-                    strpos($public, '-//w3c//dtd html 4.0 frameset//') === 0 ||
-                    strpos($public, '-//w3c//dtd html 4.0 transitional//') === 0 ||
-                    strpos($public, '-//w3c//dtd html experimental 19960712//') === 0 ||
-                    strpos($public, '-//w3c//dtd html experimental 970421//') === 0 ||
-                    strpos($public, '-//w3c//dtd w3 html//') === 0 ||
-                    strpos($public, '-//w3o//dtd w3 html 3.0//') === 0 ||
-                    strpos($public, '-//webtechs//dtd mozilla html 2.0//') === 0 ||
-                    strpos($public, '-//webtechs//dtd mozilla html//') === 0 ||
-                    (is_null($token->system) &&
-                        (strpos($public, '-//w3c//dtd html 4.01 frameset//') === 0 ||
-                            strpos($public, '-//w3c//dtd html 4.01 transitional//') === 0))) {
+                $public = strtolower($token->public);
+                if ($token->forceQuirks === true 
+                    || $token->name !== 'html' 
+                    || $public === '-//w3o//dtd w3 html strict 3.0//en//' 
+                    || $public === '-/w3c/dtd html 4.0 transitional/en' 
+                    || $public === 'html' 
+                    || strtolower($token->system) === 'http://www.ibm.com/data/dtd/v11/ibmxhtml1-transitional.dtd' 
+                    || strpos($public, '+//silmaril//dtd html pro v0r11 19970101//') === 0 
+                    || strpos($public, '-//as//dtd html 3.0 aswedit + extensions//') === 0 
+                    || strpos($public, '+//silmaril//dtd html pro v0r11 19970101//') === 0 
+                    || strpos($public, '-//as//dtd html 3.0 aswedit + extensions//') === 0 
+                    || strpos($public, '-//advasoft ltd//dtd html 3.0 aswedit + extensions//') === 0 
+                    || strpos($public, '-//ietf//dtd html 2.0 level 1//') === 0 
+                    || strpos($public, '-//ietf//dtd html 2.0 level 2//') === 0 
+                    || strpos($public, '-//ietf//dtd html 2.0 strict level 1//') === 0 
+                    || strpos($public, '-//ietf//dtd html 2.0 strict level 2//') === 0 
+                    || strpos($public, '-//ietf//dtd html 2.0 strict//') === 0 
+                    || strpos($public, '-//ietf//dtd html 2.0//') === 0 
+                    || strpos($public, '-//ietf//dtd html 2.1e//') === 0 
+                    || strpos($public, '-//ietf//dtd html 3.0//') === 0 
+                    || strpos($public, '-//ietf//dtd html 3.2 final//') === 0 
+                    || strpos($public, '-//ietf//dtd html 3.2//') === 0 
+                    || strpos($public, '-//ietf//dtd html 3//') === 0 
+                    || strpos($public, '-//ietf//dtd html level 0//') === 0 
+                    || strpos($public, '-//ietf//dtd html level 1//') === 0 
+                    || strpos($public, '-//ietf//dtd html level 2//') === 0 
+                    || strpos($public, '-//ietf//dtd html level 3//') === 0 
+                    || strpos($public, '-//ietf//dtd html strict level 0//') === 0 
+                    || strpos($public, '-//ietf//dtd html strict level 1//') === 0 
+                    || strpos($public, '-//ietf//dtd html strict level 2//') === 0 
+                    || strpos($public, '-//ietf//dtd html strict level 3//') === 0 
+                    || strpos($public, '-//ietf//dtd html strict//') === 0 
+                    || strpos($public, '-//ietf//dtd html//') === 0 
+                    || strpos($public, '-//metrius//dtd metrius presentational//') === 0 
+                    || strpos($public, '-//microsoft//dtd internet explorer 2.0 html strict//') === 0 
+                    || strpos($public, '-//microsoft//dtd internet explorer 2.0 html//') === 0 
+                    || strpos($public, '-//microsoft//dtd internet explorer 2.0 tables//') === 0 
+                    || strpos($public, '-//microsoft//dtd internet explorer 3.0 html strict//') === 0 
+                    || strpos($public, '-//microsoft//dtd internet explorer 3.0 html//') === 0 
+                    || strpos($public, '-//microsoft//dtd internet explorer 3.0 tables//') === 0 
+                    || strpos($public, '-//netscape comm. corp.//dtd html//') === 0 
+                    || strpos($public, '-//netscape comm. corp.//dtd strict html//') === 0 
+                    || strpos($public, '-//o\'reilly and associates//dtd html 2.0//') === 0 
+                    || strpos($public, '-//o\'reilly and associates//dtd html extended 1.0//') === 0 
+                    || strpos($public, '-//o\'reilly and associates//dtd html extended relaxed 1.0//') === 0 
+                    || strpos($public, '-//sq//dtd html 2.0 hotmetal + extensions//') === 0 
+                    || strpos($public, '-//softquad software//dtd hotmetal pro 6.0::19990601::extensions to html 4.0//') === 0 
+                    || strpos($public, '-//softquad//dtd hotmetal pro 4.0::19971010::extensions to html 4.0//') === 0 
+                    || strpos($public, '-//spyglass//dtd html 2.0 extended//') === 0 
+                    || strpos($public, '-//sun microsystems corp.//dtd hotjava html//') === 0 
+                    || strpos($public, '-//sun microsystems corp.//dtd hotjava strict html//') === 0 
+                    || strpos($public, '-//w3c//dtd html 3 1995-03-24//') === 0 
+                    || strpos($public, '-//w3c//dtd html 3.2 draft//') === 0 
+                    || strpos($public, '-//w3c//dtd html 3.2 final//') === 0 
+                    || strpos($public, '-//w3c//dtd html 3.2//') === 0 
+                    || strpos($public, '-//w3c//dtd html 3.2s draft//') === 0 
+                    || strpos($public, '-//w3c//dtd html 4.0 frameset//') === 0 
+                    || strpos($public, '-//w3c//dtd html 4.0 transitional//') === 0 
+                    || strpos($public, '-//w3c//dtd html experimental 19960712//') === 0 
+                    || strpos($public, '-//w3c//dtd html experimental 970421//') === 0 
+                    || strpos($public, '-//w3c//dtd w3 html//') === 0 
+                    || strpos($public, '-//w3o//dtd w3 html 3.0//') === 0 
+                    || strpos($public, '-//webtechs//dtd mozilla html 2.0//') === 0 
+                    || strpos($public, '-//webtechs//dtd mozilla html//') === 0 
+                    || (is_null($token->system) && strpos($public, '-//w3c//dtd html 4.01 frameset//') === 0)
+                    || (is_null($token->system) && strpos($public, '-//w3c//dtd html 4.01 transitional//') === 0)
+                ) {
                     $this->quirksMode = self::QUIRKS_MODE_ON;
                 }
                 # Otherwise, if the document is not an iframe srcdoc document, and the DOCTYPE
@@ -325,16 +331,14 @@ class TreeBuilder {
                 # Document to limited-quirks mode:
                 // DEVIATION: There is no iframe srcdoc document because there are no nested
                 // browsing contexts in this implementation.
-                else {
-                    if (strpos($public, '-//w3c//dtd xhtml 1.0 frameset//') === 0 ||
-                        strpos($public, '-//w3c//dtd xhtml 1.0 transitional//') === 0 ||
-                        (!is_null($token->system) &&
-                            (strpos($public, '-//w3c//dtd html 4.01 frameset//') === 0 ||
-                                strpos($public, '-//w3c//dtd html 4.01 transitional//') === 0))) {
-                            $this->quirksMode = self::QUIRKS_MODE_LIMITED;
-                        }
+                elseif (
+                    strpos($public, '-//w3c//dtd xhtml 1.0 frameset//') === 0 
+                    || strpos($public, '-//w3c//dtd xhtml 1.0 transitional//') === 0 
+                    || (!is_null($token->system) && strpos($public, '-//w3c//dtd html 4.01 frameset//') === 0) 
+                    || (!is_null($token->system) && strpos($public, '-//w3c//dtd html 4.01 transitional//') === 0)
+                ) {
+                    $this->quirksMode = self::QUIRKS_MODE_LIMITED;
                 }
-
                 # The system identifier and public identifier strings must be compared to the
                 # values given in the lists above in an ASCII case-insensitive manner. A system
                 # identifier whose value is the empty string is not considered missing for the
@@ -356,7 +360,7 @@ class TreeBuilder {
                 } elseif ($token instanceof CharacterToken) {
                     $this->error(ParseError::EXPECTED_DOCTYPE_BUT_GOT_CHARS);
                 } elseif ($token instanceof EOFToken) {
-                    $this->error(ParseError::UNEXPECTED_EOF);
+                    $this->error(ParseError::EXPECTED_DOCTYPE_BUT_GOT_EOF);
                 } else {
                     throw new \Exception("Unexpected token type".get_class($token));
                 }
@@ -365,8 +369,7 @@ class TreeBuilder {
 
                 # In any case, switch the insertion mode to "before html", then reprocess the
                 # token.
-                $this->insertionMode = self::BEFORE_HTML_MODE;
-                $insertionMode = self::BEFORE_HTML_MODE;
+                $insertionMode = $this->insertionMode = self::BEFORE_HTML_MODE;
                 goto ProcessToken;
             };
         }
@@ -374,6 +377,7 @@ class TreeBuilder {
         elseif ($insertionMode === self::BEFORE_HTML_MODE) {
             # A DOCTYPE token
             if ($token instanceof DOCTYPEToken) {
+                # Parse error. Ignore the token
                 $this->error(ParseError::UNEXPECTED_DOCTYPE);
             }
             # A comment token
@@ -398,12 +402,13 @@ class TreeBuilder {
                 # Switch the insertion mode to "before head".
                 $this->insertionMode = self::BEFORE_HEAD_MODE;
             }
+            # An end tag whose tag name is one of: "head", "body", "html", "br"
+            #   Act as described in the "anything else" entry below.
             # Any other end tag
             elseif ($token instanceof EndTagToken && $token->name !== 'head' && $token->name !== 'body' && $token->name !== 'html' && $token->name !== 'br') {
                 # Parse error.
                 $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
             }
-            # An end tag whose tag name is one of: "head", "body", "html", "br"
             # Anything else
             else {
                 # Create an html element whose node document is the Document object. Append it
@@ -413,8 +418,7 @@ class TreeBuilder {
                 $this->stack[] = $element;
 
                 # Switch the insertion mode to "before head", then reprocess the token.
-                $this->insertionMode = self::BEFORE_HEAD_MODE;
-                $insertionMode = self::BEFORE_HEAD_MODE;
+                $insertionMode = $this->insertionMode = self::BEFORE_HEAD_MODE;
                 goto ProcessToken;
             }
 
@@ -434,19 +438,18 @@ class TreeBuilder {
             }
             # A comment token
             elseif ($token instanceof CommentToken) {
-                # insert a comment
+                # insert a comment.
                 $this->insertCommentToken($token);
             }
             # A DOCTYPE token
             elseif ($token instanceof DOCTYPEToken) {
-                # Parse error.
+                # Parse error. Ignore the token.
                 $this->error(ParseError::UNEXPECTED_DOCTYPE);
             }
             # A start tag whose tag name is "html"
             elseif ($token instanceof StartTagToken && $token->name === 'html') {
                 # Process the token using the rules for the "in body" insertion mode.
-                $insertionMode = self::IN_BODY_MODE;
-                goto ProcessToken;
+                return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
             }
             # A start tag whose tag name is "head"
             elseif ($token instanceof StartTagToken && $token->name === 'head') {
@@ -454,29 +457,24 @@ class TreeBuilder {
                 $element = $this->insertStartTagToken($token);
                 # Set the head element pointer to the newly created head element.
                 $this->headElement = $element;
-
                 # Switch the insertion mode to "in head".
-                $this->insertionMode = self::IN_HEAD_MODE;
+                $insertionMode = $this->insertionMode = self::IN_HEAD_MODE;
             }
             # An end tag whose tag name is one of: "head", "body", "html", "br"
-            // See "Anything else" below
+            #   Act as described in the "anything else" entry below.
             # Any other end tag
             elseif ($token instanceof EndTagToken && $token->name !== 'head' && $token->name !== 'body' && $token->name !== 'html' && $token->name === 'br') {
-                # Parse error. Ignore the token
+                # Parse error. Ignore the token.
                 $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
             }
-            # An end tag whose tag name is one of: "head", "body", "html", "br"
             # Anything else
             else {
                 # Insert an HTML element for a "head" start tag token with no attributes.
                 $element = $this->insertStartTagToken(new StartTagToken('head'));
                 # Set the head element pointer to the newly created head element.
                 $this->headElement = $element;
-
                 # Switch the insertion mode to "in head".
-                $this->insertionMode = self::IN_HEAD_MODE;
-                $insertionMode = self::IN_HEAD_MODE;
-
+                $insertionMode = $this->insertionMode = self::IN_HEAD_MODE;
                 # Reprocess the current token.
                 goto ProcessToken;
             }
@@ -498,47 +496,44 @@ class TreeBuilder {
             }
             # A DOCTYPE token
             elseif ($token instanceof DOCTYPEToken) {
-                # Parse error.
+                # Parse error. Ignore the token.
                 $this->error(ParseError::UNEXPECTED_DOCTYPE);
             }
+            # A start tag...
             elseif ($token instanceof StartTagToken) {
                 # A start tag whose tag name is "html"
                 if ($token->name === 'html') {
                     # Process the token using the rules for the "in body" insertion mode.
-                    $insertionMode = self::IN_BODY_MODE;
-                    goto ProcessToken;
+                    return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
                 }
                 # A start tag whose tag name is one of: "base", "basefont", "bgsound", "link"
                 elseif ($token->name === 'base' || $token->name === 'basefont' || $token->name === 'bgsound' || $token->name === 'link') {
-                    # Insert an HTML element for the token. Immediately pop the current node off the
-                    # stack of open elements.
+                    # Insert an HTML element for the token. 
+                    # Immediately pop the current node off the stack of open elements.
                     $this->insertStartTagToken($token);
                     $this->stack->pop();
-
                     # Acknowledge the token’s *self-closing flag*, if it is set.
-                    // Acknowledged.
+                    $token->selfClosingAcknowledged = true;
                 }
                 # A start tag whose tag name is "meta"
                 elseif ($token->name === 'meta') {
-                    # Insert an HTML element for the token. Immediately pop the current node off the
-                    # stack of open elements.
+                    # Insert an HTML element for the token. 
+                    # Immediately pop the current node off the stack of open elements.
                     $this->insertStartTagToken($token);
                     $this->stack->pop();
-
                     # Acknowledge the token’s *self-closing flag*, if it is set.
-                    // Acknowledged.
+                    $token->selfClosingAcknowledged = true;
 
                     # If the element has a charset attribute, and getting an encoding from its value
-                    # results in an encoding, and the confidence is currently tentative, then change
-                    # the encoding to the resulting encoding.
-                    #
+                    #   results in an encoding, and the confidence is currently tentative, then change
+                    #   the encoding to the resulting encoding.
                     # Otherwise, if the element has an http-equiv attribute whose value is an ASCII
-                    # case-insensitive match for the string "Content-Type", and the element has a
-                    # content attribute, and applying the algorithm for extracting a character
-                    # encoding from a meta element to that attribute’s value returns an encoding,
-                    # and the confidence is currently tentative, then change the encoding to the
-                    # extracted encoding.
-                    // DEVIATION: FIXME: This implementation currently only supports UTF-8.
+                    #   case-insensitive match for the string "Content-Type", and the element has a
+                    #   content attribute, and applying the algorithm for extracting a character
+                    #   encoding from a meta element to that attribute’s value returns an encoding,
+                    #   and the confidence is currently tentative, then change the encoding to the
+                    #   extracted encoding.
+                    // DEVIATION: FIXME: This implementation does not support changing the encoding mid-stream
                 }
                 # A start tag whose tag name is "title"
                 elseif ($token->name === 'title') {
@@ -572,10 +567,9 @@ class TreeBuilder {
                     # parent being the element in which the adjusted insertion location finds
                     # itself.
                     // DEVIATION: Because there is no scripting in this implementation, there is no
-                    // need to get the adjusted insertion location as the intended parent as the
-                    // intended parent isn't used when determining anything;
-                    // Parser::createAndInsertElement will get the adjusted insertion location
-                    // anyway.
+                    // need to get the adjusted insertion location as the intended parent isn't used 
+                    // when determining anything; Parser::createAndInsertElement will get the 
+                    // adjusted insertion location anyway.
                     $this->insertStartTagToken($token);
 
                     # 3. Mark the element as being "parser-inserted" and unset the element’s
@@ -612,27 +606,27 @@ class TreeBuilder {
                 # A start tag whose tag name is "head"
                 elseif ($token->name === 'head') {
                     # Parse error.
-                    $this->error(ParseError::UNEXPECTED_START_TAG, 'head');
+                    $this->error(ParseError::UNEXPECTED_START_TAG);
                 }
-                # Anything else
+                # Any other start tag
                 else {
                     # Act as described in the "anything else" entry below.
-                    #
-                    # Pop the current node (which will be the head element) off the stack of open
-                    # elements.
+
+                    # Pop the current node (which will be the head element) off 
+                    # the stack of open elements.
                     $this->stack->pop();
                     # Switch the insertion mode to "after head".
-                    $this->insertionMode = self::AFTER_HEAD_MODE;
-                    $insertionMode = self::AFTER_HEAD_MODE;
+                    $insertionMode = $this->insertionMode = self::AFTER_HEAD_MODE;
                     # Reprocess the token.
                     goto ProcessToken;
                 }
             }
+            # And end tag...
             elseif ($token instanceof EndTagToken) {
                 # An end tag whose tag name is "head"
                 if ($token->name === 'head') {
-                    # Pop the current node (which will be the head element) off the stack of open
-                    # elements.
+                    # Pop the current node (which will be the head element) off 
+                    #   the stack of open elements.
                     $this->stack->pop();
                     # Switch the insertion mode to "after head".
                     $this->insertionMode = self::AFTER_HEAD_MODE;
@@ -640,13 +634,12 @@ class TreeBuilder {
                 # An end tag whose tag name is one of: "body", "html", "br"
                 elseif ($token->name === 'body' || $token->name === 'html' || $token->name === 'br') {
                     # Act as described in the "anything else" entry below.
-                    #
-                    # Pop the current node (which will be the head element) off the stack of open
-                    # elements.
+
+                    # Pop the current node (which will be the head element) off 
+                    #   the stack of open elements.
                     $this->stack->pop();
                     # Switch the insertion mode to "after head".
-                    $this->insertionMode = self::AFTER_HEAD_MODE;
-                    $insertionMode = self::AFTER_HEAD_MODE;
+                    $insertionMode = $this->insertionMode = self::AFTER_HEAD_MODE;
                     # Reprocess the token.
                     goto ProcessToken;
                 }
@@ -655,34 +648,29 @@ class TreeBuilder {
                     # If there is no template element on the stack of open elements, then this is a
                     # parse error; ignore the token.
                     if ($this->stack->search('template') === -1) {
-                        $this->error(ParseError::UNEXPECTED_END_TAG, 'template');
+                        $this->error(ParseError::UNEXPECTED_END_TAG);
                     }
                     # Otherwise, run these steps:
                     else {
                         # 1. Generate all implied end tags thoroughly.
                         $this->stack->generateImpliedEndTags();
-
                         # 2. If the current node is not a template element, then this is a parse error.
                         if ($this->stack->currentNodeName !== 'template') {
                             $this->error(ParseError::UNEXPECTED_END_TAG);
                         }
-
                         # 3. Pop elements from the stack of open elements until a template element has been popped from the stack.
                         $this->stack->popUntil('template');
-
                         # 4. Clear the list of active formatting elements up to the last marker.
                         $this->activeFormattingElementsList->clearToTheLastMarker();
-
                         # 5. Pop the current template insertion mode off the stack of template insertion modes.
                         $this->templateInsertionModes->pop();
-
                         # 6. Reset the insertion mode appropriately.
                         $this->resetInsertionMode();
                     }
                 }
                 # Any other end tag
                 else {
-                    # Parse error.
+                    # Parse error. Ignore the token.
                     $this->error(ParseError::UNEXPECTED_END_TAG);
                 }
             }
@@ -692,8 +680,7 @@ class TreeBuilder {
                 # elements.
                 $this->stack->pop();
                 # Switch the insertion mode to "after head".
-                $this->insertionMode = self::AFTER_HEAD_MODE;
-                $insertionMode = self::AFTER_HEAD_MODE;
+                $insertionMode = $this->insertionMode = self::AFTER_HEAD_MODE;
                 # Reprocess the token.
                 goto ProcessToken;
             }
@@ -702,95 +689,75 @@ class TreeBuilder {
         elseif ($insertionMode === self::IN_HEAD_NOSCRIPT_MODE) {
             # DOCTYPE token
             if ($token instanceof DOCTYPEToken) {
-                # Parse error.
+                # Parse error. Ignore the token.
                 $this->error(ParseError::UNEXPECTED_DOCTYPE);
             }
+            # A start tag...
             elseif ($token instanceof StartTagToken) {
                 # A start tag whose tag name is "html"
                 if ($token->name === 'html') {
                     # Process the token using the rules for the "in body" insertion mode.
-                    $insertionMode = self::IN_BODY_MODE;
-                    goto ProcessToken;
+                    return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
                 }
                 # A start tag whose tag name is one of: "basefont", "bgsound", "link", "meta",
                 # "noframes", "style"
                 elseif ($token->name === 'basefont' || $token->name === 'bgsound' || $token->name === 'link' || $token->name === 'meta' || $token->name === 'noframes' || $token->name === 'style'){
                     # Process the token using the rules for the "in head" insertion mode.
-                    $insertionMode = self::IN_HEAD_MODE;
-                    goto ProcessToken;
+                    return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
                 }
                 # A start tag whose tag name is one of: "head", "noscript"
                 elseif ($token->name === 'head' || $token->name === 'noscript') {
-                    # Parse error.
-                    $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
+                    # Parse error. Ignore the token.
+                    $this->error(ParseError::UNEXPECTED_START_TAG);
                 }
-                # Anything else
+                # Any other start tag
                 else {
                     # Act as described in the "anything else" entry below.
-                    #
+
                     # Parse error.
-                    $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
+                    $this->error(ParseError::UNEXPECTED_START_TAG);
                     # Pop the current node (which will be a noscript element) from the stack of open
                     # elements; the new current node will be a head element.
                     $this->stack->pop();
                     # Switch the insertion mode to "in head".
-                    $this->insertionMode = self::IN_HEAD_MODE;
-                    $insertionMode = self::IN_HEAD_MODE;
+                    $insertionMode = $this->insertionMode = self::IN_HEAD_MODE;
                     # Reprocess the token.
                     goto ProcessToken;
                 }
             }
-            elseif ($token instanceof EndTagToken) {
-                # An end tag whose tag name is "noscript"
-                if ($token->name === 'noscript') {
-                    # Pop the current node (which will be a noscript element) from the stack of open
-                    # elements; the new current node will be a head element.
-                    $this->stack->pop();
-                    # Switch the insertion mode to "in head".
-                    $this->insertionMode = self::IN_HEAD_MODE;
-                }
-                # An end tag whose tag name is "br"
-                elseif ($token->name === 'br') {
-                    # Act as described in the "anything else" entry below.
-                    #
-                    # Parse error.
-                    $this->error(ParseError::UNEXPECTED_END_TAG, 'br');
-                    # Pop the current node (which will be a noscript element) from the stack of open
-                    # elements; the new current node will be a head element.
-                    $this->stack->pop();
-                    # Switch the insertion mode to "in head".
-                    $this->insertionMode = self::IN_HEAD_MODE;
-                    $insertionMode = self::IN_HEAD_MODE;
-                    # Reprocess the token.
-                    goto ProcessToken;
-                }
-                # Any other end tag
-                else {
-                    # Parse error.
-                    $this->error(ParseError::UNEXPECTED_END_TAG, 'br');
-                }
-            }
-            # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED
-            # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
-            # A comment token
-            // OPTIMIZATION: Will check for multiple space characters at once as character
-            // tokens can contain more than one character.
-            elseif (($token instanceof CharacterToken && (strspn($token->data, Data::WHITESPACE) === strlen($token->data))) ||
-                    $token instanceof CommentToken) {
-                # Process the token using the rules for the "in head" insertion mode.
-                $insertionMode = self::IN_HEAD_MODE;
-                goto ProcessToken;
-            }
-            # Anything else
-            else {
-                # Parse error.
-                $this->error(ParseError::UNEXPECTED_END_TAG, 'br');
+            # An end tag whose tag name is "noscript"
+            elseif ($token instanceof EndTagToken && $token->name === 'noscript') {
                 # Pop the current node (which will be a noscript element) from the stack of open
                 # elements; the new current node will be a head element.
                 $this->stack->pop();
                 # Switch the insertion mode to "in head".
                 $this->insertionMode = self::IN_HEAD_MODE;
-                $insertionMode = self::IN_HEAD_MODE;
+            }
+            # An end tag whose name is "br"
+            #   Act as described in the "anything else" entry below.
+            # Any other end tag
+            elseif ($token instanceof EndTagToken && $token->name !== 'br') {
+                # Parse error. Ignore the token.
+                $this->error(ParseError::UNEXPECTED_END_TAG);
+            }
+            # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED
+            #   (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+            # A comment token
+            // OPTIMIZATION: Will check for multiple space characters at once as character
+            // tokens can contain more than one character.
+            elseif ($token instanceof CommentToken || ($token instanceof CharacterToken && (strspn($token->data, Data::WHITESPACE) === strlen($token->data)))) {
+                # Process the token using the rules for the "in head" insertion mode.
+                return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
+            }
+            # Anything else
+            else {
+                # Parse error.
+                $this->error(ParseError::UNEXPECTED_END_TAG);
+                # Pop the current node (which will be a noscript element) from the stack 
+                #   of open elements; the new current node will be a head element.
+                $this->stack->pop();
+                # Switch the insertion mode to "in head".
+                $insertionMode = $this->insertionMode = self::IN_HEAD_MODE;
                 # Reprocess the token.
                 goto ProcessToken;
             }
@@ -812,15 +779,15 @@ class TreeBuilder {
             }
             # A DOCTYPE token
             elseif ($token instanceof DOCTYPEToken) {
-                # Parse error.
+                # Parse error. Ignore the token.
                 $this->error(ParseError::UNEXPECTED_DOCTYPE);
             }
+            # A start tag...
             elseif ($token instanceof StartTagToken) {
                 # A start tag whose tag name is "html"
                 if ($token->name === 'html') {
                     # Process the token using the rules for the "in body" insertion mode.
-                    $insertionMode = self::IN_BODY_MODE;
-                    goto ProcessToken;
+                    return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
                 }
                 # A start tag whose tag name is "body"
                 elseif ($token->name === 'body') {
@@ -842,12 +809,11 @@ class TreeBuilder {
                 # "meta", "noframes", "script", "style", "template", "title"
                 elseif ($token->name === 'base' || $token->name === 'basefont' || $token->name === 'bgsound' || $token->name === 'link' || $token->name === 'meta' || $token->name === 'noframes' || $token->name === 'script' || $token->name === 'style' || $token->name === 'template' || $token->name === 'title') {
                     # Parse error.
-                    $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
+                    $this->error(ParseError::UNEXPECTED_START_TAG);
                     # Push the node pointed to by the head element pointer onto the stack of open elements.
                     $this->stack[] = $this->headElement;
                     # Process the token using the rules for the "in head" insertion mode.
                     $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
-
                     # Remove the node pointed to by the head element pointer from the stack of open
                     # elements. (It might not be the current node at this point.)
                     $key = $this->stack->search($this->headElement);
@@ -857,18 +823,17 @@ class TreeBuilder {
                 }
                 # A start tag whose tag name is "head"
                 elseif ($token->name === 'head') {
-                    # Parse error.
-                    $this->error(ParseError::UNEXPECTED_START_TAG, 'head');
+                    # Parse error. Ignore the token
+                    $this->error(ParseError::UNEXPECTED_START_TAG);
                 }
                 # Any other start tag
                 else {
                     # Act as described in the "anything else" entry below.
-                    #
+
                     # Insert an HTML element for a "body" start tag token with no attributes.
                     $this->insertStartTagToken(new StartTagToken('body'));
                     # Switch the insertion mode to "in body".
-                    $this->insertionMode = self::IN_BODY_MODE;
-                    $insertionMode = self::IN_BODY_MODE;
+                    $insertionMode = $this->insertionMode = self::IN_BODY_MODE;
                     # Reprocess the current token.
                     goto ProcessToken;
                 }
@@ -877,8 +842,7 @@ class TreeBuilder {
                 # An end tag whose tag name is "template"
                 if ($token->name === 'template') {
                     # Process the token using the rules for the "in head" insertion mode.
-                    $insertionMode = self::IN_HEAD_MODE;
-                    goto ProcessToken;
+                    return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
                 }
                 # An end tag whose tag name is one of: "body", "html", "br"
                 elseif ($token->name === 'body' || $token->name === 'html' || $token->name === 'br') {
@@ -887,15 +851,14 @@ class TreeBuilder {
                     # Insert an HTML element for a "body" start tag token with no attributes.
                     $this->insertStartTagToken(new StartTagToken('body'));
                     # Switch the insertion mode to "in body".
-                    $this->insertionMode = self::IN_BODY_MODE;
-                    $insertionMode = self::IN_BODY_MODE;
+                    $insertionMode = $this->insertionMode = self::IN_BODY_MODE;
                     # Reprocess the current token.
                     goto ProcessToken;
                 }
                 # Any other end tag
                 else {
-                    # Parse error.
-                    $this->error(ParseError::UNEXPECTED_END_TAG, 'head');
+                    # Parse error. Ignore the token.
+                    $this->error(ParseError::UNEXPECTED_END_TAG);
                 }
             }
             # Anything else
@@ -903,8 +866,7 @@ class TreeBuilder {
                 # Insert an HTML element for a "body" start tag token with no attributes.
                 $this->insertStartTagToken(new StartTagToken('body'));
                 # Switch the insertion mode to "in body".
-                $this->insertionMode = self::IN_BODY_MODE;
-                $insertionMode = self::IN_BODY_MODE;
+                $insertionMode = $this->insertionMode = self::IN_BODY_MODE;
                 # Reprocess the current token.
                 goto ProcessToken;
             }
@@ -945,9 +907,10 @@ class TreeBuilder {
             }
             # A DOCTYPE token
             elseif ($token instanceof DOCTYPEToken) {
-                # Parse error.
+                # Parse error. Ignore the token.
                 $this->error(ParseError::UNEXPECTED_DOCTYPE);
             }
+            # A start tag...
             elseif ($token instanceof StartTagToken) {
                 # A start tag whose tag name is "html"
                 if ($token->name === 'html') {
@@ -971,8 +934,7 @@ class TreeBuilder {
                 # "meta", "noframes", "script", "style", "template", "title"
                 elseif ($token->name === 'base' || $token->name === 'basefont' || $token->name === 'bgsound' || $token->name === 'link' || $token->name === 'meta' || $token->name === 'noframes' || $token->name === 'script' || $token->name === 'style' || $token->name === 'template' || $token->name === 'title') {
                     # Process the token using the rules for the "in head" insertion mode.
-                    $insertionMode = self::IN_HEAD_MODE;
-                    goto ProcessToken;
+                    return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
                 }
                 # A start tag whose tag name is "body"
                 elseif ($token->name === 'body') {
@@ -1254,6 +1216,17 @@ class TreeBuilder {
 
                     # 4. Set the frameset-ok flag to "not ok".
                     $this->framesetOk = false;
+                }
+                elseif ($token->name === "a") {
+                    # If the list of active formatting elements contains an a element between the end
+                    #   of the list and the last marker on the list (or the start of the list if there
+                    #   is no marker on the list), then this is a parse error;
+                    $this->error(ParseError::UNEXPECTED_START_TAG);
+                    # ... run the adoption agency algorithm for the token, 
+                    $this->adopt($token);
+                    # ... then remove that element from the list of active formatting elements and the 
+                    #   stack of open elements if the adoption agency algorithm didn't already remove it
+                    #   (it might not have if the element is not in table scope).
                 }
             }
             elseif ($token instanceof EndTagToken) {

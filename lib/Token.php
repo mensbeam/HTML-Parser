@@ -57,6 +57,7 @@ abstract class TagToken extends Token {
     public $name;
     public $namespace;
     public $selfClosing;
+    public $selfClosingAcknowledged = false;
     public $attributes = [];
 
     public function __construct(string $name, bool $selfClosing = false, string $namespace = Parser::HTML_NAMESPACE) {
