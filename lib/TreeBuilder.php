@@ -1384,6 +1384,16 @@ class TreeBuilder {
         return true;
     }
 
+    protected function adopt(TagToken $token): void {
+        # The adoption agency algorithm, which takes as its only argument a 
+        #   token 'token' for which the algorithm is being run, consists of 
+        #   the following steps:
+
+        // STUB
+
+        assert(false, new \Exception("Adoption agency not implemented yet"));
+    }
+
     protected function parseTokenInForeignContent(Token $token): bool {
         $currentNode = $this->stack->currentNode;
         $currentNodeName = $this->stack->currentNodeName;
