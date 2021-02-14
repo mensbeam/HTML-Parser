@@ -268,7 +268,12 @@ class Tokenizer {
                     # Switch to the character reference state.
 
                     // DEVIATION: Character reference consumption implemented as a function
-                    return new CharacterToken($this->switchToCharacterReferenceState(self::DATA_STATE));
+                    $outChar = $this->switchToCharacterReferenceState(self::DATA_STATE);
+                    if (strspn($outChar, Data::WHITESPACE)) {
+                        return new WhitespaceToken($outChar); // a character reference is either all whitespace is no whitespace
+                    } else {
+                        return new CharacterToken($outChar);
+                    }
                 }
                 # U+003C LESS-THAN SIGN (<)
                 elseif ($char === '<') {
@@ -295,7 +300,11 @@ class Tokenizer {
                     // Consume all characters that don't match what is above and emit
                     // that as a character token instead to prevent having to loop back
                     // through here every single time.
-                    return new CharacterToken($char.$this->data->consumeUntil("&<\0"));
+                    if (strspn($char, Data::WHITESPACE)) {
+                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE));
+                    } else {
+                        return new CharacterToken($char.$this->data->consumeUntil("&<\0"));
+                    }
                 }
             }
 
@@ -310,7 +319,12 @@ class Tokenizer {
                     # Switch to the character reference state.
 
                     // DEVIATION: Character reference consumption implemented as a function
-                    return new CharacterToken($this->switchToCharacterReferenceState(self::RCDATA_STATE));
+                    $outChar = $this->switchToCharacterReferenceState(self::RCDATA_STATE);
+                    if (strspn($outChar, Data::WHITESPACE)) {
+                        return new WhitespaceToken($outChar); // a character reference is either all whitespace is no whitespace
+                    } else {
+                        return new CharacterToken($outChar);
+                    }
                 }
                 # U+003C LESS-THAN SIGN (<)
                 elseif ($char === '<') {
@@ -337,7 +351,11 @@ class Tokenizer {
                     // Consume all characters that don't match what is above and emit
                     // that as a character token instead to prevent having to loop back
                     // through here every single time.
-                    return new CharacterToken($char.$this->data->consumeUntil("&<\0"));
+                    if (strspn($char, Data::WHITESPACE)) {
+                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE));
+                    } else {
+                        return new CharacterToken($char.$this->data->consumeUntil("&<\0"));
+                    }
                 }
             }
 
@@ -371,7 +389,11 @@ class Tokenizer {
                     // Consume all characters that don't match what is above and emit
                     // that as a character token instead to prevent having to loop back
                     // through here every single time.
-                    return new CharacterToken($char.$this->data->consumeUntil("<\0"));
+                    if (strspn($char, Data::WHITESPACE)) {
+                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE));
+                    } else {
+                        return new CharacterToken($char.$this->data->consumeUntil("<\0"));
+                    }
                 }
             }
 
@@ -405,7 +427,11 @@ class Tokenizer {
                     // Consume all characters that don't match what is above and emit
                     // that as a character token instead to prevent having to loop back
                     // through here every single time.
-                    return new CharacterToken($char.$this->data->consumeUntil("<\0"));
+                    if (strspn($char, Data::WHITESPACE)) {
+                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE));
+                    } else {
+                        return new CharacterToken($char.$this->data->consumeUntil("<\0"));
+                    }
                 }
             }
 
@@ -434,7 +460,11 @@ class Tokenizer {
                     // Consume all characters that don't match what is above and emit
                     // that as a character token instead to prevent having to loop back
                     // through here every single time.
-                    return new CharacterToken($char.$this->data->consumeUntil("\0"));
+                    if (strspn($char, Data::WHITESPACE)) {
+                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE));
+                    } else {
+                        return new CharacterToken($char.$this->data->consumeUntil("\0"));
+                    }
                 }
             }
 
@@ -1062,7 +1092,11 @@ class Tokenizer {
                     // OPTIMIZATION:
                     // Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
-                    return new CharacterToken($char.$this->data->consumeUntil("-<\0"));
+                    if (strspn($char, Data::WHITESPACE)) {
+                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE));
+                    } else {
+                        return new CharacterToken($char.$this->data->consumeUntil("-<\0"));
+                    }
                 }
             }
 
@@ -1104,7 +1138,11 @@ class Tokenizer {
                     # Switch to the script data escaped state.
                     # Emit the current input character as a character token.
                     $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
-                    return new CharacterToken($char);
+                    if (strspn($char, Data::WHITESPACE)) {
+                        return new WhitespaceToken($char);
+                    } else {
+                        return new CharacterToken($char);
+                    }
                 }
             }
 
@@ -1151,7 +1189,11 @@ class Tokenizer {
                     # Switch to the script data escaped state.
                     # Emit the current input character as a character token.
                     $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
-                    return new CharacterToken($char);
+                    if (strspn($char, Data::WHITESPACE)) {
+                        return new WhitespaceToken($char);
+                    } else {
+                        return new CharacterToken($char);
+                    }
                 }
             }
 
@@ -1313,7 +1355,11 @@ class Tokenizer {
                     } else {
                         $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
                     }
-                    return new CharacterToken($char);
+                    if (strspn($char, Data::WHITESPACE)) {
+                        return new WhitespaceToken($char);
+                    } else {
+                        return new CharacterToken($char);
+                    }
                 }
                 # ASCII upper alpha
                 # ASCII lower alpha
@@ -1378,7 +1424,11 @@ class Tokenizer {
                     // OPTIMIZATION:
                     // Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
-                    return new CharacterToken($char.$this->data->consumeUntil("-<\0"));
+                    if (strspn($char, Data::WHITESPACE)) {
+                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE));
+                    } else {
+                        return new CharacterToken($char.$this->data->consumeUntil("-<\0"));
+                    }
                 }
             }
 
@@ -1422,7 +1472,11 @@ class Tokenizer {
                     # Switch to the script data double escaped state.
                     # Emit the current input character as a character token.
                     $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE;
-                    return new CharacterToken($char);
+                    if (strspn($char, Data::WHITESPACE)) {
+                        return new WhitespaceToken($char);
+                    } else {
+                        return new CharacterToken($char);
+                    }
                 }
             }
 
@@ -1471,7 +1525,11 @@ class Tokenizer {
                     # Switch to the script data double escaped state.
                     # Emit the current input character as a character token.
                     $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE;
-                    return new CharacterToken($char);
+                    if (strspn($char, Data::WHITESPACE)) {
+                        return new WhitespaceToken($char);
+                    } else {
+                        return new CharacterToken($char);
+                    }
                 }
             }
 
@@ -1518,7 +1576,11 @@ class Tokenizer {
                     } else {
                         $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE;
                     }
-                    return new CharacterToken($char);
+                    if (strspn($char, Data::WHITESPACE)) {
+                        return new WhitespaceToken($char);
+                    } else {
+                        return new CharacterToken($char);
+                    }
                 }
                 # ASCII upper alpha
                 # ASCII lower alpha
@@ -3344,7 +3406,11 @@ class Tokenizer {
                     // OPTIMIZATION:
                     // Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
-                    return new CharacterToken($char.$this->data->consumeUntil(']'));
+                    if (strspn($char, Data::WHITESPACE)) {
+                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE));
+                    } else {
+                        return new CharacterToken($char.$this->data->consumeUntil(']'));
+                    }
                 }
             }
 
@@ -3378,7 +3444,7 @@ class Tokenizer {
                     # Emit a U+005D RIGHT SQUARE BRACKET character token.
 
                     // OTPIMIZATION: Consume any additional right square brackets
-                    return new CharacterToken($char.$this->data->consumeWhile(']'));
+                    return new CharacterToken(']'.$this->data->consumeWhile(']'));
                 }
                 # U+003E GREATER-THAN SIGN character
                 elseif ($char === '>') {

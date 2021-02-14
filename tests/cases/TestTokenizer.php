@@ -12,6 +12,7 @@ use dW\HTML5\CommentToken;
 use dW\HTML5\DOCTYPEToken;
 use dW\HTML5\EndTagToken;
 use dW\HTML5\StartTagToken;
+use dW\HTML5\WhitespaceToken;
 
 /** 
  * @covers \dW\HTML5\Tokenizer
@@ -61,6 +62,7 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
         try {
             do {
                 $t = $tokenizer->createToken();
+                assert(!$t instanceof CharacterToken || ($t instanceof WhitespaceToken && strspn($t->data, Data::WHITESPACE) === strlen($t->data)) || strspn($t->data, Data::WHITESPACE) === 0, new \Exception("Character token must either consist only of whitespace, or start with other than whitespace: ".var_export($t->data ?? "''", true)));
                 if (!($t instanceof EOFToken)) {
                     $actual[] = $t;
                 }
@@ -100,6 +102,9 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
         foreach ($tokens as $t) {
             if ($t instanceof CharacterToken) {
                 if (!$pending) {
+                    if ($t instanceof WhitespaceToken) {
+                        $t = new CharacterToken($t->data);
+                    }
                     $pending = $t;
                 } else {
                     $pending->data .= $t->data;

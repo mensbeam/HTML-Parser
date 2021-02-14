@@ -221,7 +221,7 @@ class TreeBuilder {
             #   (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
             // OPTIMIZATION: Will check for multiple space characters at once as character
             // tokens can contain more than one character.
-            if ($token instanceof CharacterToken && (strspn($token->data, Data::WHITESPACE) === strlen($token->data))) {
+            if ($token instanceof WhitespaceToken) {
                 # Ignore the token.
             }
             # A comment token
@@ -389,7 +389,7 @@ class TreeBuilder {
             # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
             // OPTIMIZATION: Will check for multiple space characters at once as character
             // tokens can contain more than one character.
-            elseif ($token instanceof CharacterToken && (strspn($token->data, Data::WHITESPACE) === strlen($token->data))) {
+            elseif ($token instanceof WhitespaceToken) {
                 # Ignore the token.
             }
             # A start tag whose tag name is "html"
@@ -433,7 +433,7 @@ class TreeBuilder {
             # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
             // OPTIMIZATION: Will check for multiple space characters at once as character
             // tokens can contain more than one character.
-            if ($token instanceof CharacterToken && (strspn($token->data, Data::WHITESPACE) === strlen($token->data))) {
+            if ($token instanceof WhitespaceToken) {
                 # Ignore the token.
             }
             # A comment token
@@ -485,7 +485,7 @@ class TreeBuilder {
             # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
             // OPTIMIZATION: Will check for multiple space characters at once as character
             // tokens can contain more than one character.
-            if ($token instanceof CharacterToken && (strspn($token->data, Data::WHITESPACE) === strlen($token->data))) {
+            if ($token instanceof WhitespaceToken) {
                 # Insert the character.
                 $this->insertCharacterToken($token);
             }
@@ -745,7 +745,7 @@ class TreeBuilder {
             # A comment token
             // OPTIMIZATION: Will check for multiple space characters at once as character
             // tokens can contain more than one character.
-            elseif ($token instanceof CommentToken || ($token instanceof CharacterToken && (strspn($token->data, Data::WHITESPACE) === strlen($token->data)))) {
+            elseif ($token instanceof CommentToken || $token instanceof WhitespaceToken) {
                 # Process the token using the rules for the "in head" insertion mode.
                 return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
             }
@@ -768,7 +768,7 @@ class TreeBuilder {
             # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
             // OPTIMIZATION: Will check for multiple space characters at once as character
             // tokens can contain more than one character.
-            if ($token instanceof CharacterToken && (strspn($token->data, Data::WHITESPACE) === strlen($token->data))) {
+            if ($token instanceof WhitespaceToken) {
                 # Insert the character.
                 $this->insertCharacterToken($token);
             }
@@ -882,23 +882,20 @@ class TreeBuilder {
             }
             # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED
             # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
-            #
-            # Any other character token
-            // Space characters and any other characters are exactly the same except any
-            // other characters sets the frameset-ok flag to "not ok".
-            elseif ($token instanceof CharacterToken) {
-
+            elseif ($token instanceof WhitespaceToken) {
                 # Reconstruct the active formatting elements, if any.
                 $this->activeFormattingElementsList->reconstruct();
                 # Insert the token’s character.
                 $this->insertCharacterToken($token);
-
-                // OPTIMIZATION: Will check for multiple space characters at once as character
-                // tokens can contain more than one character.
-                if (strspn($token->data, Data::WHITESPACE) !== strlen($token->data)) {
-                    # Set the frameset-ok flag to "not ok".
-                    $this->framesetOk = false;
-                }
+            }
+            # Any other character token
+            elseif ($token instanceof CharacterToken) {
+                # Reconstruct the active formatting elements, if any.
+                $this->activeFormattingElementsList->reconstruct();
+                # Insert the token’s character.
+                $this->insertCharacterToken($token);
+                # Set the frameset-ok flag to "not ok".
+                $this->framesetOk = false;
             }
             # A comment token
             elseif ($token instanceof CommentToken) {
@@ -1402,18 +1399,17 @@ class TreeBuilder {
         #
         # When the user agent is to apply the rules for parsing tokens in foreign
         # content, the user agent must handle the token as follows:
-        #
-        if ($token instanceof CharacterToken) {
-            # A character token that is one of U+0009 CHARACTER TABULATION, "LF" (U+000A),
-            # "FF" (U+000C), "CR" (U+000D), or U+0020 SPACE
-            # Any other character token
-            // OPTIMIZATION: Will check for multiple space characters at once as character
-            // tokens can contain more than one character.
-            if (strspn($token->data, Data::WHITESPACE) !== strlen($token->data)) {
-                # Set the frameset-ok flag to "not ok".
-                $this->framesetOk = false;
-            }
 
+        # A character token that is one of U+0009 CHARACTER TABULATION, "LF" (U+000A),
+        # "FF" (U+000C), "CR" (U+000D), or U+0020 SPACE
+        if ($token instanceof WhitespaceToken) {
+            # Insert the token's character.
+            $this->insertCharacterToken($token);
+        }
+        # Any other character token
+        elseif ($token instanceof CharacterToken) {
+            # Set the frameset-ok flag to "not ok".
+            $this->framesetOk = false;
             # Insert the token's character.
             $this->insertCharacterToken($token);
         }
