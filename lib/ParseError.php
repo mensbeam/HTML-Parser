@@ -60,16 +60,18 @@ class ParseError {
     const EXPECTED_DOCTYPE_BUT_GOT_END_TAG                                  = 201;
     const EXPECTED_DOCTYPE_BUT_GOT_CHARS                                    = 202;
     const EXPECTED_DOCTYPE_BUT_GOT_EOF                                      = 203;
-    const UNEXPECTED_DOCTYPE                                                = 204;
-    const UNEXPECTED_START_TAG                                              = 205;
-    const UNEXPECTED_END_TAG                                                = 206; // html5lib also uses 'adoption-agency-1.2' and 'adoption-agency-1.3' for this
-    const NON_VOID_HTML_ELEMENT_START_TAG_WITH_TRAILING_SOLIDUS             = 207;
+    const UNKNOWN_DOCTYPE                                                   = 204;
+    const UNEXPECTED_DOCTYPE                                                = 205;
+    const UNEXPECTED_START_TAG                                              = 206;
+    const UNEXPECTED_END_TAG                                                = 207; // html5lib also uses 'adoption-agency-1.2' and 'adoption-agency-1.3' for this
+    const NON_VOID_HTML_ELEMENT_START_TAG_WITH_TRAILING_SOLIDUS             = 208;
 
     const MESSAGES = [
         self::EXPECTED_DOCTYPE_BUT_GOT_START_TAG                                => 'Expected DOCTYPE but got start tag',
         self::EXPECTED_DOCTYPE_BUT_GOT_END_TAG                                  => 'Expected DOCTYPE but got end tag',
         self::EXPECTED_DOCTYPE_BUT_GOT_CHARS                                    => 'Expected DOCTYPE but got characters',
         self::EXPECTED_DOCTYPE_BUT_GOT_EOF                                      => 'Expected DOCTYPE but got end-of-file',
+        self::UNKNOWN_DOCTYPE                                                   => 'Unknown DOCTYPE',
         self::UNEXPECTED_START_TAG                                              => 'Unexpected start tag',
         self::UNEXPECTED_END_TAG                                                => 'Unexpected end tag',
         self::NON_VOID_HTML_ELEMENT_START_TAG_WITH_TRAILING_SOLIDUS             => 'Trailing solidus in non-void HTML element start tag',

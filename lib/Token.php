@@ -27,7 +27,7 @@ class DOCTYPEToken extends Token {
     public $public;
     public $system;
 
-    public function __construct(string $name = null, string $public = null, string $system = null) {
+    public function __construct(?string $name = null, ?string $public = null, ?string $system = null) {
         // null stands in for the distinct "missing" state
         $this->name = $name;
         $this->public = $public;

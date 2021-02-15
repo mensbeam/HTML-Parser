@@ -240,8 +240,8 @@ class TreeBuilder {
                 # If the DOCTYPE token's name is not "html", or the token's public identifier is
                 #   not missing, or the token's system identifier is neither missing nor 
                 #   "about:legacy-compat", then there is a parse error.
-                if ($token->name !== 'html' || $token->public !== '' || ($token->system !== '' && $token->system !== 'about:legacy-compat')) {
-                    $this->error(ParseError::INVALID_DOCTYPE);
+                if ($token->name !== 'html' || $token->public !== null || !($token->system === null || $token->system === 'about:legacy-compat')) {
+                    $this->error(ParseError::UNKNOWN_DOCTYPE);
                 }
 
                 # Append a DocumentType node to the Document node, with the name attribute set
@@ -1926,7 +1926,7 @@ class TreeBuilder {
         }
     }
 
-    public static function insertCommentToken(CommentToken $token, \DOMNode $position = null) {
+    public function insertCommentToken(CommentToken $token, \DOMNode $position = null) {
         # When the steps below require the user agent to insert a comment while
         # processing a comment token, optionally with an explicitly insertion position
         # position, the user agent must run the following steps:
