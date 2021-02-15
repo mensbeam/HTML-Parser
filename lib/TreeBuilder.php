@@ -335,7 +335,7 @@ class TreeBuilder {
                 # Insert a comment as the last child of the Document object.
                 // DEVIATION: PHP's DOM cannot have comments before the DOCTYPE, so just going
                 // to ignore them instead.
-                //$this->insertCommentToken($token, $this->DOM);
+                $this->insertCommentToken($token, $this->DOM);
             }
             # A DOCTYPE token
             elseif ($token instanceof DOCTYPEToken) {
@@ -355,7 +355,7 @@ class TreeBuilder {
                 #   attributes specific to DocumentType objects set to null and empty lists as
                 #   appropriate. Associate the DocumentType node with the Document object so that
                 #   it is returned as the value of the doctype attribute of the Document object.
-                $this->DOM->appendChild($this->DOM->implementation->createDocumentType((!is_null($token->name)) ? $token->name : '', $token->public, $token->system));
+                $this->DOM->appendChild($this->DOM->implementation->createDocumentType($token->name ?? ' ', $token->public ?? '', $token->system ?? ''));
 
                 
                 # Then, if the document is not an iframe srcdoc document, and the DOCTYPE token
@@ -363,13 +363,14 @@ class TreeBuilder {
                 # quirks mode:
                 // DEVIATION: This implementation does not render, so there is no nested
                 // browsing contexts to consider.
-                $public = strtolower($token->public);
+                $public = strtolower($token->public ?? '');
+                $system = strtolower($token->system ?? '');
                 if ($token->forceQuirks === true 
                     || $token->name !== 'html' 
                     || $public === '-//w3o//dtd w3 html strict 3.0//en//' 
                     || $public === '-/w3c/dtd html 4.0 transitional/en' 
                     || $public === 'html' 
-                    || strtolower($token->system) === 'http://www.ibm.com/data/dtd/v11/ibmxhtml1-transitional.dtd' 
+                    || $system === 'http://www.ibm.com/data/dtd/v11/ibmxhtml1-transitional.dtd' 
                     || strpos($public, '+//silmaril//dtd html pro v0r11 19970101//') === 0 
                     || strpos($public, '-//as//dtd html 3.0 aswedit + extensions//') === 0 
                     || strpos($public, '+//silmaril//dtd html pro v0r11 19970101//') === 0 
@@ -1330,6 +1331,9 @@ class TreeBuilder {
                     # ... then remove that element from the list of active formatting elements and the 
                     #   stack of open elements if the adoption agency algorithm didn't already remove it
                     #   (it might not have if the element is not in table scope).
+                    throw new NotImplementedException("NOT IMPLEMENTED");
+                } else {
+                    throw new NotImplementedException("NOT IMPLEMENTED");
                 }
             }
             elseif ($token instanceof EndTagToken) {
@@ -1448,6 +1452,8 @@ class TreeBuilder {
                         # popped from the stack.
                         $this->stack->popUntil('form');
                     }
+                } else {
+                    throw new NotImplementedException("NOT IMPLEMENTED");
                 }
             }
             # An end-of-file token
@@ -1482,7 +1488,7 @@ class TreeBuilder {
         }
         // IMPLEMENTATION PENDING
         else {
-            throw new \Exception("NOT IMPLEMENTED");
+            throw new NotImplementedException("NOT IMPLEMENTED");
         }
         return true;
     }
@@ -1494,7 +1500,7 @@ class TreeBuilder {
 
         // STUB
 
-        assert(false, new \Exception("Adoption agency not implemented yet"));
+        throw new NotImplementedException("NOT IMPLEMENTED");
     }
 
     protected function parseTokenInForeignContent(Token $token): bool {
@@ -1898,7 +1904,7 @@ class TreeBuilder {
 
         # 8. Append each attribute in the given token to element.
         foreach ($token->attributes as $a) {
-            if ($namespace === Parser::HTML_NAMESPACE) {
+            if (!isset($namespace) || $namespace === Parser::HTML_NAMESPACE) {
                 $element->setAttribute($a->name, $a->value);
             } else {
                 $element->setAttributeNS($namespace, $a->name, $a->value);

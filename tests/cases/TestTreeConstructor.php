@@ -6,6 +6,7 @@ use dW\HTML5\Data;
 use dW\HTML5\Document;
 use dW\HTML5\EOFToken;
 use dW\HTML5\LoopException;
+use dW\HTML5\NotImplementedException;
 use dW\HTML5\OpenElementsStack;
 use dW\HTML5\ParseError;
 use dW\HTML5\Parser;
@@ -61,11 +62,13 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         } catch (LoopException $e) {
             $act = $this->serializeTree($doc);
             $this->assertEquals($exp, $act, $e->getMessage()."\n".$treeBuilder->debugLog);
-        } finally {
-            $act = $this->serializeTree($doc);
-            $this->assertEquals($exp, $act, $treeBuilder->debugLog);
-            // TODO: evaluate errors
+        } catch (NotImplementedException $e) {
+            $this->markTestSkipped($e->getMessage());
+            return;
         }
+        $act = $this->serializeTree($doc);
+        $this->assertEquals($exp, $act, $treeBuilder->debugLog);
+        // TODO: evaluate errors
     }
 
     protected function push(string $data): void {
@@ -185,7 +188,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                     for (++$l; $l < sizeof($lines); $l++) {
                         if ($lines[$l] === "" && ($lines[$l + 1] ?? "") === "#data") {
                             break;
-                        } elseif ($lines[$l][0] !== "|") {
+                        } elseif (($lines[$l][0] ?? "") !== "|") {
                             // apend the data to the previous token
                             $exp[sizeof($exp) - 1] .= "\n".$lines[$l];
                             continue;
