@@ -124,12 +124,12 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
     public function serializeNode(\DOMNode $n): void {
         if ($n instanceof \DOMElement) {
             $this->serializeElement($n);
-        } elseif ($n instanceof \DOMCharacterData) {
-            $this->push('"'.$n->data.'"');
-        } elseif ($n instanceof \DOMComment) {
-            $this->push("<!-- ".$n->data." -->");
         } elseif ($n instanceof \DOMProcessingInstruction) {
             $this->push("<?".$n->target." ".$n->data.">");
+        } elseif ($n instanceof \DOMComment) {
+            $this->push("<!-- ".$n->data." -->");
+        } elseif ($n instanceof \DOMCharacterData) {
+            $this->push('"'.$n->data.'"');
         } else {
             throw new \Exception("Node type ".get_class($n)." not handled");
         }

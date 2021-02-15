@@ -326,8 +326,8 @@ class TreeBuilder {
             # A comment token
             elseif ($token instanceof CommentToken) {
                 # Insert a comment as the last child of the Document object.
-                // DEVIATION: PHP's DOM cannot have comments before the DOCTYPE, so just going
-                // to ignore them instead.
+                // DEVIATION: PHP's DOM does not allow comments as children of the document
+                //   and silently drops them, so this is actually a no-op
                 $this->insertCommentToken($token, $this->DOM);
             }
             # A DOCTYPE token
@@ -1854,7 +1854,12 @@ class TreeBuilder {
         # 3. Create a Comment node whose data attribute is set to data and whose node
         # document is the same as that of the node in which the adjusted insertion
         # location finds itself.
-        $commentNode = $adjustedInsertionLocation->ownerDocument->createComment($token->data);
+        if ($adjustedInsertionLocation instanceof \DOMDocument) {
+            $nodeDocument = $adjustedInsertionLocation;
+        } else {
+            $nodeDocument = $adjustedInsertionLocation->ownerDocument;
+        }
+        $commentNode = $nodeDocument->createComment($token->data);
 
         # 4. Insert the newly created node at the adjusted insertion location.
         if ($insertBefore === false) {
