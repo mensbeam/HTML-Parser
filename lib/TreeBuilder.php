@@ -7,40 +7,33 @@ class TreeBuilder {
 
     public $debugLog = "";
 
-    // The list of active formatting elements, used when elements are improperly nested
+    /** @var \dW\HTML5\ActiveFormattingElementsList The list of active formatting elements, used when elements are improperly nested */
     protected $activeFormattingElementsList;
-    // The DOMDocument that is assembled by this class
+    /** @var \dW\HTML5\Document The DOMDocument that is assembled by this class */
     protected $DOM;
-    // The form element pointer points to the last form element that was opened and
-    // whose end tag has not yet been seen. It is used to make form controls associate
-    // with forms in the face of dramatically bad markup, for historical reasons. It is
-    // ignored inside template elements
+    /** @var ?\DOMElement The form element pointer points to the last form element that was opened and whose end tag has not yet been seen. It is used to make form controls associate with forms in the face of dramatically bad markup, for historical reasons. It is ignored inside template elements */
     protected $formElement;
-    // Flag for determining whether to use the foster parenting (badly nested table
-    // elements) algorithm.
+    /** @var bool Flag for determining whether to use the foster parenting (badly nested table elements) algorithm. */
     protected $fosterParenting = false;
-    // Flag that shows whether the content that's being parsed is a fragment or not
+    /** @var bool Flag that shows whether the content that's being parsed is a fragment or not */
     protected $fragmentCase;
-    // Context element for fragments
+    /** @var \DOMElement Context element for fragments */
     protected $fragmentContext;
-    // Flag used to determine whether elements are okay to be used in framesets or not
+    /** @var bool Flag used to determine whether elements are okay to be used in framesets or not */
     protected $framesetOk = true;
-    // Once a head element has been parsed (whether implicitly or explicitly) the head
-    // element pointer gets set to point to this node
+    /** @var ?\DOMElement Once a head element has been parsed (whether implicitly or explicitly) the head element pointer gets set to point to this node */
     protected $headElement;
-    // Treebuilder insertion mode
+    /** @var int Tree construction insertion mode */
     protected $insertionMode;
-    // When the insertion mode is switched to "text" or "in table text", the
-    // original insertion mode is also set. This is the insertion mode to which the
-    // tree construction stage will return.
+    /** @var int When the insertion mode is switched to "text" or "in table text", the original insertion mode is also set. This is the insertion mode to which the tree construction stage will return. */
     protected $originalInsertionMode;
-    // The stack of open elements, uses Stack
+    /** @var \dW\HTML5\OpenElementsStack The stack of open elements, uses Stack */
     protected $stack;
-    // Instance of the Tokenizer class used for creating tokens
+    /** @var \dW\HTML5\Tokenizer Instance of the Tokenizer class used for creating tokens */
     protected $tokenizer;
-    // Used to check if the document is in quirks mode
+    /** @var int Used to check if the document is in quirks mode */
     protected $quirksMode;
-    // Used to store the template insertion modes
+    /** @var \dW\HTML5\TemplateInsertionModesStack Used to store the template insertion modes */
     protected $templateInsertionModes;
 
     // Constants used for insertion modes
