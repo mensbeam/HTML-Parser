@@ -33,7 +33,10 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             $this->markTestIncomplete("Fragment tests still to be implemented");
         }
         // certain tests need to be patched to ignore unavoidable limitations of PHP's DOM
-        $exp = $this->patchTest($data, $fragment, $exp);
+        [$exp, $patched] = $this->patchTest($data, $fragment, $exp);
+        if ($patched) {
+            $this->markAsRisky();
+        }
         // convert parse error constants into standard symbols in specification
         $errorMap = array_map(function($str) {
             return strtolower(str_replace("_", "-", $str));
@@ -72,11 +75,15 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
     }
 
     protected function patchTest(string $data, $fragment, array $exp): array {
-        if (strpos($exp[0], "| <!--") === 0) {
-            // comments before the DOCTYPE are silently dropped by the PHP DOM
-            array_shift($exp);
+        $patched = false;
+        // comments outside the root element are silently dropped by the PHP DOM
+        for ($a = 0; $a < sizeof($exp); $a++) {
+            if (strpos($exp[$a], "| <!--") === 0) {
+                array_splice($exp, $a--, 1);
+                $patched = true;
+            }
         }
-        return $exp;
+        return [$exp, $patched];
     }
 
     protected function push(string $data): void {
@@ -87,9 +94,12 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         $this->out = [];
         $this->depth = 0;
         if ($d->doctype) {
-            $dt = "<!DOCTYPE ".$d->doctype->name;
-            $dt .= strlen($d->doctype->publicId) ? ' "'.$d->doctype->publicId.'"' : "";
-            $dt .= strlen($d->doctype->systemId) ? ' "'.$d->doctype->systemId.'"' : "";
+            $dt = "<!DOCTYPE ";
+            $dt .= ($d->doctype->name !== " ") ? $d->doctype->name : "";
+            if (strlen($d->doctype->publicId) || strlen($d->doctype->systemId)) {
+                $dt .= ' "'.$d->doctype->publicId.'"';
+                $dt .= ' "'.$d->doctype->systemId.'"';
+            }
             $dt .= ">";
             $this->push($dt);
         }
