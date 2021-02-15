@@ -98,6 +98,108 @@ class TreeBuilder {
         self::AFTER_AFTER_BODY_MODE     => "After after body",
         self::AFTER_AFTER_FRAMESET_MODE => "After after frameset",
     ];
+    protected const SVG_TAG_NAME_MAP = [
+        'altglyph'            => 'altGlyph',
+        'altglyphdef'         => 'altGlyphDef',
+        'altglyphitem'        => 'altGlyphItem',
+        'animatecolor'        => 'animateColor',
+        'animatemotion'       => 'animateMotion',
+        'animatetransform'    => 'animateTransform',
+        'clippath'            => 'clipPath',
+        'feblend'             => 'feBlend',
+        'fecolormatrix'       => 'feColorMatrix',
+        'fecomponenttransfer' => 'feComponentTransfer',
+        'fecomposite'         => 'feComposite',
+        'feconvolvematrix'    => 'feConvolveMatrix',
+        'fediffuselighting'   => 'feDiffuseLighting',
+        'fedisplacementmap'   => 'feDisplacementMap',
+        'fedistantlight'      => 'feDistantLight',
+        'feflood'             => 'feFlood',
+        'fefunca'             => 'feFuncA',
+        'fefuncb'             => 'feFuncB',
+        'fefuncg'             => 'feFuncG',
+        'fefuncr'             => 'feFuncR',
+        'fegaussianblur'      => 'feGaussianBlur',
+        'feimage'             => 'feImage',
+        'femerge'             => 'feMerge',
+        'femergenode'         => 'feMergeNode',
+        'femorphology'        => 'feMorphology',
+        'feoffset'            => 'feOffset',
+        'fepointlight'        => 'fePointLight',
+        'fespecularlighting'  => 'feSpecularLighting',
+        'fespotlight'         => 'feSpotLight',
+        'fetile'              => 'feTile',
+        'feturbulence'        => 'feTurbulence',
+        'foreignobject'       => 'foreignObject',
+        'glyphref'            => 'glyphRef',
+        'lineargradient'      => 'linearGradient',
+        'radialgradient'      => 'radialGradient',
+        'textpath'            => 'textPath',
+    ];
+    protected const SVG_ATTR_NAME_MAP = [
+        'attributename'             => 'attributeName',
+        'attributetype'             => 'attributeType',
+        'basefrequency'             => 'baseFrequency',
+        'baseprofile'               => 'baseProfile',
+        'calcmode'                  => 'calcMode',
+        'clippathunits'             => 'clipPathUnits',
+        'contentscripttype'         => 'contentScriptType',
+        'contentstyletype'          => 'contentStyleType',
+        'diffuseconstant'           => 'diffuseConstant',
+        'edgemode'                  => 'edgeMode',
+        'externalresourcesrequired' => 'externalResourcesRequired',
+        'filterres'                 => 'filterRes',
+        'filterunits'               => 'filterUnits',
+        'glyphref'                  => 'glyphRef',
+        'gradienttransform'         => 'gradientTransform',
+        'gradientunits'             => 'gradientUnits',
+        'kernelmatrix'              => 'kernelMatrix',
+        'kernelunitlength'          => 'kernelUnitLength',
+        'keypoints'                 => 'keyPoints',
+        'keysplines'                => 'keySplines',
+        'keytimes'                  => 'keyTimes',
+        'lengthadjust'              => 'lengthAdjust',
+        'limitingconeangle'         => 'limitingConeAngle',
+        'markerheight'              => 'markerHeight',
+        'markerunits'               => 'markerUnits',
+        'markerwidth'               => 'markerWidth',
+        'maskcontentunits'          => 'maskContentUnits',
+        'maskunits'                 => 'maskUnits',
+        'numoctaves'                => 'numOctaves',
+        'pathlength'                => 'pathLength',
+        'patterncontentunits'       => 'patternContentUnits',
+        'patterntransform'          => 'patternTransform',
+        'patternunits'              => 'patternUnits',
+        'pointsatx'                 => 'pointsAtX',
+        'pointsaty'                 => 'pointsAtY',
+        'pointsatz'                 => 'pointsAtZ',
+        'preservealpha'             => 'preserveAlpha',
+        'preserveaspectratio'       => 'preserveAspectRatio',
+        'primitiveunits'            => 'primitiveUnits',
+        'refx'                      => 'refX',
+        'refy'                      => 'refY',
+        'repeatcount'               => 'repeatCount',
+        'repeatdur'                 => 'repeatDur',
+        'requiredextensions'        => 'requiredExtensions',
+        'requiredfeatures'          => 'requiredFeatures',
+        'specularconstant'          => 'specularConstant',
+        'specularexponent'          => 'specularExponent',
+        'spreadmethod'              => 'spreadMethod',
+        'startoffset'               => 'startOffset',
+        'stddeviation'              => 'stdDeviation',
+        'stitchtiles'               => 'stitchTiles',
+        'surfacescale'              => 'surfaceScale',
+        'systemlanguage'            => 'systemLanguage',
+        'tablevalues'               => 'tableValues',
+        'targetx'                   => 'targetX',
+        'targety'                   => 'targetY',
+        'textlength'                => 'textLength',
+        'viewbox'                   => 'viewBox',
+        'viewtarget'                => 'viewTarget',
+        'xchannelselector'          => 'xChannelSelector',
+        'ychannelselector'          => 'yChannelSelector',
+        'zoomandpan'                => 'zoomAndPan',
+    ];
 
     public function __construct(Document $dom, $formElement, bool $fragmentCase = false, $fragmentContext = null, OpenElementsStack $stack, Stack $templateInsertionModes, Tokenizer $tokenizer, ParseError $errorHandler, Data $data) {
         // If the form element isn't an instance of DOMElement that has a node name of
@@ -1484,79 +1586,7 @@ class TreeBuilder {
                 # second column. (This fixes the case of SVG elements that are not all
                 # lowercase.)
                 if ($this->stack->adjustedCurrentNodeNamespace === Parser::SVG_NAMESPACE) {
-                    switch ($token->name) {
-                        case 'altglyph': $token->name = 'altGlyph';
-                        break;
-                        case 'altglyphdef': $token->name = 'altGlyphDef';
-                        break;
-                        case 'altglyphitem': $token->name = 'altGlyphItem';
-                        break;
-                        case 'animatecolor': $token->name = 'animateColor';
-                        break;
-                        case 'animatemotion': $token->name = 'animateMotion';
-                        break;
-                        case 'animatetransform': $token->name = 'animateTransform';
-                        break;
-                        case 'clippath': $token->name = 'clipPath';
-                        break;
-                        case 'feblend': $token->name = 'feBlend';
-                        break;
-                        case 'fecolormatrix': $token->name = 'feColorMatrix';
-                        break;
-                        case 'fecomponenttransfer': $token->name = 'feComponentTransfer';
-                        break;
-                        case 'fecomposite': $token->name = 'feComposite';
-                        break;
-                        case 'feconvolvematrix': $token->name = 'feConvolveMatrix';
-                        break;
-                        case 'fediffuselighting': $token->name = 'feDiffuseLighting';
-                        break;
-                        case 'fedisplacementmap': $token->name = 'feDisplacementMap';
-                        break;
-                        case 'fedistantlight': $token->name = 'feDistantLight';
-                        break;
-                        case 'feflood': $token->name = 'feFlood';
-                        break;
-                        case 'fefunca': $token->name = 'feFuncA';
-                        break;
-                        case 'fefuncb': $token->name = 'feFuncB';
-                        break;
-                        case 'fefuncg': $token->name = 'feFuncG';
-                        break;
-                        case 'fefuncr': $token->name = 'feFuncR';
-                        break;
-                        case 'fegaussianblur': $token->name = 'feGaussianBlur';
-                        break;
-                        case 'feimage': $token->name = 'feImage';
-                        break;
-                        case 'femerge': $token->name = 'feMerge';
-                        break;
-                        case 'femergenode': $token->name = 'feMergeNode';
-                        break;
-                        case 'femorphology': $token->name = 'feMorphology';
-                        break;
-                        case 'feoffset': $token->name = 'feOffset';
-                        break;
-                        case 'fepointlight': $token->name = 'fePointLight';
-                        break;
-                        case 'fespecularlighting': $token->name = 'feSpecularLighting';
-                        break;
-                        case 'fespotlight': $token->name = 'feSpotLight';
-                        break;
-                        case 'fetile': $token->name = 'feTile';
-                        break;
-                        case 'feturbulence': $token->name = 'feTurbulence';
-                        break;
-                        case 'foreignobject': $token->name = 'foreignObject';
-                        break;
-                        case 'glyphref': $token->name = 'glyphRef';
-                        break;
-                        case 'lineargradient': $token->name = 'linearGradient';
-                        break;
-                        case 'radialgradient': $token->name = 'radialGradient';
-                        break;
-                        case 'textpath': $token->name = 'textPath';
-                    }
+                    $token->name = self::SVG_TAG_NAME_MAP[$token->name] ?? $token->name;
                 }
 
                 foreach ($token->attributes as &$a) {
@@ -1570,131 +1600,7 @@ class TreeBuilder {
                     # for the token. (This fixes the case of SVG attributes that are not all
                     # lowercase.)
                     elseif ($currentNodeNamespace === Parser::SVG_NAMESPACE) {
-                        switch ($a->name) {
-                            case 'attributename': $a->name = 'attributeName';
-                            break;
-                            case 'attributetype': $a->name = 'attributeType';
-                            break;
-                            case 'basefrequency': $a->name = 'baseFrequency';
-                            break;
-                            case 'baseprofile': $a->name = 'baseProfile';
-                            break;
-                            case 'calcmode': $a->name = 'calcMode';
-                            break;
-                            case 'clippathunits': $a->name = 'clipPathUnits';
-                            break;
-                            case 'contentscripttype': $a->name = 'contentScriptType';
-                            break;
-                            case 'contentstyletype': $a->name = 'contentStyleType';
-                            break;
-                            case 'diffuseconstant': $a->name = 'diffuseConstant';
-                            break;
-                            case 'edgemode': $a->name = 'edgeMode';
-                            break;
-                            case 'externalresourcesrequired': $a->name = 'externalResourcesRequired';
-                            break;
-                            case 'filterres': $a->name = 'filterRes';
-                            break;
-                            case 'filterunits': $a->name = 'filterUnits';
-                            break;
-                            case 'glyphref': $a->name = 'glyphRef';
-                            break;
-                            case 'gradienttransform': $a->name = 'gradientTransform';
-                            break;
-                            case 'gradientunits': $a->name = 'gradientUnits';
-                            break;
-                            case 'kernelmatrix': $a->name = 'kernelMatrix';
-                            break;
-                            case 'kernelunitlength': $a->name = 'kernelUnitLength';
-                            break;
-                            case 'keypoints': $a->name = 'keyPoints';
-                            break;
-                            case 'keysplines': $a->name = 'keySplines';
-                            break;
-                            case 'keytimes': $a->name = 'keyTimes';
-                            break;
-                            case 'lengthadjust': $a->name = 'lengthAdjust';
-                            break;
-                            case 'limitingconeangle': $a->name = 'limitingConeAngle';
-                            break;
-                            case 'markerheight': $a->name = 'markerHeight';
-                            break;
-                            case 'markerunits': $a->name = 'markerUnits';
-                            break;
-                            case 'markerwidth': $a->name = 'markerWidth';
-                            break;
-                            case 'maskcontentunits': $a->name = 'maskContentUnits';
-                            break;
-                            case 'maskunits': $a->name = 'maskUnits';
-                            break;
-                            case 'numoctaves': $a->name = 'numOctaves';
-                            break;
-                            case 'pathlength': $a->name = 'pathLength';
-                            break;
-                            case 'patterncontentunits': $a->name = 'patternContentUnits';
-                            break;
-                            case 'patterntransform': $a->name = 'patternTransform';
-                            break;
-                            case 'patternunits': $a->name = 'patternUnits';
-                            break;
-                            case 'pointsatx': $a->name = 'pointsAtX';
-                            break;
-                            case 'pointsaty': $a->name = 'pointsAtY';
-                            break;
-                            case 'pointsatz': $a->name = 'pointsAtZ';
-                            break;
-                            case 'preservealpha': $a->name = 'preserveAlpha';
-                            break;
-                            case 'preserveaspectratio': $a->name = 'preserveAspectRatio';
-                            break;
-                            case 'primitiveunits': $a->name = 'primitiveUnits';
-                            break;
-                            case 'refx': $a->name = 'refX';
-                            break;
-                            case 'refy': $a->name = 'refY';
-                            break;
-                            case 'repeatcount': $a->name = 'repeatCount';
-                            break;
-                            case 'repeatdur': $a->name = 'repeatDur';
-                            break;
-                            case 'requiredextensions': $a->name = 'requiredExtensions';
-                            break;
-                            case 'requiredfeatures': $a->name = 'requiredFeatures';
-                            break;
-                            case 'specularconstant': $a->name = 'specularConstant';
-                            break;
-                            case 'specularexponent': $a->name = 'specularExponent';
-                            break;
-                            case 'spreadmethod': $a->name = 'spreadMethod';
-                            break;
-                            case 'startoffset': $a->name = 'startOffset';
-                            break;
-                            case 'stddeviation': $a->name = 'stdDeviation';
-                            break;
-                            case 'stitchtiles': $a->name = 'stitchTiles';
-                            break;
-                            case 'surfacescale': $a->name = 'surfaceScale';
-                            break;
-                            case 'systemlanguage': $a->name = 'systemLanguage';
-                            break;
-                            case 'tablevalues': $a->name = 'tableValues';
-                            break;
-                            case 'targetx': $a->name = 'targetX';
-                            break;
-                            case 'targety': $a->name = 'targetY';
-                            break;
-                            case 'textlength': $a->name = 'textLength';
-                            break;
-                            case 'viewbox': $a->name = 'viewBox';
-                            break;
-                            case 'viewtarget': $a->name = 'viewTarget';
-                            break;
-                            case 'xchannelselector': $a->name = 'xChannelSelector';
-                            break;
-                            case 'ychannelselector': $a->name = 'yChannelSelector';
-                            break;
-                            case 'zoomandpan': $a->name = 'zoomAndPan';
-                        }
+                        $a->name = self::SVG_ATTR_NAME_MAP[$a->name] ?? $a->name;
                     }
 
                     # Adjust foreign attributes for the token. (This fixes the use of namespaced
