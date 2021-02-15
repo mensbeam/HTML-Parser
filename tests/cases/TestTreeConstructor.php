@@ -159,7 +159,9 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             $index = 0;
             $l = 0;
             if (!in_array(basename($file), $blacklist)) {
-                $lines = array_map("trim", file($file));
+                $lines = array_map(function($v) {
+                    return rtrim($v, "\n");
+                }, file($file));
                 while ($l < sizeof($lines)) {
                     $pos = $l + 1;
                     assert($lines[$l] === "#data", new \Exception("Test $file #$index does not start with #data tag at line ".($l + 1)));
