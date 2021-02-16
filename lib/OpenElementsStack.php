@@ -2,7 +2,91 @@
 declare(strict_types=1);
 namespace dW\HTML5;
 
-class OpenElementsStack extends Stack {
+class OpenElementsStack extends \splStack {
+    protected const IMPLIED_END_TAGS = [
+        'dd'       => true,
+        'dt'       => true,
+        'li'       => true,
+        'optgroup' => true,
+        'option'   => true,
+        'p'        => true,
+        'rb'       => true,
+        'rp'       => true,
+        'rt'       => true,
+        'rtc'      => true,
+    ];
+    protected const IMPLIED_END_TAGS_THOROUGH = [
+        'caption'  => true,
+        'colgroup' => true,
+        'dd'       => true,
+        'dt'       => true,
+        'li'       => true,
+        'optgroup' => true,
+        'option'   => true,
+        'p'        => true,
+        'rb'       => true,
+        'rp'       => true,
+        'rt'       => true,
+        'rtc'      => true,
+        'tbody'    => true,
+        'td'       => true,
+        'tfoot'    => true,
+        'th'       => true,
+        'thead'    => true,
+        'tr'       => true,
+    ];
+    protected const GENERAL_SCOPE = [
+        Parser::HTML_NAMESPACE => [
+            'applet',
+            'caption',
+            'html',
+            'table',
+            'td',
+            'th',
+            'marquee',
+            'object',
+            'template'
+        ],
+        Parser::MATHML_NAMESPACE => [
+            'mi',
+            'mo',
+            'mn',
+            'ms',
+            'mtext',
+            'annotation-xml'
+        ],
+        Parser::SVG_NAMESPACE => [
+            'foreignObject',
+            'desc',
+            'title'
+        ],
+    ];
+    protected const LIST_ITEM_SCOPE = [
+        // everything in general scope, and these in the HTML namespace
+        'ol',
+        'ul',
+    ];
+    protected const BUTTON_SCOPE = [
+        // everything in general scope, and these in the HTML namespace
+        'button',
+    ];
+    protected const TABLE_SCOPE = [
+        Parser::HTML_NAMESPACE => [
+            'html',
+            'table',
+            'template',
+        ],
+    ];
+    protected const SELECT_SCOPE = [
+        // all elements EXCEPT these
+        Parser::HTML_NAMESPACE => [
+            'optgroup',
+            'option',
+        ],
+    ];
+
+
+
     protected $fragmentCase;
     protected $fragmentContext;
 
@@ -18,88 +102,68 @@ class OpenElementsStack extends Stack {
         $this->fragmentContext = $fragmentContext;
     }
 
-    public function popUntil($target) {
-        if ($target instanceof Element) {
-            do {
-                $node = $this->pop;
-            } while (!$node->isSameNode($target));
-        } elseif (is_string($target)) {
-            do {
-                $poppedNodeName = $this->pop()->nodeName;
-            } while ($poppedNodeName !== $target);
-        } elseif (is_array($target)) {
-            do {
-                $poppedNodeName = $this->pop()->nodeName;
-            } while (!in_array($poppedNodeName, $target));
-        } else {
-            throw new Exception(Exception::STACK_ELEMENT_STRING_ARRAY_EXPECTED);
-        }
+    public function popUntil(string ...$target): void {
+        do {
+            $node = $this->pop();
+        } while (!in_array($node->nodeName, $target));
     }
 
-    public function search($needle): int {
-        if (!$needle) {
-            return -1;
-        }
+    public function popUntilSame(Element $target): void {
+        do {
+            $node = $this->pop();
+        } while (!$node->isSameNode($target));
+    }
 
-        if ($needle instanceof \DOMElement) {
-            foreach (array_reverse($this->_storage) as $key => $value) {
-                if ($value->isSameNode($needle)) {
-                    return $key;
-                }
-            }
-        } elseif (is_string($needle)) {
-            foreach (array_reverse($this->_storage) as $key => $value) {
-                if ($value->nodeName === $needle) {
-                    return $key;
-                }
-            }
-        } elseif ($needle instanceof \Closure) {
-            foreach (array_reverse($this->_storage) as $key => $value) {
-                if ($needle($value) === true) {
-                    return $key;
-                }
+    public function find(string ...$name): int {
+        foreach ($this as $k => $node) {
+            if (in_array($node->nodeName, $name)) {
+                return $k;
             }
         }
-
         return -1;
     }
 
-    // Remove an arbitrary element from the array.
-    public function remove($target) {
-        $key = $this->search($target);
-        if ($key === -1) {
-            return;
-        } elseif ($key === count($this->_storage) - 1) {
-            $this->pop();
-            return;
+    public function findNot(string ...$name): int {
+        foreach ($this as $k => $node) {
+            if (!in_array($node->nodeName, $name)) {
+                return $k;
+            }
         }
-
-        unset($this->_storage[$key]);
-        $this->_storage = array_values($this->_storage);
+        return -1;
     }
 
-    public function generateImpliedEndTags(array $exclude = []) {
-        $tags = ['caption', 'colgroup', 'dd', 'dt', 'li', 'optgroup', 'option', 'p', 'rb', 'rp', 'rt', 'rtc', 'tbody', 'td', 'tfoot', 'th', 'thead', 'tr'];
-
-        if (count($exclude) > 0) {
-            $modified = false;
-            foreach ($exclude as $e) {
-                $key = array_search($e, $tags);
-                if ($key !== false) {
-                    unset($tags[$key]);
-                    $modified = true;
-                }
-            }
-
-            if ($modified) {
-                $tags = array_values($tags);
+    public function findSame(\DOMElement $node): int {
+        foreach ($this as $k => $node) {
+            if ($node->isSameNode($node)) {
+                return $k;
             }
         }
+        return -1;
+    }
 
-        $currentNodeName = end($this->_storage)->nodeName;
-        while (in_array($currentNodeName, $tags)) {
+    public function generateImpliedEndTags(string ...$exclude): void {
+        # When the steps below require the UA to generate implied end tags, 
+        #   then, while the current node is {elided list of element names},
+        #   the UA must pop the current node off the stack of open elements.
+        #
+        # If a step requires the UA to generate implied end tags but lists
+        #   an element to exclude from the process, then the UA must perform
+        #   the above steps as if that element was not in the above list.
+        $map = self::IMPLIED_END_TAGS;
+        foreach($exclude as $name) {
+            $map[$name] = false;
+        }
+        while (!$this->isEmpty() && ($map[$this->top()->nodeName] ?? false)) {
             $this->pop();
-            $currentNodeName = end($this->_storage)->nodeName;
+        }
+    }
+
+    public function generateImpliedEndTagsThoroughly(): void {
+        # When the steps below require the UA to generate all implied end tags 
+        #   thoroughly, then, while the current node is {elided list of element names},
+        #   the UA must pop the current node off the stack of open elements.
+        while (!$this->isEmpty() && (self::IMPLIED_END_TAGS_THOROUGH[$this->top()->nodeName] ?? false)) {
+            $this->pop();
         }
     }
 
@@ -108,296 +172,102 @@ class OpenElementsStack extends Stack {
         # it has that element in the specific scope consisting of the following element
         # types:
         #
-        # applet
-        # caption
-        # html
-        # table
-        # td
-        # th
-        # marquee
-        # object
-        # template
-        # MathML mi
-        # MathML mo
-        # MathML mn
-        # MathML ms
-        # MathML mtext
-        # MathML annotation-xml
-        # SVG foreignObject
-        # SVG desc
-        # SVG title
-
-        $list = [
-            Parser::HTML_NAMESPACE => [
-                'applet',
-                'caption',
-                'html',
-                'table',
-                'td',
-                'th',
-                'marquee',
-                'object',
-                'template'
-            ],
-
-            Parser::MATHML_NAMESPACE => [
-                'mi',
-                'mo',
-                'mn',
-                'ms',
-                'mtext',
-                'annotation-xml'
-            ],
-
-            Parser::SVG_NAMESPACE => [
-                'foreignObject',
-                'desc',
-                'title'
-            ]
-        ];
-
-        return $this->hasElementInScopeHandler($target, $list);
+        # {elided}
+        return $this->hasElementInScopeHandler($target, self::GENERAL_SCOPE);
     }
 
     public function hasElementInListItemScope($target): bool {
-        # The stack of open elements is said to have a particular element in list item scope when it has that element in the specific scope consisting of the following element types:
-        #
-        # All the element types listed above for the has an element in scope algorithm.
-        # ol in the HTML namespace
-        # ul in the HTML namespace
-
-        $list = [
-            Parser::HTML_NAMESPACE => [
-                'applet',
-                'caption',
-                'html',
-                'table',
-                'td',
-                'th',
-                'marquee',
-                'object',
-                'template',
-                'ol',
-                'ul'
-            ],
-
-            Parser::MATHML_NAMESPACE => [
-                'mi',
-                'mo',
-                'mn',
-                'ms',
-                'mtext',
-                'annotation-xml'
-            ],
-
-            Parser::SVG_NAMESPACE => [
-                'foreignObject',
-                'desc',
-                'title'
-            ]
-        ];
-
-        return $this->hasElementInScopeHandler($target, $list);
+        $scope = self::GENERAL_SCOPE;
+        $scope[Parser::HTML_NAMESPACE] = array_merge($scope[Parser::HTML_NAMESPACE], self::LIST_ITEM_SCOPE);
+        return $this->hasElementInScopeHandler($target, $scope);
     }
 
     public function hasElementInButtonScope($target): bool {
-        # The stack of open elements is said to have a particular element in button
-        # scope when it has that element in the specific scope consisting of the
-        # following element types:
-        #
-        # All the element types listed above for the has an element in scope algorithm.
-        # button in the HTML namespace
-
-        $list = [
-            Parser::HTML_NAMESPACE => [
-                'applet',
-                'caption',
-                'html',
-                'table',
-                'td',
-                'th',
-                'marquee',
-                'object',
-                'template',
-                'button'
-            ],
-
-            Parser::MATHML_NAMESPACE => [
-                'mi',
-                'mo',
-                'mn',
-                'ms',
-                'mtext',
-                'annotation-xml'
-            ],
-
-            Parser::SVG_NAMESPACE => [
-                'foreignObject',
-                'desc',
-                'title'
-            ]
-        ];
-
-        return $this->hasElementInScopeHandler($target, $list);
+        $scope = self::GENERAL_SCOPE;
+        $scope[Parser::HTML_NAMESPACE] = array_merge($scope[Parser::HTML_NAMESPACE], self::BUTTON_SCOPE);
+        return $this->hasElementInScopeHandler($target, $scope);
     }
 
     public function hasElementInTableScope($target): bool {
-        # The stack of open elements is said to have a particular element in table scope
-        # when it has that element in the specific scope consisting of the following
-        # element types:
-        #
-        # All the element types listed above for the has an element in scope algorithm.
-        # html in the HTML namespace
-        # table in the HTML namespace
-        # template in the HTML namespace
-
-        // Not sure what to do here. I am going to assume the elements without a
-        // namespace in the element types listed above are meant for the HTML namespace.
-        // If so then these listed here are redundant. My interpretation therefore has
-        // this being an alias for hasElementInScope.
-
-        return $this->hasElementInScope($target);
+        return $this->hasElementInScopeHandler($target, self::TABLE_SCOPE);
     }
 
     public function hasElementInSelectScope(string $target): bool {
-        # The stack of open elements is said to have a particular element in select
-        # scope when it has that element in the specific scope consisting of all element
-        # types except the following:
+        # The stack of open elements is said to have a particular element 
+        #   in select scope when it has that element in the specific scope 
+        #   consisting of all element types EXCEPT the following:
         #
-        # All the element types listed above for the has an element in scope algorithm.
         # optgroup in the HTML namespace
         # option in the HTML namespace
-
-        $list = [
-            Parser::HTML_NAMESPACE => [
-                'applet',
-                'caption',
-                'html',
-                'table',
-                'td',
-                'th',
-                'marquee',
-                'object',
-                'template',
-                'button',
-                'optgroup',
-                'option'
-            ],
-
-            Parser::MATHML_NAMESPACE => [
-                'mi',
-                'mo',
-                'mn',
-                'ms',
-                'mtext',
-                'annotation-xml'
-            ],
-
-            Parser::SVG_NAMESPACE => [
-                'foreignObject',
-                'desc',
-                'title'
-            ]
-        ];
-
-        return $this->hasElementInScopeHandler($target, $list);
+        return $this->hasElementInScopeHandler($target, self::SELECT_SCOPE, false);
     }
 
-
-    protected function hasElementInScopeHandler($target, array $list): bool {
-        # 1. Initialize node to be the current node (the bottommost node of the stack).
-        // Handled by loop.
-        foreach (array_reverse($this->_storage) as $node) {
-            # 2. If node is the target node, terminate in a match state.
-            if ($target instanceof \DOMElement) {
+    protected function hasElementInScopeHandler($target, array $list, $matchType = true): bool {
+        assert(is_string($target) || $target instanceof \DOMElement, new \Exception("Invalid input type"));
+        # The stack of open elements is said to have an element target node
+        #   in a specific scope consisting of a list of element types list
+        #   when the following algorithm terminates in a match state:
+        if ($target instanceof \DOMElement) {
+            # Initialize node to be the current node (the bottommost node of the stack).
+            foreach ($this as $node) {
+                # If node is the target node, terminate in a match state.
                 if ($node->isSameNode($target)) {
                     return true;
                 }
-            } elseif (is_string($target)) {
+                # Otherwise, if node is one of the element types in list, terminate in a failure state.
+                $ns = $node->namespaceURI ?? Parser::HTML_NAMESPACE;
+                if (in_array($node->nodeName, $list[$ns] ?? []) === $matchType) {
+                    return false;
+                }
+                # Otherwise, set node to the previous entry in the stack of 
+                #   open elements and return to step 2. (This will never fail, 
+                #   since the loop will always terminate in the previous step 
+                #   if the top of the stack — an html element — is reached.)
+            }
+        } else {
+            # Initialize node to be the current node (the bottommost node of the stack).
+            foreach ($this as $node) {
+                # If node is the target node, terminate in a match state.
                 if ($node->nodeName === $target) {
                     return true;
                 }
-            }
-
-            # 3. Otherwise, if node is one of the element types in list, terminate in a
-            # failure state.
-            else {
-                foreach ($list as $namespace => $subList) {
-                    if ($namespace === Parser::HTML_NAMESPACE) {
-                        $namespace = '';
-                    }
-
-                    if ($node->namespaceURI !== $namespace) {
-                        continue;
-                    }
-
-                    foreach ($subList as $name) {
-                        if ($node->nodeName === $name) {
-                            return false;
-                        }
-                    }
+                # Otherwise, if node is one of the element types in list, terminate in a failure state.
+                $ns = $node->namespaceURI ?? Parser::HTML_NAMESPACE;
+                if (in_array($node->nodeName, $list[$ns] ?? []) === $matchType) {
+                    return false;
                 }
+                # Otherwise, set node to the previous entry in the stack of 
+                #   open elements and return to step 2. (This will never fail, 
+                #   since the loop will always terminate in the previous step 
+                #   if the top of the stack — an html element — is reached.)
             }
-
-            # Otherwise, set node to the previous entry in the stack of open elements and
-            # return to step 2. (This will never fail, since the loop will always terminate
-            # in the previous step if the top of the stack — an html element — is reached.)
-            // Handled by loop.
         }
-
-        return false;
     }
 
-
     public function __get($property) {
-        $value = parent::__get($property);
-        if (!is_null($value)) {
-            return $value;
-        }
-
         switch ($property) {
             case 'adjustedCurrentNode':
                 # The adjusted current node is the context element if the parser was created by
                 # the HTML fragment parsing algorithm and the stack of open elements has only one
                 # element in it (fragment case); otherwise, the adjusted current node is the
                 # current node.
-                return ($this->fragmentCase && $this->length === 1) ? $this->fragmentContext : $this->currentNode;
-            break;
+                return ($this->fragmentCase && count($this) === 1) ? $this->fragmentContext : $this->__get('currentNode');
             case 'adjustedCurrentNodeName':
-                $adjustedCurrentNode = $this->adjustedCurrentNode;
+                $adjustedCurrentNode = $this->__get('adjustedCurrentNode');
                 return (!is_null($adjustedCurrentNode)) ? $adjustedCurrentNode->nodeName : null;
-            break;
             case 'adjustedCurrentNodeNamespace':
-                $adjustedCurrentNode = $this->adjustedCurrentNode;
+                $adjustedCurrentNode = $this->__get('adjustedCurrentNode');
                 return (!is_null($adjustedCurrentNode)) ? $adjustedCurrentNode->namespaceURI: null;
-            break;
             case 'currentNode':
-                $currentNode = end($this->_storage);
-                return ($currentNode) ? $currentNode : null;
-            break;
+                return $this->isEmpty() ? null : $this->top();
             case 'currentNodeName':
-                $currentNode = $this->currentNode;
+                $currentNode = $this->__get('currentNode');
                 return ($currentNode && $currentNode->nodeType) ? $currentNode->nodeName : null;
-            break;
             case 'currentNodeNamespace':
-                $currentNode = $this->currentNode;
+                $currentNode = $this->__get('currentNode');
                 return (!is_null($currentNode)) ? $currentNode->namespaceURI: null;
-            break;
-            default: return null;
-        }
-    }
-
-    // Used when listing expected elements when returning parse errors
-    public function __toString(): string {
-        if (count($this->_storage) > 1) {
-            // Don't output the name of the root element.
-            for ($i = 1, $temp = []; $i < count($this->_storage) - 1; $i++) {
-                $temp[] = $this->_storage[$i]->nodeName;
-            }
-
-            return implode(', ', array_unique($temp));
-        } else {
-            return '';
+            default: 
+                return null;
         }
     }
 }

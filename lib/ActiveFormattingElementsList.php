@@ -17,8 +17,10 @@ namespace dW\HTML5;
 class ActiveFormattingElementsList extends Stack {
     protected $_storage = [];
     protected $stack;
+    protected $tree;
 
-    public function __construct(OpenElementsStack $stack) {
+    public function __construct(TreeBuilder $tree, OpenElementsStack $stack) {
+        $this->tree = $tree;
         $this->stack = $stack;
     }
 
@@ -143,7 +145,7 @@ class ActiveFormattingElementsList extends Stack {
         # 8. Create: Insert an HTML element for the token for which the element entry
         # was created, to obtain new element.
         create:
-        $element = TreeBuilder::insertStartTagToken($entry['token']);
+        $element = $this->tree->insertStartTagToken($entry['token']);
 
         # 9. Replace the entry for entry in the list with an entry for new element.
         $this->_storage[key($this->_storage)]['element'] = $element;

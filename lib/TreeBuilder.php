@@ -193,8 +193,23 @@ class TreeBuilder {
         'ychannelselector'          => 'yChannelSelector',
         'zoomandpan'                => 'zoomAndPan',
     ];
+    # The following elements have varying levels of special parsing rules: HTML’s
+    # address, applet, area, article, aside, base, basefont, bgsound, blockquote,
+    # body, br, button, caption, center, col, colgroup, dd, details, dir, div, dl,
+    # dt, embed, fieldset, figcaption, figure, footer, form, frame, frameset, h1,
+    # h2, h3, h4, h5, h6, head, header, hr, html, iframe, img, input, li, link,
+    # listing, main, marquee, meta, nav, noembed, noframes, noscript, object, ol, p,
+    # param, plaintext, pre, script, section, select, source, style, summary, table,
+    # tbody, td, template, textarea, tfoot, th, thead, title, tr, track, ul, wbr,
+    # xmp; MathML mi, MathML mo, MathML mn, MathML ms, MathML mtext, and MathML
+    # annotation-xml; and SVG foreignObject, SVG desc, and SVG title.    
+    protected const SPECIAL_ELEMENTS = [
+        Parser::HTML_NAMESPACE   => ['address', 'applet', 'area', 'article', 'aside', 'base', 'basefont', 'bgsound', 'blockquote', 'body', 'br', 'button', 'caption', 'center', 'col', 'colgroup', 'dd', 'details', 'dir', 'div', 'dl', 'dt', 'embed', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hr', 'html', 'iframe', 'img', 'input', 'li', 'link', 'listing', 'main', 'marquee', 'meta', 'nav', 'noembed', 'noframes', 'noscript', 'object', 'ol', 'p', 'param', 'plaintext', 'pre', 'script', 'section', 'select', 'source', 'style', 'summary', 'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'title', 'tr', 'track', 'ul', 'wbr', 'xmp'],
+        Parser::MATHML_NAMESPACE => ['mi', 'mo', 'mn', 'ms', 'mtext', 'annotation-xml'],
+        Parser::SVG_NAMESPACE    => ['foreignObject', 'desc', 'title'],
+    ];
 
-    public function __construct(Document $dom, $formElement, bool $fragmentCase = false, $fragmentContext = null, OpenElementsStack $stack, Stack $templateInsertionModes, Tokenizer $tokenizer, ParseError $errorHandler, Data $data) {
+    public function __construct(Document $dom, $formElement, bool $fragmentCase = false, $fragmentContext = null, OpenElementsStack $stack, TemplateInsertionModesStack $templateInsertionModes, Tokenizer $tokenizer, ParseError $errorHandler, Data $data) {
         // If the form element isn't an instance of DOMElement that has a node name of
         // "form" or null then there's a problem.
         if (!is_null($formElement) && !($formElement instanceof \DOMElement && $formElement->nodeName === 'form')) {
@@ -221,7 +236,7 @@ class TreeBuilder {
         $this->errorHandler = $errorHandler;
 
         // Initialize the list of active formatting elements.
-        $this->activeFormattingElementsList = new ActiveFormattingElementsList($stack);
+        $this->activeFormattingElementsList = new ActiveFormattingElementsList($this, $stack);
 
         $this->insertionMode = self::INITIAL_MODE;
         $this->quirksMode = self::QUIRKS_MODE_OFF;
@@ -238,6 +253,7 @@ class TreeBuilder {
             assert($iterations++ < 50, new LoopException("Probable infinite loop detected in HTML content handling"));
             $adjustedCurrentNode = $this->stack->adjustedCurrentNode;
             $adjustedCurrentNodeName = $this->stack->adjustedCurrentNodeName;
+            assert(!$adjustedCurrentNode || $adjustedCurrentNodeName, new \Exception("The adjusted current node must have a name if not null"));
             $adjustedCurrentNodeNamespace = $this->stack->adjustedCurrentNodeNamespace;
 
             # 13.2.6 Tree construction
@@ -246,7 +262,7 @@ class TreeBuilder {
             # appropriate steps from the following list, known as the tree construction dispatcher:
             #
             # If the stack of open elements is empty
-            if ($this->stack->length === 0 ||
+            if (count($this->stack) === 0 ||
                 # If the adjusted current node is an element in the HTML namespace
                 // PHP's DOM returns null when the namespace isn't specified... eg. HTML.
                 is_null($adjustedCurrentNodeNamespace) || (
@@ -747,7 +763,7 @@ class TreeBuilder {
                 elseif ($token->name === 'template') {
                     # If there is no template element on the stack of open elements, then this is a
                     # parse error; ignore the token.
-                    if ($this->stack->search('template') === -1) {
+                    if ($this->stack->find('template') === -1) {
                         $this->error(ParseError::UNEXPECTED_END_TAG);
                     }
                     # Otherwise, run these steps:
@@ -916,7 +932,7 @@ class TreeBuilder {
                     $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
                     # Remove the node pointed to by the head element pointer from the stack of open
                     # elements. (It might not be the current node at this point.)
-                    $key = $this->stack->search($this->headElement);
+                    $key = $this->stack->findSame($this->headElement);
                     if ($key !== -1) {
                         unset($this->stack[$key]);
                     }
@@ -1015,7 +1031,7 @@ class TreeBuilder {
                     $this->error(ParseError::UNEXPECTED_START_TAG, 'html');
                     # If there is a template element on the stack of open elements, then ignore the
                     # token.
-                    if ($this->stack->search('template') === -1) {
+                    if ($this->stack->find('template') === -1) {
                         # Otherwise, for each attribute on the token, check to see if the attribute is
                         # already present on the top element of the stack of open elements. If it is
                         # not, add the attribute and its corresponding value to that element.
@@ -1040,7 +1056,7 @@ class TreeBuilder {
                     # If the second element on the stack of open elements is not a body element, if
                     # the stack of open elements has only one node on it, or if there is a template
                     # element on the stack of open elements, then ignore the token. (fragment case)
-                    if (!($this->stack[1]->tagName !== 'body' || $this->stack->length === 1 || $this->stack->search('template') !== -1)) {
+                    if (!($this->stack[1]->tagName !== 'body' || count($this->stack) === 1 || $this->stack->find('template') !== -1)) {
                         # Otherwise, set the frameset-ok flag to "not ok"; then, for each attribute on
                         # the token, check to see if the attribute is already present on the body
                         # element (the second element) on the stack of open elements, and if it is not,
@@ -1064,7 +1080,7 @@ class TreeBuilder {
                     # element on the stack of open elements is not a body element, then ignore the
                     # token. (fragment case)
                     # If the frameset-ok flag is set to "not ok", ignore the token.
-                    if (!($this->stack->length === 1 || $this->stack[1]->tagName !== 'body' || $this->framesetOk === false)) {
+                    if (!(count($this->stack) === 1 || $this->stack[1]->tagName !== 'body' || $this->framesetOk === false)) {
                         # Otherwise, run the following steps:
                         #
                         # 1. Remove the second element on the stack of open elements from its parent
@@ -1075,7 +1091,7 @@ class TreeBuilder {
                         }
                         # 2. Pop all the nodes from the bottom of the stack of open elements, from the
                         # current node up to, but not including, the root html element.
-                        for ($i = $this->stack->length - 1; $i > 0; $i--) {
+                        for ($i = count($this->stack) - 1; $i > 0; $i--) {
                             $this->stack->pop();
                         }
                         # 3. Insert an HTML element for the token.
@@ -1094,7 +1110,6 @@ class TreeBuilder {
                     if ($this->stack->hasElementInButtonScope('p')) {
                         $this->closePElement();
                     }
-
                     # Insert an HTML element for the token.
                     $this->insertStartTagToken($token);
                 }
@@ -1111,7 +1126,7 @@ class TreeBuilder {
                     # off the stack of open elements.
                     $currentNodeName = $this->stack->currentNodeName;
                     $currentNodeNamespace = $this->stack->currentNodeNamespace;
-                    if ($currentNodeNamespace === '' && ($currentNodeName === 'h1' || $currentNodeName === 'h2' || $currentNodeName === 'h3' || $currentNodeName === 'h4' || $currentNodeName === 'h5' || $currentNodeName === 'h6')) {
+                    if ($currentNodeNamespace === null && ($currentNodeName === 'h1' || $currentNodeName === 'h2' || $currentNodeName === 'h3' || $currentNodeName === 'h4' || $currentNodeName === 'h5' || $currentNodeName === 'h6')) {
                         $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                         $this->stack->pop();
                     }
@@ -1146,7 +1161,6 @@ class TreeBuilder {
                             $nextToken->data = substr($nextToken->data, 1);
                         }
                     }
-
                     // Process the next token
                     $token = $nextToken;
                     goto ProcessToken;
@@ -1155,7 +1169,7 @@ class TreeBuilder {
                 elseif ($token->name === 'form') {
                     # If the form element pointer is not null, and there is no template element on
                     # the stack of open elements, then this is a parse error; ignore the token.
-                    $templateInStack = ($this->stack->search('template') !== -1);
+                    $templateInStack = ($this->stack->find('template') !== -1);
                     if (!is_null($this->formElement) && !$templateInStack) {
                         $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                     }
@@ -1183,13 +1197,13 @@ class TreeBuilder {
 
                     # 2. Initialize node to be the current node (the bottommost node of the stack).
                     # 3. Loop: If node is an li element, then run these substeps:
-                    for ($i = $this->stack->length - 1; $i >= 0; $i--) {
+                    for ($i = count($this->stack) - 1; $i >= 0; $i--) {
                         $node = $this->stack[$i];
                         $nodeName = $node->nodeName;
 
                         if ($nodeName === 'li') {
                             # 1. Generate implied end tags, except for li elements.
-                            $this->stack->generateImpliedEndTags(["li"]);
+                            $this->stack->generateImpliedEndTags("li");
 
                             # 2. If the current node is not an li element, then this is a parse error.
                             if ($this->stack->currentNodeName !== 'li') {
@@ -1201,13 +1215,13 @@ class TreeBuilder {
                             $this->stack->popUntil('li');
 
                             # 4. Jump to the step labeled Done below.
-                            return true;
+                            break;
                         }
 
                         # 4. If node is in the special category, but is not an address, div, or p
                         # element, then jump to the step labeled Done below.
                         if ($nodeName !== 'address' && $nodeName !== 'div' && $nodeName !== 'p' && $this->isElementSpecial($node)) {
-                            return true;
+                            break;
                         }
 
                         # 5. Otherwise, set node to the previous entry in the stack of open elements and
@@ -1230,7 +1244,7 @@ class TreeBuilder {
                     $this->framesetOk = false;
 
                     # 2. Initialize node to be the current node (the bottommost node of the stack).
-                    for ($i = $this->stack->length - 1; $i >= 0; $i--) {
+                    for ($i = count($this->stack) - 1; $i >= 0; $i--) {
                         $node = $this->stack[$i];
                         $nodeName = $node->nodeName;
 
@@ -1240,7 +1254,7 @@ class TreeBuilder {
                         # 4. If node is a dt element, then run these substeps:
                         if ($nodeName === 'dd' || $nodeName === 'dt') {
                             # 1. Generate implied end tags, except for dd or dt elements.
-                            $this->stack->generateImpliedEndTags(['dd', 'dt']);
+                            $this->stack->generateImpliedEndTags('dd', 'dt');
 
                             # 2. If the current node is not a dd or dt element, then this is a parse error.
                             if ($this->stack->currentNodeName !== $nodeName) {
@@ -1249,16 +1263,16 @@ class TreeBuilder {
 
                             # 3. Pop elements from the stack of open elements until a dd or dt element has been
                             # popped from the stack.
-                            $this->stack->popUntil(['dd', 'dt']);
+                            $this->stack->popUntil('dd', 'dt');
 
                             # 4. Jump to the step labeled Done below.
-                            return true;
+                            break;
                         }
 
                         # 5. If node is in the special category, but is not an address, div, or p
                         # element, then jump to the step labeled Done below.
                         if ($nodeName !== 'address' && $nodeName !== 'div' && $nodeName !== 'p' && $this->isElementSpecial($node)) {
-                            return true;
+                            break;
                         }
 
                         # 6. Otherwise, set node to the previous entry in the stack of open elements and
@@ -1342,7 +1356,7 @@ class TreeBuilder {
                     # If the stack of open elements does not have a body element in scope, this is a
                     # parse error; ignore the token.
                     if (!$this->stack->hasElementInScope('body')) {
-                        $this->error(ParseError::UNEXPECTED_END_TAG, 'body');
+                        $this->error(ParseError::UNEXPECTED_END_TAG);
                     }
                     # Otherwise, if there is a node in the stack of open elements that is not either
                     # a dd element, a dt element, an li element, an optgroup element, an option
@@ -1351,21 +1365,11 @@ class TreeBuilder {
                     # element, a tr element, the body element, or the html element, then this is a
                     # parse error.
                     else {
-                        if ($this->stack->search(function($node) {
-                            $n = $node->nodeName;
-                            if ($n !== 'dd' && $n !== 'dt' && $n !== 'li' && $n !== 'optgroup' && $n !== 'option' && $n !== 'p' && $n !== 'rb' && $n !== 'rp' && $n !== 'rt' && $n !== 'rtc' && $n !== 'tbody' && $n !== 'td' && $n !== 'tfoot' && $n !== 'th' && $n !== 'thead' && $n !== 'tr' && $n !== 'body' && $n !== 'html') {
-                                return true;
-                            }
-
-                            return false;
-                        }) !== -1) {
-                            $this->error(ParseError::UNEXPECTED_END_TAG, 'body');
-                            return true;
+                        if ($this->stack->findNot('dd', 'dt', 'li', 'optgroup', 'option', 'p', 'rb', 'rp', 'rt', 'rtc', 'tbody', 'td', 'tfoot', 'th', 'thead', 'tr', 'body', 'html') > -1) {
+                            $this->error(ParseError::UNEXPECTED_END_TAG);
                         }
-
                         # Switch the insertion mode to "after body".
                         $this->insertionMode = self::AFTER_BODY_MODE;
-
                         // The only thing different between body and html here is that when processing
                         // an html end tag the token is reprocessed.
                         if ($token->name === 'html') {
@@ -1405,7 +1409,7 @@ class TreeBuilder {
                 elseif ($token->name === 'form') {
                     # If there is no template element on the stack of open elements, then run these
                     # substeps:
-                    if ($this->stack->search('template') === -1) {
+                    if ($this->stack->find('template') === -1) {
                         # 1. Let node be the element that the form element pointer is set to, or null if it
                         # is not set to an element.
                         $node = $this->formElement;
@@ -1424,7 +1428,10 @@ class TreeBuilder {
                             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                         }
                         # 6. Remove node from the stack of open elements
-                        $this->stack->remove($node);
+                        $key = $this->stack->findSame($node);
+                        if ($key > -1) {
+                            unset($this->stack[$key]);
+                        }
                     }
                     # If there is a template element on the stack of open elements, then run these
                     # substeps instead:
@@ -1452,7 +1459,7 @@ class TreeBuilder {
             # An end-of-file token
             elseif ($token instanceof EOFToken) {
                 # If the stack of template insertion modes is not empty, then process the token using the rules for the "in template" insertion mode.
-                if ($this->templateInsertionModes->length !== 0) {
+                if (count($this->templateInsertionModes) !== 0) {
                     $insertionMode = self::IN_TEMPLATE_MODE;
                     goto ProcessToken;
                 }
@@ -1463,16 +1470,8 @@ class TreeBuilder {
                 # a p element, an rb element, an rp element, an rt element, an rtc element, a
                 # tbody element, a td element, a tfoot element, a th element, a thead element, a
                 # tr element, the body element, or the html element, then this is a parse error.
-                if ($this->stack->search(function($node) {
-                    $n = $node->nodeName;
-                    if ($n !== 'dd' && $n !== 'dt' && $n !== 'li' && $n !== 'optgroup' && $n !== 'option' && $n !== 'p' && $n !== 'rb' && $n !== 'rp' && $n !== 'rt' && $n !== 'rtc' && $n !== 'tbody' && $n !== 'td' && $n !== 'tfoot' && $n !== 'th' && $n !== 'thead' && $n !== 'tr' && $n !== 'body' && $n !== 'html') {
-                        return true;
-                    }
-
-                    return false;
-                }) !== -1) {
+                if ($this->stack->findNot('dd', 'dt', 'li', 'optgroup', 'option', 'p', 'rb', 'rp', 'rt', 'rtc', 'tbody', 'td', 'tfoot', 'th', 'thead', 'tr', 'body', 'html') > -1) {
                     $this->error(ParseError::UNEXPECTED_END_TAG, 'body');
-                    return true;
                 }
 
                 # 2. Stop parsing.
@@ -1675,10 +1674,10 @@ class TreeBuilder {
             # 3. Loop: If node's tag name, converted to ASCII lowercase, is the same as the
             # tag name of the token, pop elements from the stack of open elements until node
             # has been popped from the stack, and then abort these steps.
-            $count = $this->stack->length - 1;
+            $count = count($this->stack) - 1;
             while (true) {
                 if (strtolower($nodeName) === $token->name) {
-                    $this->stack->popUntil($node);
+                    $this->stack->popUntilSame($node);
                     break;
                 }
 
@@ -1728,12 +1727,12 @@ class TreeBuilder {
             #
             # 1. Let last template be the last template element in the stack of open
             # elements, if any.
-            $lastTemplateKey = $this->stack->search('template');
+            $lastTemplateKey = $this->stack->find('template');
             $lastTemplate = ($lastTemplateKey !== -1 ) ? $this->stack[$lastTemplateKey] : null;
 
             # 2. Let last table be the last table element in the stack of open elements, if
             # any.
-            $lastTableKey = $this->stack->search('table');
+            $lastTableKey = $this->stack->find('table');
             $lastTable = ($lastTableKey !== -1 ) ? $this->stack[$lastTableKey] : null;
 
             # 3. If there is a last template and either there is no last table, or there is
@@ -2035,7 +2034,7 @@ class TreeBuilder {
         $node = $this->stack->currentNode;
         $nodeName = $this->stack->currentNodeName;
         // Keeping up with the position, too.
-        $position = $this->stack->length - 1;
+        $position = count($this->stack) - 1;
 
         # 3. Loop: If node is the first node in the stack of open elements, then set
         # last to true, and, if the parser was originally created as part of the HTML
@@ -2176,11 +2175,11 @@ class TreeBuilder {
         # must run the following steps:
 
         # 1. Generate implied end tags, except for p elements.
-        $this->stack->generateImpliedEndTags(["p"]);
+        $this->stack->generateImpliedEndTags("p");
         # 2. If the current node is not a p element, then this is a parse error.
         $currentNodeName = $this->stack->currentNodeName;
         if ($currentNodeName !== 'p') {
-            $this->error(ParseError::UNEXPECTED_END_TAG, $currentNodeName);
+            $this->error(ParseError::UNEXPECTED_END_TAG);
         }
         # 3. Pop elements from the stack of open elements until a p element has been
         # popped from the stack.
@@ -2189,18 +2188,7 @@ class TreeBuilder {
 
     protected function isElementSpecial(Element $element): bool {
         $name = $element->nodeName;
-        $ns = $element->namespaceURI;
-
-        # The following elements have varying levels of special parsing rules: HTML’s
-        # address, applet, area, article, aside, base, basefont, bgsound, blockquote,
-        # body, br, button, caption, center, col, colgroup, dd, details, dir, div, dl,
-        # dt, embed, fieldset, figcaption, figure, footer, form, frame, frameset, h1,
-        # h2, h3, h4, h5, h6, head, header, hr, html, iframe, img, input, li, link,
-        # listing, main, marquee, meta, nav, noembed, noframes, noscript, object, ol, p,
-        # param, plaintext, pre, script, section, select, source, style, summary, table,
-        # tbody, td, template, textarea, tfoot, th, thead, title, tr, track, ul, wbr,
-        # xmp; MathML mi, MathML mo, MathML mn, MathML ms, MathML mtext, and MathML
-        # annotation-xml; and SVG foreignObject, SVG desc, and SVG title.
-        return (($ns === '' && ($name === 'address' || $name === 'applet' || $name === 'area' || $name === 'article' || $name === 'aside' || $name === 'base' || $name === 'basefont' || $name === 'bgsound' || $name === 'blockquote' || $name === 'body' || $name === 'br' || $name === 'button' || $name === 'caption' || $name === 'center' || $name === 'col' || $name === 'colgroup' || $name === 'dd' || $name === 'details' || $name === 'dir' || $name === 'div' || $name === 'dl' || $name === 'dt' || $name === 'embed' || $name === 'fieldset' || $name === 'figcaption' || $name === 'figure' || $name === 'footer' || $name === 'form' || $name === 'frame' || $name === 'frameset' || $name === 'h1' || $name === 'h2' || $name === 'h3' || $name === 'h4' || $name === 'h5' || $name === 'h6' || $name === 'head' || $name === 'header' || $name === 'hr' || $name === 'html' || $name === 'iframe' || $name === 'img' || $name === 'input' || $name === 'li' || $name === 'link' || $name === 'listing' || $name === 'main' || $name === 'marquee' || $name === 'meta' || $name === 'nav' || $name === 'noembed' || $name === 'noframes' || $name === 'noscript' || $name === 'object' || $name === 'ol' || $name === 'p' || $name === 'param' || $name === 'plaintext' || $name === 'pre' || $name === 'script' || $name === 'section' || $name === 'select' || $name === 'source' || $name === 'style' || $name === 'summary' || $name === 'table' || $name === 'tbody' || $name === 'td' || $name === 'template' || $name === 'textarea' || $name === 'tfoot' || $name === 'th' || $name === 'thead' || $name === 'title' || $name === 'tr' || $name === 'track' || $name === 'ul' || $name === 'wbr' || $name === 'xmp')) || ($ns === Parser::MATHML_NAMESPACE && ($name === 'mi' || $name === 'mo' || $name === 'mn' || $name === 'ms' || $name === 'mtext' || $name === 'annotation-xml')) || ($ns === Parser::SVG_NAMESPACE && ($name === 'foreignObject' || $name === 'desc' || $name === 'title')));
+        $ns = $element->namespaceURI ?? Parser::HTML_NAMESPACE;
+        return in_array($name, self::SPECIAL_ELEMENTS[$ns] ?? []);
     }
 }
