@@ -18,12 +18,6 @@ use dW\HTML5\TreeBuilder;
  * @covers \dW\HTML5\TreeBuilder
  */
 class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
-    protected const NS = [
-        Parser::HTML_NAMESPACE   => "",
-        Parser::SVG_NAMESPACE    => "svg ",
-        Parser::MATHML_NAMESPACE => "math ",
-    ];
-
     protected $out;
     protected $depth;
 
@@ -33,8 +27,10 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             $this->markTestIncomplete("Fragment tests still to be implemented");
         }
         // certain tests need to be patched to ignore unavoidable limitations of PHP's DOM
-        [$exp, $patched] = $this->patchTest($data, $fragment, $exp);
-        if ($patched) {
+        [$exp, $patched, $skip] = $this->patchTest($data, $fragment, $exp);
+        if (strlen($skip)) {
+            $this->markTestSkipped($skip);
+        } elseif ($patched) {
             $this->markAsRisky();
         }
         // convert parse error constants into standard symbols in specification
@@ -55,16 +51,20 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         $stack = new OpenElementsStack;
         $tokenizer = new Tokenizer($decoder, $stack, $errorHandler);
         $doc = new Document;
-        $treeBuilder = new TreeBuilder($doc, null, false, null, $stack, new TemplateInsertionModesStack, $tokenizer, $errorHandler, $decoder);
+        $treeBuilder = new TreeBuilder($doc, $decoder, $tokenizer, $errorHandler, $stack, new TemplateInsertionModesStack);
         // run the tree builder
         try {
             do {
                 $token = $tokenizer->createToken();
                 $treeBuilder->emitToken($token);
             } while (!$token instanceof EOFToken);
+        } catch (\DOMException $e) {
+            $this->markTestSkipped('Requires implementation of the "Coercing an HTML DOM into an infoset" specification section');
+            return;
         } catch (LoopException $e) {
             $act = $this->serializeTree($doc);
             $this->assertEquals($exp, $act, $e->getMessage()."\n".$treeBuilder->debugLog);
+            throw $e;
         } catch (NotImplementedException $e) {
             $this->markTestSkipped($e->getMessage());
             return;
@@ -76,6 +76,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
 
     protected function patchTest(string $data, $fragment, array $exp): array {
         $patched = false;
+        $skip = "";
         // comments outside the root element are silently dropped by the PHP DOM
         for ($a = 0; $a < sizeof($exp); $a++) {
             if (strpos($exp[$a], "| <!--") === 0) {
@@ -83,7 +84,10 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                 $patched = true;
             }
         }
-        return [$exp, $patched];
+        if ($data === '<!DOCTYPE html><html xml:lang=bar><html xml:lang=foo>') {
+            $skip = 'Requires implementation of the "Coercing an HTML DOM into an infoset" specification section';
+        }
+        return [$exp, $patched, $skip];
     }
 
     protected function push(string $data): void {
@@ -111,8 +115,9 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
 
     protected function serializeElement(\DOMElement $e): void {
         if ($e->namespaceURI) {
-            $prefix = $ns[$e->namespaceURI] ?? "";
+            $prefix = Parser::NAMESPACE_MAP[$e->namespaceURI];
             assert((bool) $prefix, new \Exception("Prefix for namespace {$e->namespaceURI} is not defined"));
+            $prefix .= " ";
         } else {
             $prefix = "";
         }

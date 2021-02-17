@@ -2097,7 +2097,7 @@ class Tokenizer {
                         #   Create a comment token whose data is the "[CDATA[" string.
                         #   Switch to the bogus comment state.
                         $this->data->consume(7);
-                        if ($this->stack->adjustedCurrentNode && $this->stack->adjustedCurrentNode->namespaceURI !== Parser::HTML_NAMESPACE) {
+                        if ($this->stack->adjustedCurrentNode && ($this->stack->adjustedCurrentNode->namespaceURI ?? Parser::HTML_NAMESPACE) !== Parser::HTML_NAMESPACE) {
                             $this->state = self::CDATA_SECTION_STATE;
                         } else {
                             $this->error(ParseError::CDATA_IN_HTML_CONTENT);

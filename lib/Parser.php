@@ -47,6 +47,14 @@ class Parser {
     const XML_NAMESPACE = 'http://www.w3.org/XML/1998/namespace';
     const XMLNS_NAMESPACE = 'http://www.w3.org/2000/xmlns/';
 
+    const NAMESPACE_MAP = [
+        self::HTML_NAMESPACE   => "",
+        self::MATHML_NAMESPACE => "math",
+        self::SVG_NAMESPACE    => "svg",
+        self::XLINK_NAMESPACE  => "xlink",
+        self::XML_NAMESPACE    => "xml",
+        self::XMLNS_NAMESPACE  => "xmlns",
+    ];
 
     // Protected construct used for creating an instance to access properties which must
     // be reset on every parse

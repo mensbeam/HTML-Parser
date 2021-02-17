@@ -209,7 +209,7 @@ class TreeBuilder {
         Parser::SVG_NAMESPACE    => ['foreignObject', 'desc', 'title'],
     ];
 
-    public function __construct(Document $dom, $formElement, bool $fragmentCase = false, $fragmentContext = null, OpenElementsStack $stack, TemplateInsertionModesStack $templateInsertionModes, Tokenizer $tokenizer, ParseError $errorHandler, Data $data) {
+    public function __construct(Document $dom, Data $data, Tokenizer $tokenizer, ParseError $errorHandler, OpenElementsStack $stack, TemplateInsertionModesStack $templateInsertionModes, ?\DOMElement $formElement = null, bool $fragmentCase = false, $fragmentContext = null) {
         // If the form element isn't an instance of DOMElement that has a node name of
         // "form" or null then there's a problem.
         if (!is_null($formElement) && !($formElement instanceof \DOMElement && $formElement->nodeName === 'form')) {
@@ -250,7 +250,7 @@ class TreeBuilder {
         // Loop used for reprocessing.
         $iterations = 0;
         while (true) {
-            assert($iterations++ < 50, new LoopException("Probable infinite loop detected in HTML content handling"));
+            assert($iterations++ < 50, new LoopException("Probable infinite loop detected in HTML content handling (outer reprocessing)"));
             $adjustedCurrentNode = $this->stack->adjustedCurrentNode;
             $adjustedCurrentNodeName = $this->stack->adjustedCurrentNodeName;
             assert(!$adjustedCurrentNode || $adjustedCurrentNodeName, new \Exception("The adjusted current node must have a name if not null"));
@@ -321,11 +321,11 @@ class TreeBuilder {
     protected function parseTokenInHTMLContent(Token $token, int $insertionMode = null): bool {
         $iterations = 0;
         ProcessToken:
-        assert($iterations++ < 50, new LoopException("Probable infinite loop detected in HTML content handling"));
+        assert($iterations++ < 50, new LoopException("Probable infinite loop detected in HTML content handling (inner reprocessing)"));
         $insertionMode = $insertionMode ?? $this->insertionMode;
         assert((function() use ($insertionMode) {
             $mode = self::INSERTION_MODE_NAMES[$insertionMode] ?? $insertionMode;
-            $this->debugLog .= "    Mode: $mode\n";
+            $this->debugLog .= "    Mode: $mode (".(string) $this->stack.")\n";
             return true;
         })());
 
@@ -513,7 +513,7 @@ class TreeBuilder {
                 # Create an element for the token in the HTML namespace, with the Document as
                 # the intended parent. Append it to the Document object. Put this element in the
                 # stack of open elements.
-                $element = $this->insertStartTagToken($token, $this->DOM);
+                $this->insertStartTagToken($token, $this->DOM);
 
                 # Switch the insertion mode to "before head".
                 $this->insertionMode = self::BEFORE_HEAD_MODE;
@@ -539,7 +539,7 @@ class TreeBuilder {
             }
 
             # The document element can end up being removed from the Document object, e.g.,
-            # by scripts; nothing in particular happens in such cases, content goto ProcessTokens
+            # by scripts; nothing in particular happens in such cases, content continues
             # being appended to the nodes as described in the next section.
             // Good to know. There's no scripting in this implementation, though.
         }
@@ -579,7 +579,7 @@ class TreeBuilder {
             # An end tag whose tag name is one of: "head", "body", "html", "br"
             #   Act as described in the "anything else" entry below.
             # Any other end tag
-            elseif ($token instanceof EndTagToken && $token->name !== 'head' && $token->name !== 'body' && $token->name !== 'html' && $token->name === 'br') {
+            elseif ($token instanceof EndTagToken && $token->name !== 'head' && $token->name !== 'body' && $token->name !== 'html' && $token->name !== 'br') {
                 # Parse error. Ignore the token.
                 $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
             }
@@ -1028,7 +1028,7 @@ class TreeBuilder {
                 # A start tag whose tag name is "html"
                 if ($token->name === 'html') {
                     # Parse error.
-                    $this->error(ParseError::UNEXPECTED_START_TAG, 'html');
+                    $this->error(ParseError::UNEXPECTED_START_TAG);
                     # If there is a template element on the stack of open elements, then ignore the
                     # token.
                     if ($this->stack->find('template') === -1) {
@@ -1052,17 +1052,16 @@ class TreeBuilder {
                 # A start tag whose tag name is "body"
                 elseif ($token->name === 'body') {
                     # Parse error.
-                    $this->error(ParseError::UNEXPECTED_START_TAG, 'body');
+                    $this->error(ParseError::UNEXPECTED_START_TAG);
                     # If the second element on the stack of open elements is not a body element, if
                     # the stack of open elements has only one node on it, or if there is a template
                     # element on the stack of open elements, then ignore the token. (fragment case)
-                    if (!($this->stack[1]->tagName !== 'body' || count($this->stack) === 1 || $this->stack->find('template') !== -1)) {
+                    if (!(count($this->stack) === 1 || $this->stack[1]->nodeName !== 'body' || $this->stack->find('template') > -1)) {
                         # Otherwise, set the frameset-ok flag to "not ok"; then, for each attribute on
                         # the token, check to see if the attribute is already present on the body
                         # element (the second element) on the stack of open elements, and if it is not,
                         # add the attribute and its corresponding value to that element.
                         $this->framesetOk = false;
-
                         $body = $this->stack[1];
                         foreach ($token->attributes as $a) {
                             if (!$body->hasAttribute($a->name)) {
@@ -1168,9 +1167,9 @@ class TreeBuilder {
                 # A start tag whose tag name is "form"
                 elseif ($token->name === 'form') {
                     # If the form element pointer is not null, and there is no template element on
-                    # the stack of open elements, then this is a parse error; ignore the token.
-                    $templateInStack = ($this->stack->find('template') !== -1);
-                    if (!is_null($this->formElement) && !$templateInStack) {
+                    #   the stack of open elements, then this is a parse error; ignore the token.
+                    $templateInStack = ($this->stack->find('template') > -1);
+                    if ($this->formElement && !$templateInStack) {
                         $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                     }
                     # Otherwise:
@@ -1185,7 +1184,7 @@ class TreeBuilder {
                         # the stack of open elements, set the form element pointer to point to the
                         # element created.
                         $form = $this->insertStartTagToken($token);
-                        if ($templateInStack) {
+                        if (!$templateInStack) {
                             $this->formElement = $form;
                         }
                     }
@@ -1197,10 +1196,8 @@ class TreeBuilder {
 
                     # 2. Initialize node to be the current node (the bottommost node of the stack).
                     # 3. Loop: If node is an li element, then run these substeps:
-                    for ($i = count($this->stack) - 1; $i >= 0; $i--) {
-                        $node = $this->stack[$i];
+                    foreach ($this->stack as $node) {
                         $nodeName = $node->nodeName;
-
                         if ($nodeName === 'li') {
                             # 1. Generate implied end tags, except for li elements.
                             $this->stack->generateImpliedEndTags("li");
@@ -1244,8 +1241,7 @@ class TreeBuilder {
                     $this->framesetOk = false;
 
                     # 2. Initialize node to be the current node (the bottommost node of the stack).
-                    for ($i = count($this->stack) - 1; $i >= 0; $i--) {
-                        $node = $this->stack[$i];
+                    foreach ($this->stack as $node) {
                         $nodeName = $node->nodeName;
 
                         // Combining these two sets of instructions as they're identical except for the
@@ -1347,8 +1343,7 @@ class TreeBuilder {
                 # An end tag whose tag name is "template"
                 if ($token->name === 'template') {
                     # Process the token using the rules for the "in head" insertion mode.
-                    $insertionMode = self::IN_HEAD_MODE;
-                    goto ProcessToken;
+                    return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
                 }
                 # An end tag whose tag name is "body"
                 # An end tag whose tag name is "html"
@@ -1369,7 +1364,7 @@ class TreeBuilder {
                             $this->error(ParseError::UNEXPECTED_END_TAG);
                         }
                         # Switch the insertion mode to "after body".
-                        $this->insertionMode = self::AFTER_BODY_MODE;
+                        $insertionMode = $this->insertionMode = self::AFTER_BODY_MODE;
                         // The only thing different between body and html here is that when processing
                         // an html end tag the token is reprocessed.
                         if ($token->name === 'html') {
@@ -1410,14 +1405,14 @@ class TreeBuilder {
                     # If there is no template element on the stack of open elements, then run these
                     # substeps:
                     if ($this->stack->find('template') === -1) {
-                        # 1. Let node be the element that the form element pointer is set to, or null if it
-                        # is not set to an element.
+                        # 1. Let node be the element that the form element pointer is set to, 
+                        #  or null if it is not set to an element.
                         $node = $this->formElement;
                         # 2. Set the form element pointer to null.
                         $this->formElement = null;
                         # 3. If node is null or if the stack of open elements does not have node in
                         # scope, then this is a parse error; return and ignore the token.
-                        if (is_null($node) || !$this->stack->hasElementInScope($node)) {
+                        if (!$node || !$this->stack->hasElementInScope($node)) {
                             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                             return true;
                         }
@@ -1460,8 +1455,7 @@ class TreeBuilder {
             elseif ($token instanceof EOFToken) {
                 # If the stack of template insertion modes is not empty, then process the token using the rules for the "in template" insertion mode.
                 if (count($this->templateInsertionModes) !== 0) {
-                    $insertionMode = self::IN_TEMPLATE_MODE;
-                    goto ProcessToken;
+                    return $this->parseTokenInHTMLContent($token, self::IN_TEMPLATE_MODE);
                 }
 
                 # Otherwise, follow these steps:
@@ -1475,7 +1469,7 @@ class TreeBuilder {
                 }
 
                 # 2. Stop parsing.
-                // Abort!
+                return true;
             }
         }
         // IMPLEMENTATION PENDING
@@ -1716,8 +1710,8 @@ class TreeBuilder {
 
         # 1. If there was an override target specified, then let target be the override
         # target.
-        $target = (!is_null($overrideTarget)) ? $overrideTarget : $this->stack->currentNode;
-
+        $target = $overrideTarget ?? $this->stack->currentNode;
+        assert(isset($target), new \Exception("Open elements stack is empty"));
         # 2. Determine the adjusted insertion location using the first matching steps
         # from the following list: If foster parenting is enabled and target is a table,
         # tbody, tfoot, thead, or tr element
@@ -1869,10 +1863,7 @@ class TreeBuilder {
     }
 
     public function insertStartTagToken(StartTagToken $token, \DOMNode $intendedParent = null, string $namespace = null): Element {
-        if (!is_null($namespace)) {
-            $namespace = $token->namespace;
-        }
-
+        $namespace = $namespace ?? $token->namespace;
         # When the steps below require the UA to create an element for a token in a
         # particular given namespace and with a particular intended parent, the UA must
         # run the following steps:
@@ -1901,10 +1892,10 @@ class TreeBuilder {
 
         # 8. Append each attribute in the given token to element.
         foreach ($token->attributes as $a) {
-            if (!isset($namespace) || $namespace === Parser::HTML_NAMESPACE) {
+            if (!$a->namespace || $a->namespace === Parser::HTML_NAMESPACE) {
                 $element->setAttribute($a->name, $a->value);
             } else {
-                $element->setAttributeNS($namespace, $a->name, $a->value);
+                $element->setAttributeNS($a->namespace, $a->name, $a->value);
             }
         }
 

@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace dW\HTML5;
 
-abstract class Stack implements \ArrayAccess {
+abstract class Stack implements \ArrayAccess, \Countable, \IteratorAggregate {
     protected $_storage = [];
     protected $fragmentCase;
     protected $fragmentContext;
@@ -23,27 +23,33 @@ abstract class Stack implements \ArrayAccess {
 
     public function offsetUnset($offset) {
         assert($offset >= 0 && $offset < count($this->_storage), new Exception(Exception::STACK_INVALID_INDEX, $offset));
-
-        unset($this->_storage[$offset]);
-        // Reindex the array.
-        $this->_storage = array_values($this->_storage);
+        array_splice($this->_storage, $offset, 1, []);
     }
 
     public function offsetGet($offset) {
         assert($offset >= 0 && $offset < count($this->_storage), new Exception(Exception::STACK_INVALID_INDEX, $offset));
-
         return $this->_storage[$offset];
+    }
+    
+    public function count(): int {
+        return count($this->_storage);
+    }
+
+    public function getIterator(): \Traversable {
+        for ($a = count($this->_storage) - 1; $a > -1; $a--) {
+            yield $a => $this->_storage[$a];
+        }
     }
 
     public function pop() {
         return array_pop($this->_storage);
     }
 
-    public function __get($property) {
-        switch ($property) {
-            case 'length': return count($this->_storage);
-            break;
-            default: return null;
-        }
+    public function isEmpty(): bool {
+        return !$this->_storage;
+    }
+
+    public function top() {
+        return ($c = count($this->_storage)) > 0 ? $this->_storage[$c - 1] : null;
     }
 }

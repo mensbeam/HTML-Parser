@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace dW\HTML5;
 
-class OpenElementsStack extends \splStack {
+class OpenElementsStack extends Stack {
     protected const IMPLIED_END_TAGS = [
         'dd'       => true,
         'dt'       => true,
@@ -85,8 +85,6 @@ class OpenElementsStack extends \splStack {
         ],
     ];
 
-
-
     protected $fragmentCase;
     protected $fragmentContext;
 
@@ -132,9 +130,9 @@ class OpenElementsStack extends \splStack {
         return -1;
     }
 
-    public function findSame(\DOMElement $node): int {
+    public function findSame(\DOMElement $target): int {
         foreach ($this as $k => $node) {
-            if ($node->isSameNode($node)) {
+            if ($node->isSameNode($target)) {
                 return $k;
             }
         }
@@ -242,6 +240,7 @@ class OpenElementsStack extends \splStack {
                 #   if the top of the stack — an html element — is reached.)
             }
         }
+        assert(false, new \Exception((string) $this));
     }
 
     public function __get($property) {
@@ -259,7 +258,7 @@ class OpenElementsStack extends \splStack {
                 $adjustedCurrentNode = $this->__get('adjustedCurrentNode');
                 return (!is_null($adjustedCurrentNode)) ? $adjustedCurrentNode->namespaceURI: null;
             case 'currentNode':
-                return $this->isEmpty() ? null : $this->top();
+                return $this->top();
             case 'currentNodeName':
                 $currentNode = $this->__get('currentNode');
                 return ($currentNode && $currentNode->nodeType) ? $currentNode->nodeName : null;
@@ -269,5 +268,16 @@ class OpenElementsStack extends \splStack {
             default: 
                 return null;
         }
+    }
+
+    public function __toString(): string {
+        $out = [];
+        foreach ($this as $node) {
+            $ns = $node->namespaceURI ?? Parser::HTML_NAMESPACE;
+            $prefix = Parser::NAMESPACE_MAP[$ns] ?? "?";
+            $prefix .= $prefix ? " " : "";
+            $out[] = $prefix.$node->nodeName;
+        }
+        return implode(" < ", $out);
     }
 }

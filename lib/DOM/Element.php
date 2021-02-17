@@ -10,7 +10,7 @@ class Element extends \DOMElement {
     // Used for template elements
     public $content = null;
 
-    protected $selfClosingElements = ['area', 'base', 'basefont', 'bgsound', 'br', 'col', 'embed', 'frame', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'];
+    protected const SELF_CLOSING_ELEMENTS = ['area', 'base', 'basefont', 'bgsound', 'br', 'col', 'embed', 'frame', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'];
 
     public function __construct(string $name, string $value = '', string $namespaceURI = '') {
         parent::__construct($name, $value, $namespaceURI);
@@ -122,7 +122,7 @@ class Element extends \DOMElement {
         # If current node is an area, base, basefont, bgsound, br, col, embed, frame,
         # hr, img, input, link, meta, param, source, track or wbr element, then continue
         # on to the next child node at this point.
-        if (in_array($tagName, $this->selfClosingElements)) {
+        if (in_array($tagName, self::SELF_CLOSING_ELEMENTS)) {
             return $s;
         }
 
