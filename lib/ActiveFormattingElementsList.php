@@ -25,72 +25,86 @@ class ActiveFormattingElementsList extends Stack {
     }
 
     public function offsetSet($offset, $value) {
-        assert($offset >= 0 && $offset <= count($this->_storage), new Exception(Exception::STACK_INVALID_INDEX, $offset));
-
-        if (is_null($offset)) {
+        $count = count($this->_storage);
+        assert($offset >= 0 && $offset <= $count, new Exception(Exception::STACK_INVALID_INDEX, $offset));
+        assert($value instanceof ActiveFormattingElementsMarker || (
+            is_array($value) 
+            && sizeof($value) === 2 
+            && isset($value['token']) 
+            && isset($value['element'])
+            && $value['token'] instanceof StartTagToken
+            && $value['element'] instanceof Element
+        ), new \Exception("Active formatting element value is invalid"));
+        if ($value instanceof ActiveFormattingElementsMarker) {
+            $this->_storage[$offset] = $value;
+        } elseif (($offset ?? $count) === $count) {
             # When the steps below require the UA to push onto the list of active formatting
             # elements an element element, the UA must perform the following steps:
-            if ($value instanceof \DOMElement) {
-                # 1. If there are already three elements in the list of active formatting
-                # elements after the last marker, if any, or anywhere in the list if there are
-                # no markers, that have the same tag name, namespace, and attributes as element,
-                # then remove the earliest such element from the list of active formatting
-                # elements. For these purposes, the attributes must be compared as they were
-                # when the elements were created by the parser; two elements have the same
-                # attributes if all their parsed attributes can be paired such that the two
-                # attributes in each pair have identical names, namespaces, and values (the
-                # order of the attributes does not matter).
-                $lastMarkerIndex = $this->lastMarker;
-                $start = ($lastMarkerIndex !== false) ? $lastMarkerIndex + 1 : 0;
-                $length = count($this->_storage);
-                if ($start < $length - 3) {
-                    $count = 0;
-                    for ($i = $length - 1; $i > $start; $i--) {
-                        $cur = $this->_storage[$i];
-                        if ($cur->nodeName === $value->nodeName && $cur->namespaceURI === $value->namespaceURI && $cur->attributes->length === $value->attributes->length) {
-                            $a = [];
-                            for ($j = 0; $j < $cur->attributes->length; $cur++) {
-                                $cur2 = $cur->attributes[$j];
-                                $a[] = $cur2->name . $cur2->namespaceURI . $cur2->value;
-                            }
-
-                            $b = [];
-                            for ($j = 0; $j < $value->attributes->length; $cur++) {
-                                $cur2 = $value->attributes[$j];
-                                $b[] = $cur2->name . $cur2->namespaceURI . $cur2->value;
-                            }
-
-                            sort($a);
-                            sort($b);
-
-                            if ($a === $b) {
-                                $count++;
-                                if ($count === 3) {
-                                    $this->offsetUnset($i);
-                                    break;
-                                }
-                            }
-                        }
-                    }
+            // First find the position of the last marker, if any
+            $lastMarker = -1;
+            foreach ($this as $pos => $item) {
+                if ($item instanceof ActiveFormattingElementsMarker) {
+                    $lastMarker = $pos;
+                    break;
                 }
             }
-
-            # 2. Add element to the list of active formatting elements.
+            # If there are already three elements in the list of active formatting
+            #   elements after the last marker, if any, or anywhere in the list if there are
+            #   no markers, that have the same tag name, namespace, and attributes as element,
+            #   then remove the earliest such element from the list of active formatting
+            #   elements.
+            $pos = $count - 1;
+            $matches = 0;
+            do {
+                $matches += (int) $this->matchElement($value['element'], $this->_storage[$pos]['element']);
+                // Stop once there are three matches or the marker is reached 
+            } while ($matches < 3 && (--$pos) > $lastMarker);
+            if ($matches === 3) {
+                array_splice($this->_storage, $pos, 1, []);
+            }
+            # Add element to the list of active formatting elements.
             $this->_storage[] = $value;
         } else {
-            parent::offsetSet($offset, $value);
+            $this->_storage[$offset] = $value;
         }
     }
 
-    public function insert(StartTagToken $token, \DOMElement $element) {
-        $this->_storage[] = [
+    protected function matchElement(Element $a, Element $b): bool {
+        // Compare elements as part of pushing an element onto the stack
+        # 1. If there are already three elements in the list of active formatting
+        #   elements after the last marker, if any, or anywhere in the list if there are
+        #   no markers, that have the same tag name, namespace, and attributes as element,
+        #   then remove the earliest such element from the list of active formatting
+        #   elements.
+        # For these purposes, the attributes must be compared as they were
+        #   when the elements were created by the parser; two elements have the same
+        #   attributes if all their parsed attributes can be paired such that the two
+        #   attributes in each pair have identical names, namespaces, and values (the
+        #   order of the attributes does not matter).
+        if (
+            $a->nodeName !== $b->nodeName 
+            || $a->namespaceURI !== $b->namespaceURI 
+            || $a->attributes->length !== $b->attributes->length
+        ) {
+            return false;
+        }
+        foreach ($a->attributes as $attr) {
+            if (!$b->hasAttributeNS($attr->namespaceURI, $attr->nodeName) || $b->getAttributeNS($attr->namespaceURI, $attr->nodeName) !== $attr->value) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public function insert(StartTagToken $token, Element $element): void  {
+        $this[] = [
             'token' => $token,
             'element' => $element
         ];
     }
 
-    public function insertMarker() {
-        $this->offsetSet(null, new ActiveFormattingElementMarker());
+    public function insertMarker(): void {
+        $this[] = new ActiveFormattingElementsMarker;
     }
 
     public function reconstruct() {
@@ -112,7 +126,7 @@ class ActiveFormattingElementsList extends Stack {
         # elements is a marker, or if it is an element that is in the stack of open
         # elements, then there is nothing to reconstruct; stop this algorithm.
         $entry = end($this->_storage);
-        if ($entry instanceof ActiveFormattingElementMarker || in_array($entry['element'], $this->stack)) {
+        if ($entry instanceof ActiveFormattingElementsMarker || in_array($entry['element'], $this->stack)) {
             return;
         }
 
@@ -133,7 +147,7 @@ class ActiveFormattingElementsList extends Stack {
 
         # 6. If entry is neither a marker nor an element that is also in the stack of
         # open elements, go to the step labeled Rewind.
-        if (!$entry instanceof ActiveFormattingElementMarker || $this->stack->search($entry['element']) === -1) {
+        if (!$entry instanceof ActiveFormattingElementsMarker || $this->stack->search($entry['element']) === -1) {
             goto rewind;
         }
 
@@ -157,7 +171,7 @@ class ActiveFormattingElementsList extends Stack {
         }
     }
 
-    public function clearToTheLastMarker() {
+    public function clearToTheLastMarker(): void {
         # When the steps below require the UA to clear the list of active formatting
         # elements up to the last marker, the UA must perform the following steps:
         # 1. Let entry be the last (most recently added) entry in the list of active
@@ -166,41 +180,13 @@ class ActiveFormattingElementsList extends Stack {
         # 3. If entry was a marker, then stop the algorithm at this point. The list has
         # been cleared up to the last marker.
         # 4. Go to step 1.
-
-        // Just going to go backwards through the array until a marker is reached. Does
-        // the same thing.
-
-        for ($end = count($this->_storage) - 1, $i = $end; $i >= 0; $i--) {
-            if ($this->_storage[$i] instanceof ActiveFormattingElementMarker) {
-                return;
+        while ($this->_storage) {
+            $popped = array_pop($this->_storage);
+            if ($popped instanceof ActiveFormattingElementsMarker) {
+                break;
             }
-
-            unset($this->_storage[$i]);
-        }
-
-        // Reindex the array.
-        $this->_storage = array_values($this->_storage);
-    }
-
-    public function __get($property) {
-        $value = parent::__get($property);
-        if (!is_null($value)) {
-            return $value;
-        }
-
-        switch ($property) {
-            case 'lastMarker':
-                for ($end = count($this->_storage) - 1, $i = $end; $i >= 0; $i--) {
-                    if ($this->_storage[$i] instanceof ActiveFormattingElementMarker) {
-                        return $i;
-                    }
-                }
-
-                return false;
-            break;
-            default: return null;
         }
     }
 }
 
-class ActiveFormattingElementMarker {}
+class ActiveFormattingElementsMarker {}
