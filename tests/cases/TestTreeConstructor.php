@@ -73,7 +73,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             $this->markTestSkipped('Requires implementation of the "Coercing an HTML DOM into an infoset" specification section');
             return;
         } catch (LoopException $e) {
-            $act = $this->serializeTree($doc);
+            $act = $this->serializeTree($doc, (bool) $fragmentContext);
             $this->assertEquals($exp, $act, $e->getMessage()."\n".$treeBuilder->debugLog);
             throw $e;
         } catch (NotImplementedException $e) {
@@ -105,7 +105,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         $this->out[] = "| ".str_repeat("  ", $this->depth).$data;
     }
 
-    protected function serializeTree(\DOMDocument $d, bool $fragment): array {
+    protected function serializeTree(Document $d, bool $fragment): array {
         $this->out = [];
         $this->depth = 0;
         if ($fragment){

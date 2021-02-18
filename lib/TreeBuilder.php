@@ -272,7 +272,7 @@ class TreeBuilder {
         }
     }
 
-    public function emitToken(Token $token) {
+    public function emitToken(Token $token): void {
         assert((function() use ($token) {
             $this->debugLog .= "EMITTED: ".constant(get_class($token)."::NAME")."\n";
             return true;
@@ -1520,9 +1520,11 @@ class TreeBuilder {
     }
 
     protected function parseTokenInForeignContent(Token $token): bool {
-        $currentNode = $this->stack->currentNode;
-        $currentNodeName = $this->stack->currentNodeName;
-        $currentNodeNamespace = $this->stack->currentNodeNamespace;
+        assert((function() {
+            $this->debugLog .= "    Mode: Foreign content (".(string) $this->stack.")\n";
+            return true;
+        })());
+        
         # 13.2.6.5 The rules for parsing tokens in foreign content
         #
         # When the user agent is to apply the rules for parsing tokens in foreign
@@ -1590,7 +1592,7 @@ class TreeBuilder {
                 do {
                     $popped = $this->stack->pop();
                     $n = $this->stack->currentNode;
-                    $nns = $currentNode->namespaceURI;
+                    $nns = $this->stack->currentNode->namespaceURI;
                 } while (!is_null($popped) && !(
                         $n->isMathMLTextIntegrationPoint()
                         || $n->isHTMLIntegrationPoint() 
@@ -1604,6 +1606,7 @@ class TreeBuilder {
             else {
                 // ¡TEMPORARY!
                 foreignContentAnyOtherStartTag:
+                $currentNodeNamespace = $this->stack->currentNodeNamespace;
                 # If the adjusted current node is an element in the SVG namespace, and the
                 # token’s tag name is one of the ones in the first column of the following
                 # table, change the tag name to the name given in the corresponding cell in the
