@@ -15,8 +15,6 @@ class TreeBuilder {
     protected $formElement;
     /** @var bool Flag for determining whether to use the foster parenting (badly nested table elements) algorithm. */
     protected $fosterParenting = false;
-    /** @var bool Flag that shows whether the content that's being parsed is a fragment or not */
-    protected $fragmentCase;
     /** @var \DOMElement Context element for fragments */
     protected $fragmentContext;
     /** @var bool Flag used to determine whether elements are okay to be used in framesets or not */
@@ -24,15 +22,13 @@ class TreeBuilder {
     /** @var ?\DOMElement Once a head element has been parsed (whether implicitly or explicitly) the head element pointer gets set to point to this node */
     protected $headElement;
     /** @var int Tree construction insertion mode */
-    protected $insertionMode;
+    protected $insertionMode = self::INITIAL_MODE;
     /** @var int When the insertion mode is switched to "text" or "in table text", the original insertion mode is also set. This is the insertion mode to which the tree construction stage will return. */
     protected $originalInsertionMode;
     /** @var \dW\HTML5\OpenElementsStack The stack of open elements, uses Stack */
     protected $stack;
     /** @var \dW\HTML5\Tokenizer Instance of the Tokenizer class used for creating tokens */
     protected $tokenizer;
-    /** @var int Used to check if the document is in quirks mode */
-    protected $quirksMode;
     /** @var \dW\HTML5\TemplateInsertionModesStack Used to store the template insertion modes */
     protected $templateInsertionModes;
 
@@ -60,11 +56,6 @@ class TreeBuilder {
     protected const AFTER_FRAMESET_MODE = 20;
     protected const AFTER_AFTER_BODY_MODE = 21;
     protected const AFTER_AFTER_FRAMESET_MODE = 22;
-
-    // Quirks mode constants
-    protected const QUIRKS_MODE_OFF = 0;
-    protected const QUIRKS_MODE_ON = 1;
-    protected const QUIRKS_MODE_LIMITED = 2;
 
     protected const INSERTION_MODE_NAMES = [
         self::INITIAL_MODE              => "Initial",
@@ -208,38 +199,77 @@ class TreeBuilder {
         Parser::MATHML_NAMESPACE => ['mi', 'mo', 'mn', 'ms', 'mtext', 'annotation-xml'],
         Parser::SVG_NAMESPACE    => ['foreignObject', 'desc', 'title'],
     ];
+    protected const FRAGMENT_CONTEXT_TOKENIZER_STATES = [
+        Parser::HTML_NAMESPACE => [
+            'title'     => Tokenizer::RCDATA_STATE,
+            'textarea'  => Tokenizer::RCDATA_STATE,
+            'style'     => Tokenizer::RAWTEXT_STATE,
+            'xmp'       => Tokenizer::RAWTEXT_STATE,
+            'iframe'    => Tokenizer::RAWTEXT_STATE,
+            'noembed'   => Tokenizer::RAWTEXT_STATE,
+            'noframes'  => Tokenizer::RAWTEXT_STATE,
+            'script'    => Tokenizer::SCRIPT_DATA_STATE,
+            'noscript'  => Tokenizer::DATA_STATE, // NOTE: If ever this implementation were scripted, this would need special handling
+            'plaintext' => Tokenizer::PLAINTEXT_STATE,
+        ],
+    ];
 
-    public function __construct(Document $dom, Data $data, Tokenizer $tokenizer, ParseError $errorHandler, OpenElementsStack $stack, TemplateInsertionModesStack $templateInsertionModes, ?\DOMElement $formElement = null, bool $fragmentCase = false, $fragmentContext = null) {
-        // If the form element isn't an instance of DOMElement that has a node name of
-        // "form" or null then there's a problem.
-        if (!is_null($formElement) && !($formElement instanceof \DOMElement && $formElement->nodeName === 'form')) {
-            throw new Exception(Exception::TREEBUILDER_FORMELEMENT_EXPECTED, gettype($formElement));
-        }
-
-        // If the fragment context is not null and is not a document fragment, document,
-        // or element then we have a problem. Additionally, if the parser is created for
-        // parsing a fragment and the fragment context is null then we have a problem,
-        // too.
-        if ((!is_null($fragmentContext) && !$fragmentContext instanceof \DOMDocumentFragment && !$fragmentContext instanceof \DOMDocument && !$fragmentContext instanceof \DOMElement) ||
-            (is_null($fragmentContext) && $fragmentCase)) {
-            throw new Exception(Exception::TREEBUILDER_DOCUMENTFRAG_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED, gettype($fragmentContext));
-        }
-
+    public function __construct(Document $dom, Data $data, Tokenizer $tokenizer, ParseError $errorHandler, OpenElementsStack $stack, TemplateInsertionModesStack $templateInsertionModes, ?\DOMElement $fragmentContext = null) {
+        assert(!$dom->hasChildNodes() && !$dom->doctype, new \Exception("Target document is not empty"));
         $this->DOM = $dom;
-        $this->formElement = $formElement;
-        $this->fragmentCase = $fragmentCase;
         $this->fragmentContext = $fragmentContext;
         $this->stack = $stack;
         $this->templateInsertionModes = $templateInsertionModes;
         $this->tokenizer = $tokenizer;
         $this->data = $data;
         $this->errorHandler = $errorHandler;
-
-        // Initialize the list of active formatting elements.
         $this->activeFormattingElementsList = new ActiveFormattingElementsList($this, $stack);
 
-        $this->insertionMode = self::INITIAL_MODE;
-        $this->quirksMode = self::QUIRKS_MODE_OFF;
+        # Parsing HTML fragments
+        if ($this->fragmentContext) {
+            # Create a new Document node, and mark it as being an HTML document.
+            // Already done.
+            # If the node document of the context element is in quirks mode, then
+            #   let the Document be in quirks mode. Otherwise, the node document of
+            #   the context element is in limited-quirks mode, then let the Document
+            #   be in limited-quirks mode. Otherwise, leave the Document in no-quirks mode.
+            $dom->quirksMode = $fragmentContext->ownerDocument->quirksMode;
+            # Create a new HTML parser, and associate it with the just created Document node.
+            // Already done.
+            # Set the state of the HTML parser's tokenization stage as follows, switching on the context element:
+            $this->tokenizer->state = (self::FRAGMENT_CONTEXT_TOKENIZER_STATES[$fragmentContext->namespaceURI ?? Parser::HTML_NAMESPACE] ?? [])[$fragmentContext->nodeName] ?? Tokenizer::DATA_STATE;
+            # Let root be a new html element with no attributes.
+            # Append the element root to the Document node created above.
+            $dom->appendChild($dom->createElement("html"));
+            # Set up the parser's stack of open elements so that it contains just the single element root.
+            $this->stack[] = $dom->documentElement;
+            # If the context element is a template element, push "in template" onto the stack of
+            #   template insertion modes so that it is the new current template insertion mode.
+            if ($fragmentContext->nodeName === "template" && !$fragmentContext->namespaceURI) {
+                $this->templateInsertionModes[] = self::IN_TEMPLATE_MODE;
+            }
+            # Create a start tag token whose name is the local name of context and whose attributes are the attributes of context.
+            # Let this start tag token be the start tag token of the context node, e.g. for the purposes of determining if it is an HTML integration point.
+            // Are these even necessary?
+            # Reset the parser's insertion mode appropriately.
+            $this->resetInsertionMode();
+            # Set the parser's form element pointer to the nearest node to the context element
+            #   that is a form element (going straight up the ancestor chain, and including the 
+            #   element itself, if it is a form element), if any. (If there is no such form element,
+            #   the form element pointer keeps its initial value, null.)
+            $node = $fragmentContext;
+            do {
+                if ($node->nodeName === "form" && !$fragmentContext->namespaceURI) {
+                    $this->formElement = $node;
+                    break;
+                }
+            } while ($node = $node->parentNode);
+            # Place the input into the input stream for the HTML parser just created. 
+            #   The encoding confidence is irrelevant.
+            // Already done.
+            # Start the parser and let it run until it has consumed all the characters just inserted into the input stream.
+            // Handled by emitToken()
+        }
     }
 
     public function emitToken(Token $token) {
@@ -440,7 +470,7 @@ class TreeBuilder {
                     || (is_null($token->system) && strpos($public, '-//w3c//dtd html 4.01 frameset//') === 0)
                     || (is_null($token->system) && strpos($public, '-//w3c//dtd html 4.01 transitional//') === 0)
                 ) {
-                    $this->quirksMode = self::QUIRKS_MODE_ON;
+                    $this->DOM->quirksMode = Document::QUIRKS_MODE;
                 }
                 # Otherwise, if the document is not an iframe srcdoc document, and the DOCTYPE
                 # token matches one of the conditions in the following list, then set the
@@ -453,7 +483,7 @@ class TreeBuilder {
                     || (!is_null($token->system) && strpos($public, '-//w3c//dtd html 4.01 frameset//') === 0) 
                     || (!is_null($token->system) && strpos($public, '-//w3c//dtd html 4.01 transitional//') === 0)
                 ) {
-                    $this->quirksMode = self::QUIRKS_MODE_LIMITED;
+                    $this->DOM->quirksMode = Document::LIMITED_QUIRKS_MODE;
                 }
                 # The system identifier and public identifier strings must be compared to the
                 # values given in the lists above in an ASCII case-insensitive manner. A system
@@ -481,7 +511,7 @@ class TreeBuilder {
                     throw new \Exception("Unexpected token type".get_class($token));
                 }
 
-                $this->quirksMode = self::QUIRKS_MODE_ON;
+                $this->DOM->quirksMode = Document::QUIRKS_MODE;
 
                 # In any case, switch the insertion mode to "before html", then reprocess the
                 # token.
@@ -1541,7 +1571,7 @@ class TreeBuilder {
                 # If the parser was originally created for the HTML fragment parsing algorithm,
                 # then act as described in the "any other start tag" entry below. (fragment
                 # case)
-                if ($this->fragmentCase === true) {
+                if ($this->fragmentContext) {
                     // ¡TEMPORARY!
                     goto foreignContentAnyOtherStartTag;
                 }
@@ -2020,56 +2050,42 @@ class TreeBuilder {
 
         # 1. Let last be false.
         $last = false;
-
         # 2. Let node be the last node in the stack of open elements.
-        $node = $this->stack->currentNode;
-        $nodeName = $this->stack->currentNodeName;
-        // Keeping up with the position, too.
-        $position = count($this->stack) - 1;
-
-        # 3. Loop: If node is the first node in the stack of open elements, then set
-        # last to true, and, if the parser was originally created as part of the HTML
-        # fragment parsing algorithm (fragment case), set node to the context element
-        # passed to that algorithm.
-        while (true) {
-            if ($node->isSameNode($this->stack[0])) {
+        foreach($this->stack as $position => $node) {
+            # 3. Loop: If node is the first node in the stack of open elements, then set
+            #   last to true, and, if the parser was originally created as part of the HTML
+            #   fragment parsing algorithm (fragment case), set node to the context element
+            #   passed to that algorithm.
+            if ($position === 0) {
                 $last = true;
-
-                if ($this->fragmentCase === true) {
+                if ($this->fragmentContext) {
                     $node = $this->fragmentContext;
                 }
             }
-
+            $nodeName = $node->nodeName;
             # 4. If node is a select element, run these substeps:
             if ($nodeName === 'select') {
                 # 1. If last is true, jump to the step below labeled Done.
                 if ($last === false) {
                     # 2. Let ancestor be node.
-                    $ancestor = $node;
-                    $position2 = $position;
-
-                    # 3. Loop: If ancestor is the first node in the stack of open elements, jump to
-                    # the step below labeled Done.
-                    while (!$ancestor->isSameNode($this->stack[0])) {
+                    # 3. Loop: If ancestor is the first node in the stack of
+                    #   open elements, jump to the step below labeled Done.
+                    for ($ancestorPosition = $position; $ancestorPosition > 0;) {
                         # 4. Let ancestor be the node before ancestor in the stack of open elements.
-                        $ancestor = $this->stack[--$position2];
-
+                        $ancestor = $this->stack[--$ancestorPosition];
                         # 5. If ancestor is a template node, jump to the step below labeled Done.
                         if ($ancestor->nodeName === 'template') {
                             break;
                         }
-
                         # 6. If ancestor is a table node, switch the insertion mode to "in select in
                         # table" and abort these steps.
                         if ($ancestor->nodeName === 'table') {
                             $this->insertionMode = self::IN_SELECT_IN_TABLE_MODE;
                             return;
                         }
-
                         # 7. Jump back to the step labeled Loop.
                     }
                 }
-
                 # 8. Done: Switch the insertion mode to "in select" and abort these steps.
                 $this->insertionMode = self::IN_SELECT_MODE;
             }
@@ -2141,22 +2157,17 @@ class TreeBuilder {
                     $this->insertionMode = self::BEFORE_HEAD_MODE;
                     return;
                 }
-
                 # 2. Otherwise, the head element pointer is not null, switch the insertion mode
                 # to "after head" and abort these steps.
                 $this->insertionMode = self::AFTER_HEAD_MODE;
                 return;
             }
-
             # 16. If last is true, then switch the insertion mode to "in body" and abort
             # these steps. (fragment case)
-            if ($last === true) {
+            elseif ($last === true) {
                 $this->insertionMode = self::IN_BODY_MODE;
             }
-
             # 17. Let node now be the node before node in the stack of open elements.
-            $node = $this->stack[--$position];
-
             # 18. Return to the step labeled Loop.
         }
     }

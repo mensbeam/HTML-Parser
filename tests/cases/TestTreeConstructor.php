@@ -23,8 +23,8 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
 
     /** @dataProvider provideStandardTreeTests */
     public function testStandardTreeTests(string $data, array $exp, array $errors, $fragment): void {
-        if ($fragment) {
-            $this->markTestIncomplete("Fragment tests still to be implemented");
+        if (strpos($fragment ?? "", " ")) {
+            $this->markTestIncomplete("Foreign content fragment tests still to be implemented");
         }
         // certain tests need to be patched to ignore unavoidable limitations of PHP's DOM
         [$exp, $patched, $skip] = $this->patchTest($data, $fragment, $exp);
@@ -47,11 +47,25 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             return true;
         });
         // initialize the classes we need
-        $decoder = new Data($data, "STDIN", $errorHandler);
+        $decoder = new Data($data, "STDIN", $errorHandler, "UTF-8");
         $stack = new OpenElementsStack;
         $tokenizer = new Tokenizer($decoder, $stack, $errorHandler);
         $doc = new Document;
-        $treeBuilder = new TreeBuilder($doc, $decoder, $tokenizer, $errorHandler, $stack, new TemplateInsertionModesStack);
+        // prepare the fragment context, if any
+        if ($fragment) {
+            $fragment = explode(" ", $fragment);
+            assert(sizeof($fragment) < 3);
+            if (sizeof($fragment) === 1) {
+                $fragmentContext = $doc->createElement($fragment[0]);
+            } else {
+                $ns = array_flip(Parser::NAMESPACE_MAP)[$fragment[0]] ?? null;
+                assert(isset($ns));
+                $fragmentContext = $doc->createElementNS($ns, $fragment[1]);
+            }
+        } else {
+            $fragmentContext = null;
+        }
+        $treeBuilder = new TreeBuilder($doc, $decoder, $tokenizer, $errorHandler, $stack, new TemplateInsertionModesStack, $fragmentContext);
         // run the tree builder
         try {
             do {
@@ -69,7 +83,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             $this->markTestSkipped($e->getMessage());
             return;
         }
-        $act = $this->serializeTree($doc);
+        $act = $this->serializeTree($doc, (bool) $fragmentContext);
         $this->assertEquals($exp, $act, $treeBuilder->debugLog);
         // TODO: evaluate errors
     }
@@ -94,21 +108,27 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         $this->out[] = "| ".str_repeat("  ", $this->depth).$data;
     }
 
-    protected function serializeTree(\DOMDocument $d): array {
+    protected function serializeTree(\DOMDocument $d, bool $fragment): array {
         $this->out = [];
         $this->depth = 0;
-        if ($d->doctype) {
-            $dt = "<!DOCTYPE ";
-            $dt .= ($d->doctype->name !== " ") ? $d->doctype->name : "";
-            if (strlen($d->doctype->publicId) || strlen($d->doctype->systemId)) {
-                $dt .= ' "'.$d->doctype->publicId.'"';
-                $dt .= ' "'.$d->doctype->systemId.'"';
+        if ($fragment){
+            foreach ($d->documentElement->childNodes as $n) {
+                $this->serializeNode($n);
             }
-            $dt .= ">";
-            $this->push($dt);
-        }
-        if ($d->documentElement) {
-            $this->serializeElement($d->documentElement);
+        } else {
+            if ($d->doctype) {
+                $dt = "<!DOCTYPE ";
+                $dt .= ($d->doctype->name !== " ") ? $d->doctype->name : "";
+                if (strlen($d->doctype->publicId) || strlen($d->doctype->systemId)) {
+                    $dt .= ' "'.$d->doctype->publicId.'"';
+                    $dt .= ' "'.$d->doctype->systemId.'"';
+                }
+                $dt .= ">";
+                $this->push($dt);
+            }
+            if ($d->documentElement) {
+                $this->serializeElement($d->documentElement);
+            }
         }
         return $this->out;
     }
@@ -144,7 +164,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         $this->depth--;
     }
 
-    public function serializeNode(\DOMNode $n): void {
+    protected function serializeNode(\DOMNode $n): void {
         if ($n instanceof \DOMElement) {
             $this->serializeElement($n);
         } elseif ($n instanceof \DOMProcessingInstruction) {

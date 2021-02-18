@@ -5,6 +5,13 @@ namespace dW\HTML5;
 class Document extends \DOMDocument {
     use Descendant, Serialize;
 
+    // Quirks mode constants
+    public const NO_QUIRKS_MODE = 0;
+    public const QUIRKS_MODE = 1;
+    public const LIMITED_QUIRKS_MODE = 2;
+
+    public $quirksMode = self::NO_QUIRKS_MODE;
+
     public function __construct() {
         parent::__construct();
 
@@ -42,19 +49,16 @@ class Document extends \DOMDocument {
   </zeroOrMore>
  </define>
 </grammar>');
-
         $this->normalize();
     }
 
     public function load($source, $options = null): bool {
         Parser::parse((string)$source, $this, true);
-
         return true;
     }
 
     public function loadHTML($source, $options = null): bool {
         Parser::parse((string)$source, $this);
-
         return true;
     }
 
