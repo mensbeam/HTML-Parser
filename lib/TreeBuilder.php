@@ -1528,9 +1528,16 @@ class TreeBuilder {
         # When the user agent is to apply the rules for parsing tokens in foreign
         # content, the user agent must handle the token as follows:
 
+
+        # A character token that is U+0000 NULL
+        if ($token instanceof CharacterToken && $token->data === "\0") {
+            # Parse error. Insert a U+FFFD REPLACEMENT CHARACTER character.
+            // DEVIATION: Parse errors for null characters are already emitted by the tokenizer
+            $this->insertCharacterToken(new CharacterToken("\u{FFFD}"));
+        }
         # A character token that is one of U+0009 CHARACTER TABULATION, "LF" (U+000A),
         # "FF" (U+000C), "CR" (U+000D), or U+0020 SPACE
-        if ($token instanceof WhitespaceToken) {
+        elseif ($token instanceof WhitespaceToken) {
             # Insert the token's character.
             $this->insertCharacterToken($token);
         }
@@ -1548,9 +1555,10 @@ class TreeBuilder {
         }
         # A DOCTYPE token
         elseif ($token instanceof DOCTYPEToken) {
-            # Parse error.
+            # Parse error. Ignore the token.
             $this->error(ParseError::UNEXPECTED_DOCTYPE);
         }
+        # A start tag...
         elseif ($token instanceof StartTagToken) {
             # A start tag whose tag name is one of: "b", "big", "blockquote", "body", "br",
             # "center", "code", "dd", "div", "dl", "dt", "em", "embed", "h1", "h2", "h3",
@@ -1566,8 +1574,7 @@ class TreeBuilder {
                 )
             ) {
                 # Parse error.
-                $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
-
+                $this->error(ParseError::UNEXPECTED_START_TAG);
                 # If the parser was originally created for the HTML fragment parsing algorithm,
                 # then act as described in the "any other start tag" entry below. (fragment
                 # case)
@@ -1575,9 +1582,7 @@ class TreeBuilder {
                     // ¡TEMPORARY!
                     goto foreignContentAnyOtherStartTag;
                 }
-
                 # Otherwise:
-                #
                 # Pop an element from the stack of open elements, and then keep popping more
                 # elements from the stack of open elements until the current node is a MathML
                 # text integration point, an HTML integration point, or an element in the HTML
@@ -1587,13 +1592,11 @@ class TreeBuilder {
                     $n = $this->stack->currentNode;
                     $nns = $currentNode->namespaceURI;
                 } while (!is_null($popped) && !(
-                        $n->isMathMLTextIntegrationPoint() ||
-                        $n->isHTMLIntegrationPoint() ||
-                        // PHP's DOM returns null when the namespace isn't specified... eg. HTML.
-                        is_null($nns)
+                        $n->isMathMLTextIntegrationPoint()
+                        || $n->isHTMLIntegrationPoint() 
+                        || is_null($nns)
                     )
                 );
-
                 # Then, reprocess the token.
                 return false;
             }
@@ -1601,7 +1604,6 @@ class TreeBuilder {
             else {
                 // ¡TEMPORARY!
                 foreignContentAnyOtherStartTag:
-
                 # If the adjusted current node is an element in the SVG namespace, and the
                 # token’s tag name is one of the ones in the first column of the following
                 # table, change the tag name to the name given in the corresponding cell in the
@@ -1610,7 +1612,6 @@ class TreeBuilder {
                 if ($this->stack->adjustedCurrentNodeNamespace === Parser::SVG_NAMESPACE) {
                     $token->name = self::SVG_TAG_NAME_MAP[$token->name] ?? $token->name;
                 }
-
                 foreach ($token->attributes as &$a) {
                     # If the current node is an element in the MathML namespace, adjust MathML
                     # attributes for the token. (This fixes the case of MathML attributes that are
@@ -1624,7 +1625,6 @@ class TreeBuilder {
                     elseif ($currentNodeNamespace === Parser::SVG_NAMESPACE) {
                         $a->name = self::SVG_ATTR_NAME_MAP[$a->name] ?? $a->name;
                     }
-
                     # Adjust foreign attributes for the token. (This fixes the use of namespaced
                     # attributes, in particular XLink in SVG.)
                     # When the steps below require the user agent to adjust foreign attributes for a
@@ -1645,84 +1645,75 @@ class TreeBuilder {
                         case 'xlink:role':
                         case 'xlink:show':
                         case 'xlink:title':
-                        case 'xlink:type': $a->namespace = Parser::XLINK_NAMESPACE;
-                        break;
+                        case 'xlink:type': 
+                            $a->namespace = Parser::XLINK_NAMESPACE;
+                            break;
                         case 'xml:base':
                         case 'xml:lang':
-                        case 'xml:space': $a->namespace = Parser::XML_NAMESPACE;
-                        break;
-                        case 'xmlns': $a->namespace = Parser::XMLNS_NAMESPACE;
-                        break;
-                        case 'xmlns:xlink': $a->namespace = Parser::XLINK_NAMESPACE;
-                        break;
+                        case 'xml:space': 
+                            $a->namespace = Parser::XML_NAMESPACE;
+                            break;
+                        case 'xmlns': 
+                            $a->namespace = Parser::XMLNS_NAMESPACE;
+                            break;
+                        case 'xmlns:xlink': 
+                            $a->namespace = Parser::XLINK_NAMESPACE;
+                            break;
                     }
                 }
-
                 # Insert a foreign element for the token, in the same namespace as the adjusted
                 # current node.
                 $this->insertStartTagToken($token, null, $this->stack->adjustedCurrentNode->namespaceURI);
-
                 # If the token has its self-closing flag set, then run the appropriate steps
-                # from the following list:
-                #
-                # If the token’s tag name is "script", and the new current node is in the SVG
-                # namespace
-                # Acknowledge the token’s *self-closing flag*, and then act as described in the
-                # steps for a "script" end tag below.
-                // DEVIATION: Unnecessary because there is no scripting in this implementation.
-
-                # Otherwise
-                # Pop the current node off the stack of open elements and acknowledge the
-                # token’s *self-closing flag*.
-                $this->stack->pop();
-                // Acknowledged.
+                #   from the following list:
+                if ($token->selfClosing) {
+                    # If the token’s tag name is "script", and the new current node is in the SVG
+                    # namespace
+                    // DEVIATION: This implementation does not support scripting, so script elements
+                    //   aren't processed differently.
+                    # Otherwise
+                    # Pop the current node off the stack of open elements and acknowledge the
+                    #   token’s *self-closing flag*.
+                    $this->stack->pop();
+                    $token->selfClosingAcknowledged = true;
+                }
             }
         }
         # An end tag whose tag name is "script", if the current node is a script element
         # in the SVG namespace
         // DEVIATION: This implementation does not support scripting, so script elements
-        // aren't processed differently.
-
+        //   aren't processed differently.
         # Any other end tag
         elseif ($token instanceof EndTagToken) {
             # Run these steps:
             #
             # 1. Initialize node to be the current node (the bottommost node of the stack).
-            $node = $currentNode;
-            $nodeName = $currentNodeName;
+            // We do this below in the loop
             # 2. If node is not an element with the same tag name as the token, then this is
             # a parse error.
-            if ($nodeName !== $token->name) {
-                $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+            if ($this->stack->currentNodeName !== $token->name) {
+                $this->error(ParseError::UNEXPECTED_END_TAG);
             }
-            # 3. Loop: If node's tag name, converted to ASCII lowercase, is the same as the
-            # tag name of the token, pop elements from the stack of open elements until node
-            # has been popped from the stack, and then abort these steps.
-            $count = count($this->stack) - 1;
-            while (true) {
-                if (strtolower($nodeName) === $token->name) {
+            # 3. Loop: If node is the topmost element in the stack of open elements, then return. (fragment case)
+            $pos = count($this->stack) - 1;
+            while ($pos > 0 && ($node = $this->stack[$pos])->namespaceURI === null) {
+                # If node's tag name, converted to ASCII lowercase, is the same as the
+                #   tag name of the token, pop elements from the stack of open elements until node
+                #   has been popped from the stack, and then abort these steps.
+                if (strtolower($node->nodeName) === $token->name) {
                     $this->stack->popUntilSame($node);
-                    break;
+                    return true;
                 }
-
                 # 4. Set node to the previous entry in the stack of open elements.
-                $node = $this->stack[--$count];
-                $nodeName = $node->nodeName;
-
+                $pos--;
                 # 5. If node is not an element in the HTML namespace, return to the step labeled
                 # loop.
-                // PHP DOM returns null if the namespace isn't specified... eg. HTML.
-                if (!is_null($node->namespaceURI)) {
-                    continue;
-                }
-
-                # 6. Otherwise, process the token according to the rules given in the section
-                # corresponding to the current insertion mode in HTML content.
-                $this->parseTokenInHTMLContent($token, $this->insertionMode);
-                break;
+                // See loop condition above
             }
+            # 6. Otherwise, process the token according to the rules given in the section
+            #   corresponding to the current insertion mode in HTML content.
+            return $this->parseTokenInHTMLContent($token, $this->insertionMode);
         }
-
         return true;
     }
 

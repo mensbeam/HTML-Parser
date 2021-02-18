@@ -23,9 +23,6 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
 
     /** @dataProvider provideStandardTreeTests */
     public function testStandardTreeTests(string $data, array $exp, array $errors, $fragment): void {
-        if (strpos($fragment ?? "", " ")) {
-            $this->markTestIncomplete("Foreign content fragment tests still to be implemented");
-        }
         // certain tests need to be patched to ignore unavoidable limitations of PHP's DOM
         [$exp, $patched, $skip] = $this->patchTest($data, $fragment, $exp);
         if (strlen($skip)) {
@@ -46,10 +43,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             $errors[] = ['code' => $errorMap[$code], 'line' => $line, 'col' => $col];
             return true;
         });
-        // initialize the classes we need
-        $decoder = new Data($data, "STDIN", $errorHandler, "UTF-8");
-        $stack = new OpenElementsStack;
-        $tokenizer = new Tokenizer($decoder, $stack, $errorHandler);
+        // initialize the output document
         $doc = new Document;
         // prepare the fragment context, if any
         if ($fragment) {
@@ -64,7 +58,10 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             }
         } else {
             $fragmentContext = null;
-        }
+        }// initialize the other classes we need
+        $decoder = new Data($data, "STDIN", $errorHandler, "UTF-8");
+        $stack = new OpenElementsStack($fragmentContext);
+        $tokenizer = new Tokenizer($decoder, $stack, $errorHandler);
         $treeBuilder = new TreeBuilder($doc, $decoder, $tokenizer, $errorHandler, $stack, new TemplateInsertionModesStack, $fragmentContext);
         // run the tree builder
         try {

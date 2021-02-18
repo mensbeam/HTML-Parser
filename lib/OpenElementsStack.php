@@ -85,18 +85,14 @@ class OpenElementsStack extends Stack {
         ],
     ];
 
-    protected $fragmentCase;
     protected $fragmentContext;
 
-    public function __construct(bool $fragmentCase = false, $fragmentContext = null) {
+    public function __construct(?Element $fragmentContext = null) {
         // If the fragment context is not null and is not a document fragment, document,
         // or element then we have a problem. Additionally, if the parser is created for
         // parsing a fragment and the fragment context is null then we have a problem,
         // too.
         assert(is_null($fragmentContext) || $fragmentContext instanceof \DOMDocumentFragment || $fragmentContext instanceof \DOMDocument || $fragmentContext instanceof \DOMElement,new Exception(Exception::STACK_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED));
-        assert(!$fragmentCase || !is_null($fragmentContext), new Exception(Exception::STACK_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED));
-
-        $this->fragmentCase = $fragmentCase;
         $this->fragmentContext = $fragmentContext;
     }
 
@@ -250,7 +246,7 @@ class OpenElementsStack extends Stack {
                 # the HTML fragment parsing algorithm and the stack of open elements has only one
                 # element in it (fragment case); otherwise, the adjusted current node is the
                 # current node.
-                return ($this->fragmentCase && count($this) === 1) ? $this->fragmentContext : $this->__get('currentNode');
+                return ($this->fragmentContext && count($this->_storage) === 1) ? $this->fragmentContext : $this->__get('currentNode');
             case 'adjustedCurrentNodeName':
                 $adjustedCurrentNode = $this->__get('adjustedCurrentNode');
                 return (!is_null($adjustedCurrentNode)) ? $adjustedCurrentNode->nodeName : null;
