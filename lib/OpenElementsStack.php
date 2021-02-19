@@ -126,13 +126,20 @@ class OpenElementsStack extends Stack {
         return -1;
     }
 
-    public function findSame(\DOMElement $target): int {
+    public function findSame(Element $target): int {
         foreach ($this as $k => $node) {
             if ($node->isSameNode($target)) {
                 return $k;
             }
         }
         return -1;
+    }
+
+    public function removeSame(Element $target): void {
+        $pos = $this->findSame($target);
+        if ($pos > -1) {
+            unset($this[$pos]);
+        }
     }
 
     public function generateImpliedEndTags(string ...$exclude): void {

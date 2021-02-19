@@ -1354,17 +1354,28 @@ class TreeBuilder {
                     # 4. Set the frameset-ok flag to "not ok".
                     $this->framesetOk = false;
                 }
+                # A start tag whose tag name is "a"
                 elseif ($token->name === "a") {
                     # If the list of active formatting elements contains an a element between the end
                     #   of the list and the last marker on the list (or the start of the list if there
                     #   is no marker on the list), then this is a parse error;
-                    $this->error(ParseError::UNEXPECTED_START_TAG);
-                    # ... run the adoption agency algorithm for the token, 
-                    $this->adopt($token);
-                    # ... then remove that element from the list of active formatting elements and the 
-                    #   stack of open elements if the adoption agency algorithm didn't already remove it
-                    #   (it might not have if the element is not in table scope).
-                    throw new NotImplementedException("NOT IMPLEMENTED");
+                    if (($pos = $this->activeFormattingElementsList->findToMarker("a")) > -1) {
+                        $this->error(ParseError::UNEXPECTED_START_TAG_IMPLIES_END_TAG);
+                        $element = $this->activeFormattingElementsList[$pos]['element'];
+                        # ... run the adoption agency algorithm for the token, 
+                        $this->adopt($token);
+                        # ... then remove that element from the list of active formatting elements and the 
+                        #   stack of open elements if the adoption agency algorithm didn't already remove it
+                        #   (it might not have if the element is not in table scope).
+                        $this->activeFormattingElementsList->removeSame($element);
+                        $this->Stack->removeSame($element);
+                    }
+                    # Reconstruct the active formatting elements, if any.
+                    $this->activeFormattingElementsList->reconstruct();
+                    # Insert an HTML element for the token.
+                    $element = $this->insertStartTagToken($token);
+                    # Push onto the list of active formatting elements that element.
+                    $this->activeFormattingElementsList->insert($token, $element);
                 } else {
                     throw new NotImplementedException("NOT IMPLEMENTED");
                 }

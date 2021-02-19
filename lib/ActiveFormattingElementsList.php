@@ -37,7 +37,7 @@ class ActiveFormattingElementsList extends Stack {
         ), new \Exception("Active formatting element value is invalid"));
         if ($value instanceof ActiveFormattingElementsMarker) {
             $this->_storage[$offset] = $value;
-        } elseif (($offset ?? $count) === $count) {
+        } elseif ($count && ($offset ?? $count) === $count) {
             # When the steps below require the UA to push onto the list of active formatting
             # elements an element element, the UA must perform the following steps:
             // First find the position of the last marker, if any
@@ -60,12 +60,12 @@ class ActiveFormattingElementsList extends Stack {
                 // Stop once there are three matches or the marker is reached 
             } while ($matches < 3 && (--$pos) > $lastMarker);
             if ($matches === 3) {
-                array_splice($this->_storage, $pos, 1, []);
+                $this->offsetUnset($pos);
             }
             # Add element to the list of active formatting elements.
             $this->_storage[] = $value;
         } else {
-            $this->_storage[$offset] = $value;
+            $this->_storage[$offset ?? $count] = $value;
         }
     }
 
@@ -176,6 +176,34 @@ class ActiveFormattingElementsList extends Stack {
             if ($popped instanceof ActiveFormattingElementsMarker) {
                 break;
             }
+        }
+    }
+
+    public function findSame(Element $target): int {
+        foreach ($this as $k => $entry) {
+            if ($entry instanceof Element && $entry['element']->isSameNode($target)) {
+                return $k;
+            }
+        }
+        return -1;
+    }
+
+    public function findToMarker(string ...$name): int {
+        foreach ($this as $k => $entry) {
+            if ($entry instanceof ActiveFormattingElementsMarker) {
+                return -1;
+            }
+            if (in_array($entry['element']->nodeName, $name)) {
+                return $k;
+            }
+        }
+        return -1;
+    }
+
+    public function removeSame(Element $target): void {
+        $pos = $this->findSame($target);
+        if ($pos > -1) {
+            unset($this[$pos]);
         }
     }
 }
