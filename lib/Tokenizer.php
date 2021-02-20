@@ -3393,7 +3393,7 @@ class Tokenizer {
                     $this->state = self::CDATA_SECTION_BRACKET_STATE;
                 }
                 # EOF
-                elseif ($char ==='') {
+                elseif ($char === '') {
                     # This is an eof-in-cdata parse error.
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_CDATA);
@@ -3405,11 +3405,14 @@ class Tokenizer {
 
                     // OPTIMIZATION:
                     // Consume all characters that aren't listed above to prevent having
-                    // to loop back through here every single time.
-                    if (strspn($char, Data::WHITESPACE)) {
+                    // to loop back through here every single time; only null characters
+                    // are emitted singly
+                    if ($char === "\0") {
+                        return new CharacterToken($char);
+                    } elseif (strspn($char, Data::WHITESPACE)) {
                         return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE));
                     } else {
-                        return new CharacterToken($char.$this->data->consumeUntil(']'));
+                        return new CharacterToken($char.$this->data->consumeUntil("]\0"));
                     }
                 }
             }
@@ -3430,7 +3433,7 @@ class Tokenizer {
                     # Reconsume in the CDATA section state.
                     $this->state = self::CDATA_SECTION_STATE;
                     $this->data->unconsume();
-                    return new CharacterToken(']'.$char);
+                    return new CharacterToken(']');
                 }
             }
 
@@ -3457,7 +3460,7 @@ class Tokenizer {
                     # Reconsume in the CDATA section state.
                     $this->state = self::CDATA_SECTION_STATE;
                     $char = $this->data->unconsume();
-                    return new CharacterToken(']]'.$char);
+                    return new CharacterToken(']]');
                 }
             }
 
