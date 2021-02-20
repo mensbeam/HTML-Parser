@@ -69,6 +69,7 @@ class ParseError {
     const UNEXPECTED_START_TAG_ALIAS                                        = 210; // html5lib uses 'unexpected-start-tag-treated-as'
     const UNEXPECTED_CHAR                                                   = 211;
     const UNEXPECTED_EOF                                                    = 212;
+    const UNEXPECTED_PARENT                                                 = 213;
 
     const MESSAGES = [
         self::EXPECTED_DOCTYPE_BUT_GOT_START_TAG                                => 'Expected DOCTYPE but got start tag <%s>',
@@ -83,6 +84,7 @@ class ParseError {
         self::UNEXPECTED_START_TAG_ALIAS                                        => 'Start tag <%s> should be <%s>',
         self::UNEXPECTED_CHAR                                                   => 'Unexpected character data',
         self::UNEXPECTED_EOF                                                    => 'Unexpected end of file',
+        self::UNEXPECTED_PARENT                                                 => 'Start tag <%s> not valid in parent <%s>',
 
         self::ENCODING_ERROR                                                    => 'Corrupt encoding near byte position %s',
         self::UNEXPECTED_NULL_CHARACTER                                         => 'Unexpected null character',

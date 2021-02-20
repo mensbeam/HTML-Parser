@@ -129,12 +129,8 @@ class TreeBuilder {
         'baseprofile'               => 'baseProfile',
         'calcmode'                  => 'calcMode',
         'clippathunits'             => 'clipPathUnits',
-        'contentscripttype'         => 'contentScriptType',
-        'contentstyletype'          => 'contentStyleType',
         'diffuseconstant'           => 'diffuseConstant',
         'edgemode'                  => 'edgeMode',
-        'externalresourcesrequired' => 'externalResourcesRequired',
-        'filterres'                 => 'filterRes',
         'filterunits'               => 'filterUnits',
         'glyphref'                  => 'glyphRef',
         'gradienttransform'         => 'gradientTransform',
@@ -185,6 +181,20 @@ class TreeBuilder {
         'xchannelselector'          => 'xChannelSelector',
         'ychannelselector'          => 'yChannelSelector',
         'zoomandpan'                => 'zoomAndPan',
+    ];
+    protected const FOREIGN_ATTRIBUTE_NAMESPACE_MAP = [
+            'xlink:actuate' => Parser::XLINK_NAMESPACE,
+            'xlink:arcrole' => Parser::XLINK_NAMESPACE,
+            'xlink:href'    => Parser::XLINK_NAMESPACE,
+            'xlink:role'    => Parser::XLINK_NAMESPACE,
+            'xlink:show'    => Parser::XLINK_NAMESPACE,
+            'xlink:title'   => Parser::XLINK_NAMESPACE,
+            'xlink:type'    => Parser::XLINK_NAMESPACE,
+            'xml:base'      => Parser::XML_NAMESPACE,
+            'xml:lang'      => Parser::XML_NAMESPACE,
+            'xml:space'     => Parser::XML_NAMESPACE,
+            'xmlns'         => Parser::XMLNS_NAMESPACE,
+            'xmlns:xlink'   => Parser::XLINK_NAMESPACE,
     ];
     # The following elements have varying levels of special parsing rules: HTML’s
     # address, applet, area, article, aside, base, basefont, bgsound, blockquote,
@@ -1134,9 +1144,9 @@ class TreeBuilder {
                 }
                 # A start tag whose tag name is one of: "address", "article", "aside",
                 # "blockquote", "center", "details", "dialog", "dir", "div", "dl", "fieldset",
-                # "figcaption", "figure", "footer", "header", "main", "nav", "ol", "p",
+                # "figcaption", "figure", "footer", "header", "hgroup", "menu", "main", "nav", "ol", "p",
                 # "section", "summary", "ul"
-                elseif ($token->name === 'address' || $token->name === 'article' || $token->name === 'aside' || $token->name === 'blockquote' || $token->name === 'center' || $token->name === 'details' || $token->name === 'dialog' || $token->name === 'dir' || $token->name === 'div' || $token->name === 'dl' || $token->name === 'fieldset' || $token->name === 'figcaption' || $token->name === 'figure' || $token->name === 'footer' || $token->name === 'header' || $token->name === 'main' || $token->name === 'nav' || $token->name === 'ol' || $token->name === 'p' || $token->name === 'section' || $token->name === 'summary' || $token->name === 'ul') {
+                elseif ($token->name === 'address' || $token->name === 'article' || $token->name === 'aside' || $token->name === 'blockquote' || $token->name === 'center' || $token->name === 'details' || $token->name === 'dialog' || $token->name === 'dir' || $token->name === 'div' || $token->name === 'dl' || $token->name === 'fieldset' || $token->name === 'figcaption' || $token->name === 'figure' || $token->name === 'footer' || $token->name === 'header' || $token->name === 'hgroup' || $token->name === 'main' || $token->name === 'menu' || $token->name === 'nav' || $token->name === 'ol' || $token->name === 'p' || $token->name === 'section' || $token->name === 'summary' || $token->name === 'ul') {
                     # If the stack of open elements has a p element in button scope, then close a p
                     # element.
                     if ($this->stack->hasElementInButtonScope('p')) {
@@ -1561,7 +1571,7 @@ class TreeBuilder {
                         $this->stack->generateImpliedEndTags();
                         # If the current node is not now a ruby element, this is a parse error.
                         if ($this->stack->currentNodeName !== "ruby") {
-                            $this->error(ParseError::MISNESTED_RUBY);
+                            $this->error(ParseError::UNEXPECTED_PARENT, $token->name, $this->stack->currentNodeName);
                         }
                     }
                     # Insert an HTML element for the token.
@@ -1575,7 +1585,7 @@ class TreeBuilder {
                         $this->stack->generateImpliedEndTags("etc");
                         # If the current node is not now a rtc element or a ruby element, this is a parse error.
                         if (!in_array($this->stack->currentNodeName, ["rtc", "ruby"])) {
-                            $this->error(ParseError::MISNESTED_RUBY);
+                            $this->error(ParseError::UNEXPECTED_PARENT, $token->name, $this->stack->currentNodeName);
                         }
                     }
                     # Insert an HTML element for the token.
@@ -1586,13 +1596,51 @@ class TreeBuilder {
                     throw new NotImplementedException("NOT IMPLEMENTED");
                     # Reconstruct the active formatting elements, if any.
                     $this->activeFormattingElementsList->reconstruct();
-                    # Adjust MathML attributes for the token. (This fixes the case of MathML attributes that are not all lowercase.)
-                    
+                    # Adjust MathML attributes for the token. (This fixes the case of MathML attributes that are not all lowercase.)      
                     # Adjust foreign attributes for the token. (This fixes the use of namespaced attributes, in particular XLink.)
+                    foreach ($token->attributes as $a) {
+                        if ($a->name === 'definitionurl') {
+                            $a->name = 'definitionURL';
+                        }
+                        $a->namespace = self::FOREIGN_ATTRIBUTE_NAMESPACE_MAP[$a->name] ?? null;
+                    }
                     # Insert a foreign element for the token, in the MathML namespace.
+                    $this->insertStartTagToken($token, null, Parser::MATHML_NAMESPACE);
                     # If the token has its self-closing flag set, pop the current node off the stack of open elements and acknowledge the token's self-closing flag.
-                } else {
-                    throw new NotImplementedException("NOT IMPLEMENTED");
+                    if ($token->selfClosing) {
+                        $this->stack->pop();
+                        $token->selfClosingAcknowledged = true;
+                    }
+                }
+                # A start tag whose tag name is "svg"
+                elseif ($token->name === "svg") {
+                    # Reconstruct the active formatting elements, if any.
+                    $this->activeFormattingElementsList->reconstruct();
+                    # Adjust SVG attributes for the token. (This fixes the case of SVG attributes that are not all lowercase.)
+                    # Adjust foreign attributes for the token. (This fixes the use of namespaced attributes, in particular XLink in SVG.)
+                    foreach ($token->attributes as $a) {
+                        $a->name = self::SVG_ATTR_NAME_MAP[$a->name] ?? $a->name;
+                        $a->namespace = self::FOREIGN_ATTRIBUTE_NAMESPACE_MAP[$a->name] ?? null;
+                    }
+                    # Insert a foreign element for the token, in the SVG namespace.
+                    $this->insertStartTagToken($token, null, Parser::SVG_NAMESPACE);
+                    # If the token has its self-closing flag set, pop the current node off the stack of open elements and acknowledge the token's self-closing flag.
+                    if ($token->selfClosing) {
+                        $this->stack->pop();
+                        $token->selfClosingAcknowledged = true;
+                    }
+                }
+                # A start tag whose tag name is one of: "caption", "col", "colgroup", "frame", "head", "tbody", "td", "tfoot", "th", "thead", "tr"
+                elseif ($token->name === "caption" || $token->name === "col" || $token->name === "colgroup" || $token->name === "frame" || $token->name === "head" || $token->name === "tbody" || $token->name === "td" || $token->name === "tfoot" || $token->name === "th" || $token->name === "thead" || $token->name === "tr") {
+                    # Parse error. Ignore the token.
+                    $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
+                } 
+                # Any other start tag
+                else {
+                    # Reconstruct the active formatting elements, if any.
+                    $this->activeFormattingElementsList->reconstruct();
+                    # Insert an HTML element for the token.
+                    $this->insertStartTagToken($token);
                 }
             }
             # An end tag...
@@ -1632,9 +1680,9 @@ class TreeBuilder {
                 }
                 # An end tag whose tag name is one of: "address", "article", "aside",
                 # "blockquote", "button", "center", "details", "dialog", "dir", "div", "dl",
-                # "fieldset", "figcaption", "figure", "footer", "header", "listing", "main",
-                # "nav", "ol", "pre", "section", "summary", "ul"
-                elseif ($token->name === 'address' || $token->name === 'article' || $token->name === 'aside' || $token->name === 'blockquote' || $token->name === 'button' || $token->name === 'center' || $token->name === 'details' || $token->name === 'dialog' || $token->name === 'dir' || $token->name === 'div' || $token->name === 'dl' || $token->name === 'fieldset' || $token->name === 'figcaption' || $token->name === 'figure' || $token->name === 'footer' || $token->name === 'header' || $token->name === 'listing' || $token->name === 'main' || $token->name === 'nav' || $token->name === 'ol' || $token->name === 'pre' || $token->name === 'section' || $token->name === 'summary' || $token->name === 'ul') {
+                # "fieldset", "figcaption", "figure", "footer", "header", "hgroup", "listing",
+                #  "main", "menu", "nav", "ol", "pre", "section", "summary", "ul"
+                elseif ($token->name === 'address' || $token->name === 'article' || $token->name === 'aside' || $token->name === 'blockquote' || $token->name === 'button' || $token->name === 'center' || $token->name === 'details' || $token->name === 'dialog' || $token->name === 'dir' || $token->name === 'div' || $token->name === 'dl' || $token->name === 'fieldset' || $token->name === 'figcaption' || $token->name === 'figure' || $token->name === 'footer' || $token->name === 'header' || $token->name === 'hgroup' || $token->name === 'listing' || $token->name === 'main' || $token->name === 'menu' || $token->name === 'nav' || $token->name === 'ol' || $token->name === 'pre' || $token->name === 'section' || $token->name === 'summary' || $token->name === 'ul') {
                     # If the stack of open elements does not have an element in scope that is an
                     # HTML element with the same tag name as that of the token, then this is a parse
                     # error; ignore the token.
@@ -1701,8 +1749,150 @@ class TreeBuilder {
                         # popped from the stack.
                         $this->stack->popUntil('form');
                     }
-                } else {
-                    throw new NotImplementedException("NOT IMPLEMENTED");
+                }
+                # An end tag whose tag name is "p"
+                elseif ($token->name === "p") {
+                    # If the stack of open elements does not have a p element in button scope, then this is a parse error; 
+                    if (!$this->stack->hasElementInButtonScope("p")) {
+                        $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                        # insert an HTML element for a "p" start tag token with no attributes.
+                        $this->insertStartTagToken(new StartTagToken("p"));
+                    }
+                    # Close a p element.
+                    $this->closePElement($token);
+                }
+                # An end tag whose tag name is "li"
+                elseif ($token->name === "li") {
+                    # If the stack of open elements does not have an li element in 
+                    #   list item scope, then this is a parse error; ignore the token.
+                    if (!$this->stack->hasElementInListItemScope("li")) {
+                        $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                    }
+                    # Otherwise, run these steps:
+                    else {
+                        # Generate implied end tags, except for li elements.
+                        $this->stack->generateImpliedEndTags("li");
+                        # If the current node is not an li element, then this is a parse error.
+                        if ($this->stack->currentNodeName !== "li" || $this->stack->currentNodeNamespace !== null) {
+                            $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                        }
+                        # Pop elements from the stack of open elements until an li element has been popped from the stack.
+                        $this->stack->popUntil("li");
+                    }
+                }
+                # An end tag whose tag name is one of: "dd", "dt"
+                elseif ($token->name === "dd" || $token->name === "dt") {
+                    # If the stack of open elements does not have an element in 
+                    #   scope that is an HTML element with the same tag name as that of 
+                    #   the token, then this is a parse error; ignore the token.
+                    if (!$this->stack->hasElementInScope($token->name)) {
+                        $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                    }
+                    # Otherwise, run these steps:
+                    else {
+                        # Generate implied end tags, except for HTML elements 
+                        #   with the same tag name as the token.
+                        $this->stack->generateImpliedEndTags($token->name);
+                        # If the current node is not an HTML element with the same 
+                        #   tag name as that of the token, then this is a parse error.
+                        if ($this->stack->currentNodeName !== $token->name || $this->stack->currentNodeNamespace !== null) {
+                            $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                        }
+                        # Pop elements from the stack of open elements until an HTML 
+                        #   element with the same tag name as the token has been 
+                        #   popped from the stack.
+                        $this->stack->popUntil($token->name);
+                    }
+                }
+                # An end tag whose tag name is one of: "h1", "h2", "h3", "h4", "h5", "h6"
+                elseif ($token->name === 'h1' || $token->name === 'h2' || $token->name === 'h3' || $token->name === 'h4' || $token->name === 'h5' || $token->name === 'h6') {
+                    # If the stack of open elements does not have an element in scope
+                    #   that is an HTML element and whose tag name is one of "h1", "h2",
+                    #   "h3", "h4", "h5", or "h6", then this is a parse error; ignore the token.
+                    if (!$this->stack->hasElementInScope("h1", "h2", "h3", "h4", "h5")) {
+                        $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                    }
+                    # Otherwise, run these steps:
+                    else {
+                        # Generate implied end tags.
+                        $this->stack->generateImpliedEndTags();
+                        # If the current node is not an HTML element with the same tag name
+                        #   as that of the token, then this is a parse error.
+                        if ($this->stack->currentNodeName !== $token->name || $this->stack->currentNodeNamespace !== null) {
+                            $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                        }
+                        # Pop elements from the stack of open elements until an HTML 
+                        #   element whose tag name is one of "h1", "h2", "h3", "h4", 
+                        #   "h5", or "h6" has been popped from the stack.
+                        $this->stack->popUntil("h1", "h2", "h3", "h4", "h5", "h6");
+                    }
+                }
+                # An end tag whose tag name is "sarcasm"
+                    # Take a deep breath, then act as described in the "any other end tag" entry below.
+                # An end tag whose tag name is one of: "a", "b", "big", "code", "em", "font", "i", "nobr", "s", "small", "strike", "strong", "tt", "u"
+                elseif ($token->name === "a" || $token->name === "b" || $token->name === "big" || $token->name === "code" || $token->name === "em" || $token->name === "font" || $token->name === "i" || $token->name === "nobr" || $token->name === "s" || $token->name === "small" || $token->name === "strike" || $token->name === "strong" || $token->name === "tt" || $token->name === "u") {
+                    # Run the adoption agency algorithm for the token.
+                    $this->adopt($token);
+                }
+                # An end tag token whose tag name is one of: "applet", "marquee", "object"
+                elseif ($token->name === "applet" || $token->name === "marquee" || $token->name === "object") {
+                    # If the stack of open elements does not have an element in scope that 
+                    #   is an HTML element with the same tag name as that of the token, then
+                    #   this is a parse error; ignore the token.
+                    if (!$this->stack->hasElementInScope($token->name)) {
+                        $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                    }
+                    # Otherwise, run these steps:
+                    else {
+                        # Generate implied end tags.
+                        $this->stack->generateImpliedEndTags();
+                        # If the current node is not an HTML element with the same tag 
+                        #   name as that of the token, then this is a parse error.
+                        if ($this->stack->currentNodeName !== $token->name || $this->stack->currentNodeNamespace !== null) {
+                            $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                        }
+                        # Pop elements from the stack of open elements until an HTML 
+                        #   element with the same tag name as the token has been 
+                        #   popped from the stack.
+                        $this->stack->popUntil($token->name);
+                        # Clear the list of active formatting elements up to the last marker.
+                        $this->activeFormattingElementsList->clearToTheLastMarker();
+                    }
+                }
+                # An end tag whose tag name is "br"
+                elseif ($token->name === "br") {
+                    # Parse error. Drop the attributes from the token, and act as described 
+                    #   in the next entry; i.e. act as if this was a "br" start tag token with
+                    #   no attributes, rather than the end tag token that it actually is.
+                    $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                    return $this->parseTokenInHTMLContent(new StartTagToken("br"));
+                }
+                # Any other end tag
+                else {
+                    # Run these steps:
+                    # Initialize node to be the current node (the bottommost node of the stack).
+                    foreach ($this->stack as $node) {
+                        # Loop: If node is an HTML element with the same tag name as the token, then:
+                        if ($node->nodeName === $token->name && $node->namespaceURI === null) {
+                            # Generate implied end tags, except for HTML elements with the same tag name as the token.
+                            $this->stack->generateImpliedEndTags($token->name);
+                            # If node is not the current node, then this is a parse error.
+                            if (!$node->isSameNode($this->stack->currentNode)) {
+                                $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                            }
+                            # Pop all the nodes from the current node up to node, including node, then stop these steps.
+                            $this->stack->popUntilSame($node);
+                            return true;
+                        }
+                        # Otherwise, if node is in the special category, then 
+                        #   this is a parse error; ignore the token, and return.
+                        elseif ($this->isElementSpecial($node)) {
+                            $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                            return true;
+                        }
+                        # Set node to the previous entry in the stack of open elements.
+                        # Return to the step labeled loop.
+                    }
                 }
             }
             # An end-of-file token
@@ -1719,7 +1909,7 @@ class TreeBuilder {
                 # tbody element, a td element, a tfoot element, a th element, a thead element, a
                 # tr element, the body element, or the html element, then this is a parse error.
                 if ($this->stack->findNot('dd', 'dt', 'li', 'optgroup', 'option', 'p', 'rb', 'rp', 'rt', 'rtc', 'tbody', 'td', 'tfoot', 'th', 'thead', 'tr', 'body', 'html') > -1) {
-                    $this->error(ParseError::UNEXPECTED_END_TAG, 'body');
+                    $this->error(ParseError::UNEXPECTED_EOF);
                 }
 
                 # 2. Stop parsing.
@@ -1793,10 +1983,52 @@ class TreeBuilder {
             # "sub", "sup", "table", "tt", "u", "ul", "var"
             # A start tag whose tag name is "font", if the token has any attributes named
             # "color", "face", or "size"
-            if ($token->name === 'b' || $token->name === 'big' || $token->name === 'blockquote' || $token->name === 'body' || $token->name === 'br' || $token->name === 'center' || $token->name === 'code' || $token->name === 'dd' || $token->name === 'div' || $token->name === 'dl' || $token->name === 'dt' || $token->name === 'em' || $token->name === 'embed' || $token->name === 'h1' || $token->name === 'h2' || $token->name === 'h3' || $token->name === 'h4' || $token->name === 'h5' || $token->name === 'h6' || $token->name === 'head' || $token->name === 'hr' || $token->name === 'i' || $token->name === 'img' || $token->name === 'li' || $token->name === 'listing' || $token->name === 'menu' || $token->name === 'meta' || $token->name === 'nobr' || $token->name === 'ol' || $token->name === 'p' || $token->name === 'pre' || $token->name === 'ruby' || $token->name === 's' || $token->name === 'small' || $token->name === 'span' || $token->name === 'strong' || $token->name === 'strike' || $token->name === 'sub' || $token->name === 'sup' || $token->name === 'table' || $token->name === 'tt' || $token->name === 'u' || $token->name === 'var' || (
-                    $token->name === 'font' && (
-                        $token->hasAttribute('color') || $token->hasAttribute('face') || $token->hasAttribute('size')
-                    )
+            if ($token->name === 'b' 
+                || $token->name === 'big' 
+                || $token->name === 'blockquote' 
+                || $token->name === 'body' 
+                || $token->name === 'br' 
+                || $token->name === 'center' 
+                || $token->name === 'code' 
+                || $token->name === 'dd' 
+                || $token->name === 'div' 
+                || $token->name === 'dl' 
+                || $token->name === 'dt' 
+                || $token->name === 'em' 
+                || $token->name === 'embed' 
+                || $token->name === 'h1' 
+                || $token->name === 'h2' 
+                || $token->name === 'h3' 
+                || $token->name === 'h4' 
+                || $token->name === 'h5' 
+                || $token->name === 'h6' 
+                || $token->name === 'head' 
+                || $token->name === 'hr' 
+                || $token->name === 'i' 
+                || $token->name === 'img' 
+                || $token->name === 'li' 
+                || $token->name === 'listing' 
+                || $token->name === 'menu' 
+                || $token->name === 'meta' 
+                || $token->name === 'nobr' 
+                || $token->name === 'ol' 
+                || $token->name === 'p' 
+                || $token->name === 'pre' 
+                || $token->name === 'ruby' 
+                || $token->name === 's' 
+                || $token->name === 'small' 
+                || $token->name === 'span' 
+                || $token->name === 'strong' 
+                || $token->name === 'strike' 
+                || $token->name === 'sub' 
+                || $token->name === 'sup' 
+                || $token->name === 'table' 
+                || $token->name === 'tt' 
+                || $token->name === 'u' 
+                || $token->name === 'ul' 
+                || $token->name === 'var' 
+                || ($token->name === 'font' 
+                    && ($token->hasAttribute('color') || $token->hasAttribute('face') || $token->hasAttribute('size'))
                 )
             ) {
                 # Parse error.
@@ -1839,7 +2071,7 @@ class TreeBuilder {
                 if ($this->stack->adjustedCurrentNodeNamespace === Parser::SVG_NAMESPACE) {
                     $token->name = self::SVG_TAG_NAME_MAP[$token->name] ?? $token->name;
                 }
-                foreach ($token->attributes as &$a) {
+                foreach ($token->attributes as $a) {
                     # If the current node is an element in the MathML namespace, adjust MathML
                     # attributes for the token. (This fixes the case of MathML attributes that are
                     # not all lowercase.)
@@ -1862,31 +2094,9 @@ class TreeBuilder {
                     # cell in the third column, and the namespace being the namespace given in the
                     # corresponding cell in the fourth column. (This fixes the use of namespaced
                     # attributes, in particular lang attributes in the XML namespace.)
-
                     // DOMElement::setAttributeNS requires the prefix and local name be in one
                     // string, so there is no need to separate the prefix and the local name here.
-                    switch($a->name) {
-                        case 'xlink:actuate':
-                        case 'xlink:arcrole':
-                        case 'xlink:href':
-                        case 'xlink:role':
-                        case 'xlink:show':
-                        case 'xlink:title':
-                        case 'xlink:type': 
-                            $a->namespace = Parser::XLINK_NAMESPACE;
-                            break;
-                        case 'xml:base':
-                        case 'xml:lang':
-                        case 'xml:space': 
-                            $a->namespace = Parser::XML_NAMESPACE;
-                            break;
-                        case 'xmlns': 
-                            $a->namespace = Parser::XMLNS_NAMESPACE;
-                            break;
-                        case 'xmlns:xlink': 
-                            $a->namespace = Parser::XLINK_NAMESPACE;
-                            break;
-                    }
+                    $a->namespace = self::FOREIGN_ATTRIBUTE_NAMESPACE_MAP[$a->name] ?? null;                    
                 }
                 # Insert a foreign element for the token, in the same namespace as the adjusted
                 # current node.
@@ -1923,7 +2133,7 @@ class TreeBuilder {
             }
             # 3. Loop: If node is the topmost element in the stack of open elements, then return. (fragment case)
             $pos = count($this->stack) - 1;
-            while ($pos > 0 && ($node = $this->stack[$pos])->namespaceURI === null) {
+            while ($pos > 0 && ($node = $this->stack[$pos])->namespaceURI !== null) {
                 # If node's tag name, converted to ASCII lowercase, is the same as the
                 #   tag name of the token, pop elements from the stack of open elements until node
                 #   has been popped from the stack, and then abort these steps.
@@ -2390,7 +2600,7 @@ class TreeBuilder {
         }
     }
 
-    protected function closePElement(StartTagToken $token) {
+    protected function closePElement(TagToken $token) {
         # When the steps above say the UA is to close a p element, it means that the UA
         # must run the following steps:
 
@@ -2399,7 +2609,11 @@ class TreeBuilder {
         # 2. If the current node is not a p element, then this is a parse error.
         $currentNodeName = $this->stack->currentNodeName;
         if ($currentNodeName !== 'p') {
-            $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+            if ($token instanceof StartTagToken) {
+                $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
+            } else {
+                $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+            }
         }
         # 3. Pop elements from the stack of open elements until a p element has been
         # popped from the stack.

@@ -95,7 +95,13 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                 $patched = true;
             }
         }
-        if ($data === '<!DOCTYPE html><html xml:lang=bar><html xml:lang=foo>') {
+        if (in_array($data, [
+            '<!DOCTYPE html><html xml:lang=bar><html xml:lang=foo>',
+            '<!DOCTYPE html><body xlink:href=foo><svg xlink:href=foo></svg>',
+            '<!DOCTYPE html><body xlink:href=foo xml:lang=en><svg><g xml:lang=en xlink:href=foo></g></svg>',
+            '<!DOCTYPE html><body xlink:href=foo xml:lang=en><svg><g xml:lang=en xlink:href=foo /></svg>',
+            '<!DOCTYPE html><body xlink:href=foo xml:lang=en><svg><g xml:lang=en xlink:href=foo />bar</svg>',
+        ])) {
             $skip = 'Requires implementation of the "Coercing an HTML DOM into an infoset" specification section';
         }
         return [$exp, $patched, $skip];

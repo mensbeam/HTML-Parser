@@ -168,7 +168,7 @@ class OpenElementsStack extends Stack {
         }
     }
 
-    public function hasElementInScope($target): bool {
+    public function hasElementInScope(...$target): bool {
         # The stack of open elements is said to have a particular element in scope when
         # it has that element in the specific scope consisting of the following element
         # types:
@@ -177,23 +177,23 @@ class OpenElementsStack extends Stack {
         return $this->hasElementInScopeHandler($target, self::GENERAL_SCOPE);
     }
 
-    public function hasElementInListItemScope($target): bool {
+    public function hasElementInListItemScope(...$target): bool {
         $scope = self::GENERAL_SCOPE;
         $scope[Parser::HTML_NAMESPACE] = array_merge($scope[Parser::HTML_NAMESPACE], self::LIST_ITEM_SCOPE);
         return $this->hasElementInScopeHandler($target, $scope);
     }
 
-    public function hasElementInButtonScope($target): bool {
+    public function hasElementInButtonScope(...$target): bool {
         $scope = self::GENERAL_SCOPE;
         $scope[Parser::HTML_NAMESPACE] = array_merge($scope[Parser::HTML_NAMESPACE], self::BUTTON_SCOPE);
         return $this->hasElementInScopeHandler($target, $scope);
     }
 
-    public function hasElementInTableScope($target): bool {
+    public function hasElementInTableScope(...$target): bool {
         return $this->hasElementInScopeHandler($target, self::TABLE_SCOPE);
     }
 
-    public function hasElementInSelectScope(string $target): bool {
+    public function hasElementInSelectScope(...$target): bool {
         # The stack of open elements is said to have a particular element 
         #   in select scope when it has that element in the specific scope 
         #   consisting of all element types EXCEPT the following:
@@ -203,45 +203,33 @@ class OpenElementsStack extends Stack {
         return $this->hasElementInScopeHandler($target, self::SELECT_SCOPE, false);
     }
 
-    protected function hasElementInScopeHandler($target, array $list, $matchType = true): bool {
-        assert(is_string($target) || $target instanceof \DOMElement, new \Exception("Invalid input type"));
+    protected function hasElementInScopeHandler(array $targets, array $list, $matchType = true): bool {
         # The stack of open elements is said to have an element target node
         #   in a specific scope consisting of a list of element types list
         #   when the following algorithm terminates in a match state:
-        if ($target instanceof \DOMElement) {
-            # Initialize node to be the current node (the bottommost node of the stack).
-            foreach ($this as $node) {
-                # If node is the target node, terminate in a match state.
-                if ($node->isSameNode($target)) {
-                    return true;
+        # Initialize node to be the current node (the bottommost node of the stack).
+        foreach ($this as $node) {
+            # If node is the target node, terminate in a match state.
+            foreach ($targets as $target) {
+                if ($target instanceof Element) {
+                    if ($node->isSameNode($target)) {
+                        return true;
+                    }
+                } else {
+                    if ($node->namespaceURI === null && $node->nodeName === $target) {
+                        return true;
+                    }
                 }
-                # Otherwise, if node is one of the element types in list, terminate in a failure state.
-                $ns = $node->namespaceURI ?? Parser::HTML_NAMESPACE;
-                if (in_array($node->nodeName, $list[$ns] ?? []) === $matchType) {
-                    return false;
-                }
-                # Otherwise, set node to the previous entry in the stack of 
-                #   open elements and return to step 2. (This will never fail, 
-                #   since the loop will always terminate in the previous step 
-                #   if the top of the stack — an html element — is reached.)
             }
-        } else {
-            # Initialize node to be the current node (the bottommost node of the stack).
-            foreach ($this as $node) {
-                # If node is the target node, terminate in a match state.
-                if ($node->nodeName === $target) {
-                    return true;
-                }
-                # Otherwise, if node is one of the element types in list, terminate in a failure state.
-                $ns = $node->namespaceURI ?? Parser::HTML_NAMESPACE;
-                if (in_array($node->nodeName, $list[$ns] ?? []) === $matchType) {
-                    return false;
-                }
-                # Otherwise, set node to the previous entry in the stack of 
-                #   open elements and return to step 2. (This will never fail, 
-                #   since the loop will always terminate in the previous step 
-                #   if the top of the stack — an html element — is reached.)
+            # Otherwise, if node is one of the element types in list, terminate in a failure state.
+            $ns = $node->namespaceURI ?? Parser::HTML_NAMESPACE;
+            if (in_array($node->nodeName, $list[$ns] ?? []) === $matchType) {
+                return false;
             }
+            # Otherwise, set node to the previous entry in the stack of 
+            #   open elements and return to step 2. (This will never fail, 
+            #   since the loop will always terminate in the previous step 
+            #   if the top of the stack — an html element — is reached.)
         }
         assert(false, new \Exception((string) $this));
     }
