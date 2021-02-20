@@ -66,17 +66,23 @@ class ParseError {
     const UNEXPECTED_END_TAG                                                = 207; // html5lib also uses 'adoption-agency-1.2' and 'adoption-agency-1.3' for this
     const NON_VOID_HTML_ELEMENT_START_TAG_WITH_TRAILING_SOLIDUS             = 208;
     const UNEXPECTED_START_TAG_IMPLIES_END_TAG                              = 209;
+    const UNEXPECTED_START_TAG_ALIAS                                        = 210; // html5lib uses 'unexpected-start-tag-treated-as'
+    const UNEXPECTED_CHAR                                                   = 211;
+    const UNEXPECTED_EOF                                                    = 212;
 
     const MESSAGES = [
-        self::EXPECTED_DOCTYPE_BUT_GOT_START_TAG                                => 'Expected DOCTYPE but got start tag',
-        self::EXPECTED_DOCTYPE_BUT_GOT_END_TAG                                  => 'Expected DOCTYPE but got end tag',
+        self::EXPECTED_DOCTYPE_BUT_GOT_START_TAG                                => 'Expected DOCTYPE but got start tag <%s>',
+        self::EXPECTED_DOCTYPE_BUT_GOT_END_TAG                                  => 'Expected DOCTYPE but got end tag </%s>',
         self::EXPECTED_DOCTYPE_BUT_GOT_CHARS                                    => 'Expected DOCTYPE but got characters',
         self::EXPECTED_DOCTYPE_BUT_GOT_EOF                                      => 'Expected DOCTYPE but got end-of-file',
         self::UNKNOWN_DOCTYPE                                                   => 'Unknown DOCTYPE',
-        self::UNEXPECTED_START_TAG                                              => 'Unexpected start tag',
-        self::UNEXPECTED_END_TAG                                                => 'Unexpected end tag',
-        self::NON_VOID_HTML_ELEMENT_START_TAG_WITH_TRAILING_SOLIDUS             => 'Trailing solidus in non-void HTML element start tag',
-        self::UNEXPECTED_START_TAG_IMPLIES_END_TAG                              => 'Unexpcted non-nesting start tag in nested context',
+        self::UNEXPECTED_START_TAG                                              => 'Unexpected start tag <%s>',
+        self::UNEXPECTED_END_TAG                                                => 'Unexpected end tag </%s>',
+        self::NON_VOID_HTML_ELEMENT_START_TAG_WITH_TRAILING_SOLIDUS             => 'Trailing solidus in non-void HTML element start tag <%s>',
+        self::UNEXPECTED_START_TAG_IMPLIES_END_TAG                              => 'Unexpcted non-nesting start tag <%s> in nested context',
+        self::UNEXPECTED_START_TAG_ALIAS                                        => 'Start tag <%s> should be <%s>',
+        self::UNEXPECTED_CHAR                                                   => 'Unexpected character data',
+        self::UNEXPECTED_EOF                                                    => 'Unexpected end of file',
 
         self::ENCODING_ERROR                                                    => 'Corrupt encoding near byte position %s',
         self::UNEXPECTED_NULL_CHARACTER                                         => 'Unexpected null character',

@@ -36,7 +36,7 @@ class ActiveFormattingElementsList extends Stack {
             && $value['element'] instanceof Element
         ), new \Exception("Active formatting element value is invalid"));
         if ($value instanceof ActiveFormattingElementsMarker) {
-            $this->_storage[$offset] = $value;
+            $this->_storage[$offset ?? $count] = $value;
         } elseif ($count && ($offset ?? $count) === $count) {
             # When the steps below require the UA to push onto the list of active formatting
             # elements an element element, the UA must perform the following steps:
@@ -55,10 +55,12 @@ class ActiveFormattingElementsList extends Stack {
             #   elements.
             $pos = $count - 1;
             $matches = 0;
-            do {
-                $matches += (int) $this->matchElement($value['element'], $this->_storage[$pos]['element']);
-                // Stop once there are three matches or the marker is reached 
-            } while ($matches < 3 && (--$pos) > $lastMarker);
+            if ($pos > $lastMarker) {
+                do {
+                    $matches += (int) $this->matchElement($value['element'], $this->_storage[$pos]['element']);
+                    // Stop once there are three matches or the marker is reached 
+                } while ($matches < 3 && (--$pos) > $lastMarker);
+            }
             if ($matches === 3) {
                 $this->offsetUnset($pos);
             }

@@ -27,6 +27,8 @@ class TreeBuilder {
     protected $originalInsertionMode;
     /** @var \dW\HTML5\OpenElementsStack The stack of open elements, uses Stack */
     protected $stack;
+    /** @var \dW\HTML5\Data Instance of the Data class used for reading the input character-stream */
+    protected $data;
     /** @var \dW\HTML5\Tokenizer Instance of the Tokenizer class used for creating tokens */
     protected $tokenizer;
     /** @var \dW\HTML5\TemplateInsertionModesStack Used to store the template insertion modes */
@@ -340,7 +342,7 @@ class TreeBuilder {
                 #   is not acknowledged when it is processed by the tree construction stage, that
                 #   is a non-void-html-element-start-tag-with-trailing-solidus parse error.
                 if ($token instanceof StartTagToken && $token->selfClosing && !$token->selfClosingAcknowledged) {
-                    $this->error(ParseError::NON_VOID_HTML_ELEMENT_START_TAG_WITH_TRAILING_SOLIDUS);
+                    $this->error(ParseError::NON_VOID_HTML_ELEMENT_START_TAG_WITH_TRAILING_SOLIDUS, $token->name);
                 }
             }
 
@@ -500,9 +502,9 @@ class TreeBuilder {
                 // DEVIATION: There is no iframe srcdoc document because there are no nested
                 // browsing contexts in this implementation.
                 if ($token instanceof StartTagToken) {
-                    $this->error(ParseError::EXPECTED_DOCTYPE_BUT_GOT_START_TAG);
+                    $this->error(ParseError::EXPECTED_DOCTYPE_BUT_GOT_START_TAG, $token->name);
                 } elseif ($token instanceof EndTagToken) {
-                    $this->error(ParseError::EXPECTED_DOCTYPE_BUT_GOT_END_TAG);
+                    $this->error(ParseError::EXPECTED_DOCTYPE_BUT_GOT_END_TAG, $token->name);
                 } elseif ($token instanceof CharacterToken) {
                     $this->error(ParseError::EXPECTED_DOCTYPE_BUT_GOT_CHARS);
                 } elseif ($token instanceof EOFToken) {
@@ -752,7 +754,7 @@ class TreeBuilder {
                 # A start tag whose tag name is "head"
                 elseif ($token->name === 'head') {
                     # Parse error.
-                    $this->error(ParseError::UNEXPECTED_START_TAG);
+                    $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                 }
                 # Any other start tag
                 else {
@@ -794,7 +796,7 @@ class TreeBuilder {
                     # If there is no template element on the stack of open elements, then this is a
                     # parse error; ignore the token.
                     if ($this->stack->find('template') === -1) {
-                        $this->error(ParseError::UNEXPECTED_END_TAG);
+                        $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                     }
                     # Otherwise, run these steps:
                     else {
@@ -802,7 +804,7 @@ class TreeBuilder {
                         $this->stack->generateImpliedEndTags();
                         # 2. If the current node is not a template element, then this is a parse error.
                         if ($this->stack->currentNodeName !== 'template') {
-                            $this->error(ParseError::UNEXPECTED_END_TAG);
+                            $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                         }
                         # 3. Pop elements from the stack of open elements until a template element has been popped from the stack.
                         $this->stack->popUntil('template');
@@ -817,7 +819,7 @@ class TreeBuilder {
                 # Any other end tag
                 else {
                     # Parse error. Ignore the token.
-                    $this->error(ParseError::UNEXPECTED_END_TAG);
+                    $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                 }
             }
             # Anything else
@@ -854,14 +856,14 @@ class TreeBuilder {
                 # A start tag whose tag name is one of: "head", "noscript"
                 elseif ($token->name === 'head' || $token->name === 'noscript') {
                     # Parse error. Ignore the token.
-                    $this->error(ParseError::UNEXPECTED_START_TAG);
+                    $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                 }
                 # Any other start tag
                 else {
                     # Act as described in the "anything else" entry below.
 
                     # Parse error.
-                    $this->error(ParseError::UNEXPECTED_START_TAG);
+                    $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                     # Pop the current node (which will be a noscript element) from the stack of open
                     # elements; the new current node will be a head element.
                     $this->stack->pop();
@@ -884,13 +886,11 @@ class TreeBuilder {
             # Any other end tag
             elseif ($token instanceof EndTagToken && $token->name !== 'br') {
                 # Parse error. Ignore the token.
-                $this->error(ParseError::UNEXPECTED_END_TAG);
+                $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
             }
             # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED
             #   (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
             # A comment token
-            // OPTIMIZATION: Will check for multiple space characters at once as character
-            // tokens can contain more than one character.
             elseif ($token instanceof CommentToken || $token instanceof WhitespaceToken) {
                 # Process the token using the rules for the "in head" insertion mode.
                 return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
@@ -898,7 +898,13 @@ class TreeBuilder {
             # Anything else
             else {
                 # Parse error.
-                $this->error(ParseError::UNEXPECTED_END_TAG);
+                if ($token instanceof EndTagToken) {
+                    $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                } elseif ($token instanceof CharacterToken) {
+                    $this->error(ParseError::UNEXPECTED_CHAR);
+                } elseif ($token instanceof EOFToken) {
+                    $this->error(ParseError::UNEXPECTED_EOF);
+                }
                 # Pop the current node (which will be a noscript element) from the stack 
                 #   of open elements; the new current node will be a head element.
                 $this->stack->pop();
@@ -955,22 +961,19 @@ class TreeBuilder {
                 # "meta", "noframes", "script", "style", "template", "title"
                 elseif ($token->name === 'base' || $token->name === 'basefont' || $token->name === 'bgsound' || $token->name === 'link' || $token->name === 'meta' || $token->name === 'noframes' || $token->name === 'script' || $token->name === 'style' || $token->name === 'template' || $token->name === 'title') {
                     # Parse error.
-                    $this->error(ParseError::UNEXPECTED_START_TAG);
+                    $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                     # Push the node pointed to by the head element pointer onto the stack of open elements.
                     $this->stack[] = $this->headElement;
                     # Process the token using the rules for the "in head" insertion mode.
                     $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
                     # Remove the node pointed to by the head element pointer from the stack of open
                     # elements. (It might not be the current node at this point.)
-                    $key = $this->stack->findSame($this->headElement);
-                    if ($key !== -1) {
-                        unset($this->stack[$key]);
-                    }
+                    $this->stack->removeSame($this->headElement);
                 }
                 # A start tag whose tag name is "head"
                 elseif ($token->name === 'head') {
                     # Parse error. Ignore the token
-                    $this->error(ParseError::UNEXPECTED_START_TAG);
+                    $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                 }
                 # Any other start tag
                 else {
@@ -1004,7 +1007,7 @@ class TreeBuilder {
                 # Any other end tag
                 else {
                     # Parse error. Ignore the token.
-                    $this->error(ParseError::UNEXPECTED_END_TAG);
+                    $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                 }
             }
             # Anything else
@@ -1058,7 +1061,7 @@ class TreeBuilder {
                 # A start tag whose tag name is "html"
                 if ($token->name === 'html') {
                     # Parse error.
-                    $this->error(ParseError::UNEXPECTED_START_TAG);
+                    $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                     # If there is a template element on the stack of open elements, then ignore the
                     # token.
                     if ($this->stack->find('template') === -1) {
@@ -1082,7 +1085,7 @@ class TreeBuilder {
                 # A start tag whose tag name is "body"
                 elseif ($token->name === 'body') {
                     # Parse error.
-                    $this->error(ParseError::UNEXPECTED_START_TAG);
+                    $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                     # If the second element on the stack of open elements is not a body element, if
                     # the stack of open elements has only one node on it, or if there is a template
                     # element on the stack of open elements, then ignore the token. (fragment case)
@@ -1137,7 +1140,7 @@ class TreeBuilder {
                     # If the stack of open elements has a p element in button scope, then close a p
                     # element.
                     if ($this->stack->hasElementInButtonScope('p')) {
-                        $this->closePElement();
+                        $this->closePElement($token);
                     }
                     # Insert an HTML element for the token.
                     $this->insertStartTagToken($token);
@@ -1147,9 +1150,8 @@ class TreeBuilder {
                     # If the stack of open elements has a p element in button scope, then close a p
                     # element.
                     if ($this->stack->hasElementInButtonScope('p')) {
-                        $this->closePElement();
+                        $this->closePElement($token);
                     }
-
                     # If the current node is an HTML element whose tag name is one of "h1", "h2",
                     # "h3", "h4", "h5", or "h6", then this is a parse error; pop the current node
                     # off the stack of open elements.
@@ -1159,7 +1161,6 @@ class TreeBuilder {
                         $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                         $this->stack->pop();
                     }
-
                     # Insert an HTML element for the token.
                     $this->insertStartTagToken($token);
                 }
@@ -1168,15 +1169,12 @@ class TreeBuilder {
                     # If the stack of open elements has a p element in button scope, then close a p
                     # element.
                     if ($this->stack->hasElementInButtonScope('p')) {
-                        $this->closePElement();
+                        $this->closePElement($token);
                     }
-
                     # Insert an HTML element for the token.
                     $this->insertStartTagToken($token);
-
                     # Set the frameset-ok flag to "not ok".
                     $this->framesetOk = false;
-
                     # If the next token is a U+000A LINE FEED (LF) character token, then ignore that
                     # token and move on to the next one. (Newlines at the start of pre blocks are
                     # ignored as an authoring convenience.)
@@ -1207,9 +1205,8 @@ class TreeBuilder {
                         # If the stack of open elements has a p element in button scope, then close a p
                         # element.
                         if ($this->stack->hasElementInButtonScope('p')) {
-                            $this->closePElement();
+                            $this->closePElement($token);
                         }
-
                         # Insert an HTML element for the token, and, if there is no template element on
                         # the stack of open elements, set the form element pointer to point to the
                         # element created.
@@ -1223,7 +1220,6 @@ class TreeBuilder {
                 elseif ($token->name === 'li') {
                     # 1. Set the frameset-ok flag to "not ok".
                     $this->framesetOk = false;
-
                     # 2. Initialize node to be the current node (the bottommost node of the stack).
                     # 3. Loop: If node is an li element, then run these substeps:
                     foreach ($this->stack as $node) {
@@ -1231,37 +1227,30 @@ class TreeBuilder {
                         if ($nodeName === 'li') {
                             # 1. Generate implied end tags, except for li elements.
                             $this->stack->generateImpliedEndTags("li");
-
                             # 2. If the current node is not an li element, then this is a parse error.
                             if ($this->stack->currentNodeName !== 'li') {
                                 $this->error(ParseError::UNEXPECTED_START_TAG, $nodeName);
                             }
-
                             # 3. Pop elements from the stack of open elements until an li element has been
                             # popped from the stack.
                             $this->stack->popUntil('li');
-
                             # 4. Jump to the step labeled Done below.
                             break;
                         }
-
                         # 4. If node is in the special category, but is not an address, div, or p
                         # element, then jump to the step labeled Done below.
                         if ($nodeName !== 'address' && $nodeName !== 'div' && $nodeName !== 'p' && $this->isElementSpecial($node)) {
                             break;
                         }
-
                         # 5. Otherwise, set node to the previous entry in the stack of open elements and
                         # return to the step labeled Loop.
                         // The loop handles that.
                     }
-
                     # 6. Done: If the stack of open elements has a p element in button scope, then
                     # close a p element.
                     if ($this->stack->hasElementInButtonScope('p')) {
-                        $this->closePElement();
+                        $this->closePElement($token);
                     }
-
                     # 7. Finally, insert an HTML element for the token.
                     $this->insertStartTagToken($token);
                 }
@@ -1269,11 +1258,9 @@ class TreeBuilder {
                 elseif ($token->name === 'dd' || $token->name === 'dt') {
                     # 1. Set the frameset-ok flag to "not ok".
                     $this->framesetOk = false;
-
                     # 2. Initialize node to be the current node (the bottommost node of the stack).
                     foreach ($this->stack as $node) {
                         $nodeName = $node->nodeName;
-
                         // Combining these two sets of instructions as they're identical except for the
                         // element name.
                         # 3. Loop: If node is a dd element, then run these substeps:
@@ -1281,37 +1268,30 @@ class TreeBuilder {
                         if ($nodeName === 'dd' || $nodeName === 'dt') {
                             # 1. Generate implied end tags, except for dd or dt elements.
                             $this->stack->generateImpliedEndTags('dd', 'dt');
-
                             # 2. If the current node is not a dd or dt element, then this is a parse error.
                             if ($this->stack->currentNodeName !== $nodeName) {
                                 $this->error(ParseError::UNEXPECTED_START_TAG, $nodeName);
                             }
-
                             # 3. Pop elements from the stack of open elements until a dd or dt element has been
                             # popped from the stack.
                             $this->stack->popUntil('dd', 'dt');
-
                             # 4. Jump to the step labeled Done below.
                             break;
                         }
-
                         # 5. If node is in the special category, but is not an address, div, or p
                         # element, then jump to the step labeled Done below.
                         if ($nodeName !== 'address' && $nodeName !== 'div' && $nodeName !== 'p' && $this->isElementSpecial($node)) {
                             break;
                         }
-
                         # 6. Otherwise, set node to the previous entry in the stack of open elements and
                         # return to the step labeled Loop.
                         // The loop handles that.
                     }
-
                     # 7. Done: If the stack of open elements has a p element in button scope, then
                     # close a p element.
                     if ($this->stack->hasElementInButtonScope('p')) {
-                        $this->closePElement();
+                        $this->closePElement($token);
                     }
-
                     # 8. Finally, insert an HTML element for the token.
                     $this->insertStartTagToken($token);
                 }
@@ -1320,12 +1300,10 @@ class TreeBuilder {
                     # If the stack of open elements has a p element in button scope, then close a p
                     # element.
                     if ($this->stack->hasElementInButtonScope('p')) {
-                        $this->closePElement();
+                        $this->closePElement($token);
                     }
-
                     # Insert an HTML element for the token.
                     $this->insertStartTagToken($token);
-
                     # Switch the tokenizer to the §8.2.4.5 PLAINTEXT state.
                     $this->tokenizer->state = Tokenizer::PLAINTEXT_STATE;
                 }
@@ -1336,21 +1314,16 @@ class TreeBuilder {
                     if ($this->stack->hasElementInScope('button')) {
                         # 1. Parse error.
                         $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
-
                         # 2. Generate implied end tags.
                         $this->stack->generateImpliedEndTags();
-
                         # 3. Pop elements from the stack of open elements until a button element has
                         # been popped from the stack.
                         $this->stack->popUntil('button');
                     }
-
                     # 2. Reconstruct the active formatting elements, if any.
                     $this->activeFormattingElementsList->reconstruct();
-
                     # 3. Insert an HTML element for the token.
                     $this->insertStartTagToken($token);
-
                     # 4. Set the frameset-ok flag to "not ok".
                     $this->framesetOk = false;
                 }
@@ -1360,7 +1333,7 @@ class TreeBuilder {
                     #   of the list and the last marker on the list (or the start of the list if there
                     #   is no marker on the list), then this is a parse error;
                     if (($pos = $this->activeFormattingElementsList->findToMarker("a")) > -1) {
-                        $this->error(ParseError::UNEXPECTED_START_TAG_IMPLIES_END_TAG);
+                        $this->error(ParseError::UNEXPECTED_START_TAG_IMPLIES_END_TAG, $token->name);
                         $element = $this->activeFormattingElementsList[$pos]['element'];
                         # ... run the adoption agency algorithm for the token, 
                         $this->adopt($token);
@@ -1376,10 +1349,253 @@ class TreeBuilder {
                     $element = $this->insertStartTagToken($token);
                     # Push onto the list of active formatting elements that element.
                     $this->activeFormattingElementsList->insert($token, $element);
+                }
+                # A start tag whose tag name is one of: "b", "big", "code", "em", "font", "i", "s", "small", "strike", "strong", "tt", "u"
+                elseif ($token->name === "b" || $token->name === "big" || $token->name === "code" || $token->name === "em" || $token->name === "font" || $token->name === "i" || $token->name === "s" || $token->name === "small" || $token->name === "strike" || $token->name === "strong" || $token->name === "tt" || $token->name === "u") {
+                    # Reconstruct the active formatting elements, if any.
+                    $this->activeFormattingElementsList->reconstruct();
+                    # Insert an HTML element for the token.
+                    $element = $this->insertStartTagToken($token);
+                    # Push onto the list of active formatting elements that element.
+                    $this->activeFormattingElementsList->insert($token, $element);
+                }
+                # A start tag whose tag name is "nobr"
+                elseif ($token->name === "nobr") {
+                    # Reconstruct the active formatting elements, if any.
+                    $this->activeFormattingElementsList->reconstruct();
+                    # If the stack of open elements has a nobr element in scope, then this is a parse error;
+                    if($this->stack->hasElementInScope("nobr")) {
+                        $this->error(ParseError::UNEXPECTED_START_TAG_IMPLIES_END_TAG, $token->name);
+                        # ... run the adoption agency algorithm for the token, 
+                        $this->adopt($token);
+                        # ... then once again reconstruct the active formatting elements, if any.
+                        $this->activeFormattingElementsList->reconstruct();
+                    }
+                    # Insert an HTML element for the token.
+                    $element = $this->insertStartTagToken($token);
+                    # Push onto the list of active formatting elements that element.
+                    $this->activeFormattingElementsList->insert($token, $element);
+                }
+                # A start tag whose tag name is one of: "applet", "marquee", "object"
+                elseif ($token->name === "applet" || $token->name === "marquee" || $token->name === "object") {
+                    # Reconstruct the active formatting elements, if any.
+                    $this->activeFormattingElementsList->reconstruct();
+                    # Insert an HTML element for the token.
+                    $this->insertStartTagToken($token);
+                    # Insert a marker at the end of the list of active formatting elements.
+                    $this->activeFormattingElementsList->insertMarker();
+                    # Set the frameset-ok flag to "not ok".
+                    $this->framesetOk = false;
+                }
+                # A start tag whose tag name is "table"
+                elseif ($token->name === "table") {
+                    # If the Document is not set to quirks mode, and the stack of open elements has a p element in button scope, then close a p element.
+                    if ($this->DOM->quirksMode !== Document::QUIRKS_MODE && $this->stack->hasElementInButtonScope("p")) {
+                        $this->closePElement($token);
+                    }
+                    # Insert an HTML element for the token.
+                    $this->insertStartTagToken($token);
+                    # Set the frameset-ok flag to "not ok".
+                    $this->framesetOk = false;
+                    # Switch the insertion mode to "in table".
+                    $this->insertionMode = self::IN_TABLE_MODE;
+                }
+                # A start tag whose tag name is one of: "area", "br", "embed", "img", "keygen", "wbr"
+                elseif ($token->name === "area" || $token->name === "br" || $token->name === "embed" || $token->name === "img" || $token->name === "keygen" || $token->name === "wbr") {
+                    # Reconstruct the active formatting elements, if any.
+                    $this->activeFormattingElementsList->reconstruct();
+                    # Insert an HTML element for the token. 
+                    # Immediately pop the current node off the stack of open elements.
+                    $this->insertStartTagToken($token);
+                    $this->stack->pop();
+                    # Acknowledge the token's self-closing flag, if it is set.
+                    $token->selfClosingAcknowledged = true;
+                    # Set the frameset-ok flag to "not ok".
+                    $this->framesetOk = false;
+                }
+                # A start tag whose tag name is "input"
+                elseif ($token->name === "input") {
+                    # Reconstruct the active formatting elements, if any.
+                    $this->activeFormattingElementsList->reconstruct();
+                    # Insert an HTML element for the token. 
+                    # Immediately pop the current node off the stack of open elements.
+                    $element = $this->insertStartTagToken($token);
+                    $this->stack->pop();
+                    # Acknowledge the token's self-closing flag, if it is set.
+                    $token->selfClosingAcknowledged = true;
+                    # If the token does not have an attribute with the name "type", 
+                    #   or if it does, but that attribute's value is not an ASCII 
+                    #   case-insensitive match for the string "hidden", then: 
+                    #   set the frameset-ok flag to "not ok".
+                    // DEVIATION: check the element instead as this is simpler
+                    if ($element->getAttribute("type") !== "hidden") {
+                        $this->framesetOk = false;
+                    }
+                }
+                # A start tag whose tag name is one of: "param", "source", "track"
+                elseif ($token->name === "param" || $token->name === "source" || $token->name === "track") {
+                    # Insert an HTML element for the token. Immediately pop the current node off the stack of open elements.
+                    $this->insertStartTagToken($token);
+                    $this->stack->pop();
+                    # Acknowledge the token's self-closing flag, if it is set.
+                    $token->selfClosingAcknowledged = true;
+                }
+                # A start tag whose tag name is "hr"
+                elseif ($token->name === "hr") {
+                    # If the stack of open elements has a p element in button scope, then close a p element.
+                    if ($this->stack->hasElementInButtonScope("p")) {
+                        $this->closePElement($token);
+                    }
+                    # Insert an HTML element for the token.
+                    # Immediately pop the current node off the stack of open elements.
+                    $this->insertStartTagToken($token);
+                    $this->stack->pop();
+                    # Acknowledge the token's self-closing flag, if it is set.
+                    $token->selfClosingAcknowledged = true;
+                    # Set the frameset-ok flag to "not ok".
+                    $this->framesetOk = false;
+                }
+                # A start tag whose tag name is "image"
+                elseif ($token->name === "image") {
+                    # Parse error.
+                    $this->error(ParseError::UNEXPECTED_START_TAG_ALIAS, $token->name, "img"); 
+                    # Change the token's tag name to "img" and reprocess it. (Don't ask.)
+                    $token->name = "img";
+                    goto ProcessToken;
+                }
+                # A start tag whose tag name is "textarea"
+                elseif ($token->name === "textarea") {
+                    # Run these steps:
+                    # Insert an HTML element for the token.
+                    $this->insertStartTagToken($token);
+                    # If the next token is a U+000A LINE FEED (LF) character token, then ignore that token and move on to the next one. (Newlines at the start of textarea elements are ignored as an authoring convenience.)
+                    # Switch the tokenizer to the RCDATA state.
+                    $this->tokenizer->state = Tokenizer::RCDATA_STATE;
+                    $nextToken = $this->tokenizer->createToken();
+                    if ($nextToken instanceof CharacterToken) {
+                        // Character tokens in this implementation can have more than one character in
+                        // them.
+                        if (strlen($nextToken->data) === 1 && $nextToken->data === "\n") {
+                            return true;
+                        } elseif (strpos($nextToken->data, "\n") === 0) {
+                            $nextToken->data = substr($nextToken->data, 1);
+                        }
+                    }
+                    # Let the original insertion mode be the current insertion mode.
+                    $this->originalInsertionMode = $this->insertionMode;
+                    # Set the frameset-ok flag to "not ok".
+                    $this->framesetOk = false;
+                    # Switch the insertion mode to "text".
+                    $insertionMode = $this->insertionMode = self::TEXT_MODE;
+                    // Process the next token
+                    $token = $nextToken;
+                    goto ProcessToken;
+                }
+                # A start tag whose tag name is "xmp"
+                elseif ($token->name === "xmp") {
+                    # If the stack of open elements has a p element in button scope, then close a p element.
+                    if ($this->stack->hasElementInButtonScope("p")) {
+                        $this->closePElement($token);
+                    }
+                    # Reconstruct the active formatting elements, if any.
+                    $this->activeFormattingElementsList->reconstruct();
+                    # Set the frameset-ok flag to "not ok".
+                    $this->framesetOk = false;
+                    # Follow the generic raw text element parsing algorithm.
+                    $this->parseGenericRawText($token);
+                }
+                # A start tag whose tag name is "iframe"
+                elseif ($token->name === "iframe") {
+                    # Set the frameset-ok flag to "not ok".
+                    $this->framesetOk = false;
+                    # Follow the generic raw text element parsing algorithm.
+                    $this->parseGenericRawText($token);
+                }
+                # A start tag whose tag name is "noembed"
+                # A start tag whose tag name is "noscript", if the scripting flag is enabled
+                // DEVIATION: The scripting flag is always disabled
+                elseif ($token->name === "noembed") {
+                    # Follow the generic raw text element parsing algorithm.
+                    $this->parseGenericRawText($token);
+                }
+                # A start tag whose tag name is "select"
+                elseif ($token->name === "select") {
+                    # Reconstruct the active formatting elements, if any.
+                    $this->activeFormattingElementsList->reconstruct();
+                    # Insert an HTML element for the token.
+                    $this->insertStartTagToken($token);
+                    # Set the frameset-ok flag to "not ok".
+                    $this->framesetOk = false;
+                    # If the insertion mode is one of "in table", "in caption", 
+                    #   "in table body", "in row", or "in cell", then switch 
+                    #   the insertion mode to "in select in table".
+                    if (in_array($insertionMode, [
+                        self::IN_TABLE_MODE, 
+                        self::IN_CAPTION_MODE,
+                        self::IN_TABLE_BODY_MODE,
+                        self::IN_ROW_MODE,
+                        self::IN_CELL_MODE,
+                    ])) {
+                        $this->insertionMode = self::IN_SELECT_IN_TABLE_MODE;
+                    }
+                    # Otherwise, switch the insertion mode to "in select".
+                    else {
+                        $this->insertionMode = self::IN_SELECT_MODE;
+                    }
+                }
+                # A start tag whose tag name is one of: "optgroup", "option"
+                elseif ($token->name === "optgroup" || $token->name === "option") {
+                    # If the current node is an option element, then pop the current node off the stack of open elements.
+                    if ($this->stack->currentNodeName === "option") {
+                        $this->stack->pop();
+                    }
+                    # Reconstruct the active formatting elements, if any.
+                    $this->activeFormattingElementsList->reconstruct();
+                    # Insert an HTML element for the token.
+                    $this->insertStartTagToken($token);
+                }
+                # A start tag whose tag name is one of: "rb", "rtc"
+                elseif ($token->name === "rb" || $token->name === "rtc") {
+                    # If the stack of open elements has a ruby element in scope, then generate implied end tags. 
+                    if ($this->stack->hasElementInScope("ruby")) {
+                        $this->stack->generateImpliedEndTags();
+                        # If the current node is not now a ruby element, this is a parse error.
+                        if ($this->stack->currentNodeName !== "ruby") {
+                            $this->error(ParseError::MISNESTED_RUBY);
+                        }
+                    }
+                    # Insert an HTML element for the token.
+                    $this->insertStartTagToken($token);
+                }
+                # A start tag whose tag name is one of: "rp", "rt"
+                elseif ($token->name == "rp" || $token->name === "rt") {
+                    # If the stack of open elements has a ruby element in scope,
+                    #   then generate implied end tags, except for rtc elements. 
+                    if ($this->stack->hasElementInScope("ruby")) {
+                        $this->stack->generateImpliedEndTags("etc");
+                        # If the current node is not now a rtc element or a ruby element, this is a parse error.
+                        if (!in_array($this->stack->currentNodeName, ["rtc", "ruby"])) {
+                            $this->error(ParseError::MISNESTED_RUBY);
+                        }
+                    }
+                    # Insert an HTML element for the token.
+                    $this->insertStartTagToken($token);
+                }
+                # A start tag whose tag name is "math"
+                elseif ($token->name === "math") {
+                    throw new NotImplementedException("NOT IMPLEMENTED");
+                    # Reconstruct the active formatting elements, if any.
+                    $this->activeFormattingElementsList->reconstruct();
+                    # Adjust MathML attributes for the token. (This fixes the case of MathML attributes that are not all lowercase.)
+                    
+                    # Adjust foreign attributes for the token. (This fixes the use of namespaced attributes, in particular XLink.)
+                    # Insert a foreign element for the token, in the MathML namespace.
+                    # If the token has its self-closing flag set, pop the current node off the stack of open elements and acknowledge the token's self-closing flag.
                 } else {
                     throw new NotImplementedException("NOT IMPLEMENTED");
                 }
             }
+            # An end tag...
             elseif ($token instanceof EndTagToken) {
                 # An end tag whose tag name is "template"
                 if ($token->name === 'template') {
@@ -1392,7 +1608,7 @@ class TreeBuilder {
                     # If the stack of open elements does not have a body element in scope, this is a
                     # parse error; ignore the token.
                     if (!$this->stack->hasElementInScope('body')) {
-                        $this->error(ParseError::UNEXPECTED_END_TAG);
+                        $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                     }
                     # Otherwise, if there is a node in the stack of open elements that is not either
                     # a dd element, a dt element, an li element, an optgroup element, an option
@@ -1402,7 +1618,7 @@ class TreeBuilder {
                     # parse error.
                     else {
                         if ($this->stack->findNot('dd', 'dt', 'li', 'optgroup', 'option', 'p', 'rb', 'rp', 'rt', 'rtc', 'tbody', 'td', 'tfoot', 'th', 'thead', 'tr', 'body', 'html') > -1) {
-                            $this->error(ParseError::UNEXPECTED_END_TAG);
+                            $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                         }
                         # Switch the insertion mode to "after body".
                         $insertionMode = $this->insertionMode = self::AFTER_BODY_MODE;
@@ -1464,10 +1680,7 @@ class TreeBuilder {
                             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                         }
                         # 6. Remove node from the stack of open elements
-                        $key = $this->stack->findSame($node);
-                        if ($key > -1) {
-                            unset($this->stack[$key]);
-                        }
+                        $this->stack->removeSame($node);
                     }
                     # If there is a template element on the stack of open elements, then run these
                     # substeps instead:
@@ -1587,7 +1800,7 @@ class TreeBuilder {
                 )
             ) {
                 # Parse error.
-                $this->error(ParseError::UNEXPECTED_START_TAG);
+                $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                 # If the parser was originally created for the HTML fragment parsing algorithm,
                 # then act as described in the "any other start tag" entry below. (fragment
                 # case)
@@ -1706,7 +1919,7 @@ class TreeBuilder {
             # 2. If node is not an element with the same tag name as the token, then this is
             # a parse error.
             if ($this->stack->currentNodeName !== $token->name) {
-                $this->error(ParseError::UNEXPECTED_END_TAG);
+                $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
             }
             # 3. Loop: If node is the topmost element in the stack of open elements, then return. (fragment case)
             $pos = count($this->stack) - 1;
@@ -2177,7 +2390,7 @@ class TreeBuilder {
         }
     }
 
-    protected function closePElement() {
+    protected function closePElement(StartTagToken $token) {
         # When the steps above say the UA is to close a p element, it means that the UA
         # must run the following steps:
 
@@ -2186,7 +2399,7 @@ class TreeBuilder {
         # 2. If the current node is not a p element, then this is a parse error.
         $currentNodeName = $this->stack->currentNodeName;
         if ($currentNodeName !== 'p') {
-            $this->error(ParseError::UNEXPECTED_END_TAG);
+            $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
         }
         # 3. Pop elements from the stack of open elements until a p element has been
         # popped from the stack.
