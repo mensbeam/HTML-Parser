@@ -89,10 +89,12 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         $patched = false;
         $skip = "";
         // comments outside the root element are silently dropped by the PHP DOM
-        for ($a = 0; $a < sizeof($exp); $a++) {
-            if (strpos($exp[$a], "| <!--") === 0) {
-                array_splice($exp, $a--, 1);
-                $patched = true;
+        if (!$fragment) {
+            for ($a = 0; $a < sizeof($exp); $a++) {
+                if (strpos($exp[$a], "| <!--") === 0) {
+                    array_splice($exp, $a--, 1);
+                    $patched = true;
+                }
             }
         }
         if (in_array($data, [

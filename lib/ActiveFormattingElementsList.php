@@ -183,7 +183,7 @@ class ActiveFormattingElementsList extends Stack {
 
     public function findSame(Element $target): int {
         foreach ($this as $k => $entry) {
-            if ($entry instanceof Element && $entry['element']->isSameNode($target)) {
+            if (!$entry instanceof ActiveFormattingElementsMarker && $entry['element']->isSameNode($target)) {
                 return $k;
             }
         }

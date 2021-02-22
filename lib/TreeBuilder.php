@@ -1351,7 +1351,7 @@ class TreeBuilder {
                         #   stack of open elements if the adoption agency algorithm didn't already remove it
                         #   (it might not have if the element is not in table scope).
                         $this->activeFormattingElementsList->removeSame($element);
-                        $this->Stack->removeSame($element);
+                        $this->stack->removeSame($element);
                     }
                     # Reconstruct the active formatting elements, if any.
                     $this->activeFormattingElementsList->reconstruct();
@@ -1869,6 +1869,8 @@ class TreeBuilder {
                 }
                 # Any other end tag
                 else {
+                    // NOTE: This logic is reproduced in the adoption agency below.
+                    //   Changes here should be mirrored there, and vice versa
                     # Run these steps:
                     # Initialize node to be the current node (the bottommost node of the stack).
                     foreach ($this->stack as $node) {
@@ -1928,9 +1930,196 @@ class TreeBuilder {
         #   token 'token' for which the algorithm is being run, consists of 
         #   the following steps:
 
-        // STUB
+        assert((function() {
+            $this->debugLog .= "    Adoption agency (".(string) $this->stack.")\n";
+            return true;
+        })());
 
+        # Let subject be token's tag name.
+        $subject = $token->name;
+        $errorCode = $token instanceof StartTagToken ? ParseError::UNEXPECTED_START_TAG : ParseError::UNEXPECTED_END_TAG;
+        # If the current node is an HTML element whose tag name is subject, 
+        #   and the current node is not in the list of active formatting elements,
+        #   then pop the current node off the stack of open elements, and return.
+        $currentNode = $this->stack->currentNode;
+        if (
+            $currentNode->namespaceURI === null
+            && $currentNode->nodeName === $subject
+            && $this->activeFormattingElementsList->findSame($currentNode) === -1
+        ) {
+            $this->stack->pop();
+            return;
+        }
+        # Let outer loop counter be zero.
+        $outerLoopCounter = 0;
+        # Outer loop: If outer loop counter is greater than or equal to eight, then return.
+        OuterLoop:
+        if ($outerLoopCounter >= 8) {
+            return;
+        }
+        # Increment outer loop counter by one.
+        $outerLoopCounter++;
+        # Let formatting element be the last element in the list of active 
+        # formatting elements that:
+        # 1. is between the end of the list and the last marker in the list,
+        #   if any, or the start of the list otherwise, and
+        # 2. has the tag name subject.
+        $formattingElementIndex = $this->activeFormattingElementsList->findToMarker($subject);
+        if ($formattingElementIndex > -1) {
+            $formattingElement = $this->activeFormattingElementsList[$formattingElementIndex]['element'];
+        } else {
+            $formattingElement = null;
+        }
+        # If there is no such element, then return and instead act as
+        #   described in the "any other end tag" entry above.
+        if (!$formattingElement) {
+            // NOTE: The "entry above" refers to the "in body" insertion mode
+            //   Changes here should be mirrored there
+            foreach ($this->stack as $node) {
+                if ($node->nodeName === $token->name && $node->namespaceURI === null) {
+                    $this->stack->generateImpliedEndTags($token->name);
+                    if (!$node->isSameNode($this->stack->currentNode)) {
+                        $this->error($errorCode, $token->name);
+                    }
+                    $this->stack->popUntilSame($node);
+                    return;
+                } elseif ($this->isElementSpecial($node)) {
+                    $this->error($errorCode, $token->name);
+                    return;
+                }
+            }
+        }
+        # If formatting element is not in the stack of open elements, 
+        #   then this is a parse error; remove the element from the
+        #   list, and return.
+        if (($stackIndex = $this->stack->findSame($formattingElement)) === -1) {
+            $this->error($errorCode, $token->name);
+            unset($this->activeFormattingElementsList[$formattingElementIndex]);
+            return;
+        }
+        # If formatting element is in the stack of open elements, but 
+        #   the element is not in scope, then this is a parse error; return.
+        elseif (!$this->stack->hasElementInScope($formattingElement)) {
+            $this->error($errorCode, $token->name);
+            return;
+        }
+        # If formatting element is not the current node, this is a
+        #   parse error. (But do not return.)
+        if (!$formattingElement->isSameNode($this->stack->currentNode)) {
+            $this->error($errorCode, $token->name);
+        }
+        # Let furthest block be the topmost node in the stack of open elements that
+        #   is lower in the stack than formatting element, and is an element in the
+        #   special category. There might not be one.
+        $furthestBlock = null;
+        for ($k = ($stackIndex - 1); $k > -1; $k--) {
+            if ($this->isElementSpecial($this->stack[$k])) { 
+                $furthestBlockIndex = $k;
+                $furthestBlock = $this->stack[$k];
+                break;
+            }
+        }
+        # If there is no furthest block, then the UA must first pop all the nodes
+        #   from the bottom of the stack of open elements, from the current node up
+        #   to and including formatting element, then remove formatting element from
+        #   the list of active formatting elements, and finally return.
+        if (!$furthestBlock) {
+            $this->stack->popUntilSame($formattingElement);
+            $this->activeFormattingElementsList->removeSame($formattingElement);
+            return;
+        }
         throw new NotImplementedException("NOT IMPLEMENTED");
+        # Let common ancestor be the element immediately above formatting element
+        #   in the stack of open elements.
+        $commonAncestor = $this->stack[$stackIndex - 1] ?? null;
+        # Let a bookmark note the position of formatting element in the list of
+        #   active formatting elements relative to the elements on either side
+        #   of it in the list.
+        $bookmrk = $formattingElementIndex;
+        # Let node and last node be furthest block. Follow these steps:
+        $node = $furthestBlock;
+        $nodeIndex = $furthestBlockIndex;
+        $lastNode = $furthestBlock;
+        # Let inner loop counter be zero.
+        $innerLoopCounter = 0;
+        # Inner loop: Increment inner loop counter by one.
+        InnerLoop:
+        $innerLoopCounter++;
+        # Let node be the element immediately above node in the stack of open
+        #   elements, or if node is no longer in the stack of open elements 
+        #   (e.g. because it got removed by this algorithm), the element that
+        #   was immediately above node in the stack of open elements before
+        #   node was removed.
+        $node = $this->stack[--$nodeIndex];
+        # If node is formatting element, then go to the next step in the
+        #   overall algorithm.
+        goto AfterInnerLoop;
+        # If inner loop counter is greater than three and node is in the
+        #   list of active formatting elements, then remove node from the
+        #   list of active formatting elements.
+        $nodeListPos = $this->activeFormattingElementsList->findSame($node);
+        if ($innerLoopCounter > 3 && $nodeListPos > -1) {
+            unset($this->activeFormattingElementsList[$nodeListPos]);
+        }
+        # If node is not in the list of active formatting elements, then
+        #   remove node from the stack of open elements and then go back to
+        #   the step labeled inner loop.
+        elseif ($nodeListPos === -1) {
+            $this->stack->removeSame($node);
+            goto InnerLoop;
+        }
+        # Create an element for the token for which the element node was
+        #   created, in the HTML namespace, with common ancestor as the
+        #   intended parent; replace the entry for node in the list of 
+        #   active formatting elements with an entry for the new element,
+        #   replace the entry for node in the stack of open elements with
+        #   an entry for the new element, and let node be the new element.
+        $element = $this->insertStartTagToken($this->activeFormattingElementsList[$nodeListPos]['token'], $commonAncestor);
+        $this->activeFormattingElementsList[$nodeListPos]['element'] = $element;
+        $this->stack[$nodeIndex] = $element;
+        # If last node is furthest block, then move the aforementioned
+        #   bookmark to be immediately after the new node in the list of
+        #   active formatting elements.
+        if ($lastNode->isSameNode($furthestBlock)) {
+            $bookmark = $nodeListPos + 1;
+        }
+        # Insert last node into node, first removing it from its previous
+        #   parent node if any.
+        if ($lastNode->parentNode) {
+            $lastNode->parentNode->removeChild($lastNode);
+        }
+        $node->appendChild($lastNode);
+        # Let last node be node.
+        $lastNode = $node;
+        # Return to the step labeled inner loop.
+        goto InnerLoop;
+        # Insert whatever last node ended up being in the previous step
+        #   at the appropriate place for inserting a node, but using 
+        #   common ancestor as the override target.
+        AfterInnerLoop:
+        $place = $this->appropriatePlaceForInsertingNode($commonAncestor);
+        if ($place['insert before']) {
+            $place['node']->parentNode->insertBefore($lastNode, $place['node']);
+        } else {
+            $place['node']->appendChild($lastNode);
+        }
+        # Create an element for the token for which formatting element was
+        #   created, in the HTML namespace, with furthest block as the
+        #   intended parent.
+        $element = $this->insertStartTagToken($this->activeFormattingElementsList[$formattingElementIndex]['token'], $furthestBlock);
+        # Take all of the child nodes of furthest block and append them to
+        #   the element created in the last step.
+        foreach ($furthestBlock->childNodes as $node) {
+            $element->appendChild($node);
+        }
+        # Append that new element to furthest block.
+        $furthestBlock->appendChild($element);
+        # Remove formatting element from the list of active formatting
+        #   elements, and insert the new element into the list of active
+        #   formatting elements at the position of the aforementioned bookmark.
+
+        # Remove formatting element from the stack of open elements, and insert the new element into the stack of open elements immediately below the position of furthest block in that stack.
+        # Jump back to the step labeled outer loop.
     }
 
     protected function parseTokenInForeignContent(Token $token): bool {
@@ -2166,14 +2355,14 @@ class TreeBuilder {
         # override target, is the position in an element returned by running the
         # following steps:
 
-        # 1. If there was an override target specified, then let target be the override
-        # target.
+        # If there was an override target specified, then let target 
+        #   be the override target. Otherwise, let target be the current node.
         $target = $overrideTarget ?? $this->stack->currentNode;
         assert(isset($target), new \Exception("Open elements stack is empty"));
-        # 2. Determine the adjusted insertion location using the first matching steps
-        # from the following list: If foster parenting is enabled and target is a table,
-        # tbody, tfoot, thead, or tr element
+        # Determine the adjusted insertion location using the first matching steps
+        # from the following list: 
         $targetNodeName = $target->nodeName;
+        # If foster parenting is enabled and target is a table, tbody, tfoot, thead, or tr element
         if ($this->fosterParenting && ($targetNodeName === 'table' || $targetNodeName === 'tbody' || $targetNodeName === 'tfoot' || $targetNodeName === 'thead' || $targetNodeName === 'tr')) {
             # Run these substeps:
             #
@@ -2329,7 +2518,6 @@ class TreeBuilder {
         # 1. Let document be intended parent’s node document.
         // DEVIATION: Unnecessary because there aren't any nested contexts to consider.
         // The document will always be $this->DOM.
-
         # 2. Let local name be the tag name of the token.
         // Nope. Don't need it because when creating elements with
         // DOMElement::createElementNS the prefix and local name are combined.
