@@ -196,6 +196,20 @@ class OpenElementsStack extends Stack {
         }
     }
 
+    public function clearToTableRowContext(): void {
+        # When the steps above require the UA to clear the stack back to a
+        #   table row context, it means that the UA must, while the current
+        #   node is not a tr, template, or html element, pop elements from
+        #   the stack of open elements.
+        assert(sizeof($this->_storage) > 0, new \Exception("Stack is empty"));
+        $pos = $this->find("tr", "template", "html");
+        assert($pos > -1, new \Exception("No table row context exists"));
+        $stop = $pos + 1;
+        while (sizeof($this->_storage) > $stop) {
+            array_pop($this->_storage);
+        }
+    }
+
     public function hasElementInScope(...$target): bool {
         # The stack of open elements is said to have a particular element in scope when
         # it has that element in the specific scope consisting of the following element

@@ -813,7 +813,7 @@ class TreeBuilder {
                     # Otherwise, run these steps:
                     else {
                         # 1. Generate all implied end tags thoroughly.
-                        $this->stack->generateImpliedEndTags();
+                        $this->stack->generateImpliedEndTagsThoroughly();
                         # 2. If the current node is not a template element, then this is a parse error.
                         if ($this->stack->currentNodeName !== 'template') {
                             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
@@ -2461,58 +2461,181 @@ class TreeBuilder {
             }
         }
         # 13.2.6.4.14 The "in row" insertion mode
+        elseif ($insertionMode === self::IN_ROW_MODE) {
             # A start tag whose tag name is one of: "th", "td"
-                # Clear the stack back to a table row context. (See below.)
-                # Insert an HTML element for the token, then switch the insertion mode to "in cell".
-                # Insert a marker at the end of the list of active formatting elements.
+            if ($token instanceof StartTagToken && ($token->name === "th" || $token->name === "td")) {
+                # Clear the stack back to a table row context.
+                $this->stack->clearToTableRowContext();
+                # Insert an HTML element for the token, then
+                #   switch the insertion mode to "in cell".
+                $this->insertStartTagToken($token);
+                $this->insertionMode = self::IN_CELL_MODE;
+                # Insert a marker at the end of the list of active
+                #   formatting elements.
+                $this->activeFormattingElementsList->insertMarker();
+            }
             # An end tag whose tag name is "tr"
-                # If the stack of open elements does not have a tr element in table scope, this is a parse error; ignore the token.
+            elseif ($token instanceof EndTagToken && $token->name === "tr") {
+                # If the stack of open elements does not have a tr element
+                #   in table scope, this is a parse error; ignore the token.
+                if (!$this->stack->hasElementInTableScope("tr")) {
+                    $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                }
                 # Otherwise:
-                # Clear the stack back to a table row context. (See below.)
-                # Pop the current node (which will be a tr element) from the stack of open elements. Switch the insertion mode to "in table body".
-            # A start tag whose tag name is one of: "caption", "col", "colgroup", "tbody", "tfoot", "thead", "tr"
+                else {
+                    # Clear the stack back to a table row context.
+                    $this->stack->clearToTableRowContext();
+                    # Pop the current node (which will be a tr element) from
+                    #   the stack of open elements. Switch the insertion
+                    #   mode to "in table body".
+                    $this->stack->pop();
+                    $this->insertionMode = self::IN_TABLE_BODY_MODE;
+                }
+            }
+            # A start tag whose tag name is one of: "caption", "col",
+            #   "colgroup", "tbody", "tfoot", "thead", "tr"
             # An end tag whose tag name is "table"
-                # If the stack of open elements does not have a tr element in table scope, this is a parse error; ignore the token.
+            elseif (
+                ($token instanceof StartTagToken && in_array($token->name, ["caption", "col", "colgroup", "tbody", "tfoot", "thead", "tr"]))
+                || ($token instanceof EndTagToken && $token->name === "table")
+            ) {
+                # If the stack of open elements does not have a tr element
+                #   in table scope, this is a parse error; ignore the token.
+                if (!$this->stack->hasElementInTableScope("tr")) {
+                    if ($token instanceof StartTagToken) {
+                        $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
+                    } else {
+                        $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                    }
+                }
                 # Otherwise:
-                # Clear the stack back to a table row context. (See below.)
-                # Pop the current node (which will be a tr element) from the stack of open elements. Switch the insertion mode to "in table body".
-                # Reprocess the token.
+                else {
+                    # Clear the stack back to a table row context.
+                    $this->stack->clearToTableRowContext();
+                    # Pop the current node (which will be a tr element)
+                    #   from the stack of open elements. Switch the
+                    #   insertion mode to "in table body".
+                    $this->stack->pop();
+                    $insertionMode = $this->insertionMode = self::IN_TABLE_BODY_MODE;
+                    # Reprocess the token.
+                    goto ProcessToken;
+                }
+            }
             # An end tag whose tag name is one of: "tbody", "tfoot", "thead"
-                # If the stack of open elements does not have an element in table scope that is an HTML element with the same tag name as the token, this is a parse error; ignore the token.
-                # If the stack of open elements does not have a tr element in table scope, ignore the token.
+            elseif ($token instanceof EndTagToken && ($token->name === "tbody" || $token->name === "tfoot" || $token->name === "thead")) {
+                # If the stack of open elements does not have an element
+                #   in table scope that is an HTML element with the same
+                #   tag name as the token, this is a parse error;
+                #   ignore the token.
+                if (!$this->stack->hasElementInTableScope($token->name)) {
+                    $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                }
+                # If the stack of open elements does not have a tr element
+                #   in table scope, ignore the token.
+                elseif (!$this->stack->hasElementInTableScope("tr")) {
+                    // Ignore the token
+                }
                 # Otherwise:
-                # Clear the stack back to a table row context. (See below.)
-                # Pop the current node (which will be a tr element) from the stack of open elements. Switch the insertion mode to "in table body".
-                # Reprocess the token.
-            # An end tag whose tag name is one of: "body", "caption", "col", "colgroup", "html", "td", "th"
+                else {
+                    # Clear the stack back to a table row context.
+                    $this->stack->clearToTableRowContext();
+                    # Pop the current node (which will be a tr element) from
+                    # the stack of open elements. Switch the insertion mode
+                    # to "in table body".
+                    $this->stack->pop();
+                    $insertionMode = $this->insertionMode = self::IN_TABLE_BODY_MODE;
+                    # Reprocess the token.
+                    goto ProcessToken;
+                }
+            }
+            # An end tag whose tag name is one of: "body", "caption", "col",
+            #   "colgroup", "html", "td", "th"
+            elseif ($token instanceof EndTagToken && in_array($token->name, ["body", "caption", "col", "colgroup", "html", "td", "th"])) {
                 # Parse error. Ignore the token.
+                $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+            }
             # Anything else
-                # Process the token using the rules for the "in table" insertion mode.
+            else {
+                # Process the token using the rules for the
+                #   "in table" insertion mode.
+                return $this->parseTokenInHTMLContent($token, self::IN_TABLE_MODE);
+            }
+        }
         # 13.2.6.4.15 The "in cell" insertion mode
+        elseif ($insertionMode === self::IN_CELL_MODE) {
             # An end tag whose tag name is one of: "td", "th"
-                # If the stack of open elements does not have an element in table scope that is an HTML element with the same tag name as that of the token, then this is a parse error; ignore the token.
+            if ($token instanceof EndTagToken && ($token->name === "td" || $token->name === "th")) {
+                # If the stack of open elements does not have an element in
+                #   table scope that is an HTML element with the same tag
+                #   name as that of the token, then this is a parse error;
+                #   ignore the token.
+                if (!$this->stack->hasElementInTableScope($token->name)) {
+                    $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                }
                 # Otherwise:
-                # Generate implied end tags.
-                # Now, if the current node is not an HTML element with the same tag name as the token, then this is a parse error.
-                # Pop elements from the stack of open elements stack until an HTML element with the same tag name as the token has been popped from the stack.
-                # Clear the list of active formatting elements up to the last marker.
-                # Switch the insertion mode to "in row".
-            # A start tag whose tag name is one of: "caption", "col", "colgroup", "tbody", "td", "tfoot", "th", "thead", "tr"
-                # If the stack of open elements does not have a td or th element in table scope, then this is a parse error; ignore the token. (fragment case)
+                else {
+                    # Generate implied end tags.
+                    $this->stack->generateImpliedEndTags();
+                    # Now, if the current node is not an HTML element with
+                    #   the same tag name as the token, then this is
+                    #   a parse error.
+                    if (!$this->stack->hasElementInTableScope($token->name)) {
+                        $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                    }
+                    # Pop elements from the stack of open elements stack
+                    #   until an HTML element with the same tag name as the
+                    #   token has been popped from the stack.
+                    $this->stack->popUntil($token->name);
+                    # Clear the list of active formatting elements up to the last marker.
+                    $this->activeFormattingElementsList->clearToTheLastMarker();
+                    # Switch the insertion mode to "in row".
+                    $this->insertionMode = self::IN_ROW_MODE;
+                }
+            }
+            # A start tag whose tag name is one of: "caption", "col",
+            #   "colgroup", "tbody", "td", "tfoot", "th", "thead", "tr"
+            elseif ($token instanceof StartTagToken && in_array($token->name, ["caption", "col", "colgroup", "tbody", "td", "tfoot", "th", "thead", "tr"])) {
+                # If the stack of open elements does not have a td or th
+                #   element in table scope, then this is a parse error;
+                #   ignore the token. (fragment case)
+                if (!$this->stack->hasElementInTableScope("td", "th")) {
+                    $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
+                }
                 # Otherwise, close the cell (see below) and reprocess the token.
-            # An end tag whose tag name is one of: "body", "caption", "col", "colgroup", "html"
+                else {
+                    $insertionMode = $this->closeCell($token);
+                    goto ProcessToken;
+                }
+            }
+            # An end tag whose tag name is one of: "body", "caption", "col",
+            #   "colgroup", "html"
+            elseif ($token instanceof EndTagToken && in_array($token->name, ["body", "caption", "col", "colgroup", "html"])) {
                 # Parse error. Ignore the token.
-            # An end tag whose tag name is one of: "table", "tbody", "tfoot", "thead", "tr"
-                # If the stack of open elements does not have an element in table scope that is an HTML element with the same tag name as that of the token, then this is a parse error; ignore the token.
+                $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+            }
+            # An end tag whose tag name is one of: "table", "tbody",
+            #   "tfoot", "thead", "tr"
+            elseif ($token instanceof EndTagToken && in_array($token->name, ["table", "tbody", "tfoot", "thead", "tr"])) {
+                # If the stack of open elements does not have an element in
+                #   table scope that is an HTML element with the same tag
+                #   name as that of the token, then this is a parse error;
+                #   ignore the token.
+                if (!$this->stack->hasElementInTableScope($token->name)) {
+                    $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                }
                 # Otherwise, close the cell (see below) and reprocess the token.
+                else {
+                    $insertionMode = $this->closeCell($token);
+                    goto ProcessToken;
+                }
+            }
             # Anything else
-                # Process the token using the rules for the "in body" insertion mode.
-            # Where the steps above say to close the cell, they mean to run the following algorithm:
-                # Generate implied end tags.
-                # If the current node is not now a td element or a th element, then this is a parse error.
-                # Pop elements from the stack of open elements stack until a td element or a th element has been popped from the stack.
-                # Clear the list of active formatting elements up to the last marker.
-                # Switch the insertion mode to "in row".
+            else {
+                # Process the token using the rules for
+                #   the "in body" insertion mode.
+                return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+            }
+        }
         # 13.2.6.4.16 The "in select" insertion mode
             # A character token that is U+0000 NULL
                 # Parse error. Ignore the token.
@@ -3570,5 +3693,25 @@ class TreeBuilder {
         $name = $element->nodeName;
         $ns = $element->namespaceURI ?? Parser::HTML_NAMESPACE;
         return in_array($name, self::SPECIAL_ELEMENTS[$ns] ?? []);
+    }
+
+    protected function closeCell(TagToken $token): int {
+        # Where the steps above say to close the cell,
+        #   they mean to run the following algorithm:
+
+        # Generate implied end tags.
+        $this->stack->generateImpliedEndTags();
+        # If the current node is not now a td element or a th element,
+        #   then this is a parse error.
+        if (!in_array($this->stack->currntNodeName, ["td", "th"])) {
+            $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+        }
+        # Pop elements from the stack of open elements stack until a td
+        #   element or a th element has been popped from the stack.
+        $this->stack->popUntil("td", "th");
+        # Clear the list of active formatting elements up to the last marker.
+        $this->activeFormattingElementsList->clearToTheLastMarker();
+        # Switch the insertion mode to "in row".
+        return $this->insertionMode = self::IN_ROW_MODE;
     }
 }
