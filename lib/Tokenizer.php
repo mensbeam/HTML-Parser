@@ -995,8 +995,8 @@ class Tokenizer {
                     // OPTIMIZATION: Combine upper and lower alpha
                     // OPTIMIZATION: Consume all characters that are ASCII characters to prevent having
                     // to loop back through here every single time.
-                    $char = strtolower($char.$this->data->consumeWhile(self::CTYPE_ALPHA));
-                    $token->name .= $char;
+                    $char = $char.$this->data->consumeWhile(self::CTYPE_ALPHA);
+                    $token->name .= strtolower($char);
                     $this->temporaryBuffer .= $char;
                 }
                 # Anything else
