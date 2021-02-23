@@ -99,7 +99,7 @@ class OpenElementsStack extends Stack {
     public function popUntil(string ...$target): void {
         do {
             $node = $this->pop();
-        } while (!in_array($node->nodeName, $target));
+        } while ($node->namespaceURI !== null || !in_array($node->nodeName, $target));
     }
 
     public function popUntilSame(Element $target): void {
@@ -110,7 +110,7 @@ class OpenElementsStack extends Stack {
 
     public function find(string ...$name): int {
         foreach ($this as $k => $node) {
-            if (in_array($node->nodeName, $name)) {
+            if ($node->namespaceURI === null && in_array($node->nodeName, $name)) {
                 return $k;
             }
         }
@@ -119,7 +119,7 @@ class OpenElementsStack extends Stack {
 
     public function findNot(string ...$name): int {
         foreach ($this as $k => $node) {
-            if (!in_array($node->nodeName, $name)) {
+            if ($node->namespaceURI !== null || !in_array($node->nodeName, $name)) {
                 return $k;
             }
         }
@@ -154,7 +154,7 @@ class OpenElementsStack extends Stack {
         foreach($exclude as $name) {
             $map[$name] = false;
         }
-        while (!$this->isEmpty() && ($map[$this->top()->nodeName] ?? false)) {
+        while (!$this->isEmpty() && $this->top()->namespaceURI === null && ($map[$this->top()->nodeName] ?? false)) {
             $this->pop();
         }
     }
@@ -163,7 +163,7 @@ class OpenElementsStack extends Stack {
         # When the steps below require the UA to generate all implied end tags 
         #   thoroughly, then, while the current node is {elided list of element names},
         #   the UA must pop the current node off the stack of open elements.
-        while (!$this->isEmpty() && (self::IMPLIED_END_TAGS_THOROUGH[$this->top()->nodeName] ?? false)) {
+        while (!$this->isEmpty() && $this->top()->namespaceURI === null && (self::IMPLIED_END_TAGS_THOROUGH[$this->top()->nodeName] ?? false)) {
             $this->pop();
         }
     }

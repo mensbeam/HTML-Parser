@@ -348,7 +348,6 @@ class TreeBuilder {
                 # tokens in foreign content.
                 // Returns false when needing to reprocess.
                 if ($this->parseTokenInForeignContent($token) === false) {
-                    assert($iterations++ < 50, new LoopException("Probable infinite loop detected in foreign content handling (outer reprocessing)"));
                     continue;
                 }
             }
