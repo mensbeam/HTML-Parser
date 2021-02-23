@@ -73,14 +73,14 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             $this->markTestSkipped('Requires implementation of the "Coercing an HTML DOM into an infoset" specification section');
             return;
         } catch (LoopException $e) {
-            $act = $this->serializeTree($doc, (bool) $fragmentContext);
+            $act = $this->balanceTree($this->serializeTree($doc, (bool) $fragmentContext), $exp);
             $this->assertEquals($exp, $act, $e->getMessage()."\n".$treeBuilder->debugLog);
             throw $e;
         } catch (NotImplementedException $e) {
             $this->markTestSkipped($e->getMessage());
             return;
         }
-        $act = $this->serializeTree($doc, (bool) $fragmentContext);
+        $act = $this->balanceTree($this->serializeTree($doc, (bool) $fragmentContext), $exp);
         $this->assertEquals($exp, $act, $treeBuilder->debugLog);
         // TODO: evaluate errors
     }
@@ -107,6 +107,18 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             $skip = 'Requires implementation of the "Coercing an HTML DOM into an infoset" specification section';
         }
         return [$exp, $patched, $skip];
+    }
+
+    protected function balanceTree(array $act, array $exp): array {
+        // makes sure that the actual tree contain the same number of lines as the expected tree
+        // lines are inserted where the two trees diverge, until the end of the actual tree is reached
+        // this usuallyresults in clean PHPUnit comparison failure output
+        for ($a = 0; $a < sizeof($act) && sizeof($act) < sizeof($exp); $a++) {
+            if (!isset($act[$a]) || $exp[$a] !== $act[$a]) {
+                array_splice($act, $a, 0, [""]);
+            }
+        }
+        return $act;
     }
 
     protected function push(string $data): void {

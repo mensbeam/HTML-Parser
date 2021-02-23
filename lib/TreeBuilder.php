@@ -33,6 +33,8 @@ class TreeBuilder {
     protected $tokenizer;
     /** @var \dW\HTML5\TemplateInsertionModesStack Used to store the template insertion modes */
     protected $templateInsertionModes;
+    /** @var array TODO */
+    protected $pendingTableCharacterTokens = [];
 
     // Constants used for insertion modes
     protected const INITIAL_MODE = 0;
@@ -346,16 +348,16 @@ class TreeBuilder {
                 # tokens in foreign content.
                 // Returns false when needing to reprocess.
                 if ($this->parseTokenInForeignContent($token) === false) {
+                    assert($iterations++ < 50, new LoopException("Probable infinite loop detected in foreign content handling (outer reprocessing)"));
                     continue;
                 }
-                # When a start tag token is emitted with its self-closing flag set, if the flag
-                #   is not acknowledged when it is processed by the tree construction stage, that
-                #   is a non-void-html-element-start-tag-with-trailing-solidus parse error.
-                if ($token instanceof StartTagToken && $token->selfClosing && !$token->selfClosingAcknowledged) {
-                    $this->error(ParseError::NON_VOID_HTML_ELEMENT_START_TAG_WITH_TRAILING_SOLIDUS, $token->name);
-                }
             }
-
+            # When a start tag token is emitted with its self-closing flag set, if the flag
+            #   is not acknowledged when it is processed by the tree construction stage, that
+            #   is a non-void-html-element-start-tag-with-trailing-solidus parse error.
+            if ($token instanceof StartTagToken && $token->selfClosing && !$token->selfClosingAcknowledged) {
+                $this->error(ParseError::NON_VOID_HTML_ELEMENT_START_TAG_WITH_TRAILING_SOLIDUS, $token->name);
+            }
             break;
         }
     }
@@ -1918,7 +1920,784 @@ class TreeBuilder {
                 return true;
             }
         }
-        // IMPLEMENTATION PENDING
+        # 13.2.6.4.8 The "text" insertion mode
+        elseif ($insertionMode === self::TEXT_MODE) {
+            # A character token
+            if ($token instanceof CharacterToken) {
+                # Insert the token's character.
+                $this->insertCharacterToken($token);
+            }
+            # An end-of-file token
+            elseif ($token instanceof EOFToken) {
+                # Parse error.
+                $this->error(ParseError::UNEXPECTED_EOF);
+                # If the current node is a script element, mark the script 
+                #   element as "already started".
+                // DEVIATION: Scripting is not supported
+                # Pop the current node off the stack of open elements.
+                $this->stack->pop();
+                # Switch the insertion mode to the original insertion mode and
+                #   reprocess the token.
+                $insertionMode = $this->insertionMode = $this->originalInsertionMode;
+                goto ProcessToken;
+            }
+            # An end tag whose tag name is "script"
+            // DEVIATION: Scripting is not supported, so there is no special handling
+            # Any other end tag
+            elseif ($token instanceof EndTagToken) {
+                # Pop the current node off the stack of open elements.
+                $this->stack->pop();
+                # Switch the insertion mode to the original insertion mode.
+                $this->insertionMode = $this->originalInsertionMode;
+            }
+            else {
+                assert(false, new \Exception("UNREACHABLE CODE")); // @codeCoverageIgnore
+            }
+        }
+        # 13.2.6.4.9 The "in table" insertion mode
+        elseif ($insertionMode === self::IN_TABLE_MODE) {
+            # A character token, if the current node is table, tbody, tfoot, thead, or tr element
+            if ($token instanceof CharacterToken && in_array($this->stack->currentNodeName, ["table", "tbody", "tfoot", "thead", "tr"])) {
+                # Let the pending table character tokens be an empty list of tokens.
+                $this->pendingTableCharacterTokens = [];
+                # Let the original insertion mode be the current insertion mode.
+                $this->originalInsertionMode = $this->insertionMode;
+                # Switch the insertion mode to "in table text" and reprocess the token.
+                $insertionMode = $this->insertionMode = self::IN_TABLE_TEXT_MODE;
+                goto ProcessToken;
+            }
+            # A comment token
+            elseif ($token instanceof CommentToken) {
+                # Insert a comment.
+                $this->insertCommentToken($token);
+            }
+            # A DOCTYPE token
+            elseif ($token instanceof DOCTYPEToken) {
+                # Parse error. Ignore the token.
+                $this->error(ParseError::UNEXPECTED_DOCTYPE);
+            }
+            # A start tag...
+            elseif ($token instanceof StartTagToken) {
+                # A start tag whose tag name is "caption"
+                if ($token->name === "caption") {
+                    # Clear the stack back to a table context. (See below.)
+                    $this->stack->clearToTableContext();
+                    # Insert a marker at the end of the list of active
+                    #   formatting elements.
+                    $this->activeFormattingElementsList->insertMarker();
+                    # Insert an HTML element for the token, then switch the
+                    #   insertion mode to "in caption".
+                    $this->insertStartTagToken($token);
+                    $this->insertionMode = self::IN_CAPTION_MODE;
+                }
+                # A start tag whose tag name is "colgroup"
+                elseif ($token->name === "colgroup") {
+                    # Clear the stack back to a table context. (See below.)
+                    $this->stack->clearToTableContext();
+                    # Insert an HTML element for the token, then switch the
+                    #   insertion mode to "in column group".
+                    $this->insertStartTagToken($token);
+                    $this->insertionMode = self::IN_COLUMN_GROUP_MODE;
+                }
+                # A start tag whose tag name is "col"
+                elseif ($token->name === "col") {
+                    # Clear the stack back to a table context. (See below.)
+                    $this->stack->clearToTableContext();
+                    # Insert an HTML element for a "colgroup" start tag token
+                    #   with no attributes, then switch the insertion mode to
+                    #   "in column group".
+                    $this->insertStartTagToken(new StartTagToken("colgroup"));
+                    $insertionMode = $this->insertionMode = self::IN_COLUMN_GROUP_MODE;
+                    # Reprocess the current token.
+                    goto ProcessToken;
+                }
+                # A start tag whose tag name is one of: "tbody", "tfoot", "thead"
+                elseif ($token->name === "tbody" || $token->name === "tfoot" || $token->name === "thead") {
+                    # Clear the stack back to a table context. (See below.)
+                    $this->stack->clearToTableContext();
+                    # Insert an HTML element for the token, then switch the
+                    #   insertion mode to "in table body".
+                    $this->insertStartTagToken($token);
+                    $this->insertionMode = self::IN_TABLE_BODY_MODE;
+                }
+                # A start tag whose tag name is one of: "td", "th", "tr"
+                elseif ($token->name === "td" || $token->name === "th" || $token->name === "tr") {
+                    # Clear the stack back to a table context. (See below.)
+                    $this->stack->clearToTableContext();
+                    # Insert an HTML element for a "tbody" start tag token
+                    #   with no attributes, then switch the insertion mode
+                    #   to "in table body".
+                    $this->insertStartTagToken(new StartTagToken("tbody"));
+                    $insertionMode = $this->insertionMode = self::IN_TABLE_BODY_MODE;
+                    # Reprocess the current token.
+                    goto ProcessToken;
+                }
+                # A start tag whose tag name is "table"
+                elseif ($token->name === "table") {
+                    # Parse error.
+                    $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
+                    # If the stack of open elements does not have a table
+                    #   element in table scope, ignore the token.
+                    if (!$this->stack->hasElementInTableScope("table")) {
+                        // Ignore the token
+                    }
+                    # Otherwise:
+                    else {
+                        # Pop elements from this stack until a table element
+                        #   has been popped from the stack.
+                        $this->stack->popUntil("table");
+                        # Reset the insertion mode appropriately.
+                        $insertionMode = $this->resetInsertionMode();
+                        # Reprocess the token.
+                        goto ProcessToken;
+                    }
+                }
+                # A start tag whose tag name is one of: "style", "script", "template"
+                elseif ($token->name === "style" || $token->name === "script" || $token->name === "template") {
+                    # Process the token using the rules for the "in head" insertion mode.
+                    return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
+                }
+                # A start tag whose tag name is "input"
+                elseif ($token->name === "input") {
+                    # If the token does not have an attribute with the name
+                    #   "type", or if it does, but that attribute's value is
+                    #   not an ASCII case-insensitive match for the string
+                    #   "hidden", then: act as described in the
+                    #   "anything else" entry below.
+                    if (!$token->hasAttribute("type") || strtolower($token->getAttribute("type")->value) !== "hidden") {
+                        goto InTableAnythingElse;
+                    }
+                    # Otherwise:
+                    else {
+                        # Parse error.
+                        $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
+                        # Insert an HTML element for the token.
+                        $this->insertStartTagToken($token);
+                        # Pop that input element off the stack of open elements.
+                        $this->stack->pop();
+                        # Acknowledge the token's self-closing flag, if it is set.
+                        $token->selfClosingAcknowledged = true;
+                    }
+                }
+                # A start tag whose tag name is "form"
+                elseif ($token->name === "form") {
+                    # Parse error.
+                    $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
+                    # If there is a template element on the stack of open
+                    #   elements, or if the form element pointer is not null,
+                    #   ignore the token.
+                    if ($this->formElement || $this->stack->find("template") > -1) {
+                        // Ignore the token
+                    }
+                    # Otherwise:
+                    else {
+                        # Insert an HTML element for the token, and set the form
+                        #   element pointer to point to the element created.
+                        $element = $this->insertStartTagToken($token);
+                        $this->formElement = $element;
+                        # Pop that form element off the stack of open elements.
+                        $this->stack->pop();
+                    }
+                }
+                // Any other start tag
+                else {
+                    goto InTableAnythingElse;
+                }
+            }
+            # An end tag...
+            elseif ($token instanceof EndTagToken) {
+                # An end tag whose tag name is "table"
+                if ($token->name === "table") {
+                    # If the stack of open elements does not have a table
+                    #   element in table scope, this is a parse error;
+                    #   ignore the token.
+                    if (!$this->stack->hasElementInTableScope("table")) {
+                        $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                    }
+                    # Otherwise:
+                    else {
+                        # Pop elements from this stack until a table element
+                        #   has been popped from the stack.
+                        $this->stack->popUntil("table");
+                        # Reset the insertion mode appropriately.
+                        $this->resetInsertionMode();
+                    }
+                }
+                # An end tag whose tag name is one of: "body", "caption",
+                #   "col", "colgroup", "html", "tbody", "td", "tfoot", "th",
+                #   "thead", "tr"
+                elseif (in_array($token->name, ["body", "caption", "col", "colgroup", "html", "tbody", "td", "tfoot", "th", "thead", "tr"])) {
+                    # Parse error. Ignore the token.
+                    $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                }
+                # An end tag whose tag name is "template"
+                elseif ($token->name === "template") {
+                    # Process the token using the rules for the "in head"
+                    #   insertion mode.
+                    return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
+                }
+                // Any other end tag
+                else {
+                    goto InTableAnythingElse;
+                }
+            }
+            # An end-of-file token
+            elseif ($token instanceof EOFToken) {
+                # Process the token using the rules for the "in body"
+                #   insertion mode.
+                return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+            }
+            # Anything else
+            else {
+                InTableAnythingElse:
+                # Parse error. Enable foster parenting, process the token
+                #   using the rules for the "in body" insertion mode, and
+                #   then disable foster parenting.
+                // TODO: parse error
+                $this->fosterParenting = true;
+                $result = $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+                $this->fosterParenting = false;
+                return $result;
+            }
+        }
+        # 13.2.6.4.10 The "in table text" insertion mode
+        elseif ($insertionMode === self::IN_TABLE_TEXT_MODE) {
+            # A character token that is U+0000 NULL
+            if ($token instanceof CharacterToken && $token->data === "\0") {
+                # Parse error. Ignore the token.
+                $this->error(ParseError::UNEXPECTED_NULL_CHARACTER);
+            }
+            # Any other character token
+            elseif ($token instanceof CharacterToken) {
+                # Append the character token to the pending table character
+                #   tokens list.
+                $this->pendingTableCharacterTokens[] = $token;
+            }
+            # Anything else
+            else {
+                $ws = true;
+                foreach ($this->pendingTableCharacterTokens as $pending) {
+                    if (!$pending instanceof WhitespaceToken) {
+                        $ws = false;
+                        break;
+                    }
+                }
+                # If any of the tokens in the pending table character tokens
+                #   list are character tokens that are not ASCII whitespace, 
+                #   then this is a parse error: reprocess the character tokens
+                #   in the pending table character tokens list using the rules
+                #   given in the "anything else" entry in the "in table"
+                #   insertion mode.
+                if (!$ws) {
+                    $this->error(ParseError::UNEXPECTED_CHAR);
+                    $this->fosterParenting = true;
+                    foreach ($this->pendingTableCharacterTokens as $pending) {
+                        $this->parseTokenInHTMLContent($pending, self::IN_BODY_MODE);
+                    }
+                    $this->fosterParenting = false;
+                }
+                # Otherwise, insert the characters given by the pending table
+                #   character tokens list.
+                else {
+                    foreach ($this->pendingTableCharacterTokens as $pending) {
+                        $this->insertCharacterToken($pending);
+                    }
+                }
+                $this->pendingTableCharacterTokens = [];
+                # Switch the insertion mode to the original insertion mode
+                #   and reprocess the token.
+                $insertionMode = $this->insertionMode = $this->originalInsertionMode;
+                goto ProcessToken;
+            }
+        }
+        # 13.2.6.4.11 The "in caption" insertion mode
+        elseif ($insertionMode === self::IN_CAPTION_MODE) {
+            # An end tag whose tag name is "caption"
+            if ($token instanceof EndTagToken && $token->name === "caption") {
+                # If the stack of open elements does not have a caption
+                #   element in table scope, this is a parse error; ignore
+                #   the token. (fragment case)
+                if (!$this->stack->hasElementInTableScope("caption")) {
+                    $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                }
+                # Otherwise:
+                else {
+                    # Generate implied end tags.
+                    $this->stack->generateImpliedEndTags();
+                    # Now, if the current node is not a caption element,
+                    #   then this is a parse error.
+                    if ($this->stack->currentNodeName !== "caption") {
+                        $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                    }
+                    # Pop elements from this stack until a caption element
+                    #   has been popped from the stack.
+                    $this->stack->popUntil("caption");
+                    # Clear the list of active formatting elements up to
+                    #   the last marker.
+                    $this->activeFormattingElementsList->clearToTheLastMarker();
+                    # Switch the insertion mode to "in table".
+                    $this->insertionMode = self::IN_TABLE_MODE;
+                }
+            }
+            # A start tag whose tag name is one of: "caption", "col",
+            #   "colgroup", "tbody", "td", "tfoot", "th", "thead", "tr"
+            # An end tag whose tag name is "table"
+            elseif (
+                ($token instanceof StartTagToken && in_array($token->name, ["caption", "col", "colgroup", "tbody", "td", "tfoot", "th", "thead", "tr"]))
+                || ($token instanceof EndTagToken && $token->name === "table")
+            ) {
+                $errorCode = ($token instanceof StartTagToken) ? ParseError::UNEXPECTED_START_TAG : ParseError::UNEXPECTED_END_TAG;    
+                # If the stack of open elements does not have a caption
+                #   element in table scope, this is a parse error; ignore
+                #   the token. (fragment case)
+                if (!$this->stack->hasElementInTableScope("caption")) {
+                    $this->error($errorCode, $token->name);
+                }
+                # Otherwise:
+                else {
+                    # Generate implied end tags.
+                    $this->stack->generateImpliedEndTags();
+                    # Now, if the current node is not a caption element,
+                    #   then this is a parse error.
+                    if ($this->stack->currentNodeName !== "caption") {
+                        $this->error($errorCode, $token->name);
+                    }
+                    # Pop elements from this stack until a caption element
+                    #   has been popped from the stack.
+                    $this->stack->pop("caption");
+                    # Clear the list of active formatting elements up to
+                    #   the last marker.
+                    $this->activeFormattingElementsList->clearToTheLastMarker();
+                    # Switch the insertion mode to "in table".
+                    $insertionMode = $this->insertionMode = self::IN_TABLE_MODE;
+                    # Reprocess the token.
+                    goto ProcessToken;
+                }
+            }
+            # An end tag whose tag name is one of: "body", "col", "colgroup",
+            # "html", "tbody", "td", "tfoot", "th", "thead", "tr"
+            elseif ($token instanceof EndTagToken && in_array($token->name, ["body", "col", "colgroup", "html", "tbody", "td", "tfoot", "th", "thead", "tr"])) {
+                # Parse error. Ignore the token.
+                $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+            }
+            # Anything else
+            else {
+                # Process the token using the rules for the "in body" insertion mode.
+                return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+            }
+        }
+        # 13.2.6.4.12 The "in column group" insertion mode
+        elseif ($insertionMode === self::IN_COLUMN_GROUP_MODE) {
+            # A character token that is one of U+0009 CHARACTER TABULATION,
+            #   U+000A LINE FEED (LF), U+000C FORM FEED (FF), 
+            #   U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+            if ($token instanceof WhitespaceToken) {
+                # Insert the character.
+                $this->insertCharacterToken($token);
+            }
+            # A comment token
+            elseif ($token instanceof CommentToken) {
+                # Insert a comment.
+                $this->insertCommentToken($token);
+            }
+            # A DOCTYPE token
+            elseif ($token instanceof DOCTYPEToken) {
+                # Parse error. Ignore the token.
+                $this->error(ParseError::UNEXPECTED_DOCTYPE);
+            }
+            # A start tag whose tag name is "html"
+            elseif ($token instanceof StartTagToken && $token->name === "html") {
+                # Process the token using the rules for the "in body"
+                #   insertion mode.
+                return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+            }
+            # A start tag whose tag name is "col"
+            elseif ($token instanceof StartTagToken && $token->name === "col") {
+                # Insert an HTML element for the token. Immediately pop
+                #   the current node off the stack of open elements.
+                $this->insertStartTagToken($token);
+                $this->stack->pop();
+                # Acknowledge the token's self-closing flag, if it is set.
+                $token->selfClosingAcknowledged = true;
+            }
+            # An end tag whose tag name is "colgroup"
+            elseif ($token instanceof EndTagToken && $token->name === "colgroup") {
+                # If the current node is not a colgroup element,
+                #   then this is a parse error; ignore the token.
+                if (!$this->stack->currentNodeName !== "colgroup") {
+                    $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                }
+                # Otherwise, pop the current node from the stack of open
+                #   elements. Switch the insertion mode to "in table".
+                else {
+                    $this->stack->pop();
+                    $this->insertionMode = self::IN_TABLE_MODE;
+                }
+            }
+            # An end tag whose tag name is "col"
+            elseif ($token instanceof EndTagToken && $token->name === "col") {
+                # Parse error. Ignore the token.
+                $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+            }
+            # A start tag whose tag name is "template"
+            # An end tag whose tag name is "template"
+            elseif ($token instanceof TagToken && $token->name === "template") {
+                # Process the token using the rules for
+                #   the "in head" insertion mode.
+                return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
+            }
+            # An end-of-file token
+            elseif ($token instanceof EOFToken) {
+                # Process the token using the rules for
+                #   the "in body" insertion mode.
+                return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+            }
+            # Anything else
+            else {
+                # If the current node is not a colgroup element, then this
+                #   is a parse error; ignore the token.
+                if ($this->stack->currentNodeName !== "colgroup") {
+                    if ($token instanceof CharacterToken) {
+                        $this->error(ParseError::UNEXPECTED_CHAR);
+                    } elseif ($token instanceof StartTagToken) {
+                        $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);    
+                    } elseif ($token instanceof EndTagToken) {
+                        $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                    }
+                }
+                # Otherwise, pop the current node from the stack
+                #   of open elements.
+                # Switch the insertion mode to "in table".
+                # Reprocess the token.
+                else {
+                    $this->stack->pop();
+                    $insertionMode = $this->insertionMode = self::IN_TABLE_MODE;
+                    goto ProcessToken;
+                }
+            }
+        }
+        # 13.2.6.4.13 The "in table body" insertion mode
+        elseif ($insertionMode === self::IN_TABLE_BODY_MODE) {
+            # A start tag whose tag name is "tr"
+            if ($token instanceof StartTagToken && $token->name === "tr") {
+                # Clear the stack back to a table body context. (See below.)
+                $this->stack->clearToTableBodyContext();
+                # Insert an HTML element for the token, then switch the
+                #   insertion mode to "in row".
+                $this->insertStartTagToken($token);
+                $this->insertionMode = self::IN_ROW_MODE;
+            }
+            # A start tag whose tag name is one of: "th", "td"
+            elseif ($token instanceof StartTagToken && ($token->name === "td" || $token->name === "th")) {
+                # Parse error.
+                $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
+                # Clear the stack back to a table body context. (See below.)
+                $this->stack->clearToTableBodyContext();
+                # Insert an HTML element for a "tr" start tag token with no
+                #   attributes, then switch the insertion mode to "in row".
+                $this->insertStartTagToken(new StartTagToken("tr"));
+                $insertionMode = $this->insertionMode = self::IN_ROW_MODE;
+                # Reprocess the current token.
+                goto ProcessToken;
+            }
+            # An end tag whose tag name is one of: "tbody", "tfoot", "thead"
+            elseif ($token instanceof EndTagToken && ($token->name === "tbody" || $token->name === "tfoot" || $token->name === "thead")) {
+                # If the stack of open elements does not have an element in
+                # table scope that is an HTML element with the same tag name
+                # as the token, this is a parse error; ignore the token.
+                if (!$this->stack->hasElementInTableScope($token->name)) {
+                    $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                }
+                # Otherwise:
+                else {
+                    # Clear the stack back to a table body context.
+                    $this->stack->clearToTableBodyContext();
+                    # Pop the current node from the stack of open elements.
+                    $this->stack->pop();
+                    # Switch the insertion mode to "in table".
+                    $this->insertionMode = self::IN_TABLE_MODE;
+                }
+            }
+            # A start tag whose tag name is one of: "caption", "col",
+            #   "colgroup", "tbody", "tfoot", "thead"
+            # An end tag whose tag name is "table"
+            elseif (
+                ($token instanceof StartTagToken && in_array($token->name, ["caption", "col", "colgroup", "tbody", "tfoot", "thead"]))
+                || ($token instanceof EndTagToken && $token->name === "table")
+            ) {
+                # If the stack of open elements does not have a tbody, thead,
+                #   or tfoot element in table scope, this is a parse error;
+                #   ignore the token.
+                if (!$this->stack->hasElementInTableScope("tbody", "tfoot", "thead")) {
+                    if ($token instanceof StartTagToken) {
+                        $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
+                    } else {
+                        $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                    }
+                }
+                # Otherwise:
+                else {
+                    # Clear the stack back to a table body context.
+                    $this->stack->clearToTableBodyContext();
+                    # Pop the current node from the stack of open elements.
+                    $this->stack->pop();
+                    # Switch the insertion mode to "in table".
+                    $insertionMode = $this->insertionMode = self::IN_TABLE_MODE;
+                    # Reprocess the token.
+                    goto ProcessToken;
+                }
+            }
+            # An end tag whose tag name is one of: "body", "caption", "col",
+            #   "colgroup", "html", "td", "th", "tr"
+            elseif ($token instanceof EndTagToken && in_array($token->name, ["body", "caption", "col", "colgroup", "html", "td", "th", "tr"])) {
+                # Parse error. Ignore the token.
+                $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+            }
+            # Anything else
+            else {
+                # Process the token using the rules for
+                # the "in table" insertion mode.
+                return $this->parseTokenInHTMLContent($token, self::IN_TABLE_MODE);
+            }
+        }
+        # 13.2.6.4.14 The "in row" insertion mode
+            # A start tag whose tag name is one of: "th", "td"
+                # Clear the stack back to a table row context. (See below.)
+                # Insert an HTML element for the token, then switch the insertion mode to "in cell".
+                # Insert a marker at the end of the list of active formatting elements.
+            # An end tag whose tag name is "tr"
+                # If the stack of open elements does not have a tr element in table scope, this is a parse error; ignore the token.
+                # Otherwise:
+                # Clear the stack back to a table row context. (See below.)
+                # Pop the current node (which will be a tr element) from the stack of open elements. Switch the insertion mode to "in table body".
+            # A start tag whose tag name is one of: "caption", "col", "colgroup", "tbody", "tfoot", "thead", "tr"
+            # An end tag whose tag name is "table"
+                # If the stack of open elements does not have a tr element in table scope, this is a parse error; ignore the token.
+                # Otherwise:
+                # Clear the stack back to a table row context. (See below.)
+                # Pop the current node (which will be a tr element) from the stack of open elements. Switch the insertion mode to "in table body".
+                # Reprocess the token.
+            # An end tag whose tag name is one of: "tbody", "tfoot", "thead"
+                # If the stack of open elements does not have an element in table scope that is an HTML element with the same tag name as the token, this is a parse error; ignore the token.
+                # If the stack of open elements does not have a tr element in table scope, ignore the token.
+                # Otherwise:
+                # Clear the stack back to a table row context. (See below.)
+                # Pop the current node (which will be a tr element) from the stack of open elements. Switch the insertion mode to "in table body".
+                # Reprocess the token.
+            # An end tag whose tag name is one of: "body", "caption", "col", "colgroup", "html", "td", "th"
+                # Parse error. Ignore the token.
+            # Anything else
+                # Process the token using the rules for the "in table" insertion mode.
+        # 13.2.6.4.15 The "in cell" insertion mode
+            # An end tag whose tag name is one of: "td", "th"
+                # If the stack of open elements does not have an element in table scope that is an HTML element with the same tag name as that of the token, then this is a parse error; ignore the token.
+                # Otherwise:
+                # Generate implied end tags.
+                # Now, if the current node is not an HTML element with the same tag name as the token, then this is a parse error.
+                # Pop elements from the stack of open elements stack until an HTML element with the same tag name as the token has been popped from the stack.
+                # Clear the list of active formatting elements up to the last marker.
+                # Switch the insertion mode to "in row".
+            # A start tag whose tag name is one of: "caption", "col", "colgroup", "tbody", "td", "tfoot", "th", "thead", "tr"
+                # If the stack of open elements does not have a td or th element in table scope, then this is a parse error; ignore the token. (fragment case)
+                # Otherwise, close the cell (see below) and reprocess the token.
+            # An end tag whose tag name is one of: "body", "caption", "col", "colgroup", "html"
+                # Parse error. Ignore the token.
+            # An end tag whose tag name is one of: "table", "tbody", "tfoot", "thead", "tr"
+                # If the stack of open elements does not have an element in table scope that is an HTML element with the same tag name as that of the token, then this is a parse error; ignore the token.
+                # Otherwise, close the cell (see below) and reprocess the token.
+            # Anything else
+                # Process the token using the rules for the "in body" insertion mode.
+            # Where the steps above say to close the cell, they mean to run the following algorithm:
+                # Generate implied end tags.
+                # If the current node is not now a td element or a th element, then this is a parse error.
+                # Pop elements from the stack of open elements stack until a td element or a th element has been popped from the stack.
+                # Clear the list of active formatting elements up to the last marker.
+                # Switch the insertion mode to "in row".
+        # 13.2.6.4.16 The "in select" insertion mode
+            # A character token that is U+0000 NULL
+                # Parse error. Ignore the token.
+            # Any other character token
+                # Insert the token's character.
+            # A comment token
+                # Insert a comment.
+            # A DOCTYPE token
+                # Parse error. Ignore the token.
+            # A start tag whose tag name is "html"
+                # Process the token using the rules for the "in body" insertion mode.
+            # A start tag whose tag name is "option"
+                # If the current node is an option element, pop that node from the stack of open elements.
+                # Insert an HTML element for the token.
+            # A start tag whose tag name is "optgroup"
+                # If the current node is an option element, pop that node from the stack of open elements.
+                # If the current node is an optgroup element, pop that node from the stack of open elements.
+                # Insert an HTML element for the token.
+            # An end tag whose tag name is "optgroup"
+                # First, if the current node is an option element, and the node immediately before it in the stack of open elements is an optgroup element, then pop the current node from the stack of open elements.
+                # If the current node is an optgroup element, then pop that node from the stack of open elements. Otherwise, this is a parse error; ignore the token.
+            # An end tag whose tag name is "option"
+                # If the current node is an option element, then pop that node from the stack of open elements. Otherwise, this is a parse error; ignore the token.
+            # An end tag whose tag name is "select"
+                # If the stack of open elements does not have a select element in select scope, this is a parse error; ignore the token. (fragment case)
+                # Otherwise:
+                # Pop elements from the stack of open elements until a select element has been popped from the stack.
+                # Reset the insertion mode appropriately.
+            # A start tag whose tag name is "select"
+                # Parse error.
+                # If the stack of open elements does not have a select element in select scope, ignore the token. (fragment case)
+                # Otherwise:
+                # Pop elements from the stack of open elements until a select element has been popped from the stack.
+                # Reset the insertion mode appropriately.
+                # It just gets treated like an end tag.
+            # A start tag whose tag name is one of: "input", "keygen", "textarea"
+                # Parse error.
+                # If the stack of open elements does not have a select element in select scope, ignore the token. (fragment case)
+                # Otherwise:
+                # Pop elements from the stack of open elements until a select element has been popped from the stack.
+                # Reset the insertion mode appropriately.
+                # Reprocess the token.
+            # A start tag whose tag name is one of: "script", "template"
+            # An end tag whose tag name is "template"
+                # Process the token using the rules for the "in head" insertion mode.
+            # An end-of-file token
+                # Process the token using the rules for the "in body" insertion mode.
+            # Anything else
+                # Parse error. Ignore the token.
+        # 13.2.6.4.17 The "in select in table" insertion mode
+            # A start tag whose tag name is one of: "caption", "table", "tbody", "tfoot", "thead", "tr", "td", "th"
+                # Parse error.
+                # Pop elements from the stack of open elements until a select element has been popped from the stack.
+                # Reset the insertion mode appropriately.
+                # Reprocess the token.
+            # An end tag whose tag name is one of: "caption", "table", "tbody", "tfoot", "thead", "tr", "td", "th"
+                # Parse error.
+                # If the stack of open elements does not have an element in table scope that is an HTML element with the same tag name as that of the token, then ignore the token.
+                # Otherwise:
+                # Pop elements from the stack of open elements until a select element has been popped from the stack.
+                # Reset the insertion mode appropriately.
+                # Reprocess the token.
+            # Anything else
+                # Process the token using the rules for the "in select" insertion mode.
+        # 13.2.6.4.18 The "in template" insertion mode
+            # A character token
+            # A comment token
+            # A DOCTYPE token
+                # Process the token using the rules for the "in body" insertion mode.
+            # A start tag whose tag name is one of: "base", "basefont", "bgsound", "link", "meta", "noframes", "script", "style", "template", "title"
+            # An end tag whose tag name is "template"
+                # Process the token using the rules for the "in head" insertion mode.
+            # A start tag whose tag name is one of: "caption", "colgroup", "tbody", "tfoot", "thead"
+                # Pop the current template insertion mode off the stack of template insertion modes.
+                # Push "in table" onto the stack of template insertion modes so that it is the new current template insertion mode.
+                # Switch the insertion mode to "in table", and reprocess the token.
+            # A start tag whose tag name is "col"
+                # Pop the current template insertion mode off the stack of template insertion modes.
+                # Push "in column group" onto the stack of template insertion modes so that it is the new current template insertion mode.
+                # Switch the insertion mode to "in column group", and reprocess the token.
+            # A start tag whose tag name is "tr"
+                # Pop the current template insertion mode off the stack of template insertion modes.
+                # Push "in table body" onto the stack of template insertion modes so that it is the new current template insertion mode.
+                # Switch the insertion mode to "in table body", and reprocess the token.
+            # A start tag whose tag name is one of: "td", "th"
+                # Pop the current template insertion mode off the stack of template insertion modes.
+                # Push "in row" onto the stack of template insertion modes so that it is the new current template insertion mode.
+                # Switch the insertion mode to "in row", and reprocess the token.
+            # Any other start tag
+                # Pop the current template insertion mode off the stack of template insertion modes.
+                # Push "in body" onto the stack of template insertion modes so that it is the new current template insertion mode.
+                # Switch the insertion mode to "in body", and reprocess the token.
+            # Any other end tag
+                # Parse error. Ignore the token.
+            # An end-of-file token
+                # If there is no template element on the stack of open elements, then stop parsing. (fragment case)
+                # Otherwise, this is a parse error.
+                # Pop elements from the stack of open elements until a template element has been popped from the stack.
+                # Clear the list of active formatting elements up to the last marker.
+                # Pop the current template insertion mode off the stack of template insertion modes.
+                # Reset the insertion mode appropriately.
+                # Reprocess the token.
+        # 13.2.6.4.19 The "after body" insertion mode
+            # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+                # Process the token using the rules for the "in body" insertion mode.
+            # A comment token
+                # Insert a comment as the last child of the first element in the stack of open elements (the html element).
+            # A DOCTYPE token
+                # Parse error. Ignore the token.
+            # A start tag whose tag name is "html"
+                # Process the token using the rules for the "in body" insertion mode.
+            # An end tag whose tag name is "html"
+                # If the parser was created as part of the HTML fragment parsing algorithm, this is a parse error; ignore the token. (fragment case)
+                # Otherwise, switch the insertion mode to "after after body".
+            # An end-of-file token
+                # Stop parsing.
+            # Anything else
+                # Parse error. Switch the insertion mode to "in body" and reprocess the token.
+        # 13.2.6.4.20 The "in frameset" insertion mode
+            # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+                # Insert the character.
+            # A comment token
+                # Insert a comment.
+            # A DOCTYPE token
+                # Parse error. Ignore the token.
+            # A start tag whose tag name is "html"
+                # Process the token using the rules for the "in body" insertion mode.
+            # A start tag whose tag name is "frameset"
+                # Insert an HTML element for the token.
+            # An end tag whose tag name is "frameset"
+                # If the current node is the root html element, then this is a parse error; ignore the token. (fragment case)
+                # Otherwise, pop the current node from the stack of open elements.
+                # If the parser was not created as part of the HTML fragment parsing algorithm (fragment case), and the current node is no longer a frameset element, then switch the insertion mode to "after frameset".
+            # A start tag whose tag name is "frame"
+                # Insert an HTML element for the token. Immediately pop the current node off the stack of open elements.
+                # Acknowledge the token's self-closing flag, if it is set.
+            # A start tag whose tag name is "noframes"
+                # Process the token using the rules for the "in head" insertion mode.
+            # An end-of-file token
+                # If the current node is not the root html element, then this is a parse error.
+                # The current node can only be the root html element in the fragment case.
+                # Stop parsing.
+            # Anything else
+                # Parse error. Ignore the token.
+        # 13.2.6.4.21 The "after frameset" insertion mode
+            # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+                # Insert the character.
+            # A comment token
+                # Insert a comment.
+            # A DOCTYPE token
+                # Parse error. Ignore the token.
+            # A start tag whose tag name is "html"
+                # Process the token using the rules for the "in body" insertion mode.
+            # An end tag whose tag name is "html"
+                # Switch the insertion mode to "after after frameset".
+            # A start tag whose tag name is "noframes"
+                # Process the token using the rules for the "in head" insertion mode.
+            # An end-of-file token
+                # Stop parsing.
+            # Anything else
+                # Parse error. Ignore the token.
+        # 13.2.6.4.22 The "after after body" insertion mode
+            # A comment token
+                # Insert a comment as the last child of the Document object.
+            # A DOCTYPE token
+            # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+            # A start tag whose tag name is "html"
+                # Process the token using the rules for the "in body" insertion mode.
+            # An end-of-file token
+                # Stop parsing.
+            # Anything else
+                # Parse error. Switch the insertion mode to "in body" and reprocess the token.
+        # 13.2.6.4.23 The "after after frameset" insertion mode
+            # A comment token
+                # Insert a comment as the last child of the Document object.
+            # A DOCTYPE token
+            # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+            # A start tag whose tag name is "html"
+                # Process the token using the rules for the "in body" insertion mode.
+            # An end-of-file token
+                # Stop parsing.
+            # A start tag whose tag name is "noframes"
+                # Process the token using the rules for the "in head" insertion mode.
+            # Anything else
+                # Parse error. Ignore the token.
         else {
             throw new NotImplementedException("NOT IMPLEMENTED");
         }
@@ -2345,7 +3124,6 @@ class TreeBuilder {
 
     protected function appropriatePlaceForInsertingNode(\DOMNode $overrideTarget = null): array {
         $insertBefore = false;
-
         # 13.2.6.1. Creating and inserting nodes
         #
         # While the parser is processing a token, it can enable or disable foster
@@ -2368,24 +3146,21 @@ class TreeBuilder {
             #
             # 1. Let last template be the last template element in the stack of open
             # elements, if any.
-            $lastTemplateKey = $this->stack->find('template');
-            $lastTemplate = ($lastTemplateKey !== -1 ) ? $this->stack[$lastTemplateKey] : null;
-
+            $lastTemplateIndex = $this->stack->find('template');
+            $lastTemplate = ($lastTemplateIndex > -1 ) ? $this->stack[$lastTemplateIndex] : null;
             # 2. Let last table be the last table element in the stack of open elements, if
             # any.
-            $lastTableKey = $this->stack->find('table');
-            $lastTable = ($lastTableKey !== -1 ) ? $this->stack[$lastTableKey] : null;
-
+            $lastTableIndex = $this->stack->find('table');
+            $lastTable = ($lastTableIndex > -1 ) ? $this->stack[$lastTableIndex] : null;
             # 3. If there is a last template and either there is no last table, or there is
             # one, but last template is lower (more recently added) than last table in the
             # stack of open elements, then: let adjusted insertion location be inside last
             # template’s template contents, after its last child (if any), and abort these
             # substeps.
-            if ($lastTemplate && (!$lastTable || $lastTable && $lastTemplateKey > $lastTableKey)) {
+            if ($lastTemplate && (!$lastTable || ($lastTemplateIndex > $lastTableIndex))) {
                 $insertionLocation = $lastTemplate->content;
                 // Abort!
             }
-
             # 4. If there is no last table, then let adjusted insertion location be inside
             # the first element in the stack of open elements (the html element), after its
             # last child (if any), and abort these substeps. (fragment case)
@@ -2393,7 +3168,6 @@ class TreeBuilder {
                 $insertionLocation = $this->stack[0];
                 // Abort!
             }
-
             # 5. If last table has a parent node, then let adjusted insertion location be
             # inside last table’s parent node, immediately before last table, and abort
             # these substeps.
@@ -2405,8 +3179,7 @@ class TreeBuilder {
             else {
                 # 6. Let previous element be the element immediately above last table in the
                 # stack of open elements.
-                $previousElement = $this->stack[$lastTableKey - 1];
-
+                $previousElement = $this->stack[$lastTableIndex - 1];
                 # 7. Let adjusted insertion location be inside previous element, after its last
                 # child (if any).
                 $insertionLocation = $previousElement;
@@ -2417,14 +3190,12 @@ class TreeBuilder {
         else {
             $insertionLocation = $target;
         }
-
         # 3. If the adjusted insertion location is inside a template element, let it
         # instead be inside the template element’s template contents, after its last
         # child (if any).
         if ($insertionLocation instanceof Element && $insertionLocation->nodeName === 'template') {
             $insertionLocation = $insertionLocation->content;
         }
-
         # 4. Return the adjusted insertion location.
         return [
             'node' => $insertionLocation,
@@ -2660,7 +3431,7 @@ class TreeBuilder {
         $this->parseGenericText($token, false);
     }
 
-    protected function resetInsertionMode() {
+    protected function resetInsertionMode(): int {
         # When the steps below require the UA to reset the insertion mode appropriately,
         # it means the UA must follow these steps:
 
@@ -2696,92 +3467,79 @@ class TreeBuilder {
                         # 6. If ancestor is a table node, switch the insertion mode to "in select in
                         # table" and abort these steps.
                         if ($ancestor->nodeName === 'table') {
-                            $this->insertionMode = self::IN_SELECT_IN_TABLE_MODE;
-                            return;
+                            return $this->insertionMode = self::IN_SELECT_IN_TABLE_MODE;
                         }
                         # 7. Jump back to the step labeled Loop.
                     }
                 }
                 # 8. Done: Switch the insertion mode to "in select" and abort these steps.
-                $this->insertionMode = self::IN_SELECT_MODE;
+                return $this->insertionMode = self::IN_SELECT_MODE;
             }
             # 5. If node is a td or th element and last is false, then switch the insertion
             # mode to "in cell" and abort these steps.
             elseif (($nodeName === 'td' || $nodeName === 'th') && $last === false) {
-                $this->insertionMode = self::IN_CELL_MODE;
-                return;
+                return $this->insertionMode = self::IN_CELL_MODE;
             }
             # 6. If node is a tr element, then switch the insertion mode to "in row" and
             # abort these steps.
             elseif ($nodeName === 'tr') {
-                $this->insertionMode = self::IN_ROW_MODE;
-                return;
+                return $this->insertionMode = self::IN_ROW_MODE;
             }
             # 7. If node is a tbody, thead, or tfoot element, then switch the insertion mode
             # to "in table body" and abort these steps.
             elseif ($nodeName === 'tbody' || $nodeName === 'thead' || $nodeName === 'tfoot') {
-                $this->insertionMode = self::IN_TABLE_BODY_MODE;
-                return;
+                return $this->insertionMode = self::IN_TABLE_BODY_MODE;
             }
             # 8. If node is a caption element, then switch the insertion mode to "in
             # caption" and abort these steps.
             elseif ($nodeName === 'caption') {
-                $this->insertionMode = self::IN_CAPTION_MODE;
-                return;
+                return $this->insertionMode = self::IN_CAPTION_MODE;
             }
             # 9. If node is a colgroup element, then switch the insertion mode to "in column
             # group" and abort these steps.
             elseif ($nodeName === 'colgroup') {
-                $this->insertionMode = self::IN_COLUMN_GROUP_MODE;
-                return;
+                return $this->insertionMode = self::IN_COLUMN_GROUP_MODE;
             }
             # 10. If node is a table element, then switch the insertion mode to "in table"
             # and abort these steps.
             elseif ($nodeName === 'table') {
-                $this->insertionMode = self::IN_TABLE_MODE;
-                return;
+                return $this->insertionMode = self::IN_TABLE_MODE;
             }
             # 11. If node is a template element, then switch the insertion mode to the
             # current template insertion mode and abort these steps.
             elseif ($nodeName === 'template') {
-                $this->insertionMode = $this->templateInsertionModes->currentMode;
-                return;
+                return $this->insertionMode = $this->templateInsertionModes->currentMode;
             }
             # 12. If node is a head element and last is false, then switch the insertion
             # mode to "in head" and abort these steps.
             elseif ($nodeName === 'head' && $last === false) {
-                $this->insertionMode = self::IN_HEAD_MODE;
-                return;
+                return $this->insertionMode = self::IN_HEAD_MODE;
             }
             # 13. If node is a body element, then switch the insertion mode to "in body" and
             # abort these steps.
             elseif ($nodeName === 'body') {
-                $this->insertionMode = self::IN_BODY_MODE;
-                return;
+                return $this->insertionMode = self::IN_BODY_MODE;
             }
             # 14. If node is a frameset element, then switch the insertion mode to "in
             # frameset" and abort these steps. (fragment case)
             elseif ($nodeName === 'frameset') {
-                $this->insertionMode = self::IN_FRAMESET_MODE;
-                return;
+                return $this->insertionMode = self::IN_FRAMESET_MODE;
             }
             # 15. If node is an html element, run these substeps:
             elseif ($nodeName === 'html') {
                 # 1. If the head element pointer is null, switch the insertion mode to "before
                 # head" and abort these steps. (fragment case)
                 if (is_null($this->headElement)) {
-                    $this->insertionMode = self::BEFORE_HEAD_MODE;
-                    return;
+                    return $this->insertionMode = self::BEFORE_HEAD_MODE;
                 }
                 # 2. Otherwise, the head element pointer is not null, switch the insertion mode
                 # to "after head" and abort these steps.
-                $this->insertionMode = self::AFTER_HEAD_MODE;
-                return;
+                return $this->insertionMode = self::AFTER_HEAD_MODE;
             }
             # 16. If last is true, then switch the insertion mode to "in body" and abort
             # these steps. (fragment case)
             elseif ($last === true) {
-                $this->insertionMode = self::IN_BODY_MODE;
+                return $this->insertionMode = self::IN_BODY_MODE;
             }
             # 17. Let node now be the node before node in the stack of open elements.
             # 18. Return to the step labeled Loop.
