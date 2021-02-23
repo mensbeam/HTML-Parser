@@ -12,14 +12,6 @@ class Element extends \DOMElement {
 
     protected const SELF_CLOSING_ELEMENTS = ['area', 'base', 'basefont', 'bgsound', 'br', 'col', 'embed', 'frame', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'];
 
-    public function __construct(string $name, string $value = '', string $namespaceURI = '') {
-        parent::__construct($name, $value, $namespaceURI);
-
-        if ($name === 'template' && $namespaceURI === '') {
-            $this->content = $this->ownerDocument->createDocumentFragment();
-        }
-    }
-
     public function isMathMLTextIntegrationPoint(): bool {
         return (
             $this->namespaceURI === Parser::MATHML_NAMESPACE && (

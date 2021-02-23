@@ -12,6 +12,12 @@ class Document extends \DOMDocument {
 
     public $quirksMode = self::NO_QUIRKS_MODE;
 
+    // An array of all template elements created in the document
+    // This exists because values of properties on derived DOM classes
+    //   are lost unless at least one PHP reference is kept for the
+    //   element somewhere in userspace. This is that somewhere.
+    protected $templateElements = [];
+
     public function __construct() {
         parent::__construct();
 
@@ -78,6 +84,15 @@ class Document extends \DOMDocument {
 
     public function saveXML(\DOMNode $node = null, $options = null) {
         throw new Exception(Exception::DOM_DISABLED_METHOD, __CLASS__, __FUNCTION__);
+    }
+
+    public function createElement($name, $value = "") {
+        $e = parent::createElement($name, $value);
+        if ($name === "template") {
+            $this->templateElements[] = $e;
+            $e->content = $this->createDocumentFragment();
+        }
+        return $e;
     }
 
     public function __toString() {

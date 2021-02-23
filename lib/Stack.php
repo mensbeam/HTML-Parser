@@ -49,7 +49,8 @@ abstract class Stack implements \ArrayAccess, \Countable, \IteratorAggregate {
         return !$this->_storage;
     }
 
-    public function top() {
-        return ($c = count($this->_storage)) > 0 ? $this->_storage[$c - 1] : null;
+    public function top(int $offset = 0) {
+        assert($offset >= 0, new \Exception("Offset must be at least 0"));
+        return ($c = count($this->_storage)) > $offset ? $this->_storage[$c - ($offset + 1)] : null;
     }
 }

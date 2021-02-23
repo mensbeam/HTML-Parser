@@ -168,15 +168,16 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         foreach ($attr as $k => $v) {
             $this->push($k.'="'.$v.'"');
         }
-        if ($e->localName === "template") {
+        if ($e->localName === "template" && $e->namespaceURI === null) {
             $this->push("content");
             $this->depth++;
+            foreach ($e->content->childNodes as $n) {
+                $this->serializeNode($n);
+            }
+            $this->depth--;
         }
         foreach ($e->childNodes as $n) {
             $this->serializeNode($n);
-        }
-        if ($e->localName === "template") {
-            $this->depth--;
         }
         $this->depth--;
     }
