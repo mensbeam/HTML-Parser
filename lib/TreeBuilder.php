@@ -1597,7 +1597,6 @@ class TreeBuilder {
                 }
                 # A start tag whose tag name is "math"
                 elseif ($token->name === "math") {
-                    throw new NotImplementedException("NOT IMPLEMENTED");
                     # Reconstruct the active formatting elements, if any.
                     $this->activeFormattingElementsList->reconstruct();
                     # Adjust MathML attributes for the token. (This fixes the case of MathML attributes that are not all lowercase.)      
