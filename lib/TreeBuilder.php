@@ -1361,7 +1361,9 @@ class TreeBuilder {
                     # Push onto the list of active formatting elements that element.
                     $this->activeFormattingElementsList->insert($token, $element);
                 }
-                # A start tag whose tag name is one of: "b", "big", "code", "em", "font", "i", "s", "small", "strike", "strong", "tt", "u"
+                # A start tag whose tag name is one of: "b", "big", "code",
+                #   "em", "font", "i", "s", "small", "strike",
+                #   "strong", "tt", "u"
                 elseif ($token->name === "b" || $token->name === "big" || $token->name === "code" || $token->name === "em" || $token->name === "font" || $token->name === "i" || $token->name === "s" || $token->name === "small" || $token->name === "strike" || $token->name === "strong" || $token->name === "tt" || $token->name === "u") {
                     # Reconstruct the active formatting elements, if any.
                     $this->activeFormattingElementsList->reconstruct();
@@ -1411,7 +1413,8 @@ class TreeBuilder {
                     # Switch the insertion mode to "in table".
                     $this->insertionMode = self::IN_TABLE_MODE;
                 }
-                # A start tag whose tag name is one of: "area", "br", "embed", "img", "keygen", "wbr"
+                # A start tag whose tag name is one of: "area", "br",
+                #   "embed", "img", "keygen", "wbr"
                 elseif ($token->name === "area" || $token->name === "br" || $token->name === "embed" || $token->name === "img" || $token->name === "keygen" || $token->name === "wbr") {
                     # Reconstruct the active formatting elements, if any.
                     $this->activeFormattingElementsList->reconstruct();
@@ -1583,7 +1586,7 @@ class TreeBuilder {
                     # If the stack of open elements has a ruby element in scope,
                     #   then generate implied end tags, except for rtc elements. 
                     if ($this->stack->hasElementInScope("ruby")) {
-                        $this->stack->generateImpliedEndTags("etc");
+                        $this->stack->generateImpliedEndTags("rtc");
                         # If the current node is not now a rtc element or a ruby element, this is a parse error.
                         if (!in_array($this->stack->currentNodeName, ["rtc", "ruby"])) {
                             $this->error(ParseError::UNEXPECTED_PARENT, $token->name, $this->stack->currentNodeName);
@@ -2988,90 +2991,313 @@ class TreeBuilder {
             }
         }
         # 13.2.6.4.19 The "after body" insertion mode
-            # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
-                # Process the token using the rules for the "in body" insertion mode.
+        elseif ($insertionMode === self::AFTER_BODY_MODE) {
+            # A character token that is one of U+0009 CHARACTER TABULATION,
+            #   U+000A LINE FEED (LF), U+000C FORM FEED (FF),
+            #   U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+            if ($token instanceof WhitespaceToken) {
+                # Process the token using the rules for
+                #   the "in body" insertion mode.
+                return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+            }
             # A comment token
-                # Insert a comment as the last child of the first element in the stack of open elements (the html element).
+            elseif ($token instanceof CommentToken) {
+                # Insert a comment as the last child of the first element
+                #   in the stack of open elements (the html element).
+                $this->insertCommentToken($token, $this->stack[0]);
+            }
             # A DOCTYPE token
+            elseif ($token instanceof DOCTYPEToken) {
                 # Parse error. Ignore the token.
+                $this->error(ParseError::UNEXPECTED_DOCTYPE);
+            }
             # A start tag whose tag name is "html"
-                # Process the token using the rules for the "in body" insertion mode.
+            elseif ($token instanceof StartTagToken && $token->name === "html") {
+                # Process the token using the rules for
+                #   the "in body" insertion mode.
+                return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+            }
             # An end tag whose tag name is "html"
-                # If the parser was created as part of the HTML fragment parsing algorithm, this is a parse error; ignore the token. (fragment case)
+            elseif ($token instanceof EndTagToken && $token->name === "html") {
+                # If the parser was created as part of the HTML fragment
+                #   parsing algorithm, this is a parse error;
+                #   ignore the token. (fragment case)
+                if ($this->fragmentContext) {
+                    $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                }
                 # Otherwise, switch the insertion mode to "after after body".
+                else {
+                    $this->insertionMode = self::AFTER_AFTER_BODY_MODE;
+                }
+            }
             # An end-of-file token
+            elseif ($token instanceof EOFToken) {
                 # Stop parsing.
+                return true;
+            }
             # Anything else
-                # Parse error. Switch the insertion mode to "in body" and reprocess the token.
+            else {
+                # Parse error.
+                if ($token instanceof StartTagToken) {
+                    $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
+                } elseif ($token instanceof EndTagToken) {
+                    $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                } elseif ($token instanceof CharacterToken) {
+                    $this->error(ParseError::UNEXPECTED_CHAR);
+                } else {
+                    throw new \Exception("Unexpected token type".get_class($token));
+                }
+                # Switch the insertion mode to "in body"
+                #   and reprocess the token.
+                $insertionMode = $this->insertionMode = self::IN_BODY_MODE;
+                goto ProcessToken;
+            }
+        }
         # 13.2.6.4.20 The "in frameset" insertion mode
-            # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+        elseif ($insertionMode === self::IN_FRAMESET_MODE) {
+            # A character token that is one of U+0009 CHARACTER TABULATION,
+            #   U+000A LINE FEED (LF), U+000C FORM FEED (FF),
+            #   U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+            if ($token instanceof WhitespaceToken) {
                 # Insert the character.
+                $this->insertCharacterToken($token);
+            }
             # A comment token
+            elseif ($token instanceof CommentToken) {
                 # Insert a comment.
+                $this->insertCommentToken($token);
+            }
             # A DOCTYPE token
+            elseif ($token instanceof DOCTYPEToken) {
                 # Parse error. Ignore the token.
-            # A start tag whose tag name is "html"
-                # Process the token using the rules for the "in body" insertion mode.
-            # A start tag whose tag name is "frameset"
-                # Insert an HTML element for the token.
+                $this->error(ParseError::UNEXPECTED_DOCTYPE);
+            }
+            # A start tag...
+            elseif ($token instanceof StartTagToken) {
+                # A start tag whose tag name is "html"
+                if ($token->name === "html") {
+                    # Process the token using the rules for
+                    #   the "in body" insertion mode.
+                    return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+                }
+                # A start tag whose tag name is "frameset"
+                elseif ($token->name === "frameset") {
+                    # Insert an HTML element for the token.
+                    $this->insertStartTagToken($token);
+                }
+                # A start tag whose tag name is "frame"
+                elseif ($token->name === "frame") {
+                    # Insert an HTML element for the token. Immediately pop
+                    #   the current node off the stack of open elements.
+                    $this->insertStartTagToken($token);
+                    $this->stack->pop();
+                    # Acknowledge the token's self-closing flag, if it is set.
+                    $token->selfClosingAcknowledged = true;
+                }
+                # A start tag whose tag name is "noframes"
+                elseif ($token->name === "noframes") {
+                    # Process the token using the rules
+                    #   for the "in head" insertion mode.
+                    return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
+                }
+                // Any other start tag
+                else {
+                    # Parse error. Ignore the token.
+                    $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
+                }
+            }
             # An end tag whose tag name is "frameset"
-                # If the current node is the root html element, then this is a parse error; ignore the token. (fragment case)
-                # Otherwise, pop the current node from the stack of open elements.
-                # If the parser was not created as part of the HTML fragment parsing algorithm (fragment case), and the current node is no longer a frameset element, then switch the insertion mode to "after frameset".
-            # A start tag whose tag name is "frame"
-                # Insert an HTML element for the token. Immediately pop the current node off the stack of open elements.
-                # Acknowledge the token's self-closing flag, if it is set.
-            # A start tag whose tag name is "noframes"
-                # Process the token using the rules for the "in head" insertion mode.
+            elseif ($token instanceof EndTagToken && $token->name === "frameset") {
+                # If the current node is the root html element, then this
+                #   is a parse error; ignore the token. (fragment case)
+                if (count($this->stack) < 2) {
+                    $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                }
+                else {
+                    # Otherwise, pop the current node from
+                    #   the stack of open elements.
+                    $this->stack->pop();
+                    # If the parser was not created as part of the HTML
+                    #   fragment parsing algorithm (fragment case), and the
+                    #   current node is no longer a frameset element, then switch
+                    #   the insertion mode to "after frameset".
+                    if (!$this->fragmentContext && $this->stack->currentNodeName !== "frameset") {
+                        $this->insertionMode = self::AFTER_FRAMESET_MODE;
+                    }
+                }
+            }
             # An end-of-file token
-                # If the current node is not the root html element, then this is a parse error.
-                # The current node can only be the root html element in the fragment case.
+            elseif ($token instanceof EOFToken) {
+                # If the current node is not the root html element,
+                #   then this is a parse error.
+                if (count($this->stack) > 1) {
+                    $this->error(ParseError::UNEXPECTED_EOF);
+                }
                 # Stop parsing.
+                return true;
+            }
             # Anything else
+            else {
                 # Parse error. Ignore the token.
+                if ($token instanceof StartTagToken) {
+                    $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
+                } elseif ($token instanceof EndTagToken) {
+                    $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                } elseif ($token instanceof CharacterToken) {
+                    $this->error(ParseError::UNEXPECTED_CHAR);
+                    // Extract any whitespace characters from the token and insert them
+                    $ws = preg_replace('/[^\x09\x0a\x0c\x0d ]+/', "", $token->data);
+                    if (strlen($ws)) {
+                        $this->insertCharacterToken(new WhitespaceToken($ws));
+                    }
+                } else {
+                    throw new \Exception("Unexpected token type".get_class($token));
+                }
+            }
+        }
         # 13.2.6.4.21 The "after frameset" insertion mode
-            # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+        elseif ($insertionMode === self::AFTER_FRAMESET_MODE) {
+            # A character token that is one of U+0009 CHARACTER TABULATION,
+            #   U+000A LINE FEED (LF), U+000C FORM FEED (FF), 
+            #   U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+            if ($token instanceof WhitespaceToken) {
                 # Insert the character.
+                $this->insertCharacterToken($token);
+            }
             # A comment token
+            elseif ($token instanceof CommentToken) {
                 # Insert a comment.
+                $this->insertCommentToken($token);
+            }
             # A DOCTYPE token
+            elseif ($token instanceof DOCTYPEToken) {
                 # Parse error. Ignore the token.
+                $this->error(ParseError::UNEXPECTED_DOCTYPE);
+            }
             # A start tag whose tag name is "html"
-                # Process the token using the rules for the "in body" insertion mode.
+            elseif ($token instanceof StartTagToken && $token->name === "html") {
+                # Process the token using the rules for
+                #   the "in body" insertion mode.
+                return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+            }
             # An end tag whose tag name is "html"
+            elseif ($token instanceof EndTagToken && $token->name === "html") {
                 # Switch the insertion mode to "after after frameset".
+                $this->insertionMode = self::AFTER_AFTER_FRAMESET_MODE;
+            }
             # A start tag whose tag name is "noframes"
-                # Process the token using the rules for the "in head" insertion mode.
+            elseif ($token instanceof StartTagToken && $token->name === "noframes") {
+                # Process the token using the rules for
+                #   the "in head" insertion mode.
+                return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
+            }
             # An end-of-file token
+            elseif ($token instanceof EOFToken) {
                 # Stop parsing.
+                return true;
+            }
             # Anything else
+            else {
                 # Parse error. Ignore the token.
+                if ($token instanceof StartTagToken) {
+                    $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
+                } elseif ($token instanceof EndTagToken) {
+                    $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                } elseif ($token instanceof CharacterToken) {
+                    $this->error(ParseError::UNEXPECTED_CHAR);
+                    // Extract any whitespace characters from the token and insert them
+                    $ws = preg_replace('/[^\x09\x0a\x0c\x0d ]+/', "", $token->data);
+                    if (strlen($ws)) {
+                        $this->insertCharacterToken(new WhitespaceToken($ws));
+                    }
+                } else {
+                    throw new \Exception("Unexpected token type".get_class($token));
+                }
+            }
+        }
         # 13.2.6.4.22 The "after after body" insertion mode
+        elseif ($insertionMode === self::AFTER_AFTER_BODY_MODE) {
             # A comment token
+            if ($token instanceof CommentToken) {
                 # Insert a comment as the last child of the Document object.
+                $this->insertCommentToken($token, $this->DOM);
+            }
             # A DOCTYPE token
-            # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+            # A character token that is one of U+0009 CHARACTER TABULATION,
+            #   U+000A LINE FEED (LF), U+000C FORM FEED (FF),
+            #   U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
             # A start tag whose tag name is "html"
-                # Process the token using the rules for the "in body" insertion mode.
+            elseif ($token instanceof DOCTYPEToken || $token instanceof WhitespaceToken || ($token instanceof StartTagToken && $token->name === "html")) {
+                # Process the token using the rules for
+                #   the "in body" insertion mode.
+                return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+            }
             # An end-of-file token
+            elseif ($token instanceof EOFToken) {
                 # Stop parsing.
+                return true;
+            }
             # Anything else
-                # Parse error. Switch the insertion mode to "in body" and reprocess the token.
+            else {
+                # Parse error.
+                if ($token instanceof StartTagToken) {
+                    $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
+                } elseif ($token instanceof EndTagToken) {
+                    $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                } elseif ($token instanceof CharacterToken) {
+                    $this->error(ParseError::UNEXPECTED_CHAR);
+                } else {
+                    throw new \Exception("Unexpected token type".get_class($token));
+                }
+                # Switch the insertion mode to "in body" and reprocess the token.
+                $insertionMode = $this->insertionMode = self::IN_BODY_MODE;
+                goto ProcessToken;
+            }
+        }
         # 13.2.6.4.23 The "after after frameset" insertion mode
+        elseif ($insertionMode === self::AFTER_AFTER_FRAMESET_MODE) {
             # A comment token
+            if ($token instanceof CommentToken) {
                 # Insert a comment as the last child of the Document object.
+                $this->insertCommentToken($token, $this->DOM);
+            }
             # A DOCTYPE token
-            # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+            # A character token that is one of U+0009 CHARACTER TABULATION,
+            #   U+000A LINE FEED (LF), U+000C FORM FEED (FF),
+            #   U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
             # A start tag whose tag name is "html"
-                # Process the token using the rules for the "in body" insertion mode.
+            elseif ($token instanceof DOCTYPEToken || $token instanceof WhitespaceToken || ($token instanceof StartTagToken && $token->name === "html")) {
+                # Process the token using the rules for
+                #   the "in body" insertion mode.
+                return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+            }
             # An end-of-file token
+            elseif ($token instanceof EOFToken) {
                 # Stop parsing.
+                return true;
+            }
             # A start tag whose tag name is "noframes"
-                # Process the token using the rules for the "in head" insertion mode.
+            elseif ($token instanceof StartTagToken && $token->name === "noframes") {
+                # Process the token using the rules for
+                #   the "in head" insertion mode.
+                return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
+            }
             # Anything else
+            else {
                 # Parse error. Ignore the token.
+                if ($token instanceof StartTagToken) {
+                    $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
+                } elseif ($token instanceof EndTagToken) {
+                    $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                } elseif ($token instanceof CharacterToken) {
+                    $this->error(ParseError::UNEXPECTED_CHAR);
+                } else {
+                    throw new \Exception("Unexpected token type".get_class($token));
+                }
+            }
+        }
         else {
-            throw new NotImplementedException("NOT IMPLEMENTED");
+            throw new \Exception("UNREACHABLE CODE");
         }
         return true;
     }
