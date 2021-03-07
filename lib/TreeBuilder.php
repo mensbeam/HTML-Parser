@@ -3347,6 +3347,7 @@ class TreeBuilder {
         $formattingElementIndex = $this->activeFormattingElementsList->findToMarker($subject);
         if ($formattingElementIndex > -1) {
             $formattingElement = $this->activeFormattingElementsList[$formattingElementIndex]['element'];
+            $formattingToken = $this->activeFormattingElementsList[$formattingElementIndex]['token'];
         } else {
             $formattingElement = null;
         }
@@ -3465,8 +3466,9 @@ class TreeBuilder {
         $element = $this->createElementForToken($token, null, $commonAncestor);
         $this->activeFormattingElementsList[$nodeListPos] = ['token' => $nodeToken, 'element' => $element];
         $this->stack[$nodeIndex] = $element;
+        $node = $element;
         # If last node is furthest block, then move the aforementioned
-        #   to be immediately after the new node in the list of
+        #   bookmark to be immediately after the new node in the list of
         #   active formatting elements.
         if ($lastNode->isSameNode($furthestBlock)) {
             $bookmark = $nodeListPos + 1;
@@ -3494,7 +3496,6 @@ class TreeBuilder {
         # Create an element for the token for which formatting element was
         #   created, in the HTML namespace, with furthest block as the
         #   intended parent.
-        $formattingToken = $this->activeFormattingElementsList[$formattingElementIndex]['token'];
         $element = $this->createElementForToken($formattingToken, null, $furthestBlock);
         # Take all of the child nodes of furthest block and append them to
         #   the element created in the last step.
@@ -3511,9 +3512,9 @@ class TreeBuilder {
         # Remove formatting element from the stack of open elements, and
         #   insert the new element into the stack of open elements
         #   immediately below the position of furthest block in that stack.
-        $this->stack->insert($element, $this->stack->findSame($furthestBlock));
         assert($stackIndex > 0, new \Exception("Attempting to delete root element from stack"));
-        unset($this->stack[$this->stack->findSame($formattingElement)]);
+        $this->stack->removeSame($formattingElement);
+        $this->stack->insert($element, $this->stack->findSame($furthestBlock) + 1);
         # Jump back to the step labeled outer loop.
         goto OuterLoop;
     }

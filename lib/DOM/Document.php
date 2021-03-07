@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace dW\HTML5;
 
 class Document extends \DOMDocument {
-    use Descendant, Serialize;
+    use Descendant, Serialize, EscapeString;
 
     // Quirks mode constants
     public const NO_QUIRKS_MODE = 0;
@@ -11,6 +11,8 @@ class Document extends \DOMDocument {
     public const LIMITED_QUIRKS_MODE = 2;
 
     public $quirksMode = self::NO_QUIRKS_MODE;
+    public $mangledElements = false;
+    public $mangledAttributes = false;
 
     // An array of all template elements created in the document
     // This exists because values of properties on derived DOM classes
@@ -87,21 +89,38 @@ class Document extends \DOMDocument {
     }
 
     public function createElement($name, $value = "") {
-        $e = parent::createElement($name, $value);
-        if ($name === "template") {
-            $this->templateElements[] = $e;
-            $e->content = $this->createDocumentFragment();
+        try {
+            $e = parent::createElement($name, $value);
+            if ($name === "template") {
+                $this->templateElements[] = $e;
+                $e->content = $this->createDocumentFragment();
+            }
+            return $e;
+        } catch (\DOMException) {
+            // The element name is invalid for XML
+            // Replace any offending characters with "UHHHHHH" where H is the
+            //   uppercase hexadecimal digits of the character's code point
+            $this->mangledElements = true;
+            $name = $this->CoerceName($name);
         }
-        return $e;
     }
 
     public function createElementNS($namespaceURI, $qualifiedName, $value = "") {
-        $e = parent::createElementNS($namespaceURI, $qualifiedName, $value);
-        if ($qualifiedName === "template" && $namespaceURI === null) {
-            $this->templateElements[] = $e;
-            $e->content = $this->createDocumentFragment();
+        try {
+            $e = parent::createElementNS($namespaceURI, $qualifiedName, $value);
+            if ($qualifiedName === "template" && $namespaceURI === null) {
+                $this->templateElements[] = $e;
+                $e->content = $this->createDocumentFragment();
+            }
+            return $e;
+        } catch (\DOMException) {
+            throw $e;
+            // The element name is invalid for XML
+            // Replace any offending characters with "UHHHHHH" where H is the
+            //   uppercase hexadecimal digits of the character's code point
+            $this->mangledElements = true;
+            $qualifiedName = $this->CoerceName($qualifiedName);
         }
-        return $e;
     }
 
     public function __toString() {
