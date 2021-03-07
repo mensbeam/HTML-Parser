@@ -202,14 +202,15 @@ class TreeBuilder {
     # address, applet, area, article, aside, base, basefont, bgsound, blockquote,
     # body, br, button, caption, center, col, colgroup, dd, details, dir, div, dl,
     # dt, embed, fieldset, figcaption, figure, footer, form, frame, frameset, h1,
-    # h2, h3, h4, h5, h6, head, header, hr, html, iframe, img, input, li, link,
-    # listing, main, marquee, meta, nav, noembed, noframes, noscript, object, ol, p,
-    # param, plaintext, pre, script, section, select, source, style, summary, table,
-    # tbody, td, template, textarea, tfoot, th, thead, title, tr, track, ul, wbr,
-    # xmp; MathML mi, MathML mo, MathML mn, MathML ms, MathML mtext, and MathML
-    # annotation-xml; and SVG foreignObject, SVG desc, and SVG title.    
+    # h2, h3, h4, h5, h6, head, header, hgroup, hr, html, iframe, img, input,
+    # keygen, li, link, listing, main, marquee, menu, meta, nav, noembed, noframes,
+    # noscript, object, ol, p, param, plaintext, pre, script, section, select,
+    # source, style, summary, table, tbody, td, template, textarea, tfoot, th,
+    # thead, title, tr, track, ul, wbr, xmp; MathML mi, MathML mo, MathML mn, 
+    # MathML ms, MathML mtext, and MathML annotation-xml; and SVG foreignObject,
+    # SVG desc, and SVG title.    
     protected const SPECIAL_ELEMENTS = [
-        Parser::HTML_NAMESPACE   => ['address', 'applet', 'area', 'article', 'aside', 'base', 'basefont', 'bgsound', 'blockquote', 'body', 'br', 'button', 'caption', 'center', 'col', 'colgroup', 'dd', 'details', 'dir', 'div', 'dl', 'dt', 'embed', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hr', 'html', 'iframe', 'img', 'input', 'li', 'link', 'listing', 'main', 'marquee', 'meta', 'nav', 'noembed', 'noframes', 'noscript', 'object', 'ol', 'p', 'param', 'plaintext', 'pre', 'script', 'section', 'select', 'source', 'style', 'summary', 'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'title', 'tr', 'track', 'ul', 'wbr', 'xmp'],
+        Parser::HTML_NAMESPACE   => ['address', 'applet', 'area', 'article', 'aside', 'base', 'basefont', 'bgsound', 'blockquote', 'body', 'br', 'button', 'caption', 'center', 'col', 'colgroup', 'dd', 'details', 'dir', 'div', 'dl', 'dt', 'embed', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html', 'iframe', 'img', 'input', 'keygen', 'li', 'link', 'listing', 'main', 'marquee', 'menu', 'meta', 'nav', 'noembed', 'noframes', 'noscript', 'object', 'ol', 'p', 'param', 'plaintext', 'pre', 'script', 'section', 'select', 'source', 'style', 'summary', 'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'title', 'tr', 'track', 'ul', 'wbr', 'xmp'], 
         Parser::MATHML_NAMESPACE => ['mi', 'mo', 'mn', 'ms', 'mtext', 'annotation-xml'],
         Parser::SVG_NAMESPACE    => ['foreignObject', 'desc', 'title'],
     ];
@@ -3398,7 +3399,6 @@ class TreeBuilder {
                 break;
             }
         }
-        throw new NotImplementedException("NOT IMPLEMENTED");
         # If there is no furthest block, then the UA must first pop all the nodes
         #   from the bottom of the stack of open elements, from the current node up
         #   to and including formatting element, then remove formatting element from
