@@ -22,6 +22,8 @@ use dW\HTML5\TreeBuilder;
  * @covers \dW\HTML5\Stack
  */
 class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
+    use \dW\HTML5\EscapeString;
+
     protected $out;
     protected $depth;
 
@@ -102,19 +104,6 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                 }
             }
         }
-        if (in_array($data, [
-            //'<!DOCTYPE html><html xml:lang=bar><html xml:lang=foo>',
-            //'<!DOCTYPE html><body xlink:href=foo><svg xlink:href=foo></svg>',
-            //'<!DOCTYPE html><body xlink:href=foo xml:lang=en><svg><g xml:lang=en xlink:href=foo></g></svg>',
-            //'<!DOCTYPE html><body xlink:href=foo xml:lang=en><svg><g xml:lang=en xlink:href=foo /></svg>',
-            //'<!DOCTYPE html><body xlink:href=foo xml:lang=en><svg><g xml:lang=en xlink:href=foo />bar</svg>',
-            //'<!DOCTYPE html><body xlink:href=foo><math xlink:href=foo></math>',
-            //'<!DOCTYPE html><body xlink:href=foo xml:lang=en><math><mi xml:lang=en xlink:href=foo></mi></math>',
-            //'<!DOCTYPE html><body xlink:href=foo xml:lang=en><math><mi xml:lang=en xlink:href=foo /></math>',
-            //'<!DOCTYPE html><body xlink:href=foo xml:lang=en><math><mi xml:lang=en xlink:href=foo />bar</math>',
-        ])) {
-            $skip = 'Requires implementation of the "Coercing an HTML DOM into an infoset" specification section';
-        }
         return [$exp, $patched, $skip];
     }
 
@@ -167,13 +156,20 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         } else {
             $prefix = "";
         }
-        $this->push("<".$prefix.$e->localName.">");
+        $localName = $this->uncoerceName($e->localName);
+        $this->push("<".$prefix.$localName.">");
         $this->depth++;
         $attr = [];
         foreach ($e->attributes as $a) {
-            $attr[$a->name] = $a->value;
+            $prefix = "";
+            if ($a->namespaceURI) {
+                $prefix = Parser::NAMESPACE_MAP[$a->namespaceURI];
+                assert((bool) $prefix, new \Exception("Prefix for namespace {$a->namespaceURI} is not defined"));
+                $prefix .= " ";
+            }
+            $attr[$prefix.$this->uncoerceName($a->name)] = $a->value;
         }
-        ksort($attr);
+        ksort($attr, \SORT_STRING);
         foreach ($attr as $k => $v) {
             $this->push($k.'="'.$v.'"');
         }

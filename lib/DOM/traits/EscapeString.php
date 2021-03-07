@@ -23,12 +23,30 @@ trait EscapeString {
         return $string;
     }
 
-    protected function CoerceName(string $name): string {
+    protected function coerceName(string $name): string {
         // This matches the inverse of the production of NameChar in XML 1.0,
         //   with the added exclusion of ":" from allowed characters
         // See https://www.w3.org/TR/REC-xml/#NT-NameStartChar
-        preg_match_all('/[^\-\.0-9\x{B7}\x{300}-\x{36F}\x{203F}-\x{2040}A-Za-z_\x{C0}-\x{D6}\x{D8}-\x{F6}\x{F8}-\x{2FF}\x{370}-\x{37D}\x{37F}-\x{1FFF}\x{200C}-\x{200D}\x{2070}-\x{218F}\x{2C00}-\x{2FEF}\x{3001}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFFD}\x{10000}-\x{EFFFF}]/u', $name, $m, \PREG_OFFSET_CAPTURE);
-        var_export($m);
-        exit;
+        preg_match_all('/[^\-\.0-9\x{B7}\x{300}-\x{36F}\x{203F}-\x{2040}A-Za-z_\x{C0}-\x{D6}\x{D8}-\x{F6}\x{F8}-\x{2FF}\x{370}-\x{37D}\x{37F}-\x{1FFF}\x{200C}-\x{200D}\x{2070}-\x{218F}\x{2C00}-\x{2FEF}\x{3001}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFFD}\x{10000}-\x{EFFFF}]/u', $name, $m);
+        foreach (array_unique($m[0], \SORT_STRING) as $c) {
+            $esc = "U".str_pad(strtoupper(dechex(\IntlChar::ord($c))), 6, "0", \STR_PAD_LEFT);
+            $name = str_replace($c, $esc, $name);
+        }
+        // Apply stricter rules to the first character
+        if (preg_match('/^[^A-Za-z_\x{C0}-\x{D6}\x{D8}-\x{F6}\x{F8}-\x{2FF}\x{370}-\x{37D}\x{37F}-\x{1FFF}\x{200C}-\x{200D}\x{2070}-\x{218F}\x{2C00}-\x{2FEF}\x{3001}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFFD}\x{10000}-\x{EFFFF}]/u', $name, $m)) {
+            $c = $m[0];
+            $esc = "U".str_pad(strtoupper(dechex(\IntlChar::ord($c))), 6, "0", \STR_PAD_LEFT);
+            $name = $esc.substr($name, strlen($c));
+        }
+        return $name;
+    }
+
+    protected function uncoerceName(string $name): string {
+        preg_match_all('/U[0-9A-F]{6}/', $name, $m);
+        foreach (array_unique($m[0], \SORT_STRING) as $o) {
+            $c = \IntlChar::chr(hexdec(substr($o, 1)));
+            $name = str_replace($o, $c, $name);
+        }
+        return $name;
     }
 }

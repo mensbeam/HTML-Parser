@@ -12,6 +12,32 @@ class Element extends \DOMElement {
 
     protected const SELF_CLOSING_ELEMENTS = ['area', 'base', 'basefont', 'bgsound', 'br', 'col', 'embed', 'frame', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'];
 
+    public function setAttribute($name, $value) {
+        try {
+            parent::setAttribute($name, $value);
+        } catch (\DOMException $e) {
+            // The attribute name is invalid for XML
+            // Replace any offending characters with "UHHHHHH" where H are the
+            //   uppercase hexadecimal digits of the character's code point
+            $this->ownerDocument->mangledAttributes = true;
+            $name = $this->coerceName($name);
+            parent::setAttribute($name, $value);
+        }
+    }
+    
+    public function setAttributeNS($namespaceURI, $qualifiedName, $value) {
+        try {
+            parent::setAttributeNS($namespaceURI, $qualifiedName, $value);
+        } catch (\DOMException $e) {
+            // The attribute name is invalid for XML
+            // Replace any offending characters with "UHHHHHH" where H are the
+            //   uppercase hexadecimal digits of the character's code point
+            $this->ownerDocument->mangledAttributes = true;
+            $qualifiedName = $this->coerceName($qualifiedName);
+            parent::setAttributeNS($namespaceURI, $qualifiedName, $value);
+        }
+    }
+    
     public function isMathMLTextIntegrationPoint(): bool {
         return (
             $this->namespaceURI === Parser::MATHML_NAMESPACE && (

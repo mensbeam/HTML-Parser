@@ -96,12 +96,13 @@ class Document extends \DOMDocument {
                 $e->content = $this->createDocumentFragment();
             }
             return $e;
-        } catch (\DOMException) {
+        } catch (\DOMException $e) {
             // The element name is invalid for XML
             // Replace any offending characters with "UHHHHHH" where H is the
             //   uppercase hexadecimal digits of the character's code point
             $this->mangledElements = true;
-            $name = $this->CoerceName($name);
+            $name = $this->coerceName($name);
+            return parent::createElement($name, $value);
         }
     }
 
@@ -113,13 +114,39 @@ class Document extends \DOMDocument {
                 $e->content = $this->createDocumentFragment();
             }
             return $e;
-        } catch (\DOMException) {
-            throw $e;
+        } catch (\DOMException $e) {
             // The element name is invalid for XML
-            // Replace any offending characters with "UHHHHHH" where H is the
+            // Replace any offending characters with "UHHHHHH" where H are the
             //   uppercase hexadecimal digits of the character's code point
             $this->mangledElements = true;
-            $qualifiedName = $this->CoerceName($qualifiedName);
+            $qualifiedName = $this->coerceName($qualifiedName);
+            return parent::createElementNS($namespaceURI, $qualifiedName, $value);
+        }
+    }
+
+    public function createAttribute($name) {
+        try {
+            return parent::createAttribute($name);
+        } catch (\DOMException $e) {
+            // The element name is invalid for XML
+            // Replace any offending characters with "UHHHHHH" where H are the
+            //   uppercase hexadecimal digits of the character's code point
+            $this->mangledAttributes = true;
+            $name = $this->coerceName($name);
+            return parent::createAttribute($name);
+        }
+    }
+
+    public function createAttributeNS($namespaceURI, $qualifiedName) {
+        try {
+            return parent::createAttributeNS($namespaceURI, $qualifiedName);
+        } catch (\DOMException $e) {
+            // The element name is invalid for XML
+            // Replace any offending characters with "UHHHHHH" where H are the
+            //   uppercase hexadecimal digits of the character's code point
+            $this->mangledAttributes = true;
+            $qualifiedName = $this->coerceName($qualifiedName);
+            return parent::createAttributeNS($namespaceURI, $qualifiedName);
         }
     }
 

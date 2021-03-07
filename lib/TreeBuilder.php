@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace dW\HTML5;
 
 class TreeBuilder {
-    use ParseErrorEmitter;
+    use ParseErrorEmitter, EscapeString;
 
     public $debugLog = "";
 
@@ -292,6 +292,12 @@ class TreeBuilder {
             $this->debugLog .= "EMITTED: ".constant(get_class($token)."::NAME")."\n";
             return true;
         })());
+
+        // If element name coercison has occurred at some earlier point,
+        //   we must coerce all end tag names to match mangled start tags
+        if ($token instanceof EndTagToken && $this->DOM->mangledElements) {
+            $token->name = $this->coerceName($token->name);
+        }
         // Loop used for reprocessing.
         $iterations = 0;
         while (true) {
@@ -373,6 +379,14 @@ class TreeBuilder {
             return true;
         })());
 
+        // If attribute name coercison has occurred at some earlier point,
+        //   we must coerce all attributes on html and body start tags in
+        //   case they are relocated to existing elements
+        if ($token instanceof StartTagToken && $this->DOM->mangledAttributes && in_array($token->name, ["html", "body"])) {
+            foreach ($token->attributes as $attr) {
+                $attr->name = $this->coerceName($attr->name);
+            }
+        }
         # 13.2.6.4. The rules for parsing tokens in HTML content
         # 13.2.6.4.1. The "initial" insertion mode
         if ($insertionMode === self::INITIAL_MODE) {
@@ -4198,7 +4212,18 @@ class TreeBuilder {
         $element = $document->createElementNS($namespace, $localName);
         # Append each attribute in the given token to element.
         foreach ($token->attributes as $attr) {
-            $element->setAttributeNS(null, $attr->name, $attr->value);
+            $ns = null;
+            if ($namespace) {
+                // Determine the namespace URI for the prefix, if any
+                if (strpos($attr->name, "xml:") === 0) {
+                    $ns = Parser::XML_NAMESPACE;
+                } elseif (strpos($attr->name, "xmlns:") === 0) {
+                    $ns = Parser::XMLNS_NAMESPACE;
+                } elseif (strpos($attr->name, "xlink:") === 0) {
+                    $ns = Parser::XLINK_NAMESPACE;
+                }
+            }
+            $element->setAttributeNS($ns, $attr->name, $attr->value);
         }
         # If element has an xmlns attribute in the XMLNS namespace whose value
         #   is not exactly the same as the element's namespace, that is a
