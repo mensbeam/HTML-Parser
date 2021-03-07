@@ -16,6 +16,10 @@ use dW\HTML5\TreeBuilder;
 
 /** 
  * @covers \dW\HTML5\TreeBuilder
+ * @covers \dW\HTML5\Tokenizer
+ * @covers \dW\HTML5\ActiveFormattingElementsList
+ * @covers \dW\HTML5\OpenElementsStack
+ * @covers \dW\HTML5\Stack
  */
 class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
     protected $out;
@@ -58,7 +62,8 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             }
         } else {
             $fragmentContext = null;
-        }// initialize the other classes we need
+        }
+        // initialize the other classes we need
         $decoder = new Data($data, "STDIN", $errorHandler, "UTF-8");
         $stack = new OpenElementsStack($fragmentContext);
         $tokenizer = new Tokenizer($decoder, $stack, $errorHandler);
@@ -70,7 +75,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                 $treeBuilder->emitToken($token);
             } while (!$token instanceof EOFToken);
         } catch (\DOMException $e) {
-            $this->markTestSkipped('Requires implementation of the "Coercing an HTML DOM into an infoset" specification section');
+            $this->markTestIncomplete('Requires implementation of the "Coercing an HTML DOM into an infoset" specification section');
             return;
         } catch (LoopException $e) {
             $act = $this->balanceTree($this->serializeTree($doc, (bool) $fragmentContext), $exp);
@@ -98,15 +103,15 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             }
         }
         if (in_array($data, [
-            '<!DOCTYPE html><html xml:lang=bar><html xml:lang=foo>',
-            '<!DOCTYPE html><body xlink:href=foo><svg xlink:href=foo></svg>',
-            '<!DOCTYPE html><body xlink:href=foo xml:lang=en><svg><g xml:lang=en xlink:href=foo></g></svg>',
-            '<!DOCTYPE html><body xlink:href=foo xml:lang=en><svg><g xml:lang=en xlink:href=foo /></svg>',
-            '<!DOCTYPE html><body xlink:href=foo xml:lang=en><svg><g xml:lang=en xlink:href=foo />bar</svg>',
-            '<!DOCTYPE html><body xlink:href=foo><math xlink:href=foo></math>',
-            '<!DOCTYPE html><body xlink:href=foo xml:lang=en><math><mi xml:lang=en xlink:href=foo></mi></math>',
-            '<!DOCTYPE html><body xlink:href=foo xml:lang=en><math><mi xml:lang=en xlink:href=foo /></math>',
-            '<!DOCTYPE html><body xlink:href=foo xml:lang=en><math><mi xml:lang=en xlink:href=foo />bar</math>',
+            //'<!DOCTYPE html><html xml:lang=bar><html xml:lang=foo>',
+            //'<!DOCTYPE html><body xlink:href=foo><svg xlink:href=foo></svg>',
+            //'<!DOCTYPE html><body xlink:href=foo xml:lang=en><svg><g xml:lang=en xlink:href=foo></g></svg>',
+            //'<!DOCTYPE html><body xlink:href=foo xml:lang=en><svg><g xml:lang=en xlink:href=foo /></svg>',
+            //'<!DOCTYPE html><body xlink:href=foo xml:lang=en><svg><g xml:lang=en xlink:href=foo />bar</svg>',
+            //'<!DOCTYPE html><body xlink:href=foo><math xlink:href=foo></math>',
+            //'<!DOCTYPE html><body xlink:href=foo xml:lang=en><math><mi xml:lang=en xlink:href=foo></mi></math>',
+            //'<!DOCTYPE html><body xlink:href=foo xml:lang=en><math><mi xml:lang=en xlink:href=foo /></math>',
+            //'<!DOCTYPE html><body xlink:href=foo xml:lang=en><math><mi xml:lang=en xlink:href=foo />bar</math>',
         ])) {
             $skip = 'Requires implementation of the "Coercing an HTML DOM into an infoset" specification section';
         }

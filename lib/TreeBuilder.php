@@ -1831,8 +1831,11 @@ class TreeBuilder {
                     }
                 }
                 # An end tag whose tag name is "sarcasm"
-                    # Take a deep breath, then act as described in the "any other end tag" entry below.
-                # An end tag whose tag name is one of: "a", "b", "big", "code", "em", "font", "i", "nobr", "s", "small", "strike", "strong", "tt", "u"
+                    # Take a deep breath, then act as described in
+                    #   the "any other end tag" entry below.
+                # An end tag whose tag name is one of: "a", "b", "big",
+                #   "code", "em", "font", "i", "nobr", "s", "small",
+                #   "strike", "strong", "tt", "u"
                 elseif ($token->name === "a" || $token->name === "b" || $token->name === "big" || $token->name === "code" || $token->name === "em" || $token->name === "font" || $token->name === "i" || $token->name === "nobr" || $token->name === "s" || $token->name === "small" || $token->name === "strike" || $token->name === "strong" || $token->name === "tt" || $token->name === "u") {
                     # Run the adoption agency algorithm for the token.
                     $this->adopt($token);
@@ -3375,7 +3378,7 @@ class TreeBuilder {
         }
         # If formatting element is in the stack of open elements, but 
         #   the element is not in scope, then this is a parse error; return.
-        elseif (!$this->stack->hasElementInScope($formattingElement)) {
+        if (!$this->stack->hasElementInScope($formattingElement)) {
             $this->error($errorCode, $token->name);
             return;
         }
@@ -3388,13 +3391,14 @@ class TreeBuilder {
         #   is lower in the stack than formatting element, and is an element in the
         #   special category. There might not be one.
         $furthestBlock = null;
-        for ($k = ($stackIndex - 1); $k > -1; $k--) {
+        for ($k = ($stackIndex + 1); $k < count($this->stack); $k++) {
             if ($this->isElementSpecial($this->stack[$k])) { 
                 $furthestBlockIndex = $k;
                 $furthestBlock = $this->stack[$k];
                 break;
             }
         }
+        throw new NotImplementedException("NOT IMPLEMENTED");
         # If there is no furthest block, then the UA must first pop all the nodes
         #   from the bottom of the stack of open elements, from the current node up
         #   to and including formatting element, then remove formatting element from
@@ -3411,7 +3415,7 @@ class TreeBuilder {
         # Let a bookmark note the position of formatting element in the list of
         #   active formatting elements relative to the elements on either side
         #   of it in the list.
-        $bookmrk = $formattingElementIndex;
+        $bookmark = $formattingElementIndex;
         # Let node and last node be furthest block. Follow these steps:
         $node = $furthestBlock;
         $nodeIndex = $furthestBlockIndex;
@@ -3429,18 +3433,25 @@ class TreeBuilder {
         $node = $this->stack[--$nodeIndex];
         # If node is formatting element, then go to the next step in the
         #   overall algorithm.
-        goto AfterInnerLoop;
+        if ($node->isSameNode($formattingElement)) {
+            $nodeListPos = $formattingElementIndex;
+            goto AfterInnerLoop;
+        }
         # If inner loop counter is greater than three and node is in the
         #   list of active formatting elements, then remove node from the
         #   list of active formatting elements.
         $nodeListPos = $this->activeFormattingElementsList->findSame($node);
         if ($innerLoopCounter > 3 && $nodeListPos > -1) {
             unset($this->activeFormattingElementsList[$nodeListPos]);
+            if ($bookmark > $nodeListPos) {
+                $bookmark--;
+            }
+            $nodeListPos = -1;
         }
         # If node is not in the list of active formatting elements, then
         #   remove node from the stack of open elements and then go back to
         #   the step labeled inner loop.
-        elseif ($nodeListPos === -1) {
+        if ($nodeListPos === -1) {
             $this->stack->removeSame($node);
             goto InnerLoop;
         }
@@ -3450,11 +3461,12 @@ class TreeBuilder {
         #   active formatting elements with an entry for the new element,
         #   replace the entry for node in the stack of open elements with
         #   an entry for the new element, and let node be the new element.
-        $element = $this->insertStartTagToken($this->activeFormattingElementsList[$nodeListPos]['token'], $commonAncestor);
-        $this->activeFormattingElementsList[$nodeListPos]['element'] = $element;
+        $nodeToken = $this->activeFormattingElementsList[$nodeListPos]['token'];
+        $element = $this->createElementForToken($token, null, $commonAncestor);
+        $this->activeFormattingElementsList[$nodeListPos] = ['token' => $nodeToken, 'element' => $element];
         $this->stack[$nodeIndex] = $element;
         # If last node is furthest block, then move the aforementioned
-        #   bookmark to be immediately after the new node in the list of
+        #   to be immediately after the new node in the list of
         #   active formatting elements.
         if ($lastNode->isSameNode($furthestBlock)) {
             $bookmark = $nodeListPos + 1;
@@ -3482,7 +3494,8 @@ class TreeBuilder {
         # Create an element for the token for which formatting element was
         #   created, in the HTML namespace, with furthest block as the
         #   intended parent.
-        $element = $this->insertStartTagToken($this->activeFormattingElementsList[$formattingElementIndex]['token'], $furthestBlock);
+        $formattingToken = $this->activeFormattingElementsList[$formattingElementIndex]['token'];
+        $element = $this->createElementForToken($formattingToken, null, $furthestBlock);
         # Take all of the child nodes of furthest block and append them to
         #   the element created in the last step.
         foreach ($furthestBlock->childNodes as $node) {
@@ -3493,9 +3506,16 @@ class TreeBuilder {
         # Remove formatting element from the list of active formatting
         #   elements, and insert the new element into the list of active
         #   formatting elements at the position of the aforementioned bookmark.
-
-        # Remove formatting element from the stack of open elements, and insert the new element into the stack of open elements immediately below the position of furthest block in that stack.
+        $this->activeFormattingElementsList->insert($formattingToken, $element, $bookmark);
+        unset($this->activeFormattingElementsList[$formattingElementIndex]);
+        # Remove formatting element from the stack of open elements, and
+        #   insert the new element into the stack of open elements
+        #   immediately below the position of furthest block in that stack.
+        $this->stack->insert($element, $this->stack->findSame($furthestBlock));
+        assert($stackIndex > 0, new \Exception("Attempting to delete root element from stack"));
+        unset($this->stack[$this->stack->findSame($formattingElement)]);
         # Jump back to the step labeled outer loop.
+        goto OuterLoop;
     }
 
     protected function parseTokenInForeignContent(Token $token): bool {
@@ -3898,21 +3918,8 @@ class TreeBuilder {
         # synchronous custom elements flag; otherwise, leave it unset.
         // DEVIATION: There is no point to setting the synchronous custom elements flag
         // and custom element definition; there is no scripting in this implementation.
-        if ($namespace === Parser::HTML_NAMESPACE) {
-            $element = $this->DOM->createElement($token->name);
-        } else {
-            $element = $this->DOM->createElementNS($namespace, $token->name);
-        }
-
         # 8. Append each attribute in the given token to element.
-        foreach ($token->attributes as $a) {
-            if (!$a->namespace || $a->namespace === Parser::HTML_NAMESPACE) {
-                $element->setAttribute($a->name, $a->value);
-            } else {
-                $element->setAttributeNS($a->namespace, $a->name, $a->value);
-            }
-        }
-
+        $element = $this->createElementForToken($token, $namespace, $intendedParent);
         # 9. If will execute script is true, then:
         # - 1. Let queue be the result of popping the current element queue from the
         # custom element reactions stack. (This will be the same element queue as was
@@ -3926,16 +3933,6 @@ class TreeBuilder {
         # not exactly the same as the element’s namespace, that is a parse error.
         # Similarly, if element has an xmlns:xlink attribute in the XMLNS namespace
         # whose value is not the XLink namespace, that is a parse error.
-        $xmlns = $element->getAttributeNS(Parser::XMLNS_NAMESPACE, 'xmlns');
-        if ($xmlns !== '' && $xmlns !== $element->namespaceURI) {
-            $this->error(ParseError::UNEXPECTED_XMLNS_ATTRIBUTE_VALUE, $element->namespaceURI);
-        }
-
-        $xlink = $element->getAttributeNS(Parser::XMLNS_NAMESPACE, 'xlink');
-        if ($xlink !== '' && $xlink !== Parser::XLINK_NAMESPACE) {
-            $this->error(ParseError::UNEXPECTED_XMLNS_ATTRIBUTE_VALUE, Parser::XLINK_NAMESPACE);
-        }
-
         # 11. If element is a resettable element, invoke its reset algorithm. (This
         # initializes the element’s value and checkedness based on the element’s
         # attributes.)
@@ -4163,12 +4160,6 @@ class TreeBuilder {
         $this->stack->popUntil('p');
     }
 
-    protected function isElementSpecial(Element $element): bool {
-        $name = $element->nodeName;
-        $ns = $element->namespaceURI ?? Parser::HTML_NAMESPACE;
-        return in_array($name, self::SPECIAL_ELEMENTS[$ns] ?? []);
-    }
-
     protected function closeCell(TagToken $token): int {
         # Where the steps above say to close the cell,
         #   they mean to run the following algorithm:
@@ -4187,5 +4178,39 @@ class TreeBuilder {
         $this->activeFormattingElementsList->clearToTheLastMarker();
         # Switch the insertion mode to "in row".
         return $this->insertionMode = self::IN_ROW_MODE;
+    }
+
+    protected function isElementSpecial(Element $element): bool {
+        $name = $element->nodeName;
+        $ns = $element->namespaceURI ?? Parser::HTML_NAMESPACE;
+        return in_array($name, self::SPECIAL_ELEMENTS[$ns] ?? []);
+    }
+
+    protected function createElementForToken(TagToken $token, ?string $namespace = null, ?\DOMNode $intendedParent = null): Element {
+        // DEVIATION: Steps related to scripting have been elided entirely
+        # Let document be intended parent's node document.
+        $document = $this->DOM;
+        # Let local name be the tag name of the token.
+        $localName = $token->name;
+        # Let element be the result of creating an element given document,
+        #   localName, given namespace, null, and is.
+        $element = $document->createElementNS($namespace, $localName);
+        # Append each attribute in the given token to element.
+        foreach ($token->attributes as $attr) {
+            $element->setAttributeNS(null, $attr->name, $attr->value);
+        }
+        # If element has an xmlns attribute in the XMLNS namespace whose value
+        #   is not exactly the same as the element's namespace, that is a
+        #   parse error. Similarly, if element has an xmlns:xlink attribute in
+        #   the XMLNS namespace whose value is not the XLink Namespace, that
+        #   is a parse error.
+        if ($element->hasAttributeNS(Parser::XMLNS_NAMESPACE, "xmlns") && $element->getAttributeNS(Parser::XMLNS_NAMESPACE, "xmlns") !== $element->namespaceURI) {
+            $this->error(ParseError::UNEXPECTED_ATTRIBUTE_VALUE, "xmlns");
+        }
+        if ($element->hasAttributeNS(Parser::XMLNS_NAMESPACE, "xmlns:link") && $element->getAttributeNS(Parser::XMLNS_NAMESPACE, "xmlns:xlink") !== Parser::XLINK_NAMESPACE) {
+            $this->error(ParseError::UNEXPECTED_ATTRIBUTE_VALUE, "xmlns:xlink");
+        }
+        # Return element.
+        return $element;
     }
 }

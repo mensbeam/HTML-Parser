@@ -62,7 +62,7 @@ abstract class TagToken extends Token {
     public $selfClosingAcknowledged = false;
     public $attributes = [];
 
-    public function __construct(string $name, bool $selfClosing = false, string $namespace = Parser::HTML_NAMESPACE) {
+    public function __construct(string $name, bool $selfClosing = false, ?string $namespace = null) {
         $this->selfClosing = $selfClosing;
         $this->namespace = $namespace;
         $this->name = $name;
@@ -82,16 +82,15 @@ abstract class TagToken extends Token {
          unset($this->attributes[$this->_getAttributeKey($name)]);
      }
 
-     public function setAttribute(string $name, string $value, string $namespace = Parser::HTML_NAMESPACE) {
+     public function setAttribute(string $name, string $value) {
          $key = $this->_getAttributeKey($name);
 
          if (is_null($key)) {
-             $this->attributes[] = new TokenAttr($name, $value, $namespace);
+             $this->attributes[] = new TokenAttr($name, $value);
          } else {
              $attribute = &$this->attributes[$key];
              $attribute->name = $name;
              $attribute->value = $value;
-             $attribute->namespace = $namespace;
          }
      }
 
@@ -121,11 +120,9 @@ class EOFToken extends Token {
 class TokenAttr {
     public $name;
     public $value;
-    public $namespace;
 
-    public function __construct(string $name, string $value, string $namespace = Parser::HTML_NAMESPACE) {
+    public function __construct(string $name, string $value) {
         $this->name = $name;
         $this->value = $value;
-        $this->namespace = $namespace;
     }
 }

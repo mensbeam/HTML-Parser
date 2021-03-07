@@ -70,6 +70,7 @@ class ParseError {
     const UNEXPECTED_CHAR                                                   = 211;
     const UNEXPECTED_EOF                                                    = 212;
     const UNEXPECTED_PARENT                                                 = 213;
+    const UNEXPECTED_ATTRIBUTE_VALUE                                        = 214;
 
     const MESSAGES = [
         self::EXPECTED_DOCTYPE_BUT_GOT_START_TAG                                => 'Expected DOCTYPE but got start tag <%s>',
@@ -85,6 +86,7 @@ class ParseError {
         self::UNEXPECTED_CHAR                                                   => 'Unexpected character data',
         self::UNEXPECTED_EOF                                                    => 'Unexpected end of file',
         self::UNEXPECTED_PARENT                                                 => 'Start tag <%s> not valid in parent <%s>',
+        self::UNEXPECTED_ATTRIBUTE_VALUE                                        => 'Unexpected value in attribute "%s"',
 
         self::ENCODING_ERROR                                                    => 'Corrupt encoding near byte position %s',
         self::UNEXPECTED_NULL_CHARACTER                                         => 'Unexpected null character',

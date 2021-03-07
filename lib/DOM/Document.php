@@ -95,6 +95,15 @@ class Document extends \DOMDocument {
         return $e;
     }
 
+    public function createElementNS($namespaceURI, $qualifiedName, $value = "") {
+        $e = parent::createElementNS($namespaceURI, $qualifiedName, $value);
+        if ($qualifiedName === "template" && $namespaceURI === null) {
+            $this->templateElements[] = $e;
+            $e->content = $this->createDocumentFragment();
+        }
+        return $e;
+    }
+
     public function __toString() {
         return $this->serialize();
     }

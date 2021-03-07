@@ -96,9 +96,19 @@ class OpenElementsStack extends Stack {
         $this->fragmentContext = $fragmentContext;
     }
 
+    public function insert(Element $element, ?int $at = null): void  {
+        assert($at === null || ($at >= 0 && $at <= count($this->_storage)), new \Exception("Invalid stack index $at"));
+        if ($at === null) {
+            $this[] = $element;
+        } else {
+            array_splice($this->_storage, $at, 0, [$element]);
+        }
+    }
+
     public function popUntil(string ...$target): void {
         do {
             $node = $this->pop();
+            assert(isset($node), new \Exception("Stack is empty"));
         } while ($node->namespaceURI !== null || !in_array($node->nodeName, $target));
     }
 
@@ -273,7 +283,7 @@ class OpenElementsStack extends Stack {
             #   since the loop will always terminate in the previous step 
             #   if the top of the stack — an html element — is reached.)
         }
-        assert(false, new \Exception((string) $this));
+        assert(false, new \Exception("Stack is invalid: ".(string) $this));
     }
 
     public function __get($property) {

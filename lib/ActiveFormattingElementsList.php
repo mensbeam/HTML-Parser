@@ -98,11 +98,19 @@ class ActiveFormattingElementsList extends Stack {
         return true;
     }
 
-    public function insert(StartTagToken $token, Element $element): void  {
-        $this[] = [
-            'token' => $token,
-            'element' => $element
-        ];
+    public function insert(StartTagToken $token, Element $element, ?int $at = null): void  {
+        assert($at === null || ($at >= 0 && $at <= count($this->_storage)), new \Exception("Invalid list index $at (max ".count($this->_storage).")"));
+        if ($at === null) {
+            $this[] = [
+                'token' => $token,
+                'element' => $element
+            ];
+        } else {
+            array_splice($this->_storage, $at, 0, [[
+                'token' => $token,
+                'element' => $element,
+            ]]);
+        }
     }
 
     public function insertMarker(): void {
@@ -207,6 +215,22 @@ class ActiveFormattingElementsList extends Stack {
         if ($pos > -1) {
             unset($this[$pos]);
         }
+    }
+
+    public function __toString(): string {
+        $out = [];
+        foreach ($this as $entry) {
+            if ($entry instanceof ActiveFormattingElementsMarker) {
+                $out[] = "|";
+            } else {
+                $node = $entry['element'];
+                $ns = $node->namespaceURI ?? Parser::HTML_NAMESPACE;
+                $prefix = Parser::NAMESPACE_MAP[$ns] ?? "?";
+                $prefix .= $prefix ? " " : "";
+                $out[] = $prefix.$node->nodeName;
+            }
+        }
+        return implode(" - ", $out);
     }
 }
 
