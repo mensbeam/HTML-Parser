@@ -266,7 +266,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                     }
                     if (!$script) {
                         // scripting-dependent tests are skipped entirely since we will not support scripting
-                        yield "$file #$index (line $pos)" => [$data, $exp, $errors, $fragment];
+                        yield basename($file)." #$index (line $pos)" => [$data, $exp, $errors, $fragment];
                     }
                     $l++;
                     $index++;

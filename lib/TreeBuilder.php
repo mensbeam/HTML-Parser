@@ -3423,7 +3423,6 @@ class TreeBuilder {
             $this->activeFormattingElementsList->removeSame($formattingElement);
             return;
         }
-        throw new NotImplementedException("NOT IMPLEMENTED");
         # Let common ancestor be the element immediately above formatting element
         #   in the stack of open elements.
         $commonAncestor = $this->stack[$stackIndex - 1] ?? null;
@@ -3457,7 +3456,7 @@ class TreeBuilder {
         #   list of active formatting elements.
         $nodeListPos = $this->activeFormattingElementsList->findSame($node);
         if ($innerLoopCounter > 3 && $nodeListPos > -1) {
-            unset($this->activeFormattingElementsList[$nodeListPos]);
+            $this->activeFormattingElementsList->removeSame($node);
             if ($bookmark > $nodeListPos) {
                 $bookmark--;
             }
@@ -3477,7 +3476,7 @@ class TreeBuilder {
         #   replace the entry for node in the stack of open elements with
         #   an entry for the new element, and let node be the new element.
         $nodeToken = $this->activeFormattingElementsList[$nodeListPos]['token'];
-        $element = $this->createElementForToken($token, null, $commonAncestor);
+        $element = $this->createElementForToken($nodeToken, null, $commonAncestor);
         $this->activeFormattingElementsList[$nodeListPos] = ['token' => $nodeToken, 'element' => $element];
         $this->stack[$nodeIndex] = $element;
         $node = $element;
@@ -3522,7 +3521,7 @@ class TreeBuilder {
         #   elements, and insert the new element into the list of active
         #   formatting elements at the position of the aforementioned bookmark.
         $this->activeFormattingElementsList->insert($formattingToken, $element, $bookmark);
-        unset($this->activeFormattingElementsList[$formattingElementIndex]);
+        $this->activeFormattingElementsList->removeSame($formattingElement);
         # Remove formatting element from the stack of open elements, and
         #   insert the new element into the stack of open elements
         #   immediately below the position of furthest block in that stack.
