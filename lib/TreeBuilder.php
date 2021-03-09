@@ -3512,8 +3512,8 @@ class TreeBuilder {
         $element = $this->createElementForToken($formattingToken, null, $furthestBlock);
         # Take all of the child nodes of furthest block and append them to
         #   the element created in the last step.
-        foreach ($furthestBlock->childNodes as $node) {
-            $element->appendChild($node);
+        while ($furthestBlock->hasChildNodes()) {
+            $element->appendChild($furthestBlock->firstChild);
         }
         # Append that new element to furthest block.
         $furthestBlock->appendChild($element);
