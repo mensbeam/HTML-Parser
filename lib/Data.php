@@ -10,6 +10,7 @@ class Data {
 
     // Used to get the file path for error reporting.
     public $filePath;
+    // Whether the encoding is certain or tentative; this is a feature of the specification, but not relevant for this implementation
     public $encodingCertain = false;
 
     // Internal storage for the Intl data object.
@@ -37,12 +38,7 @@ class Data {
 
     public function __construct(string $data, string $filePath = 'STDIN', ParseError $errorHandler = null, string $encodingOrContentType = '') {
         $this->errorHandler = $errorHandler ?? new ParseError;
-        if ($filePath !== 'STDIN') {
-            $this->filePath = realpath($filePath);
-            $data = file_get_contents($this->filePath);
-        } else {
-            $this->filePath = $filePath;
-        }
+        $this->filePath = $filePath;
 
         if ($encoding = Charset::fromBOM($data)) {
             // encoding determined from Unicode byte order mark
@@ -55,7 +51,7 @@ class Data {
             // Encoding is tentative
         } else {
             // Encoding is tentative; fall back to the configured default encoding
-            $encoding = Parser::$fallbackEncoding;
+            $encoding = Charset::fromCharset(Parser::$fallbackEncoding) ?? "windows-1252";
         }
         $this->data = Encoding::createDecoder($encoding, $data, false, true);
     }

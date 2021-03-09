@@ -3,41 +3,7 @@ declare(strict_types=1);
 namespace dW\HTML5;
 
 class Parser {
-    /* Non-static properties */
-
-    // Input data that's being parsed, uses Data
-    protected $data;
-    // The DOMDocument that is assembled by the tree builder
-    protected $DOM;
-    // If parsed as a fragment a fragment is assembled instead
-    protected $DOMFragment;
-    // The form element pointer points to the last form element that was opened and
-    // whose end tag has not yet been seen. It is used to make form controls associate
-    // with forms in the face of dramatically bad markup, for historical reasons. It is
-    // ignored inside template elements
-    protected $formElement;
-    // Flag that shows whether the content that's being parsed is a fragment or not
-    protected $fragmentCase = false;
-    // Context element for fragments
-    protected $fragmentContext;
-    // Used for the instance of ParseError
-    protected $parseError;
-    // The stack of open elements, uses Stack
-    protected $stack;
-    // Used to store the template insertion modes
-    protected $templateInsertionModes;
-    // Instance of the Tokenizer class used for creating tokens
-    protected $tokenizer;
-    // Instance of the TreeBuilder class used for building the document
-    protected $treeBuilder;
-
-
-    /* Static properties */
-
-    public static $fallbackEncoding = "UTF-8";
-
-    // Property used as an instance for the non-static properties
-    protected static $instance;
+    public static $fallbackEncoding = "windows-1252";
 
     // Namespace constants
     const HTML_NAMESPACE = 'http://www.w3.org/1999/xhtml';
@@ -56,149 +22,68 @@ class Parser {
         self::XMLNS_NAMESPACE  => "xmlns",
     ];
 
-    // Protected construct used for creating an instance to access properties which must
-    // be reset on every parse
-    protected function __construct() {
-        static::$instance = $this;
-    }
-
-    public function __destruct() {
-        $this->treeBuilder->__destruct();
-        static::$instance = null;
-    }
-
-    public static function parse(string $data, Document $document = null, bool $file = false) {
-        // If parse() is called by parseFragment() then don't create an instance. It has
-        // already been created.
-        $c = __CLASS__;
-        if (!(static::$instance instanceof $c && !static::$instance->fragmentCase)) {
-            static::$instance = new $c;
-        }
-
-        if (is_null($document)) {
-            static::$instance->DOM = new Document();
-        } else {
-            if ($document->hasChildNodes()) {
-                throw new Exception(Exception::PARSER_NONEMPTY_DOCUMENT);
-            }
-
-            static::$instance->DOM = $document;
-        }
-
-        // Initialize the parse error handler.
-        static::$instance->parseError = new ParseError;
-        static::$instance->parseError->setHandler();
+    public static function parse(string $data, ?Document $document = null, ?string $encodingOrContentType = null, ?\DOMElement $fragmentContext = null, ?String $file = null): Document {
+        // Initialize the various classes needed for parsing
+        $document = $document ?? new Document;
+        $errorHandler = new ParseError;
+        $decoder = new Data($data, $file ?? "STDIN", $errorHandler, $encodingOrContentType);
+        $stack = new OpenElementsStack($fragmentContext);
+        $tokenizer = new Tokenizer($decoder, $stack, $errorHandler);
+        $treeBuilder = new TreeBuilder($document, $decoder, $tokenizer, $errorHandler, $stack, new TemplateInsertionModesStack, $fragmentContext);
+        // Override error handling
+        $errorHandler->setHandler();
         try {
-            // Process the input stream.
-            static::$instance->data = new Data(($file === true) ? '' : $data, ($file === true) ? $data : 'STDIN', static::$instance->parseError);
-
-            // Set the locale for CTYPE to en_US.UTF8 so ctype functions and strtolower only
-            // work on basic latin characters. Used extensively when tokenizing.
-            setlocale(LC_CTYPE, 'en_US.UTF8');
-
-            // Initialize the stack of open elements.
-            static::$instance->stack = new OpenElementsStack(static::$instance->fragmentCase, static::$instance->fragmentContext);
-            // Initialize the template insertion modes stack if necessary.
-            if (is_null(static::$instance->templateInsertionModes)) {
-                static::$instance->templateInsertionModes = new TemplateInsertionModesStack();
-            }
-            // Initialize the tokenizer.
-            static::$instance->tokenizer = new Tokenizer(static::$instance->data, static::$instance->stack, static::$instance->parseError);
-            // Initialize the tree builder.
-            static::$instance->treeBuilder = new TreeBuilder(static::$instance->DOM, static::$instance->formElement, static::$instance->fragmentCase, static::$instance->fragmentContext, static::$instance->stack, static::$instance->templateInsertionModes, static::$instance->tokenizer, static::$instance->parseError, static::$instance->data);
-
-            // Run the tokenizer. Tokenizer runs until after the EOF token is emitted.
+            // run the parser to completion
             do {
-                $token = static::$instance->tokenizer->createToken();
-                static::$instance->treeBuilder->emitToken($token);
+                $token = $tokenizer->createToken();
+                $treeBuilder->emitToken($token);
             } while (!$token instanceof EOFToken);
-
-            // Fix id attributes before outputting.
-            static::$instance->DOM->fixIdAttributes();
-
-            // The Parser instance has no need to exist when finished.
-            $dom = static::$instance->DOM;
-            static::$instance->__destruct();
         } finally {
-            static::$instance->parseError->clearHandler();
+            // Restore error handling
+            $errorHandler->clearHandler();
         }
-
-        return $dom;
+        return $document;
     }
 
-    public static function parseFragment(string $data, Element $context = null, bool $file = false): \DOMDocument {
-        // Create an instance of this class to use the non static properties.
-        $c = __CLASS__;
-        static::$instance = new $c;
-
-        static::$instance->DOM = (is_null($context)) ? new Document() : $context->ownerDocument;
-        static::$instance->DOMFragment = static::$instance->DOM->createDocumentFragment();
-
-        // DEVIATION: The spec says to let the document be in quirks mode if the
-        // DOMDocument is in quirks mode. Cannot check whether the context element is in
-        // quirks mode, so going to assume it isn't.
-
-        // DEVIATION: The spec's version of parsing fragments isn't remotely useful in
-        // the context this library is intended for use in. This implementation uses a
-        // DOMDocumentFragment for inserting nodes into. There's no need to have a
-        // different process for when there isn't a context. There will always be one:
-        // the DOMDocumentFragment.
-
-        static::$instance->fragmentContext = (!is_null($context)) ? $context : static::$instance->DOMFragment;
-
-        $name = static::$instance->fragmentContext->nodeName;
-        # Set the state of the HTML parser's tokenization stage as follows:
-        switch($name) {
-            case 'title':
-            case 'textarea': static::$instance->tokenizer->state = Tokenizer::RCDATA_STATE;
-            break;
-            case 'style':
-            case 'xmp':
-            case 'iframe':
-            case 'noembed':
-            case 'noframes': static::$instance->tokenizer->state = Tokenizer::RAWTEXT_STATE;
-            break;
-            case 'script': static::$instance->tokenizer->state = Tokenizer::SCRIPT_STATE;
-            break;
-            case 'noscript': static::$instance->tokenizer->state = Tokenizer::NOSCRIPT_STATE;
-            break;
-            case 'plaintext': static::$instance->tokenizer->state = Tokenizer::PLAINTEXT_STATE;
-            break;
-            default: static::$instance->tokenizer->state = Tokenizer::DATA_STATE;
+    public static function parseFragment(string $data, ?Document $document = null, ?string $encodingOrContentType = null, ?\DOMElement $fragmentContext = null, ?String $file = null): DocumentFragment {
+        // Create the requisite parsing context if none was supplied
+        $document = $document ?? new Document;
+        $tempDocument = new Document;
+        $fragmentContext = $fragmentContext ?? $document->createElement("div");
+        // parse the fragment into the temporary document
+        self::parse($data, $tempDocument, $encodingOrContentType, $fragmentContext, $file);
+        // extract the nodes from the temp document into a fragment
+        $fragment = $document->createDocumentFragment();
+        foreach ($tempDocument->documentElement->childNodes as $node) {
+            $document->importNode($node, true);
+            $fragment->appendChild($node);
         }
+        return $fragment;
+    }
 
-        // DEVIATION: Since this implementation uses a DOMDocumentFragment for insertion
-        // there is no need to create an html element for inserting stuff into.
-
-        # If the context element is a template element, push "in template" onto the
-        # stack of template insertion modes so that it is the new current template
-        # insertion mode.
-        if ($context instanceof Element && $context->nodeName === 'template') {
-            static::$templateInsertionModes = new Stack();
-            static::$templateInsertionModes[] = TreeBuilder::IN_TEMPLATE_MODE;
+    public static function fetchFile(string $file, ?string $encodingOrContentType = null): ?array {
+        $f = fopen($file, "r");
+        if (!$f) {
+            return null;
         }
-
-        # Reset the parser's insertion mode appropriately.
-        // DEVIATION: The insertion mode will be always 'in body', not 'before head' if
-        // there isn't a context. There isn't a need to reconstruct a valid HTML
-        // document when using a DOMDocumentFragment.
-        TreeBuilder::resetInsertionMode();
-
-        # Set the parser's form element pointer to the nearest node to the context element
-        # that is a form element (going straight up the ancestor chain, and including the
-        # element itself, if it is a form element), if any. (If there is no such form
-        # element, the form element pointer keeps its initial value, null.)
-        static::$instance->formElement = ($name === 'form') ? $context : DOM::getAncestor('form', $context);
-
-        # Start the parser and let it run until it has consumed all the characters just
-        # inserted into the input stream.
-        static::$instance->fragmentCase = true;
-        static::parse($data, $file);
-
-        # If there is a context element, return the child nodes of root, in tree order.
-        # Otherwise, return the children of the Document object, in tree order.
-
-        // DEVIATION: This method will always return a DOMDocumentFragment.
-        return static::$instance->DOMFragment;
+        $data = stream_get_contents($f);
+        $encoding = Charset::fromCharset((string) $encodingOrContentType) ?? Charset::fromTransport((string) $encodingOrContentType);
+        if (!$encoding) {
+            $meta = stream_get_meta_data($f);
+            if ($meta['wrapper_type'] === "http") {
+                // Try to find a Content-Type header-field
+                foreach ($meta['wrapper_data'] as $h) {
+                    $h = explode(":", $h, 2);
+                    if (sizeof($h) === 2) {
+                        if (preg_match("/^\s*Content-Type\s*$/i", $h[0])) {
+                            // Try to get an encoding from it
+                            $encoding = Charset::fromTransport($h[1]);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        return [$data, $encoding];
     }
 }

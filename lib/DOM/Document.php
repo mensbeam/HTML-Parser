@@ -60,33 +60,22 @@ class Document extends \DOMDocument {
         $this->normalize();
     }
 
-    public function load($source, $options = null): bool {
-        Parser::parse((string)$source, $this, true);
+    public function load($source, $options = null, ?string $encodingOrContentType = null): bool {
+        $data = Parser::fetchFile($source, $encodingOrContentType);
+        if (!$data) {
+            return false;
+        }
+        [$data, $encodingOrContentType] = $data;
+        Parser::parse($data, $this, $encodingOrContentType, null, (string) $source);
         return true;
     }
 
-    public function loadHTML($source, $options = null): bool {
-        Parser::parse((string)$source, $this);
+    public function loadHTML($source, $options = null, ?string $encodingOrContentType = null): bool {
+        Parser::parse((string)$source, $this, $encodingOrContentType);
         return true;
-    }
-
-    public function loadXML($source, $options = null) {
-        throw new Exception(Exception::DOM_DISABLED_METHOD, __CLASS__, __FUNCTION__);
-    }
-
-    public function save($filename, $options = null) {
-        throw new Exception(Exception::DOM_DISABLED_METHOD, __CLASS__, __FUNCTION__);
-    }
-
-    public function saveHTML(\DOMNode $node = null): string {
-        return $this->serialize($node);
     }
 
     public function saveHTMLFile($filename) {}
-
-    public function saveXML(\DOMNode $node = null, $options = null) {
-        throw new Exception(Exception::DOM_DISABLED_METHOD, __CLASS__, __FUNCTION__);
-    }
 
     public function createElement($name, $value = "") {
         try {
