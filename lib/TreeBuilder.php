@@ -1827,7 +1827,7 @@ class TreeBuilder {
                     # If the stack of open elements does not have an element in scope
                     #   that is an HTML element and whose tag name is one of "h1", "h2",
                     #   "h3", "h4", "h5", or "h6", then this is a parse error; ignore the token.
-                    if (!$this->stack->hasElementInScope("h1", "h2", "h3", "h4", "h5")) {
+                    if (!$this->stack->hasElementInScope("h1", "h2", "h3", "h4", "h5", "h6")) {
                         $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                     }
                     # Otherwise, run these steps:
