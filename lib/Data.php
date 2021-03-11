@@ -36,9 +36,10 @@ class Data {
     const WHITESPACE = "\t\n\x0c\x0d ";
 
 
-    public function __construct(string $data, string $filePath = 'STDIN', ParseError $errorHandler = null, string $encodingOrContentType = '') {
+    public function __construct(string $data, string $filePath = 'STDIN', ParseError $errorHandler = null, ?string $encodingOrContentType = '') {
         $this->errorHandler = $errorHandler ?? new ParseError;
         $this->filePath = $filePath;
+        $encodingOrContentType = (string) $encodingOrContentType;
 
         if ($encoding = Charset::fromBOM($data)) {
             // encoding determined from Unicode byte order mark
