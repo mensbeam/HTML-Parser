@@ -30,7 +30,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
     /** @dataProvider provideStandardTreeTests */
     public function testStandardTreeTests(string $data, array $exp, array $errors, $fragment): void {
         // certain tests need to be patched to ignore unavoidable limitations of PHP's DOM
-        [$exp, $patched, $skip] = $this->patchTest($data, $fragment, $exp);
+        [$exp, $errors, $patched,  $skip] = $this->patchTest($data, $fragment, $errors, $exp);
         if (strlen($skip)) {
             $this->markTestSkipped($skip);
         } elseif ($patched) {
@@ -43,10 +43,10 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             return is_int($v);
         })));
         // create a stub error handler which collects parse errors
-        $errors = [];
+        $actualErrors = [];
         $errorHandler = $this->createStub(ParseError::class);
-        $errorHandler->method("emit")->willReturnCallback(function($file, $line, $col, $code) use (&$errors, $errorMap) {
-            $errors[] = ['code' => $errorMap[$code], 'line' => $line, 'col' => $col];
+        $errorHandler->method("emit")->willReturnCallback(function($file, $line, $col, $code) use (&$actualErrors, $errorMap) {
+            $actualErrors[] = ['code' => $errorMap[$code], 'line' => $line, 'col' => $col];
             return true;
         });
         // initialize the output document
@@ -89,10 +89,13 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         }
         $act = $this->balanceTree($this->serializeTree($doc, (bool) $fragmentContext), $exp);
         $this->assertEquals($exp, $act, $treeBuilder->debugLog);
-        // TODO: evaluate errors
+        if ($errors !== false) {
+            // If $errors is false, the test does not include errors when there are in fact errors
+            $this->assertCount(sizeof($errors), $actualErrors, var_export($actualErrors, true));
+        }
     }
 
-    protected function patchTest(string $data, $fragment, array $exp): array {
+    protected function patchTest(string $data, $fragment, array $errors, array $exp): array {
         $patched = false;
         $skip = "";
         // comments outside the root element are silently dropped by the PHP DOM
@@ -104,7 +107,110 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                 }
             }
         }
-        return [$exp, $patched, $skip];
+        // some tests don't document errors when they should
+        if (!$errors && in_array($data, [
+            // template.dat
+            '<template><a><table><a>',
+            // tests6.dat
+            '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"><html></html>',
+            // tests8.dat
+            '<table><li><li></table>',
+            // webkit01.dat
+            '<table><tr><td><svg><desc><td></desc><circle>',
+            // webkit02.dat
+            '<legend>test</legend>',
+            '<table><input>',
+            '<b><em><foo><foo><aside></b>',
+            '<b><em><foo><foo><aside></b></em>',
+            '<b><em><foo><foo><foo><aside></b>',
+            '<b><em><foo><foo><foo><aside></b></em>',
+            '<b><em><foo><foo><foo><foo><foo><foo><foo><foo><foo><foo><aside></b></em>',
+            '<b><em><foo><foob><foob><foob><foob><fooc><fooc><fooc><fooc><food><aside></b></em>',
+            '<option><XH<optgroup></optgroup>',
+            '<svg><foreignObject><div>foo</div><plaintext></foreignObject></svg><div>bar</div>',
+            '<svg><foreignObject></foreignObject><title></svg>foo',
+            '</foreignObject><plaintext><div>foo</div>',
+        ])) {
+            $errors = false;
+        }
+        
+        if ($errors) {
+            // some "old" errors are made redundant by "new" errors
+            $obsoleteSymbolList = implode("|", [
+                "illegal-codepoint-for-numeric-entity",
+                "eof-in-attribute-value-double-quote",
+                "non-void-element-with-trailing-solidus",
+                "invalid-character-in-attribute-name",
+                "attributes-in-end-tag",
+                "expected-tag-name",
+                "unexpected-character-after-solidus-in-tag",
+                "expected-closing-tag-but-got-char",
+                "eof-in-tag-name",
+                "need-space-after-doctype",
+                "expected-doctype-name-but-got-right-bracket",
+                "expected-dashes-or-doctype",
+                "expected-space-or-right-bracket-in-doctype",
+                "unexpected-char-in-comment",
+                "eof-in-comment-double-dash",
+                "expected-named-entity",
+                "named-entity-without-semicolon",
+                "numeric-entity-without-semicolon",
+                "expected-numeric-entity",
+                "eof-in-attribute-name",
+                "unexpected-eof-in-text-mode",
+                "unexpected-EOF-after-solidus-in-tag",
+                "expected-attribute-name-but-got-eof",
+                "eof-in-script-in-script",
+                "expected-script-data-but-got-eof",
+                "unexpected-EOF-in-text-mode",
+                "expected-tag-name-but-got-question-mark",
+                "incorrect-comment",
+            ]);
+            for ($a = 0, $stop = sizeof($errors); $a < $stop; $a++) {
+                if (preg_match("/^\(\d+,\d+\):? ($obsoleteSymbolList)$/", $errors[$a])) {
+                    // these errors are redundant with "new" errors
+                    unset($errors[$a]);
+                }
+            }
+            $errors = array_values($errors);
+            // some other errors appear to document implementation details rather than what the specificatioon dictates
+            for ($a = 0, $stop = sizeof($errors); $a < $stop; $a++) {
+                if (
+                    preg_match("/^\(\d+,\d+\): unexpected-end-tag-in-special-element$/", $errors[$a])
+                    || preg_match('/^\d+: Unclosed element “[^”]+”\.$/u', $errors[$a])
+                    || ($data === '<!---x' && $errors[$a] === "(1:7) eof-in-comment")
+                    || ($data === "<!DOCTYPE html><body><table><caption><math><mi>foo</mi><mi>bar</mi>baz</table><p>quux" && $errors[$a] === "(1,78) expected-one-end-tag-but-got-another")
+                    || ($data === "<!DOCTYPE html><!-- XXX - XXX" && $errors[$a] === "(1,29): eof-in-comment")
+                    || ($data === "<!DOCTYPE html><!-- X" && $errors[$a] === "(1,21): eof-in-comment")
+                    || ($data === "<!doctype html><math></html>" && $errors[$a] === "(1,28): expected-one-end-tag-but-got-another")
+                    || ($data === "</" && $errors[$a] === "(1,2): expected-closing-tag-but-got-eof")
+                ) {
+                    // these errors seems to simply be redundant
+                    unset($errors[$a]);
+                }
+            }
+            $errors = array_values($errors);
+            // other errors are spurious, or are for runs of character tokens
+            for ($a = 0, $stop = sizeof($errors); $a < $stop; $a++) {
+                if (preg_match("/^\((\d+),(\d+)\):? (foster-parenting-character(?:-in-table)?|unexpected-character-in-colgroup|unexpected-char-after-frameset|unexpected-char-in-frameset|expected-eof-but-got-char)$/", $errors[$a], $m1) && preg_match("/^\((\d+),(\d+)\):? $m1[3]$/", $errors[$a + 1] ?? "", $m2)) {
+                    // if the next error is also a character error at the next or same character position, this implies a run of characters where we only have one token
+                    // technically we should be reporting each one, so this is properly a FIXME
+                    if ($m1[1] == $m2[1] && ($m1[2] + 1 == $m2[2] || $m1[2] == $m2[2])) {
+                        unset($errors[$a]);
+                        $patched = true;
+                    }
+                } elseif (preg_match("/^foster-parenting text /", $errors[$a]) && preg_match("/^foster-parenting text /", $errors[$a + 1] ?? "")) {
+                    // template tests have a different format of error message
+                    unset($errors[$a]);
+                    $patched = true;
+                } elseif (preg_match("/^\((\d+,\d+)\):? unexpected-end-tag$/", $errors[$a], $m) && preg_match("/^\($m[1]\):? (unexpected-end-tag|end-tag-too-early|expected-one-end-tag-but-got-another)$/", $errors[$a + 1] ?? "")) {
+                    // unexpected-end-tag errors should only be reported once for a given tag
+                    unset($errors[$a]);
+                }
+            }
+            $errors = array_values($errors);
+        }
+        return [$exp, $errors, $patched, $skip];
     }
 
     protected function balanceTree(array $act, array $exp): array {

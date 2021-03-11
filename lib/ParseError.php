@@ -71,6 +71,9 @@ class ParseError {
     const UNEXPECTED_EOF                                                    = 212;
     const UNEXPECTED_PARENT                                                 = 213;
     const UNEXPECTED_ATTRIBUTE_VALUE                                        = 214;
+    const FOSTERED_START_TAG                                                = 215;
+    const FOSTERED_END_TAG                                                  = 216;
+    const FOSTERED_CHAR                                                     = 217;
 
     const MESSAGES = [
         self::EXPECTED_DOCTYPE_BUT_GOT_START_TAG                                => 'Expected DOCTYPE but got start tag <%s>',
@@ -87,6 +90,9 @@ class ParseError {
         self::UNEXPECTED_EOF                                                    => 'Unexpected end of file',
         self::UNEXPECTED_PARENT                                                 => 'Start tag <%s> not valid in parent <%s>',
         self::UNEXPECTED_ATTRIBUTE_VALUE                                        => 'Unexpected value in attribute "%s"',
+        self::FOSTERED_START_TAG                                                => 'Start tag <%s> moved to before table',
+        self::FOSTERED_END_TAG                                                  => 'End tag </%s> moved to before table',
+        self::FOSTERED_CHAR                                                     => 'Character moved to before table',
 
         self::ENCODING_ERROR                                                    => 'Corrupt encoding near byte position %s',
         self::UNEXPECTED_NULL_CHARACTER                                         => 'Unexpected null character',

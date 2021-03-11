@@ -1214,6 +1214,12 @@ class TreeBuilder {
                             $nextToken->data = substr($nextToken->data, 1);
                         }
                     }
+                    // FIXME: Don't process the next token if it's an EOFToken;
+                    //   This hack should be removed when the tree builder is
+                    //   refactored into a single function call
+                    if ($nextToken instanceof EOFToken) {
+                        return true;
+                    }
                     // Process the next token
                     $token = $nextToken;
                     goto ProcessToken;
@@ -1516,6 +1522,12 @@ class TreeBuilder {
                     $this->framesetOk = false;
                     # Switch the insertion mode to "text".
                     $insertionMode = $this->insertionMode = self::TEXT_MODE;
+                    // FIXME: Don't process the next token if it's an EOFToken;
+                    //   This hack should be removed when the tree builder is
+                    //   refactored into a single function call
+                    if ($nextToken instanceof EOFToken) {
+                        return true;
+                    }
                     // Process the next token
                     $token = $nextToken;
                     goto ProcessToken;
@@ -1886,7 +1898,7 @@ class TreeBuilder {
                     #   in the next entry; i.e. act as if this was a "br" start tag token with
                     #   no attributes, rather than the end tag token that it actually is.
                     $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
-                    return $this->parseTokenInHTMLContent(new StartTagToken("br"));
+                    return $this->parseTokenInHTMLContent(new StartTagToken("br"), $insertionMode);
                 }
                 # Any other end tag
                 else {
@@ -2174,7 +2186,13 @@ class TreeBuilder {
                 # Parse error. Enable foster parenting, process the token
                 #   using the rules for the "in body" insertion mode, and
                 #   then disable foster parenting.
-                // TODO: parse error
+                if ($token instanceof CharacterToken) {
+                    $this->error(ParseError::FOSTERED_CHAR);
+                } elseif ($token instanceof StartTagToken) {
+                    $this->error(ParseError::FOSTERED_START_TAG, $token->name);    
+                } elseif ($token instanceof EndTagToken) {
+                    $this->error(ParseError::FOSTERED_END_TAG, $token->name);
+                }
                 $this->fosterParenting = true;
                 $result = $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
                 $this->fosterParenting = false;
@@ -2600,7 +2618,7 @@ class TreeBuilder {
                     # Now, if the current node is not an HTML element with
                     #   the same tag name as the token, then this is
                     #   a parse error.
-                    if (!$this->stack->hasElementInTableScope($token->name)) {
+                    if ($this->stack->currentNodeName !== $token->name || $this->stack->currentNodeNamespace !== null) {
                         $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                     }
                     # Pop elements from the stack of open elements stack
@@ -3723,30 +3741,33 @@ class TreeBuilder {
         elseif ($token instanceof EndTagToken) {
             # Run these steps:
             #
-            # 1. Initialize node to be the current node (the bottommost node of the stack).
+            # Initialize node to be the current node (the bottommost node of the stack).
             // We do this below in the loop
-            # 2. If node is not an element with the same tag name as the token, then this is
-            # a parse error.
-            if ($this->stack->currentNodeName !== $token->name) {
-                $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
-            }
-            # 3. Loop: If node is the topmost element in the stack of open elements, then return. (fragment case)
+            # If node's tag name, converted to ASCII lowercase, is not the
+            #   same as the tag name of the token, then this is a parse error.
+            // DEVIATION: We only generate the parse error if we don't reach 
+            //   "Otherwise" below, to avoid reporting the parse error a second
+            //   time in HTML content parsing
+            # Loop: If node is the topmost element in the stack of open elements, then return. (fragment case)
             $pos = count($this->stack) - 1;
             while ($pos > 0 && ($node = $this->stack[$pos])->namespaceURI !== null) {
                 # If node's tag name, converted to ASCII lowercase, is the same as the
                 #   tag name of the token, pop elements from the stack of open elements until node
                 #   has been popped from the stack, and then abort these steps.
                 if (strtolower($node->nodeName) === $token->name) {
+                    if (strtolower($this->stack->currentNodeName) !== $token->name) {
+                        $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                    }
                     $this->stack->popUntilSame($node);
                     return true;
                 }
-                # 4. Set node to the previous entry in the stack of open elements.
+                # Set node to the previous entry in the stack of open elements.
                 $pos--;
-                # 5. If node is not an element in the HTML namespace, return to the step labeled
-                # loop.
+                # If node is not an element in the HTML namespace, return to the step labeled
+                #   loop.
                 // See loop condition above
             }
-            # 6. Otherwise, process the token according to the rules given in the section
+            # Otherwise, process the token according to the rules given in the section
             #   corresponding to the current insertion mode in HTML content.
             return $this->parseTokenInHTMLContent($token, $this->insertionMode);
         }
@@ -4182,7 +4203,7 @@ class TreeBuilder {
         $this->stack->generateImpliedEndTags();
         # If the current node is not now a td element or a th element,
         #   then this is a parse error.
-        if (!in_array($this->stack->currntNodeName, ["td", "th"])) {
+        if (!in_array($this->stack->currentNodeName, ["td", "th"])) {
             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
         }
         # Pop elements from the stack of open elements stack until a td
