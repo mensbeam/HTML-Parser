@@ -71,3 +71,4 @@ $RECYCLE.BIN/
 /tests/html5lib-tests
 /tests/.phpunit.result.cache
 /tests/coverage
+cachegrind.out.*

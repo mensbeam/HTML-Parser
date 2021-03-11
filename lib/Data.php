@@ -29,6 +29,8 @@ class Data {
     protected $lastError = 0;
     // Whether the EOF imaginary character has been consumed
     protected $eof = false;
+    // Whether to track positions for reporting parse errors
+    protected $track = true;
 
     const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
     const DIGIT = '0123456789';
@@ -40,6 +42,9 @@ class Data {
         $this->errorHandler = $errorHandler ?? new ParseError;
         $this->filePath = $filePath;
         $encodingOrContentType = (string) $encodingOrContentType;
+        if (!(error_reporting() & \E_USER_WARNING)) {
+            $this->track = false;
+        }
 
         if ($encoding = Charset::fromBOM($data)) {
             // encoding determined from Unicode byte order mark
@@ -83,7 +88,7 @@ class Data {
             // append the character to the output string
             $string .= $char;
             // unless we're peeking, track line and column position, and whether we've hit EOF
-            if ($advancePointer) {
+            if ($advancePointer && $this->track) {
                 if (!$this->checkChar($char)) {
                     break;
                 }
@@ -171,7 +176,7 @@ class Data {
                 $this->data->seek(-1);
             }
             // recalculate line and column positions, if requested
-            if ($retreatPointer) {
+            if ($retreatPointer && $this->track) {
                 $col = $this->newlines[$here] ?? 0;
                 if ($col) {
                     $this->_column = $col;
@@ -212,36 +217,28 @@ class Data {
     }
 
     protected function span(string $match, bool $while = true, bool $advancePointer = true, int $limit = -1): string {
-        // Break the matching characters into an array of characters. Unicode friendly.
-        $match = preg_split('/(?<!^)(?!$)/Su', $match);
-
         $start = $this->data->posChar();
         $count = 0;
         $string = '';
         while (true) {
             $char = $this->consume(1, false);
-
             if ($char === '') {
                 break;
             }
-
-            $inArray = in_array($char, $match);
-
-            // strspn
-            if ($while && !$inArray) {
+            $found = (strpos($match, $char) !== false);
+            // consumeWhile case
+            if ($while && !$found) {
                 $this->unconsume(1, false);
                 break;
             }
-            // strcspn
-            elseif (!$while && $inArray) {
+            // consumeUntil case
+            elseif (!$while && $found) {
                 $this->unconsume(1, false);
                 break;
             }
-
-            if ($advancePointer) {
+            if ($advancePointer && $this->track) {
                 $this->checkChar($char);
             }
-
             $count++;
             $string .= $char;
             if ($count === $limit) {
