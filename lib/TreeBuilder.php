@@ -2363,7 +2363,7 @@ class TreeBuilder {
             elseif ($token instanceof EndTagToken && $token->name === "colgroup") {
                 # If the current node is not a colgroup element,
                 #   then this is a parse error; ignore the token.
-                if (!$this->stack->currentNodeName !== "colgroup") {
+                if ($this->stack->currentNodeName !== "colgroup") {
                     $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                 }
                 # Otherwise, pop the current node from the stack of open
@@ -3650,30 +3650,18 @@ class TreeBuilder {
             ) {
                 # Parse error.
                 $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
-                # If the parser was originally created for the HTML fragment parsing algorithm,
-                # then act as described in the "any other start tag" entry below. (fragment
-                # case)
-                if ($this->fragmentContext) {
-                    // ¡TEMPORARY!
-                    goto foreignContentAnyOtherStartTag;
+                # While the current node is not a MathML text integration
+                #   point, an HTML integration point, or an element in the
+                #   HTML namespace, pop elements from the stack of
+                #   open elements.
+                while (($node = $this->stack->currentNode) && !($node->namespaceURI === null || $node->isMathMLTextIntegrationPoint() || $node->isHTMLIntegrationPoint())) {
+                    $this->stack->pop();
                 }
-                # Otherwise:
-                # Pop an element from the stack of open elements, and then keep popping more
-                # elements from the stack of open elements until the current node is a MathML
-                # text integration point, an HTML integration point, or an element in the HTML
-                # namespace.
-                do {
-                    $popped = $this->stack->pop();
-                    $n = $this->stack->currentNode;
-                    $nns = $this->stack->currentNode->namespaceURI;
-                } while (!is_null($popped) && !(
-                        $n->isMathMLTextIntegrationPoint()
-                        || $n->isHTMLIntegrationPoint() 
-                        || is_null($nns)
-                    )
-                );
-                # Then, reprocess the token.
-                return false;
+                # Process the token using the rules for the 
+                #   "in body" insertion mode.
+                // DEVIATION: Spec bug
+                // See https://github.com/whatwg/html/issues/6439
+                return $this->parseTokenInHTMLContent($token);
             }
             # Any other start tag
             else {
