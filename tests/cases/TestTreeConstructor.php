@@ -91,7 +91,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         $this->assertEquals($exp, $act, $treeBuilder->debugLog);
         if ($errors !== false) {
             // If $errors is false, the test does not include errors when there are in fact errors
-            $this->assertCount(sizeof($errors), $actualErrors, var_export($actualErrors, true));
+            $this->assertCount(sizeof($errors), $actualErrors, var_export($errors, true).var_export($actualErrors, true));
         }
     }
 
@@ -109,6 +109,24 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         }
         // some tests don't document errors when they should
         if (!$errors && in_array($data, [
+            // math.dat
+            '<math><tr><td><mo><tr>',
+            '<math><thead><mo><tbody>',
+            '<math><tfoot><mo><tbody>',
+            '<math><tbody><mo><tfoot>',
+            '<math><tbody><mo></table>',
+            '<math><thead><mo></table>',
+            '<math><tfoot><mo></table>',
+            // namespace-sensitivity.dat
+            '<body><table><tr><td><svg><td><foreignObject><span></td>Foo',
+            // svg.dat
+            '<svg><tr><td><title><tr>',
+            '<svg><thead><title><tbody>',
+            '<svg><tfoot><title><tbody>',
+            '<svg><tbody><title><tfoot>',
+            '<svg><tbody><title></table>',
+            '<svg><thead><title></table>',
+            '<svg><tfoot><title></table>',
             // template.dat
             '<template><a><table><a>',
             // tests6.dat
@@ -133,7 +151,28 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         ])) {
             $errors = false;
         }
-        
+        // other tests do list errors, but they are plainly incorrect in missing some
+        if (in_array($data, [
+            // doctype01.dat"
+            "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\"\n   \"http://www.w3.org/TR/html4/strict.dtd\">Hello",
+            '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN""http://www.w3.org/TR/html4/strict.dtd">',
+            '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"\'http://www.w3.org/TR/html4/strict.dtd\'>',
+            '<!DOCTYPE HTML PUBLIC"-//W3C//DTD HTML 4.01//EN"\'http://www.w3.org/TR/html4/strict.dtd\'>',
+            "<!DOCTYPE HTML PUBLIC'-//W3C//DTD HTML 4.01//EN''http://www.w3.org/TR/html4/strict.dtd'>",
+            // entities02.dat
+            "<div>ZZ&prod=23</div>",
+            "<div>ZZ&AElig=</div>",
+            // foreign-fragment.dat
+            "<body><foo>",
+            "<p><foo>",
+            "<p></p><foo>",
+            // ruby.dat
+            "<html><ruby>a<rtc>b<span></ruby></html>",
+            // test1.dat
+            "<!-----><font><div>hello<table>excite!<b>me!<th><i>please!</tr><!--X-->", // this one is pretty hairy with buffered characters
+        ])) {
+            $errors = false;
+        }        
         if ($errors) {
             // some "old" errors are made redundant by "new" errors
             $obsoleteSymbolList = implode("|", [
@@ -165,6 +204,17 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                 "unexpected-EOF-in-text-mode",
                 "expected-tag-name-but-got-question-mark",
                 "incorrect-comment",
+                "self-closing-flag-on-end-tag",
+                "invalid-codepoint",
+                "invalid-codepoint-in-body",
+                "invalid-codepoint-in-foreign-content",
+                "end-table-tag-in-caption",
+                "equals-in-unquoted-attribute-value",
+                "eof-in-numeric-entity",
+                "unexpected-char-in-doctype",
+                "unexpected-end-of-doctype",
+                "unexpected-dash-after-double-dash-in-comment",
+                "unexpected-bang-after-double-dash-in-comment",
             ]);
             for ($a = 0, $stop = sizeof($errors); $a < $stop; $a++) {
                 if (preg_match("/^\(\d+,\d+\):? ($obsoleteSymbolList)$/", $errors[$a])) {
@@ -173,7 +223,9 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                 }
             }
             $errors = array_values($errors);
-            // some other errors appear to document implementation details rather than what the specificatioon dictates
+            // some other errors appear to document implementation details
+            //   rather than what the specificatioon dictates, or are
+            //   simple duplicates
             for ($a = 0, $stop = sizeof($errors); $a < $stop; $a++) {
                 if (
                     preg_match("/^\(\d+,\d+\): unexpected-end-tag-in-special-element$/", $errors[$a])
@@ -184,6 +236,21 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                     || ($data === "<!DOCTYPE html><!-- X" && $errors[$a] === "(1,21): eof-in-comment")
                     || ($data === "<!doctype html><math></html>" && $errors[$a] === "(1,28): expected-one-end-tag-but-got-another")
                     || ($data === "</" && $errors[$a] === "(1,2): expected-closing-tag-but-got-eof")
+                    || ($data === "<div foo=`bar`>" && $errors[$a] === "(1,14): unexpected-character-in-unquoted-attribute-value")
+                    || (
+                        $errors[$a] === "51: Self-closing syntax (“/>”) used on a non-void HTML element. Ignoring the slash and treating as a start tag."
+                        && (
+                            $data === "<b></b><mglyph/><i></i><malignmark/><u></u><mtext/>X"
+                            || $data === "<b></b><mglyph/><i></i><malignmark/><u></u><mi/>X"
+                            || $data === "<b></b><mglyph/><i></i><malignmark/><u></u><mo/>X"
+                            || $data === "<b></b><mglyph/><i></i><malignmark/><u></u><mn/>X"
+                            || $data === "<b></b><mglyph/><i></i><malignmark/><u></u><ms/>X"
+                        )
+                    )
+                    || ($data === "&ammmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmp;" && $errors[$a] === "(1,950): unknown-named-character-reference")
+                    || ($data === "&ammmp;" && $errors[$a] === "(1,7): unknown-named-character-reference")
+                    || ($data === "FOO<!-- BAR -- <QUX> -- MUX -- >BAZ" && $errors[$a] === "(1,35): eof-in-comment")
+                    || ($data === "FOO<!-- BAR --   >BAZ" && $errors[$a] === "(1,21): eof-in-comment")
                 ) {
                     // these errors seems to simply be redundant
                     unset($errors[$a]);
@@ -203,7 +270,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                     // template tests have a different format of error message
                     unset($errors[$a]);
                     $patched = true;
-                } elseif (preg_match("/^\((\d+,\d+)\):? unexpected-end-tag$/", $errors[$a], $m) && preg_match("/^\($m[1]\):? (unexpected-end-tag|end-tag-too-early|expected-one-end-tag-but-got-another)$/", $errors[$a + 1] ?? "")) {
+                } elseif (preg_match("/^\((\d+,\d+)\):? unexpected-end-tag$/", $errors[$a], $m) && preg_match("/^\($m[1]\):? (unexpected-end-tag|end-tag-too-early|expected-one-end-tag-but-got-another|adoption-agency-1.3)$/", $errors[$a + 1] ?? "")) {
                     // unexpected-end-tag errors should only be reported once for a given tag
                     unset($errors[$a]);
                 }
