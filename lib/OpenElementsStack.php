@@ -85,7 +85,20 @@ class OpenElementsStack extends Stack {
         ],
     ];
 
-    protected $fragmentContext;
+    /** @var ?\dW\HTML5\Element */
+    protected $fragmentContext = null;
+    /** @var ?\dW\HTML5\Element */
+    public $currentNode = null;
+    /** @var ?string */
+    public $currentNodeName = null;
+    /** @var ?string */
+    public $currentNodeNamespace = null;
+    /** @var ?\dW\HTML5\Element */
+    public $adjustedCurrentNode = null;
+    /** @var ?string */
+    public $adjustedCurrentNodeName = null;
+    /** @var ?string */
+    public $adjustedCurrentNodeNamespace = null;
 
     public function __construct(?Element $fragmentContext = null) {
         // If the fragment context is not null and is not a document fragment, document,
@@ -96,26 +109,52 @@ class OpenElementsStack extends Stack {
         $this->fragmentContext = $fragmentContext;
     }
 
+    public function pop() {
+        $out = array_pop($this->_storage);
+        $this->computeProperties();
+        return $out;
+    }
+
+    public function offsetSet($offset, $value) {
+        assert($offset >= 0, new Exception(Exception::STACK_INVALID_INDEX, $offset));
+
+        if (is_null($offset)) {
+            $this->_storage[] = $value;
+        } else {
+            $this->_storage[$offset] = $value;
+        }
+        $this->computeProperties();
+    }
+
+    public function offsetUnset($offset) {
+        assert($offset >= 0 && $offset < count($this->_storage), new Exception(Exception::STACK_INVALID_INDEX, $offset));
+        array_splice($this->_storage, $offset, 1, []);
+        $this->computeProperties();
+    }
+
     public function insert(Element $element, ?int $at = null): void  {
         assert($at === null || ($at >= 0 && $at <= count($this->_storage)), new \Exception("Invalid stack index $at"));
         if ($at === null) {
             $this[] = $element;
         } else {
             array_splice($this->_storage, $at, 0, [$element]);
+            $this->computeProperties();
         }
     }
 
     public function popUntil(string ...$target): void {
         do {
-            $node = $this->pop();
+            $node = array_pop($this->_storage);
             assert(isset($node), new \Exception("Stack is empty"));
         } while ($node->namespaceURI !== null || !in_array($node->nodeName, $target));
+        $this->computeProperties();
     }
 
     public function popUntilSame(Element $target): void {
         do {
-            $node = $this->pop();
+            $node = array_pop($this->_storage);
         } while (!$node->isSameNode($target));
+        $this->computeProperties();
     }
 
     public function find(string ...$name): int {
@@ -165,8 +204,9 @@ class OpenElementsStack extends Stack {
             $map[$name] = false;
         }
         while (!$this->isEmpty() && $this->top()->namespaceURI === null && ($map[$this->top()->nodeName] ?? false)) {
-            $this->pop();
+            array_pop($this->_storage);
         }
+        $this->computeProperties();
     }
 
     public function generateImpliedEndTagsThoroughly(): void {
@@ -174,8 +214,9 @@ class OpenElementsStack extends Stack {
         #   thoroughly, then, while the current node is {elided list of element names},
         #   the UA must pop the current node off the stack of open elements.
         while (!$this->isEmpty() && $this->top()->namespaceURI === null && (self::IMPLIED_END_TAGS_THOROUGH[$this->top()->nodeName] ?? false)) {
-            $this->pop();
+            array_pop($this->_storage);
         }
+        $this->computeProperties();
     }
 
     public function clearToTableContext(): void {
@@ -190,6 +231,7 @@ class OpenElementsStack extends Stack {
         while (sizeof($this->_storage) > $stop) {
             array_pop($this->_storage);
         }
+        $this->computeProperties();
     }
 
     public function clearToTableBodyContext(): void {
@@ -204,6 +246,7 @@ class OpenElementsStack extends Stack {
         while (sizeof($this->_storage) > $stop) {
             array_pop($this->_storage);
         }
+        $this->computeProperties();
     }
 
     public function clearToTableRowContext(): void {
@@ -218,6 +261,7 @@ class OpenElementsStack extends Stack {
         while (sizeof($this->_storage) > $stop) {
             array_pop($this->_storage);
         }
+        $this->computeProperties();
     }
 
     public function hasElementInScope(...$target): bool {
@@ -286,30 +330,30 @@ class OpenElementsStack extends Stack {
         assert(false, new \Exception("Stack is invalid: ".(string) $this));
     }
 
-    public function __get($property) {
-        switch ($property) {
-            case 'adjustedCurrentNode':
-                # The adjusted current node is the context element if the parser was created by
-                # the HTML fragment parsing algorithm and the stack of open elements has only one
-                # element in it (fragment case); otherwise, the adjusted current node is the
-                # current node.
-                return ($this->fragmentContext && count($this->_storage) === 1) ? $this->fragmentContext : $this->__get('currentNode');
-            case 'adjustedCurrentNodeName':
-                $adjustedCurrentNode = $this->__get('adjustedCurrentNode');
-                return (!is_null($adjustedCurrentNode)) ? $adjustedCurrentNode->nodeName : null;
-            case 'adjustedCurrentNodeNamespace':
-                $adjustedCurrentNode = $this->__get('adjustedCurrentNode');
-                return (!is_null($adjustedCurrentNode)) ? $adjustedCurrentNode->namespaceURI: null;
-            case 'currentNode':
-                return $this->top();
-            case 'currentNodeName':
-                $currentNode = $this->__get('currentNode');
-                return ($currentNode && $currentNode->nodeType) ? $currentNode->nodeName : null;
-            case 'currentNodeNamespace':
-                $currentNode = $this->__get('currentNode');
-                return (!is_null($currentNode)) ? $currentNode->namespaceURI: null;
-            default: 
-                return null;
+    protected function computeProperties(): void {
+        $this->currentNode = $this->top();
+        # The adjusted current node is the context element if the parser was created by
+        # the HTML fragment parsing algorithm and the stack of open elements has only one
+        # element in it (fragment case); otherwise, the adjusted current node is the
+        # current node.
+        if ($this->fragmentContext && sizeof($this->_storage) === 1) {
+            $this->adjustedCurrentNode = $this->fragmentContext;
+        } else {
+            $this->adjustedCurrentNode = $this->currentNode;
+        }
+        if ($this->currentNode) {
+            $this->currentNodeName = $this->currentNode->nodeName;
+            $this->currentNodeNamespace = $this->currentNode->namespaceURI;
+        } else {
+            $this->currentNodeName = null;
+            $this->currentNodeNamespace = null;
+        }
+        if ($this->adjustedCurrentNode) {
+            $this->adjustedCurrentNodeName = $this->adjustedCurrentNode->nodeName;
+            $this->adjustedCurrentNodeNamespace = $this->adjustedCurrentNode->namespaceURI;
+        } else {
+            $this->adjustedCurrentNodeName = null;
+            $this->adjustedCurrentNodeNamespace = null;
         }
     }
 

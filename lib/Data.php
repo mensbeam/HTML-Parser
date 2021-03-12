@@ -245,11 +245,9 @@ class Data {
                 break;
             }
         }
-
         if (!$advancePointer && $count) {
-            $this->data->seek(-($this->data->posChar - $start));
+            $this->data->seek(-($this->data->posChar() - $start));
         }
-
         return $string;
     }
 

@@ -4,8 +4,6 @@ namespace dW\HTML5;
 
 abstract class Stack implements \ArrayAccess, \Countable, \IteratorAggregate {
     protected $_storage = [];
-    protected $fragmentCase;
-    protected $fragmentContext;
 
     public function offsetSet($offset, $value) {
         assert($offset >= 0, new Exception(Exception::STACK_INVALID_INDEX, $offset));
