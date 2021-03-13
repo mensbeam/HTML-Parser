@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "70e25032d366d3c7d8449d27ead23907",
+    "content-hash": "5f4a7551d02d81eab14be7032885b348",
     "packages": [
         {
             "name": "mensbeam/intl",
-            "version": "0.8.1",
+            "version": "dev-span",
             "source": {
                 "type": "git",
                 "url": "https://github.com/mensbeam/intl.git",
-                "reference": "95d573c01494abed061527c13ce8e17557f9f368"
+                "reference": "cc9c93781061eaedf41022911699d81c6cfc0d83"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/mensbeam/intl/zipball/95d573c01494abed061527c13ce8e17557f9f368",
-                "reference": "95d573c01494abed061527c13ce8e17557f9f368",
+                "url": "https://api.github.com/repos/mensbeam/intl/zipball/cc9c93781061eaedf41022911699d81c6cfc0d83",
+                "reference": "cc9c93781061eaedf41022911699d81c6cfc0d83",
                 "shasum": ""
             },
             "require": {
@@ -57,9 +57,9 @@
             ],
             "support": {
                 "issues": "https://github.com/mensbeam/intl/issues",
-                "source": "https://github.com/mensbeam/intl/tree/0.8.1"
+                "source": "https://github.com/mensbeam/intl/tree/span"
             },
-            "time": "2021-03-07T03:55:19+00:00"
+            "time": "2021-03-13T04:01:37+00:00"
         },
         {
             "name": "mensbeam/mimesniff",
@@ -220,7 +220,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {
+        "mensbeam/intl": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {

@@ -35,7 +35,8 @@ class Data {
     const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
     const DIGIT = '0123456789';
     const HEX = '0123456789ABCDEFabcdef';
-    const WHITESPACE = "\t\n\x0c\x0d ";
+    const WHITESPACE = "\t\n\x0C\x0D ";
+    const WHITESPACE_SAFE = "\t\x0C ";
 
 
     public function __construct(string $data, string $filePath = 'STDIN', ParseError $errorHandler = null, ?string $encodingOrContentType = '') {
@@ -192,12 +193,26 @@ class Data {
         }
     }
 
-    public function consumeWhile(string $match, int $limit = 0): string {
-        return $this->span($match, true, true, $limit);
+    public function consumeWhile(string $match, int $limit = null): string {
+        $start = $this->data->posChar();
+        $out =  $this->data->asciiSpan($match, $limit);
+        if ($this->track) {
+            $this->_column += ($this->data->posChar() - $start);
+        }
+        return $out;
     }
 
-    public function consumeUntil(string $match, int $limit = 0): string {
-        return $this->span($match, false, true, $limit);
+    public function consumeUntil(string $match, int $limit = null): string {
+        $start = $this->data->posChar();
+        if ($this->track) {
+            // control characters produce parse errors
+            $match .= "\x01\x02\x03\x04\x05\x06\x07\x08\x0B\x0D\x0E\x0F\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F\x7F";
+        }
+        $out =  $this->data->asciiSpanNot($match."\r\n", $limit);
+        if ($this->track) {
+            $this->_column += ($this->data->posChar() - $start);
+        }
+        return $out;
     }
 
     public function peek(int $length = 1): string {
@@ -205,49 +220,6 @@ class Data {
 
         $string = $this->data->peekChar($length);
 
-        return $string;
-    }
-
-    public function peekWhile(string $match, int $limit = 0): string {
-        return $this->span($match, true, false, $limit);
-    }
-
-    public function peekUntil(string $match, int $limit = 0): string {
-        return $this->span($match, false, false, $limit);
-    }
-
-    protected function span(string $match, bool $while = true, bool $advancePointer = true, int $limit = -1): string {
-        $start = $this->data->posChar();
-        $count = 0;
-        $string = '';
-        while (true) {
-            $char = $this->consume(1, false);
-            if ($char === '') {
-                break;
-            }
-            $found = (strpos($match, $char) !== false);
-            // consumeWhile case
-            if ($while && !$found) {
-                $this->unconsume(1, false);
-                break;
-            }
-            // consumeUntil case
-            elseif (!$while && $found) {
-                $this->unconsume(1, false);
-                break;
-            }
-            if ($advancePointer && $this->track) {
-                $this->checkChar($char);
-            }
-            $count++;
-            $string .= $char;
-            if ($count === $limit) {
-                break;
-            }
-        }
-        if (!$advancePointer && $count) {
-            $this->data->seek(-($this->data->posChar() - $start));
-        }
         return $string;
     }
 

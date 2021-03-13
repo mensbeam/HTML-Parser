@@ -5,7 +5,7 @@
     "require": {
         "php": ">=7.1",
         "ext-dom": "*",
-        "mensbeam/intl": ">=0.8.1",
+        "mensbeam/intl": "dev-span",
         "mensbeam/mimesniff": "^0.2.0"
     },
     "suggest": {

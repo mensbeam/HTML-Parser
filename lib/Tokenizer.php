@@ -244,15 +244,23 @@ class Tokenizer {
     }
 
     public function createToken(): Token {
+        Consume:
         assert((function() {
             $this->debugLog .= "TOKEN ".++$this->debugCount."\n";
             return true;
         })());
 
         while (true) {
-            assert((function() {
+            // OPTIMIZATION: All but one state consumes; we instead do so
+            //   here unless the state is the exception; this allows us to
+            //   reconsume more efficiently when needed
+            if ($this->state !== self::MARKUP_DECLARATION_OPEN_STATE) {
+                $char = $this->data->consume();
+            }
+            Reconsume:
+
+            assert((function() use ($char) {
                 $state = self::STATE_NAMES[$this->state] ?? $this->state;
-                $char = bin2hex($this->data->peek(1));
                 $this->debugLog .= "    State: $state ($char)\n";
                 return true;
             })());
@@ -260,7 +268,6 @@ class Tokenizer {
             # 13.2.5.1 Data state
             if ($this->state === self::DATA_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # U+0026 AMPERSAND (&)
                 if ($char === '&') {
@@ -301,7 +308,7 @@ class Tokenizer {
                     // that as a character token instead to prevent having to loop back
                     // through here every single time.
                     if (strspn($char, Data::WHITESPACE)) {
-                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE));
+                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
                     } else {
                         return new CharacterToken($char.$this->data->consumeUntil("&<\0"));
                     }
@@ -311,7 +318,6 @@ class Tokenizer {
             # 13.2.5.2 RCDATA state
             elseif ($this->state === self::RCDATA_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # U+0026 AMPERSAND (&)
                 if ($char === '&') {
@@ -352,7 +358,7 @@ class Tokenizer {
                     // that as a character token instead to prevent having to loop back
                     // through here every single time.
                     if (strspn($char, Data::WHITESPACE)) {
-                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE));
+                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
                     } else {
                         return new CharacterToken($char.$this->data->consumeUntil("&<\0"));
                     }
@@ -362,7 +368,6 @@ class Tokenizer {
             # 13.2.5.3 RAWTEXT state
             elseif ($this->state === self::RAWTEXT_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # U+003C LESS-THAN SIGN (<)
                 if ($char === '<') {
@@ -390,7 +395,7 @@ class Tokenizer {
                     // that as a character token instead to prevent having to loop back
                     // through here every single time.
                     if (strspn($char, Data::WHITESPACE)) {
-                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE));
+                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
                     } else {
                         return new CharacterToken($char.$this->data->consumeUntil("<\0"));
                     }
@@ -400,7 +405,6 @@ class Tokenizer {
             # 13.2.5.4 Script data state
             elseif ($this->state === self::SCRIPT_DATA_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # U+003C LESS-THAN SIGN (<)
                 if ($char === '<') {
@@ -428,7 +432,7 @@ class Tokenizer {
                     // that as a character token instead to prevent having to loop back
                     // through here every single time.
                     if (strspn($char, Data::WHITESPACE)) {
-                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE));
+                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
                     } else {
                         return new CharacterToken($char.$this->data->consumeUntil("<\0"));
                     }
@@ -438,7 +442,6 @@ class Tokenizer {
             # 13.2.5.5 PLAINTEXT state
             elseif ($this->state === self::PLAINTEXT_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # U+0000 NULL
                 if ($char === "\0") {
@@ -461,7 +464,7 @@ class Tokenizer {
                     // that as a character token instead to prevent having to loop back
                     // through here every single time.
                     if (strspn($char, Data::WHITESPACE)) {
-                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE));
+                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
                     } else {
                         return new CharacterToken($char.$this->data->consumeUntil("\0"));
                     }
@@ -471,7 +474,6 @@ class Tokenizer {
             # 13.2.5.6 Tag open state
             elseif ($this->state === self::TAG_OPEN_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # U+0021 EXCLAMATION MARK (!)
                 if ($char === '!') {
@@ -531,7 +533,6 @@ class Tokenizer {
             # 13.2.5.7 End tag open state
             elseif ($this->state === self::END_TAG_OPEN_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # ASCII alpha
                 if (ctype_alpha($char)) {
@@ -578,7 +579,6 @@ class Tokenizer {
             # 13.2.5.8 Tag name state
             elseif ($this->state === self::TAG_NAME_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -640,7 +640,6 @@ class Tokenizer {
             # 13.2.5.9 RCDATA less-than sign state
             elseif ($this->state === self::RCDATA_LESS_THAN_SIGN_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "/" (U+002F)
                 if ($char === '/') {
@@ -662,7 +661,6 @@ class Tokenizer {
             # 13.2.5.10 RCDATA end tag open state
             elseif ($this->state === self::RCDATA_END_TAG_OPEN_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # ASCII alpha
                 if (ctype_alpha($char)) {
@@ -686,7 +684,6 @@ class Tokenizer {
             # 13.2.5.11 RCDATA end tag name state
             elseif ($this->state === self::RCDATA_END_TAG_NAME_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -763,7 +760,6 @@ class Tokenizer {
             # 13.2.5.12 RAWTEXT less-than sign state
             elseif ($this->state === self::RAWTEXT_LESS_THAN_SIGN_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "/" (U+002F)
                 if ($char === '/') {
@@ -785,7 +781,6 @@ class Tokenizer {
             # 13.2.5.13 RAWTEXT end tag open state
             elseif ($this->state === self::RAWTEXT_END_TAG_OPEN_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # ASCII alpha
                 if (ctype_alpha($char)) {
@@ -808,7 +803,6 @@ class Tokenizer {
             # 13.2.5.14 RAWTEXT end tag name state
             elseif ($this->state === self::RAWTEXT_END_TAG_NAME_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -886,7 +880,6 @@ class Tokenizer {
             # 13.2.5.15 Script data less-than sign state
             elseif ($this->state === self::SCRIPT_DATA_LESS_THAN_SIGN_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "/" (U+002F)
                 if ($char === '/') {
@@ -916,7 +909,6 @@ class Tokenizer {
             # 13.2.5.16 Script data end tag open state
             elseif ($this->state === self::SCRIPT_DATA_END_TAG_OPEN_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # ASCII alpha
                 if (ctype_alpha($char)) {
@@ -939,7 +931,6 @@ class Tokenizer {
             # 13.2.5.17 Script data end tag name state
             elseif ($this->state === self::SCRIPT_DATA_END_TAG_NAME_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -1016,7 +1007,6 @@ class Tokenizer {
             # 13.2.5.18 Script data escape start state
             elseif ($this->state === self::SCRIPT_DATA_ESCAPE_START_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
@@ -1037,7 +1027,6 @@ class Tokenizer {
             # 13.2.5.19 Script data escape start dash state
             elseif ($this->state === self::SCRIPT_DATA_ESCAPE_START_DASH_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
@@ -1057,7 +1046,6 @@ class Tokenizer {
             # 13.2.5.20 Script data escaped state
             elseif ($this->state === self::SCRIPT_DATA_ESCAPED_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
@@ -1093,7 +1081,7 @@ class Tokenizer {
                     // Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
                     if (strspn($char, Data::WHITESPACE)) {
-                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE));
+                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
                     } else {
                         return new CharacterToken($char.$this->data->consumeUntil("-<\0"));
                     }
@@ -1103,7 +1091,6 @@ class Tokenizer {
             # 13.2.5.21 Script data escaped dash state
             elseif ($this->state === self::SCRIPT_DATA_ESCAPED_DASH_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
@@ -1149,7 +1136,6 @@ class Tokenizer {
             # 13.2.5.22 Script data escaped dash dash state
             elseif ($this->state === self::SCRIPT_DATA_ESCAPED_DASH_DASH_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
@@ -1200,7 +1186,6 @@ class Tokenizer {
             # 13.2.5.23 Script data escaped less-than sign state
             elseif ($this->state === self::SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "/" (U+002F)
                 if ($char === '/') {
@@ -1233,7 +1218,6 @@ class Tokenizer {
             # 13.2.5.24 Script data escaped end tag open state
             elseif ($this->state === self::SCRIPT_DATA_ESCAPED_END_TAG_OPEN_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # ASCII alpha
                 if (ctype_alpha($char)) {
@@ -1260,7 +1244,6 @@ class Tokenizer {
             # 13.2.5.25 Script data escaped end tag name state
             elseif ($this->state === self::SCRIPT_DATA_ESCAPED_END_TAG_NAME_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -1337,7 +1320,6 @@ class Tokenizer {
             # 13.2.5.26 Script data double escape start state
             elseif ($this->state === self::SCRIPT_DATA_DOUBLE_ESCAPE_START_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # U+0009 CHARACTER TABULATION (tab)
                 # U+000A LINE FEED (LF)
@@ -1387,7 +1369,6 @@ class Tokenizer {
             # 13.2.5.27 Script data double escaped state
             elseif ($this->state === self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
@@ -1425,7 +1406,7 @@ class Tokenizer {
                     // Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
                     if (strspn($char, Data::WHITESPACE)) {
-                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE));
+                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
                     } else {
                         return new CharacterToken($char.$this->data->consumeUntil("-<\0"));
                     }
@@ -1435,7 +1416,6 @@ class Tokenizer {
             # 13.2.5.28 Script data double escaped dash state
             elseif ($this->state == self::SCRIPT_DATA_DOUBLE_ESCAPED_DASH_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
@@ -1483,7 +1463,6 @@ class Tokenizer {
             # 13.2.5.29 Script data double escaped dash dash state
             elseif ($this->state == self::SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
@@ -1536,7 +1515,6 @@ class Tokenizer {
             # 13.2.5.30 Script data double escaped less-than sign state
             elseif ($this->state === self::SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "/" (U+002F)
                 if ($char === '/') {
@@ -1558,7 +1536,6 @@ class Tokenizer {
             # 13.2.5.31 Script data double escape end state
             elseif ($this->state === self::SCRIPT_DATA_DOUBLE_ESCAPE_END_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -1611,7 +1588,6 @@ class Tokenizer {
             # 13.2.5.32 Before attribute name state
             elseif ($this->state === self::BEFORE_ATTRIBUTE_NAME_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -1653,7 +1629,6 @@ class Tokenizer {
             # 13.2.5.33 Attribute name state
             elseif ($this->state === self::ATTRIBUTE_NAME_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -1712,7 +1687,6 @@ class Tokenizer {
             # 13.2.5.34 After attribute name state
             elseif ($this->state === self::AFTER_ATTRIBUTE_NAME_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -1760,7 +1734,6 @@ class Tokenizer {
             # 13.2.5.35 Before attribute value state
             elseif ($this->state === self::BEFORE_ATTRIBUTE_VALUE_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -1800,7 +1773,6 @@ class Tokenizer {
             # 13.2.5.36 Attribute value (double-quoted) state
             elseif ($this->state === self::ATTRIBUTE_VALUE_DOUBLE_QUOTED_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # U+0022 QUOTATION MARK (")
                 if ($char === '"') {
@@ -1843,7 +1815,6 @@ class Tokenizer {
             # 13.2.5.37 Attribute value (single-quoted) state
             elseif ($this->state === self::ATTRIBUTE_VALUE_SINGLE_QUOTED_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # U+0027 APOSTROPHE (')
                 if ($char === "'") {
@@ -1887,7 +1858,6 @@ class Tokenizer {
             # 13.2.5.38 Attribute value (unquoted) state
             elseif ($this->state === self::ATTRIBUTE_VALUE_UNQUOTED_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -1951,7 +1921,6 @@ class Tokenizer {
             # 13.2.5.39 After attribute value (quoted) state
             elseif ($this->state === self::AFTER_ATTRIBUTE_VALUE_QUOTED_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -1994,7 +1963,6 @@ class Tokenizer {
             # 13.2.5.40 Self-closing start tag state
             elseif ($this->state === self::SELF_CLOSING_START_TAG_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # ">" (U+003E)
                 if ($char === '>') {
@@ -2026,7 +1994,6 @@ class Tokenizer {
             # 13.2.5.44 Bogus comment state
             elseif ($this->state === self::BOGUS_COMMENT_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # U+003E GREATER-THAN SIGN (>)
                 if ($char === '>') {
@@ -2121,7 +2088,6 @@ class Tokenizer {
             # 13.2.5.43 Comment start state
             elseif ($this->state === self::COMMENT_START_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
@@ -2148,7 +2114,6 @@ class Tokenizer {
             # 13.2.5.44 Comment start dash state
             elseif ($this->state === self::COMMENT_START_DASH_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
@@ -2190,7 +2155,6 @@ class Tokenizer {
             # 13.2.5.45 Comment state
             elseif ($this->state === self::COMMENT_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "<" (U+003C)
                 if ($char === '<') {
@@ -2238,7 +2202,6 @@ class Tokenizer {
             # 13.2.5.46 Comment less-than sign state
             elseif ($this->state === self::COMMENT_LESS_THAN_SIGN_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # U+0021 EXCLAMATION MARK (!)
                 if ($char === '!') {
@@ -2263,7 +2226,6 @@ class Tokenizer {
             # 13.2.5.47 Comment less-than sign bang state
             elseif ($this->state === self::COMMENT_LESS_THAN_SIGN_BANG_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # U+002D HYPHEN-MINUS (-)
                 if ($char === '-') {
@@ -2281,7 +2243,6 @@ class Tokenizer {
             # 13.2.5.48 Comment less-than sign bang dash state
             elseif ($this->state === self::COMMENT_LESS_THAN_SIGN_BANG_DASH_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # U+002D HYPHEN-MINUS (-)
                 if ($char === '-') {
@@ -2299,7 +2260,6 @@ class Tokenizer {
             # 13.2.5.49 Comment less-than sign bang dash dash state
             elseif ($this->state === self::COMMENT_LESS_THAN_SIGN_BANG_DASH_DASH_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # U+003E GREATER-THAN SIGN (>)
                 # EOF
@@ -2321,7 +2281,6 @@ class Tokenizer {
             # 13.2.5.50 Comment end dash state
             elseif ($this->state === self::COMMENT_END_DASH_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
@@ -2354,7 +2313,6 @@ class Tokenizer {
             # 13.2.5.50 Comment end state
             elseif ($this->state === self::COMMENT_END_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # ">" (U+003E)
                 if ($char === '>') {
@@ -2403,7 +2361,6 @@ class Tokenizer {
             # 13.2.5.52 Comment end bang state
             elseif ($this->state === self::COMMENT_END_BANG_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "-" (U+002D)
                 if ($char === '-') {
@@ -2451,7 +2408,6 @@ class Tokenizer {
             # 13.2.5.53 DOCTYPE state
             elseif ($this->state === self::DOCTYPE_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -2497,7 +2453,6 @@ class Tokenizer {
             # 13.2.5.54 Before DOCTYPE name state
             elseif ($this->state === self::BEFORE_DOCTYPE_NAME_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -2564,7 +2519,6 @@ class Tokenizer {
             # 13.2.5.55 DOCTYPE name state
             elseif ($this->state === self::DOCTYPE_NAME_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -2621,7 +2575,6 @@ class Tokenizer {
             # 13.2.5.56 After DOCTYPE name state
             elseif ($this->state === self::AFTER_DOCTYPE_NAME_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -2689,7 +2642,6 @@ class Tokenizer {
             # 13.2.5.57 After DOCTYPE public keyword state
             elseif ($this->state === self::AFTER_DOCTYPE_PUBLIC_KEYWORD_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -2758,7 +2710,6 @@ class Tokenizer {
             # 13.2.5.58 Before DOCTYPE public identifier state
             elseif ($this->state === self::BEFORE_DOCTYPE_PUBLIC_IDENTIFIER_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -2822,7 +2773,6 @@ class Tokenizer {
             # 13.2.5.59 DOCTYPE public identifier (double-quoted) state
             elseif ($this->state === self::DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # U+0022 QUOTATION MARK (")
                 if ($char === '"') {
@@ -2878,7 +2828,6 @@ class Tokenizer {
             # 13.2.5.60 DOCTYPE public identifier (single-quoted) state
             elseif ($this->state === self::DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "'" (U+0027)
                 if ($char === "'") {
@@ -2934,7 +2883,6 @@ class Tokenizer {
             # 13.2.5.60 After DOCTYPE public identifier state
             elseif ($this->state === self::AFTER_DOCTYPE_PUBLIC_IDENTIFIER_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -2999,7 +2947,6 @@ class Tokenizer {
             # 13.2.5.62 Between DOCTYPE public and system identifiers state
             elseif ($this->state === self::BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -3061,7 +3008,6 @@ class Tokenizer {
             # 13.2.5.63 After DOCTYPE system keyword state
             elseif ($this->state === self::AFTER_DOCTYPE_SYSTEM_KEYWORD_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -3130,7 +3076,6 @@ class Tokenizer {
             # 13.2.5.64 Before DOCTYPE system identifier state
             elseif ($this->state === self::BEFORE_DOCTYPE_SYSTEM_IDENTIFIER_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -3196,7 +3141,6 @@ class Tokenizer {
             # 13.2.5.64 DOCTYPE system identifier (double-quoted) state
             elseif ($this->state === self::DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # U+0022 QUOTATION MARK (")
                 if ($char === '"') {
@@ -3251,7 +3195,6 @@ class Tokenizer {
             # 13.2.5.66 DOCTYPE system identifier (single-quoted) state
             elseif ($this->state === self::DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "'" (U+0027)
                 if ($char === "'") {
@@ -3306,7 +3249,6 @@ class Tokenizer {
             # 13.2.5.67 After DOCTYPE system identifier state
             elseif ($this->state === self::AFTER_DOCTYPE_SYSTEM_IDENTIFIER_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # "tab" (U+0009)
                 # "LF" (U+000A)
@@ -3351,7 +3293,6 @@ class Tokenizer {
             # 13.2.5.67 Bogus DOCTYPE state
             elseif ($this->state === self::BOGUS_DOCTYPE_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # ">" (U+003E)
                 if ($char === '>') {
@@ -3385,7 +3326,6 @@ class Tokenizer {
             # 13.2.5.69 CDATA section state
             elseif ($this->state === self::CDATA_SECTION_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # U+005D RIGHT SQUARE BRACKET (])
                 if ($char === ']') {
@@ -3410,7 +3350,7 @@ class Tokenizer {
                     if ($char === "\0") {
                         return new CharacterToken($char);
                     } elseif (strspn($char, Data::WHITESPACE)) {
-                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE));
+                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
                     } else {
                         return new CharacterToken($char.$this->data->consumeUntil("]\0"));
                     }
@@ -3420,7 +3360,6 @@ class Tokenizer {
             # 13.2.5.70 CDATA section bracket state
             elseif ($this->state === self::CDATA_SECTION_BRACKET_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # U+005D RIGHT SQUARE BRACKET (])
                 if ($char === ']') {
@@ -3440,7 +3379,6 @@ class Tokenizer {
             # 13.2.5.71 CDATA section end state
             elseif ($this->state === self::CDATA_SECTION_END_STATE) {
                 # Consume the next input character
-                $char = $this->data->consume();
 
                 # U+005D RIGHT SQUARE BRACKET (])
                 if ($char === ']') {
