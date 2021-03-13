@@ -25,11 +25,11 @@ class ActiveFormattingElementsList extends Stack {
     }
 
     public function offsetSet($offset, $value) {
-        $count = count($this->_storage);
+        $count = $this->count;
         assert($offset >= 0 && $offset <= $count, new Exception(Exception::STACK_INVALID_INDEX, $offset));
         assert($value instanceof ActiveFormattingElementsMarker || (
             is_array($value) 
-            && sizeof($value) === 2 
+            && count($value) === 2 
             && isset($value['token']) 
             && isset($value['element'])
             && $value['token'] instanceof StartTagToken
@@ -69,6 +69,7 @@ class ActiveFormattingElementsList extends Stack {
         } else {
             $this->_storage[$offset ?? $count] = $value;
         }
+        $this->count = count($this->_storage);
     }
 
     protected function matchElement(Element $a, Element $b): bool {
@@ -99,7 +100,7 @@ class ActiveFormattingElementsList extends Stack {
     }
 
     public function insert(StartTagToken $token, Element $element, ?int $at = null): void  {
-        assert($at === null || ($at >= 0 && $at <= count($this->_storage)), new \Exception("Invalid list index $at (max ".count($this->_storage).")"));
+        assert($at === null || ($at >= 0 && $at <= $this->count), new \Exception("Invalid list index $at (max ".$this->count.")"));
         if ($at === null) {
             $this[] = [
                 'token' => $token,
@@ -110,6 +111,7 @@ class ActiveFormattingElementsList extends Stack {
                 'token' => $token,
                 'element' => $element,
             ]]);
+            $this->count = count($this->_storage);
         }
     }
 
@@ -125,7 +127,7 @@ class ActiveFormattingElementsList extends Stack {
         if (!$this->_storage) {
             return;
         }
-        $last = count($this->_storage) - 1;
+        $last = $this->count - 1;
         # 2. If the last (most recently added) entry in the list of active formatting
         #   elements is a marker, or if it is an element that is in the stack of open
         #   elements, then there is nothing to reconstruct; stop this algorithm.
@@ -187,6 +189,7 @@ class ActiveFormattingElementsList extends Stack {
                 break;
             }
         }
+        $this->count = count($this->_storage);
     }
 
     public function findSame(Element $target): int {

@@ -4,6 +4,7 @@ namespace dW\HTML5;
 
 abstract class Stack implements \ArrayAccess, \Countable, \IteratorAggregate {
     protected $_storage = [];
+    protected $count = 0;
 
     public function offsetSet($offset, $value) {
         assert($offset >= 0, new Exception(Exception::STACK_INVALID_INDEX, $offset));
@@ -13,6 +14,7 @@ abstract class Stack implements \ArrayAccess, \Countable, \IteratorAggregate {
         } else {
             $this->_storage[$offset] = $value;
         }
+        $this->count = count($this->_storage);
     }
 
     public function offsetExists($offset) {
@@ -22,6 +24,7 @@ abstract class Stack implements \ArrayAccess, \Countable, \IteratorAggregate {
     public function offsetUnset($offset) {
         assert($offset >= 0 && $offset < count($this->_storage), new Exception(Exception::STACK_INVALID_INDEX, $offset));
         array_splice($this->_storage, $offset, 1, []);
+        $this->count = count($this->_storage);
     }
 
     public function offsetGet($offset) {
@@ -30,16 +33,17 @@ abstract class Stack implements \ArrayAccess, \Countable, \IteratorAggregate {
     }
     
     public function count(): int {
-        return count($this->_storage);
+        return $this->count;
     }
 
     public function getIterator(): \Traversable {
-        for ($a = count($this->_storage) - 1; $a > -1; $a--) {
+        for ($a = $this->count - 1; $a > -1; $a--) {
             yield $a => $this->_storage[$a];
         }
     }
 
     public function pop() {
+        $this->count = max($this->count - 1, 0);
         return array_pop($this->_storage);
     }
 
@@ -49,6 +53,6 @@ abstract class Stack implements \ArrayAccess, \Countable, \IteratorAggregate {
 
     public function top(int $offset = 0) {
         assert($offset >= 0, new \Exception("Offset must be at least 0"));
-        return ($c = count($this->_storage)) > $offset ? $this->_storage[$c - ($offset + 1)] : null;
+        return ($c = $this->count) > $offset ? $this->_storage[$c - ($offset + 1)] : null;
     }
 }

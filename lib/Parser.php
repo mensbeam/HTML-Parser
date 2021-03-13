@@ -74,7 +74,7 @@ class Parser {
                 // Try to find a Content-Type header-field
                 foreach ($meta['wrapper_data'] as $h) {
                     $h = explode(":", $h, 2);
-                    if (sizeof($h) === 2) {
+                    if (count($h) === 2) {
                         if (preg_match("/^\s*Content-Type\s*$/i", $h[0])) {
                             // Try to get an encoding from it
                             $encoding = Charset::fromTransport($h[1]);

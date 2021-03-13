@@ -138,8 +138,8 @@ class OpenElementsStack extends Stack {
             $this[] = $element;
         } else {
             array_splice($this->_storage, $at, 0, [$element]);
-            $this->computeProperties();
         }
+        $this->computeProperties();
     }
 
     public function popUntil(string ...$target): void {
@@ -205,6 +205,7 @@ class OpenElementsStack extends Stack {
         }
         while (!$this->isEmpty() && $this->top()->namespaceURI === null && ($map[$this->top()->nodeName] ?? false)) {
             array_pop($this->_storage);
+            $this->count--;
         }
         $this->computeProperties();
     }
@@ -215,6 +216,7 @@ class OpenElementsStack extends Stack {
         #   the UA must pop the current node off the stack of open elements.
         while (!$this->isEmpty() && $this->top()->namespaceURI === null && (self::IMPLIED_END_TAGS_THOROUGH[$this->top()->nodeName] ?? false)) {
             array_pop($this->_storage);
+            $this->count--;
         }
         $this->computeProperties();
     }
@@ -224,11 +226,11 @@ class OpenElementsStack extends Stack {
         #   table context, it means that the UA must, while the current node
         #   is not a table, template, or html element, pop elements from the
         #   stack of open elements.
-        assert(sizeof($this->_storage) > 0, new \Exception("Stack is empty"));
+        assert(count($this->_storage) > 0, new \Exception("Stack is empty"));
         $pos = $this->find("table", "template", "html");
         assert($pos > -1, new \Exception("No table context exists"));
         $stop = $pos + 1;
-        while (sizeof($this->_storage) > $stop) {
+        while (count($this->_storage) > $stop) {
             array_pop($this->_storage);
         }
         $this->computeProperties();
@@ -239,11 +241,11 @@ class OpenElementsStack extends Stack {
         #   table body context, it means that the UA must, while the current
         #   node is not a tbody, tfoot, thead, template, or html element,
         #   pop elements from the stack of open elements.
-        assert(sizeof($this->_storage) > 0, new \Exception("Stack is empty"));
+        assert(count($this->_storage) > 0, new \Exception("Stack is empty"));
         $pos = $this->find("tbody", "tfoot", "thead", "template", "html");
         assert($pos > -1, new \Exception("No table body context exists"));
         $stop = $pos + 1;
-        while (sizeof($this->_storage) > $stop) {
+        while (count($this->_storage) > $stop) {
             array_pop($this->_storage);
         }
         $this->computeProperties();
@@ -254,11 +256,11 @@ class OpenElementsStack extends Stack {
         #   table row context, it means that the UA must, while the current
         #   node is not a tr, template, or html element, pop elements from
         #   the stack of open elements.
-        assert(sizeof($this->_storage) > 0, new \Exception("Stack is empty"));
+        assert(count($this->_storage) > 0, new \Exception("Stack is empty"));
         $pos = $this->find("tr", "template", "html");
         assert($pos > -1, new \Exception("No table row context exists"));
         $stop = $pos + 1;
-        while (sizeof($this->_storage) > $stop) {
+        while (count($this->_storage) > $stop) {
             array_pop($this->_storage);
         }
         $this->computeProperties();
@@ -331,12 +333,13 @@ class OpenElementsStack extends Stack {
     }
 
     protected function computeProperties(): void {
+        $this->count = count($this->_storage);
         $this->currentNode = $this->top();
         # The adjusted current node is the context element if the parser was created by
         # the HTML fragment parsing algorithm and the stack of open elements has only one
         # element in it (fragment case); otherwise, the adjusted current node is the
         # current node.
-        if ($this->fragmentContext && sizeof($this->_storage) === 1) {
+        if ($this->fragmentContext && $this->count === 1) {
             $this->adjustedCurrentNode = $this->fragmentContext;
         } else {
             $this->adjustedCurrentNode = $this->currentNode;
