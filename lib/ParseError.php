@@ -146,26 +146,20 @@ class ParseError {
     ];
 
     const REPORT_OFFSETS = [
-        self::UNEXPECTED_NULL_CHARACTER                                         => -1,
-        self::MISSING_END_TAG_NAME                                              => -1,
-        self::UNEXPECTED_EQUALS_SIGN_BEFORE_ATTRIBUTE_NAME                      => -1,
-        self::DUPLICATE_ATTRIBUTE                                               => -1,
-        self::UNEXPECTED_CHARACTER_IN_ATTRIBUTE_NAME                            => -1,
-        self::MISSING_ATTRIBUTE_VALUE                                           => -1,
-        self::UNEXPECTED_CHARACTER_IN_UNQUOTED_ATTRIBUTE_VALUE                  => -1,
-        self::CDATA_IN_HTML_CONTENT                                             => -1,
-        self::ABRUPT_CLOSING_OF_EMPTY_COMMENT                                   => -1,
-        self::INCORRECTLY_CLOSED_COMMENT                                        => -1,
-        self::MISSING_DOCTYPE_NAME                                              => -1,
-        self::MISSING_WHITESPACE_AFTER_DOCTYPE_PUBLIC_KEYWORD                   => -1,
-        self::MISSING_DOCTYPE_PUBLIC_IDENTIFIER                                 => -1,
-        self::ABRUPT_DOCTYPE_PUBLIC_IDENTIFIER                                  => -1,
-        self::MISSING_WHITESPACE_BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS  => -1,
-        self::MISSING_WHITESPACE_AFTER_DOCTYPE_SYSTEM_KEYWORD                   => -1,
-        self::MISSING_DOCTYPE_SYSTEM_IDENTIFIER                                 => -1,
-        self::ABRUPT_DOCTYPE_SYSTEM_IDENTIFIER                                  => -1,
-        self::END_TAG_WITH_ATTRIBUTES                                           => -1,
-        self::END_TAG_WITH_TRAILING_SOLIDUS                                     => -1,
+        self::EOF_IN_TAG                                       => 1,
+        self::EOF_IN_COMMENT                                   => 1,
+        self::EOF_IN_DOCTYPE                                   => 1,
+        self::EOF_BEFORE_TAG_NAME                              => 1,
+        self::EOF_IN_SCRIPT_HTML_COMMENT_LIKE_TEXT             => 1,
+        self::EOF_IN_CDATA                                     => 1,
+        self::INCORRECTLY_OPENED_COMMENT                       => 1,
+        self::SURROGATE_CHARACTER_REFERENCE                    => 1,
+        self::CHARACTER_REFERENCE_OUTSIDE_UNICODE_RANGE        => 1,
+        self::NONCHARACTER_CHARACTER_REFERENCE                 => 1,
+        self::ABSENCE_OF_DIGITS_IN_NUMERIC_CHARACTER_REFERENCE => 1,
+        self::NULL_CHARACTER_REFERENCE                         => 1,
+        self::MISSING_SEMICOLON_AFTER_CHARACTER_REFERENCE      => 1,
+
     ];
 
     public function setHandler() {

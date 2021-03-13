@@ -60,13 +60,10 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
         // perform the test
         $actual = [];
         try {
-            do {
-                $t = $tokenizer->createToken();
+            foreach ($tokenizer->tokenize() as $t) {
                 assert(!$t instanceof CharacterToken || ($t instanceof WhitespaceToken && strspn($t->data, Data::WHITESPACE) === strlen($t->data)) || strspn($t->data, Data::WHITESPACE) === 0, new \Exception("Character token must either consist only of whitespace, or start with other than whitespace: ".var_export($t->data ?? "''", true)));
-                if (!($t instanceof EOFToken)) {
-                    $actual[] = $t;
-                }
-            } while (!($t instanceof EOFToken));
+                $actual[] = $t;
+            }
         } finally {
             $actual = $this->combineCharacterTokens($actual);
             $this->assertEquals($expected, $actual, $tokenizer->debugLog);
@@ -172,6 +169,7 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
                         }
                         unset($t);
                     }
+                    $tokens[] = new EOFToken;
                     yield "$testId: {$test['description']} ({$test['initialStates'][$a]})" => [
                         $test['input'],                                 // input
                         $tokens,                                        // output
@@ -190,32 +188,6 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
             // test emits input stream error first despite peeking 
             case ["<!\u{B}", ["Data state"]]:
                 $test['errors'] = array_reverse($test['errors']);
-                break;
-            // eof-in-<whatever> positions in some tests don't make sense
-            // https://github.com/html5lib/html5lib-tests/issues/125
-            case ["", ["CDATA section state"]]:
-                // there is no position 2
-                $test['errors'][0]['col']--;
-                break;
-            case ["\u{A}", ["CDATA section state"]]:
-                // the line break is, for some reason, not counted in the test
-                $test['errors'][0]['line']++;
-                $test['errors'][0]['col'] = 1;
-                break;
-            case ["<!----!\r\n>", ["Data state"]]:
-            case ["<!----!\n>", ["Data state"]]:
-            case ["<!----!\r>", ["Data state"]]:
-                // the line break is, for some reason, not counted in the test
-                $test['errors'][0]['line']++;
-                $test['errors'][0]['col'] = 2;
-                break;
-            case ["<!----! >", ["Data state"]]:
-                $test['errors'][0]['col']++;
-                break;
-            case [hex2bin("f4808080"), ["CDATA section state"]]:
-            case [hex2bin("3bf4808080"), ["CDATA section state"]]:
-                // malpaired surrogates count as two characters
-                $test['errors'][0]['col']++;
                 break;
         }
     }

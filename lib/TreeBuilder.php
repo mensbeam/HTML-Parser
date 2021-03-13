@@ -29,7 +29,7 @@ class TreeBuilder {
     protected $stack;
     /** @var \dW\HTML5\Data Instance of the Data class used for reading the input character-stream */
     protected $data;
-    /** @var \dW\HTML5\Tokenizer Instance of the Tokenizer class used for creating tokens */
+    /** @var \Generator Instance of the Tokenizer class used for creating tokens */
     protected $tokenizer;
     /** @var \dW\HTML5\TemplateInsertionModesStack Used to store the template insertion modes */
     protected $templateInsertionModes;
@@ -229,7 +229,7 @@ class TreeBuilder {
         ],
     ];
 
-    public function __construct(Document $dom, Data $data, Tokenizer $tokenizer, ParseError $errorHandler, OpenElementsStack $stack, TemplateInsertionModesStack $templateInsertionModes, ?\DOMElement $fragmentContext = null) {
+    public function __construct(Document $dom, Data $data, Tokenizer $tokenizer, \Generator $tokenList, ParseError $errorHandler, OpenElementsStack $stack, TemplateInsertionModesStack $templateInsertionModes, ?\DOMElement $fragmentContext = null) {
         assert(!$dom->hasChildNodes() && !$dom->doctype, new \Exception("Target document is not empty"));
         $this->DOM = $dom;
         $this->fragmentContext = $fragmentContext;
@@ -239,6 +239,7 @@ class TreeBuilder {
         $this->data = $data;
         $this->errorHandler = $errorHandler;
         $this->activeFormattingElementsList = new ActiveFormattingElementsList($this, $stack);
+        $this->tokenList = $tokenList;
 
         # Parsing HTML fragments
         if ($this->fragmentContext) {
@@ -1204,7 +1205,8 @@ class TreeBuilder {
                     # If the next token is a U+000A LINE FEED (LF) character token, then ignore that
                     # token and move on to the next one. (Newlines at the start of pre blocks are
                     # ignored as an authoring convenience.)
-                    $nextToken = $this->tokenizer->createToken();
+                    $this->tokenList->next();
+                    $nextToken = $this->tokenList->current();
                     if ($nextToken instanceof CharacterToken) {
                         // Character tokens in this implementation can have more than one character in
                         // them.
@@ -1213,12 +1215,6 @@ class TreeBuilder {
                         } elseif (strpos($nextToken->data, "\n") === 0) {
                             $nextToken->data = substr($nextToken->data, 1);
                         }
-                    }
-                    // FIXME: Don't process the next token if it's an EOFToken;
-                    //   This hack should be removed when the tree builder is
-                    //   refactored into a single function call
-                    if ($nextToken instanceof EOFToken) {
-                        return true;
                     }
                     // Process the next token
                     $token = $nextToken;
@@ -1506,7 +1502,8 @@ class TreeBuilder {
                     # If the next token is a U+000A LINE FEED (LF) character token, then ignore that token and move on to the next one. (Newlines at the start of textarea elements are ignored as an authoring convenience.)
                     # Switch the tokenizer to the RCDATA state.
                     $this->tokenizer->state = Tokenizer::RCDATA_STATE;
-                    $nextToken = $this->tokenizer->createToken();
+                    $this->tokenList->next();
+                    $nextToken = $this->tokenList->current();
                     if ($nextToken instanceof CharacterToken) {
                         // Character tokens in this implementation can have more than one character in
                         // them.
@@ -1522,12 +1519,6 @@ class TreeBuilder {
                     $this->framesetOk = false;
                     # Switch the insertion mode to "text".
                     $insertionMode = $this->insertionMode = self::TEXT_MODE;
-                    // FIXME: Don't process the next token if it's an EOFToken;
-                    //   This hack should be removed when the tree builder is
-                    //   refactored into a single function call
-                    if ($nextToken instanceof EOFToken) {
-                        return true;
-                    }
                     // Process the next token
                     $token = $nextToken;
                     goto ProcessToken;

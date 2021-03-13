@@ -29,15 +29,15 @@ class Parser {
         $decoder = new Data($data, $file ?? "STDIN", $errorHandler, $encodingOrContentType);
         $stack = new OpenElementsStack($fragmentContext);
         $tokenizer = new Tokenizer($decoder, $stack, $errorHandler);
-        $treeBuilder = new TreeBuilder($document, $decoder, $tokenizer, $errorHandler, $stack, new TemplateInsertionModesStack, $fragmentContext);
+        $tokenList = $tokenizer->tokenize();
+        $treeBuilder = new TreeBuilder($document, $decoder, $tokenizer, $tokenList, $errorHandler, $stack, new TemplateInsertionModesStack, $fragmentContext);
         // Override error handling
         $errorHandler->setHandler();
         try {
             // run the parser to completion
-            do {
-                $token = $tokenizer->createToken();
+            foreach ($tokenList as $token) {
                 $treeBuilder->emitToken($token);
-            } while (!$token instanceof EOFToken);
+            }
         } finally {
             // Restore error handling
             $errorHandler->clearHandler();

@@ -243,7 +243,7 @@ class Tokenizer {
         }
     }
 
-    public function createToken(): Token {
+    public function tokenize(): \Generator {
         Consume:
         assert((function() {
             $this->debugLog .= "TOKEN ".++$this->debugCount."\n";
@@ -277,9 +277,9 @@ class Tokenizer {
                     // DEVIATION: Character reference consumption implemented as a function
                     $outChar = $this->switchToCharacterReferenceState(self::DATA_STATE);
                     if (strspn($outChar, Data::WHITESPACE)) {
-                        return new WhitespaceToken($outChar); // a character reference is either all whitespace is no whitespace
+                        yield new WhitespaceToken($outChar); // a character reference is either all whitespace is no whitespace
                     } else {
-                        return new CharacterToken($outChar);
+                        yield new CharacterToken($outChar);
                     }
                 }
                 # U+003C LESS-THAN SIGN (<)
@@ -292,12 +292,13 @@ class Tokenizer {
                     # This is an unexpected-null-character parse error.
                     # Emit the current input character as a character token.
                     $this->error(ParseError::UNEXPECTED_NULL_CHARACTER);
-                    return new CharacterToken($char);
+                    yield new CharacterToken($char);
                 }
                 # EOF
                 elseif ($char === '') {
                     # Emit an end-of-file token.
-                    return new EOFToken;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -308,9 +309,9 @@ class Tokenizer {
                     // that as a character token instead to prevent having to loop back
                     // through here every single time.
                     if (strspn($char, Data::WHITESPACE)) {
-                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
+                        yield new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
                     } else {
-                        return new CharacterToken($char.$this->data->consumeUntil("&<\0"));
+                        yield new CharacterToken($char.$this->data->consumeUntil("&<\0"));
                     }
                 }
             }
@@ -327,9 +328,9 @@ class Tokenizer {
                     // DEVIATION: Character reference consumption implemented as a function
                     $outChar = $this->switchToCharacterReferenceState(self::RCDATA_STATE);
                     if (strspn($outChar, Data::WHITESPACE)) {
-                        return new WhitespaceToken($outChar); // a character reference is either all whitespace is no whitespace
+                        yield new WhitespaceToken($outChar); // a character reference is either all whitespace is no whitespace
                     } else {
-                        return new CharacterToken($outChar);
+                        yield new CharacterToken($outChar);
                     }
                 }
                 # U+003C LESS-THAN SIGN (<)
@@ -342,12 +343,13 @@ class Tokenizer {
                     # This is an unexpected-null-character parse error.
                     # Emit a U+FFFD REPLACEMENT CHARACTER character token.
                     $this->error(ParseError::UNEXPECTED_NULL_CHARACTER);
-                    return new CharacterToken("\u{FFFD}");
+                    yield new CharacterToken("\u{FFFD}");
                 }
                 # EOF
                 elseif ($char === '') {
                     # Emit an end-of-file token.
-                    return new EOFToken;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -358,9 +360,9 @@ class Tokenizer {
                     // that as a character token instead to prevent having to loop back
                     // through here every single time.
                     if (strspn($char, Data::WHITESPACE)) {
-                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
+                        yield new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
                     } else {
-                        return new CharacterToken($char.$this->data->consumeUntil("&<\0"));
+                        yield new CharacterToken($char.$this->data->consumeUntil("&<\0"));
                     }
                 }
             }
@@ -379,12 +381,13 @@ class Tokenizer {
                     # This is an unexpected-null-character parse error.
                     # Emit a U+FFFD REPLACEMENT CHARACTER character token.
                     $this->error(ParseError::UNEXPECTED_NULL_CHARACTER);
-                    return new CharacterToken("\u{FFFD}");
+                    yield new CharacterToken("\u{FFFD}");
                 }
                 # EOF
                 elseif ($char === '') {
                     # Emit an end-of-file token.
-                    return new EOFToken;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -395,9 +398,9 @@ class Tokenizer {
                     // that as a character token instead to prevent having to loop back
                     // through here every single time.
                     if (strspn($char, Data::WHITESPACE)) {
-                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
+                        yield new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
                     } else {
-                        return new CharacterToken($char.$this->data->consumeUntil("<\0"));
+                        yield new CharacterToken($char.$this->data->consumeUntil("<\0"));
                     }
                 }
             }
@@ -416,12 +419,13 @@ class Tokenizer {
                     # This is an unexpected-null-character parse error.
                     # Emit a U+FFFD REPLACEMENT CHARACTER character token.
                     $this->error(ParseError::UNEXPECTED_NULL_CHARACTER);
-                    return new CharacterToken("\u{FFFD}");
+                    yield new CharacterToken("\u{FFFD}");
                 }
                 # EOF
                 elseif ($char === '') {
                     # Emit an end-of-file token.
-                    return new EOFToken;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -432,9 +436,9 @@ class Tokenizer {
                     // that as a character token instead to prevent having to loop back
                     // through here every single time.
                     if (strspn($char, Data::WHITESPACE)) {
-                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
+                        yield new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
                     } else {
-                        return new CharacterToken($char.$this->data->consumeUntil("<\0"));
+                        yield new CharacterToken($char.$this->data->consumeUntil("<\0"));
                     }
                 }
             }
@@ -448,12 +452,13 @@ class Tokenizer {
                     # This is an unexpected-null-character parse error.
                     # Emit a U+FFFD REPLACEMENT CHARACTER character token.
                     $this->error(ParseError::UNEXPECTED_NULL_CHARACTER);
-                    return new CharacterToken("\u{FFFD}");
+                    yield new CharacterToken("\u{FFFD}");
                 }
                 # EOF
                 elseif ($char === '') {
                     # Emit an end-of-file token.
-                    return new EOFToken;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -464,9 +469,9 @@ class Tokenizer {
                     // that as a character token instead to prevent having to loop back
                     // through here every single time.
                     if (strspn($char, Data::WHITESPACE)) {
-                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
+                        yield new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
                     } else {
-                        return new CharacterToken($char.$this->data->consumeUntil("\0"));
+                        yield new CharacterToken($char.$this->data->consumeUntil("\0"));
                     }
                 }
             }
@@ -501,32 +506,30 @@ class Tokenizer {
                     # This is an unexpected-question-mark-instead-of-tag-name parse error.
                     # Create a comment token whose data is the empty string.
                     # Reconsume in the bogus comment state.
-                    $this->data->unconsume();
                     $this->error(ParseError::UNEXPECTED_QUESTION_MARK_INSTEAD_OF_TAG_NAME);
                     $token = new CommentToken('');
                     $this->state = self::BOGUS_COMMENT_STATE;
+                    goto Reconsume;
                 }
                 # EOF
                 elseif ($char === '') {
                     # This is an eof-before-tag-name parse error.
                     # Emit a U+003C LESS-THAN SIGN character token and an end-of-file token.
                     $this->error(ParseError::EOF_BEFORE_TAG_NAME);
-                    // DEVIATION:
-                    // We cannot emit two tokens, so we switch to
-                    // the data state, which will emit the EOF token
-                    $this->state = self::DATA_STATE;
-                    return new CharacterToken('<');
+                    yield new CharacterToken('<');
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
                     # This is an invalid-first-character-of-tag-name parse error.
                     # Emit a U+003C LESS-THAN SIGN character token.
                     # Reconsume in the data state.
-                    $this->data->unconsume();
                     $this->error(ParseError::INVALID_FIRST_CHARACTER_OF_TAG_NAME, $char);
                     // DEVIATION: unconsume and change state before emitting
                     $this->state = self::DATA_STATE;
-                    return new CharacterToken('<');
+                    yield new CharacterToken('<');
+                    goto Reconsume;
                 }
             }
 
@@ -562,17 +565,17 @@ class Tokenizer {
                     // We cannot emit two tokens, so we switch to
                     // the data state, which will emit the EOF token
                     $this->state = self::DATA_STATE;
-                    return new CharacterToken('</');
+                    yield new CharacterToken('</');
                 }
                 # Anything else
                 else {
                    # This is an invalid-first-character-of-tag-name parse error.
                    # Create a comment token whose data is the empty string.
                    # Reconsume in the bogus comment state.
-                   $this->data->unconsume();
                    $this->error(ParseError::INVALID_FIRST_CHARACTER_OF_TAG_NAME, $char);
                    $token = new CommentToken();
                    $this->state = self::BOGUS_COMMENT_STATE;
+                   goto Reconsume;
                 }
             }
 
@@ -598,7 +601,7 @@ class Tokenizer {
                     # Switch to the data state. Emit the current tag token.
                     $this->state = self::DATA_STATE;
                     $this->sanitizeTag($token);
-                    return $token;
+                    yield $token;
                 }
                 # Uppercase ASCII letter
                 elseif (ctype_upper($char)) {
@@ -624,7 +627,8 @@ class Tokenizer {
                     # This is an eof-in-tag parse error.
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_TAG);
-                    return new EOFToken;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -653,8 +657,8 @@ class Tokenizer {
                     # Emit a U+003C LESS-THAN SIGN character token.
                     # Reconsume in the RCDATA state.
                     $this->state = self::RCDATA_STATE;
-                    $this->data->unconsume();
-                    return new CharacterToken('<');
+                    yield new CharacterToken('<');
+                    goto Reconsume;
                 }
             }
 
@@ -668,16 +672,15 @@ class Tokenizer {
                     # Reconsume in the RCDATA end tag name state.
                     $token = new EndTagToken("");
                     $this->state = self::RCDATA_END_TAG_NAME_STATE;
-                    $this->data->unconsume();
+                    goto Reconsume;
                 }
                 # Anything else
                 else {
                     # Emit a U+003C LESS-THAN SIGN character token and a U+002F SOLIDUS character token.
                     # Reconsume in the RCDATA state.
-
-                    $this->data->unconsume();
                     $this->state = self::RCDATA_STATE;
-                    return new CharacterToken('</');
+                    yield new CharacterToken('</');
+                    goto Reconsume;
                 }
             }
 
@@ -718,7 +721,7 @@ class Tokenizer {
                     if ($token->name === $this->stack->currentNodeName) {
                         $this->state = self::DATA_STATE;
                         $this->sanitizeTag($token);
-                        return $token;
+                        yield $token;
                     } else {
                         goto RCDATA_end_tag_name_state_anything_else;
                     }
@@ -752,8 +755,8 @@ class Tokenizer {
                     #   buffer (in the order they were added to the buffer).
                     # Reconsume in the RCDATA state.
                     $this->state = self::RCDATA_STATE;
-                    $this->data->unconsume();
-                    return new CharacterToken('</'.$this->temporaryBuffer);
+                    yield new CharacterToken('</'.$this->temporaryBuffer);
+                    goto Reconsume;
                 }
             }
 
@@ -773,8 +776,8 @@ class Tokenizer {
                     # Emit a U+003C LESS-THAN SIGN character token.
                     # Reconsume in the RAWTEXT state.
                     $this->state = self::RAWTEXT_STATE;
-                    $this->data->unconsume();
-                    return new CharacterToken('<');
+                    yield new CharacterToken('<');
+                    goto Reconsume;
                 }
             }
 
@@ -788,15 +791,15 @@ class Tokenizer {
                     # Reconsume in the RAWTEXT end tag name state.
                     $token = new EndTagToken("");
                     $this->state = self::RAWTEXT_END_TAG_NAME_STATE;
-                    $this->data->unconsume();
+                    goto Reconsume;
                 }
                 # Anything else
                 else {
                     # Emit a U+003C LESS-THAN SIGN character token and a U+002F SOLIDUS character token.
                     # Reconsume in the RAWTEXT state.
                     $this->state = self::RAWTEXT_STATE;
-                    $this->data->unconsume();
-                    return new CharacterToken('</');
+                    yield new CharacterToken('</');
+                    goto Reconsume;
                 }
             }
 
@@ -838,7 +841,7 @@ class Tokenizer {
                     if ($token->name === $this->stack->currentNodeName) {
                         $this->state = self::DATA_STATE;
                         $this->sanitizeTag($token);
-                        return $token;
+                        yield $token;
                     } else {
                         goto RAWTEXT_end_tag_name_state_anything_else;
                     }
@@ -872,8 +875,8 @@ class Tokenizer {
                     #   buffer (in the order they were added to the buffer).
                     # Reconsume in the RAWTEXT state.
                     $this->state = self::RAWTEXT_STATE;
-                    $this->data->unconsume();
-                    return new CharacterToken('</'.$this->temporaryBuffer);
+                    yield new CharacterToken('</'.$this->temporaryBuffer);
+                    goto Reconsume;
                 }
             }
 
@@ -894,15 +897,15 @@ class Tokenizer {
                     # Emit a U+003C LESS-THAN SIGN character token
                     #   and a U+0021 EXCLAMATION MARK character token.
                     $this->state = self::SCRIPT_DATA_ESCAPE_START_STATE;
-                    return new CharacterToken('<!');
+                    yield new CharacterToken('<!');
                 }
                 # Anything else
                 else {
                     # Emit a U+003C LESS-THAN SIGN character token.
                     # Reconsume in the script data state.
                     $this->state = self::SCRIPT_DATA_STATE;
-                    $this->data->unconsume();
-                    return new CharacterToken('<');
+                    yield new CharacterToken('<');
+                    goto Reconsume;
                 }
             }
 
@@ -916,15 +919,15 @@ class Tokenizer {
                     # Reconsume in the script data end tag name state.
                     $token = new EndTagToken("");
                     $this->state = self::SCRIPT_DATA_END_TAG_NAME_STATE;
-                    $this->data->unconsume();
+                    goto Reconsume;
                 }
                 # Anything else
                 else {
                     # Emit a U+003C LESS-THAN SIGN character token and a U+002F SOLIDUS character token.
                     # Reconsume in the script data state.
                     $this->state = self::SCRIPT_DATA_STATE;
-                    $this->data->unconsume();
-                    return new CharacterToken('</');
+                    yield new CharacterToken('</');
+                    goto Reconsume;
                 }
             }
 
@@ -965,7 +968,7 @@ class Tokenizer {
                     if ($token->name === $this->stack->currentNodeName) {
                         $this->state = self::DATA_STATE;
                         $this->sanitizeTag($token);
-                        return $token;
+                        yield $token;
                     } else {
                         goto script_data_end_tag_name_state_anything_else;
                     }
@@ -999,8 +1002,8 @@ class Tokenizer {
                     #   buffer (in the order they were added to the buffer).
                     # Reconsume in the script data state.
                     $this->state = self::SCRIPT_DATA_STATE;
-                    $this->data->unconsume();
-                    return new CharacterToken('</'.$this->temporaryBuffer);
+                    yield new CharacterToken('</'.$this->temporaryBuffer);
+                    goto Reconsume;
                 }
             }
 
@@ -1013,14 +1016,14 @@ class Tokenizer {
                     # Switch to the script data escape start dash state.
                     # Emit a U+002D HYPHEN-MINUS character token.
                     $this->state = self::SCRIPT_DATA_ESCAPE_START_DASH_STATE;
-                    return new CharacterToken('-');
+                    yield new CharacterToken('-');
                 }
                 # Anything else
                 else {
                     # Switch to the script data state.
                     # Reconsume the current input character.
                     $this->state = self::SCRIPT_DATA_STATE;
-                    $this->data->unconsume();
+                    goto Reconsume;
                 }
             }
 
@@ -1033,13 +1036,13 @@ class Tokenizer {
                     # Switch to the script data escaped dash dash state.
                     # Emit a U+002D HYPHEN-MINUS character token.
                     $this->state = self::SCRIPT_DATA_ESCAPED_DASH_DASH_STATE;
-                    return new CharacterToken('-');
+                    yield new CharacterToken('-');
                 }
                 # Anything else
                 else {
                     # Reconsume in the script data state.
                     $this->state = self::SCRIPT_DATA_STATE;
-                    $this->data->unconsume();
+                    goto Reconsume;
                 }
             }
 
@@ -1052,7 +1055,7 @@ class Tokenizer {
                     # Switch to the script data escaped dash state.
                     # Emit a U+002D HYPHEN-MINUS character token.
                     $this->state = self::SCRIPT_DATA_ESCAPED_DASH_STATE;
-                    return new CharacterToken('-');
+                    yield new CharacterToken('-');
                 }
                 # "<" (U+003C)
                 elseif ($char === '<') {
@@ -1064,14 +1067,15 @@ class Tokenizer {
                     # This is an unexpected-null-character parse error.
                     # Emit a U+FFFD REPLACEMENT CHARACTER character token.
                     $this->error(ParseError::UNEXPECTED_NULL_CHARACTER);
-                    return new CharacterToken("\u{FFFD}");
+                    yield new CharacterToken("\u{FFFD}");
                 }
                 # EOF
                 elseif ($char === '') {
                     # This is an eof-in-script-html-comment-like-text parse error.
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_SCRIPT_HTML_COMMENT_LIKE_TEXT);
-                    return new EOFToken;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -1081,9 +1085,9 @@ class Tokenizer {
                     // Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
                     if (strspn($char, Data::WHITESPACE)) {
-                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
+                        yield new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
                     } else {
-                        return new CharacterToken($char.$this->data->consumeUntil("-<\0"));
+                        yield new CharacterToken($char.$this->data->consumeUntil("-<\0"));
                     }
                 }
             }
@@ -1097,7 +1101,7 @@ class Tokenizer {
                     # Switch to the script data escaped dash dash state.
                     # Emit a U+002D HYPHEN-MINUS character token.
                     $this->state = self::SCRIPT_DATA_ESCAPED_DASH_DASH_STATE;
-                    return new CharacterToken('-');
+                    yield new CharacterToken('-');
                 }
                 # "<" (U+003C)
                 elseif ($char === '<') {
@@ -1111,14 +1115,15 @@ class Tokenizer {
                     # Emit a U+FFFD REPLACEMENT CHARACTER character token.
                     $this->error(ParseError::UNEXPECTED_NULL_CHARACTER);
                     $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
-                    return new CharacterToken("\u{FFFD}");
+                    yield new CharacterToken("\u{FFFD}");
                 }
                 # EOF
                 elseif ($char === '') {
                     # This is an eof-in-script-html-comment-like-text parse error.
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_SCRIPT_HTML_COMMENT_LIKE_TEXT);
-                    return new EOFToken;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -1126,9 +1131,9 @@ class Tokenizer {
                     # Emit the current input character as a character token.
                     $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
                     if (strspn($char, Data::WHITESPACE)) {
-                        return new WhitespaceToken($char);
+                        yield new WhitespaceToken($char);
                     } else {
-                        return new CharacterToken($char);
+                        yield new CharacterToken($char);
                     }
                 }
             }
@@ -1140,7 +1145,7 @@ class Tokenizer {
                 # "-" (U+002D)
                 if ($char === '-') {
                     # Emit a U+002D HYPHEN-MINUS character token.
-                    return new CharacterToken('-');
+                    yield new CharacterToken('-');
                 }
                 # "<" (U+003C)
                 elseif ($char === '<') {
@@ -1152,7 +1157,7 @@ class Tokenizer {
                     # Switch to the script data state.
                     # Emit a U+003E GREATER-THAN SIGN character token.
                     $this->state = self::SCRIPT_DATA_STATE;
-                    return new CharacterToken('>');
+                    yield new CharacterToken('>');
                 }
                 # U+0000 NULL
                 elseif ($char === "\0") {
@@ -1161,14 +1166,15 @@ class Tokenizer {
                     # Emit a U+FFFD REPLACEMENT CHARACTER character token.
                     $this->error(ParseError::UNEXPECTED_NULL_CHARACTER);
                     $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
-                    return new CharacterToken("\u{FFFD}");
+                    yield new CharacterToken("\u{FFFD}");
                 }
                 # EOF
                 elseif ($char === '') {
                     # This is an eof-in-script-html-comment-like-text parse error.
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_SCRIPT_HTML_COMMENT_LIKE_TEXT);
-                    return new EOFToken;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -1176,9 +1182,9 @@ class Tokenizer {
                     # Emit the current input character as a character token.
                     $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
                     if (strspn($char, Data::WHITESPACE)) {
-                        return new WhitespaceToken($char);
+                        yield new WhitespaceToken($char);
                     } else {
-                        return new CharacterToken($char);
+                        yield new CharacterToken($char);
                     }
                 }
             }
@@ -1202,16 +1208,16 @@ class Tokenizer {
 
                     $this->temporaryBuffer = '';
                     $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPE_START_STATE;
-                    $this->data->unconsume();
-                    return new CharacterToken('<');
+                    yield new CharacterToken('<');
+                    goto Reconsume;
                 }
                 # Anything else
                 else {
                     # Emit a U+003C LESS-THAN SIGN character token.
                     # Reconsume in the script data escaped state.
                     $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
-                    $this->data->unconsume();
-                    return new CharacterToken("<");
+                    yield new CharacterToken("<");
+                    goto Reconsume;
                 }
             }
 
@@ -1236,8 +1242,8 @@ class Tokenizer {
                     # Emit a U+003C LESS-THAN SIGN character token and a U+002F SOLIDUS character token.
                     # Reconsume in the script data escaped state.
                     $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
-                    $this->data->unconsume();
-                    return new CharacterToken('</');
+                    yield new CharacterToken('</');
+                    goto Reconsume;
                 }
             }
 
@@ -1278,7 +1284,7 @@ class Tokenizer {
                     if ($token->name === $this->stack->currentNodeName) {
                         $this->state = self::DATA_STATE;
                         $this->sanitizeTag($token);
-                        return $token;
+                        yield $token;
                     } else {
                         goto script_data_escaped_end_tag_name_state_anything_else;
                     }
@@ -1312,8 +1318,8 @@ class Tokenizer {
                     #   (in the order they were added to the buffer).
                     # Reconsume in the script data escaped state.
                     $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
-                    $this->data->unconsume();
-                    return new CharacterToken('</'.$this->temporaryBuffer);
+                    yield new CharacterToken('</'.$this->temporaryBuffer);
+                    goto Reconsume;
                 }
             }
 
@@ -1338,9 +1344,9 @@ class Tokenizer {
                         $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
                     }
                     if (strspn($char, Data::WHITESPACE)) {
-                        return new WhitespaceToken($char);
+                        yield new WhitespaceToken($char);
                     } else {
-                        return new CharacterToken($char);
+                        yield new CharacterToken($char);
                     }
                 }
                 # ASCII upper alpha
@@ -1356,13 +1362,13 @@ class Tokenizer {
                     // to loop back through here every single time.
                     $char = $char.$this->data->consumeWhile(self::CTYPE_ALPHA);
                     $this->temporaryBuffer .= strtolower($char);
-                    return new CharacterToken($char);
+                    yield new CharacterToken($char);
                 }
                 # Anything else
                 else {
                     # Reconsume in the script data escaped state.
                     $this->state = self::SCRIPT_DATA_ESCAPED_STATE;
-                    $this->data->unconsume();
+                    goto Reconsume;
                 }
             }
 
@@ -1375,28 +1381,29 @@ class Tokenizer {
                     # Switch to the script data double escaped dash state.
                     # Emit a U+002D HYPHEN-MINUS character token.
                     $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPED_DASH_STATE;
-                    return new CharacterToken('-');
+                    yield new CharacterToken('-');
                 }
                 # "<" (U+003C)
                 elseif ($char === '<') {
                     # Switch to the script data double escaped less-than sign state.
                     # Emit a U+003C LESS-THAN SIGN character token.
                     $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN_STATE;
-                    return new CharacterToken('<');
+                    yield new CharacterToken('<');
                 }
                 # U+0000 NULL
                 elseif ($char === "\0") {
                     # This is an unexpected-null-character parse error.
                     # Emit a U+FFFD REPLACEMENT CHARACTER character token.
                     $this->error(ParseError::UNEXPECTED_NULL_CHARACTER);
-                    return new CharacterToken("\u{FFFD}");
+                    yield new CharacterToken("\u{FFFD}");
                 }
                 # EOF
                 elseif ($char === '') {
                     # This is an eof-in-script-html-comment-like-text parse error.
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_SCRIPT_HTML_COMMENT_LIKE_TEXT);
-                    return new EOFToken;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -1406,9 +1413,9 @@ class Tokenizer {
                     // Consume all characters that aren't listed above to prevent having
                     // to loop back through here every single time.
                     if (strspn($char, Data::WHITESPACE)) {
-                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
+                        yield new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
                     } else {
-                        return new CharacterToken($char.$this->data->consumeUntil("-<\0"));
+                        yield new CharacterToken($char.$this->data->consumeUntil("-<\0"));
                     }
                 }
             }
@@ -1422,14 +1429,14 @@ class Tokenizer {
                     # Switch to the script data double escaped dash dash state.
                     # Emit a U+002D HYPHEN-MINUS character token.
                     $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH_STATE;
-                    return new CharacterToken('-');
+                    yield new CharacterToken('-');
                 }
                 # "<" (U+003C)
                 elseif ($char === '<') {
                     # Switch to the script data double escaped less-than sign state.
                     # Emit a U+003C LESS-THAN SIGN character token.
                     $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN_STATE;
-                    return new CharacterToken('<');
+                    yield new CharacterToken('<');
                 }
                 # U+0000 NULL
                 elseif ($char === "\0") {
@@ -1438,14 +1445,15 @@ class Tokenizer {
                     # Emit a U+FFFD REPLACEMENT CHARACTER character token.
                     $this->error(ParseError::UNEXPECTED_NULL_CHARACTER);
                     $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE;
-                    return new CharacterToken("\u{FFFD}");
+                    yield new CharacterToken("\u{FFFD}");
                 }
                 # EOF
                 elseif ($char === '') {
                     # This is an eof-in-script-html-comment-like-text parse error.
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_SCRIPT_HTML_COMMENT_LIKE_TEXT);
-                    return new EOFToken;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -1453,9 +1461,9 @@ class Tokenizer {
                     # Emit the current input character as a character token.
                     $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE;
                     if (strspn($char, Data::WHITESPACE)) {
-                        return new WhitespaceToken($char);
+                        yield new WhitespaceToken($char);
                     } else {
-                        return new CharacterToken($char);
+                        yield new CharacterToken($char);
                     }
                 }
             }
@@ -1467,21 +1475,21 @@ class Tokenizer {
                 # "-" (U+002D)
                 if ($char === '-') {
                     # Emit a U+002D HYPHEN-MINUS character token.
-                    return new CharacterToken('-');
+                    yield new CharacterToken('-');
                 }
                 # "<" (U+003C)
                 elseif ($char === '<') {
                     # Switch to the script data double escaped less-than sign state.
                     # Emit a U+003C LESS-THAN SIGN character token.
                     $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN_STATE;
-                    return new CharacterToken('<');
+                    yield new CharacterToken('<');
                 }
                 # ">" (U+003E)
                 elseif ($char === '>') {
                     # Switch to the script data state.
                     # Emit a U+003E GREATER-THAN SIGN character token.
                     $this->state = self::SCRIPT_DATA_STATE;
-                    return new CharacterToken('>');
+                    yield new CharacterToken('>');
                 }
                 # U+0000 NULL
                 elseif ($char === "\0") {
@@ -1490,14 +1498,15 @@ class Tokenizer {
                     # Emit a U+FFFD REPLACEMENT CHARACTER character token.
                     $this->error(ParseError::UNEXPECTED_NULL_CHARACTER);
                     $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE;
-                    return new CharacterToken("\u{FFFD}");
+                    yield new CharacterToken("\u{FFFD}");
                 }
                 # EOF
                 elseif ($char === '') {
                     # This is an eof-in-script-html-comment-like-text parse error.
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_SCRIPT_HTML_COMMENT_LIKE_TEXT);
-                    return new EOFToken;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -1505,9 +1514,9 @@ class Tokenizer {
                     # Emit the current input character as a character token.
                     $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE;
                     if (strspn($char, Data::WHITESPACE)) {
-                        return new WhitespaceToken($char);
+                        yield new WhitespaceToken($char);
                     } else {
-                        return new CharacterToken($char);
+                        yield new CharacterToken($char);
                     }
                 }
             }
@@ -1523,13 +1532,13 @@ class Tokenizer {
                     # Emit a U+002F SOLIDUS character token.
                     $this->temporaryBuffer = '';
                     $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPE_END_STATE;
-                    return new CharacterToken('/');
+                    yield new CharacterToken('/');
                 }
                 # Anything else
                 else {
                     # Reconsume in the script data double escaped state.
                     $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE;
-                    $this->data->unconsume();
+                    goto Reconsume;
                 }
             }
 
@@ -1554,9 +1563,9 @@ class Tokenizer {
                         $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE;
                     }
                     if (strspn($char, Data::WHITESPACE)) {
-                        return new WhitespaceToken($char);
+                        yield new WhitespaceToken($char);
                     } else {
-                        return new CharacterToken($char);
+                        yield new CharacterToken($char);
                     }
                 }
                 # ASCII upper alpha
@@ -1575,13 +1584,13 @@ class Tokenizer {
                     // to loop back through here every single time.
                     $char = $char.$this->data->consumeWhile(self::CTYPE_ALPHA);
                     $this->temporaryBuffer .= strtolower($char);
-                    return new CharacterToken($char);
+                    yield new CharacterToken($char);
                 }
                 # Anything else
                 else {
                     # Reconsume in the script data double escaped state.
                     $this->state = self::SCRIPT_DATA_DOUBLE_ESCAPED_STATE;
-                    $this->data->unconsume();
+                    goto Reconsume;
                 }
             }
 
@@ -1602,7 +1611,7 @@ class Tokenizer {
                 elseif ($char === '/' || $char === '>' || $char === '') {
                     # Reconsume in the after attribute name state.
                     $this->state = self::AFTER_ATTRIBUTE_NAME_STATE;
-                    $this->data->unconsume();
+                    goto Reconsume;
                 }
                 # "=" (U+003D)
                 elseif ($char === '=') {
@@ -1622,7 +1631,7 @@ class Tokenizer {
                     # Reconsume in the attribute name state.
                     $attribute = new TokenAttr('', '');
                     $this->state = self::ATTRIBUTE_NAME_STATE;
-                    $this->data->unconsume();
+                    goto Reconsume;
                 }
             }
 
@@ -1640,8 +1649,8 @@ class Tokenizer {
                 if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ' || $char === '/' || $char === '>' || $char === '') {
                     # Reconsume in the after attribute name state.
                     $this->keepOrDiscardAttribute($token, $attribute);
-                    $this->data->unconsume();
                     $this->state = self::AFTER_ATTRIBUTE_NAME_STATE;
+                    goto Reconsume;
                 }
                 # "=" (U+003D)
                 elseif ($char === '=') {
@@ -1711,14 +1720,15 @@ class Tokenizer {
                     # Emit the current tag token.
                     $this->state = self::DATA_STATE;
                     $this->sanitizeTag($token);
-                    return $token;
+                    yield $token;
                 }
                 # EOF
                 elseif ($char === '') {
                     # This is an eof-in-tag parse error.
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_TAG);
-                    return new EOFToken;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -1727,7 +1737,7 @@ class Tokenizer {
                     # Reconsume in the attribute name state.
                     $attribute = new TokenAttr('', '');
                     $this->state = self::ATTRIBUTE_NAME_STATE;
-                    $this->data->unconsume();
+                    goto Reconsume;
                 }
             }
 
@@ -1760,13 +1770,13 @@ class Tokenizer {
                     $this->error(ParseError::MISSING_ATTRIBUTE_VALUE);
                     $this->state = self::DATA_STATE;
                     $this->sanitizeTag($token);
-                    return $token;
+                    yield $token;
                 }
                 # Anything else
                 else {
                     # Reconsume in the attribute value (unquoted) state.
                     $this->state = self::ATTRIBUTE_VALUE_UNQUOTED_STATE;
-                    $this->data->unconsume();
+                    goto Reconsume;
                 }
             }
 
@@ -1799,7 +1809,8 @@ class Tokenizer {
                     # This is an eof-in-tag parse error.
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_TAG);
-                    return new EOFToken;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -1841,7 +1852,8 @@ class Tokenizer {
                     # This is an eof-in-tag parse error.
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_TAG);
-                    return new EOFToken;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -1880,7 +1892,7 @@ class Tokenizer {
                     # Switch to the data state. Emit the current tag token.
                     $this->state = self::DATA_STATE;
                     $this->sanitizeTag($token);
-                    return $token;
+                    yield $token;
                 }
                 # U+0000 NULL
                 elseif ($char === "\0") {
@@ -1905,7 +1917,8 @@ class Tokenizer {
                     # This is an eof-in-tag parse error.
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_TAG);
-                    return new EOFToken;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -1941,22 +1954,23 @@ class Tokenizer {
                     # Emit the current tag token.
                     $this->state = self::DATA_STATE;
                     $this->sanitizeTag($token);
-                    return $token;
+                    yield $token;
                 }
                 # EOF
                 elseif ($char === '') {
                     # This is an eof-in-tag parse error.
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_TAG);
-                    return new EOFToken;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
                     # This is a missing-whitespace-between-attributes parse error.
                     # Reconsume in the before attribute name state.
-                    $this->data->unconsume();
                     $this->error(ParseError::MISSING_WHITESPACE_BETWEEN_ATTRIBUTES);
                     $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
+                    goto Reconsume;
                 }
             }
 
@@ -1972,22 +1986,23 @@ class Tokenizer {
                     $token->selfClosing = true;
                     $this->state = self::DATA_STATE;
                     $this->sanitizeTag($token);
-                    return $token;
+                    yield $token;
                 }
                 # EOF
                 elseif ($char === '') {
                     # This is an eof-in-tag parse error.
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_TAG);
-                    return new EOFToken;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
                     # This is an unexpected-solidus-in-tag parse error.
                     # Reconsume in the before attribute name state.
-                    $this->data->unconsume();
                     $this->error(ParseError::UNEXPECTED_SOLIDUS_IN_TAG);
                     $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
+                    goto Reconsume;
                 }
             }
 
@@ -2000,7 +2015,7 @@ class Tokenizer {
                     # Switch to the data state.
                     # Emit the comment token.
                     $this->state = self::DATA_STATE;
-                    return $token;
+                    yield $token;
                 }
                 # EOF
                 elseif ($char === '') {
@@ -2011,8 +2026,8 @@ class Tokenizer {
                     // We cannot emit two tokens, so we switch to
                     // the data state, which will emit the EOF token
                     $this->state = self::DATA_STATE;
-                    $this->data->unconsume();
-                    return $token;
+                    yield $token;
+                    goto Reconsume;
                 }
                 # U+0000 NULL
                 elseif ($char === "\0") {
@@ -2101,13 +2116,13 @@ class Tokenizer {
                     # Emit the comment token.
                     $this->error(ParseError::ABRUPT_CLOSING_OF_EMPTY_COMMENT);
                     $this->state = self::DATA_STATE;
-                    return $token;
+                    yield $token;
                 }
                 # Anything else
                 else {
                     # Reconsume in the comment state.
                     $this->state = self::COMMENT_STATE;
-                    $this->data->unconsume();
+                    goto Reconsume;
                 }
             }
 
@@ -2127,7 +2142,7 @@ class Tokenizer {
                     # Emit the comment token.
                     $this->error(ParseError::ABRUPT_CLOSING_OF_EMPTY_COMMENT);
                     $this->state = self::DATA_STATE;
-                    return $token;
+                    yield $token;
                 }
                 # EOF
                 elseif ($char === '') {
@@ -2139,16 +2154,16 @@ class Tokenizer {
                     // We cannot emit two tokens, so we switch to
                     // the data state, which will emit the EOF token
                     $this->state = self::DATA_STATE;
-                    $this->data->unconsume();
-                    return $token;
+                    yield $token;
+                    goto Reconsume;
                 }
                 # Anything else
                 else {
                     # Append a U+002D HYPHEN-MINUS character (-) to the comment token's data.
                     # Reconsume in the comment state.
                     $token->data .= '-';
-                    $this->data->unconsume();
                     $this->state = self::COMMENT_STATE;
+                    goto Reconsume;
                 }
             }
 
@@ -2181,12 +2196,9 @@ class Tokenizer {
                     # Emit the comment token.
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_COMMENT);
-                    // DEVIATION:
-                    // We cannot emit two tokens, so we switch to
-                    // the data state, which will emit the EOF token
-                    $this->state = self::DATA_STATE;
-                    $this->data->unconsume();
-                    return $token;
+                    yield $token;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -2219,7 +2231,7 @@ class Tokenizer {
                 else {
                     # Reconsume in the comment state
                     $this->state = self::COMMENT_STATE;
-                    $this->data->unconsume();
+                    goto Reconsume;
                 }
             }
 
@@ -2236,7 +2248,7 @@ class Tokenizer {
                 else {
                     # Reconsume in the comment state
                     $this->state = self::COMMENT_STATE;
-                    $this->data->unconsume();
+                    goto Reconsume;
                 }
             }
 
@@ -2253,7 +2265,7 @@ class Tokenizer {
                 else {
                     # Reconsume in the comment end dash state
                     $this->state = self::COMMENT_END_DASH_STATE;
-                    $this->data->unconsume();
+                    goto Reconsume;
                 }
             }
 
@@ -2266,15 +2278,15 @@ class Tokenizer {
                 if ($char === '>' || $char === '') {
                     # Reconsume in the comment end state.
                     $this->state = self::COMMENT_END_STATE;
-                    $this->data->unconsume();
+                    goto Reconsume;
                 }
                 # Anything else
                 else {
                     # This is a nested-comment parse error.
                     # Reconsume in the comment end state.
-                    $this->data->unconsume();
                     $this->error(ParseError::NESTED_COMMENT);
                     $this->state = self::COMMENT_END_STATE;
+                    goto Reconsume;
                 }
             }
 
@@ -2293,12 +2305,9 @@ class Tokenizer {
                     # Emit the comment token.
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_COMMENT);
-                    // DEVIATION:
-                    // We cannot emit two tokens, so we switch to
-                    // the data state, which will emit the EOF token
-                    $this->state = self::DATA_STATE;
-                    $this->data->unconsume();
-                    return $token;
+                    yield $token;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -2306,7 +2315,7 @@ class Tokenizer {
                     # Reconsume in the comment state.
                     $token->data .= '-';
                     $this->state = self::COMMENT_STATE;
-                    $this->data->unconsume();
+                    goto Reconsume;
                 }
             }
 
@@ -2319,7 +2328,7 @@ class Tokenizer {
                     # Switch to the data state.
                     # Emit the comment token.
                     $this->state = self::DATA_STATE;
-                    return $token;
+                    yield $token;
                 }
                 # "!" (U+0021)
                 elseif ($char === '!') {
@@ -2341,12 +2350,9 @@ class Tokenizer {
                     # Emit the comment token.
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_COMMENT);
-                    // DEVIATION:
-                    // We cannot emit two tokens, so we switch to
-                    // the data state, which will emit the EOF token
-                    $this->state = self::DATA_STATE;
-                    $this->data->unconsume();
-                    return $token;
+                    yield $token;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -2354,7 +2360,7 @@ class Tokenizer {
                     # Reconsume in the comment state.
                     $token->data .= '--';
                     $this->state = self::COMMENT_STATE;
-                    $this->data->unconsume();
+                    goto Reconsume;
                 }
             }
 
@@ -2378,7 +2384,7 @@ class Tokenizer {
                     # Emit the comment token.
                     $this->error(ParseError::INCORRECTLY_CLOSED_COMMENT);
                     $this->state = self::DATA_STATE;
-                    return $token;
+                    yield $token;
                 }
                 # EOF
                 elseif ($char === '') {
@@ -2386,12 +2392,9 @@ class Tokenizer {
                     # Emit the comment token.
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_COMMENT);
-                    // DEVIATION:
-                    // We cannot emit two tokens, so we switch to
-                    // the data state, which will emit the EOF token
-                    $this->state = self::DATA_STATE;
-                    $this->data->unconsume();
-                    return $token;
+                    yield $token;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -2401,7 +2404,7 @@ class Tokenizer {
                     # Reconsume in the comment state.
                     $token->data .= '--!';
                     $this->state = self::COMMENT_STATE;
-                    $this->data->unconsume();
+                    goto Reconsume;
                 }
             }
 
@@ -2421,7 +2424,7 @@ class Tokenizer {
                 elseif ($char === '>') {
                     # Reconsume in the before DOCTYPE name state.
                     $this->state = self::BEFORE_DOCTYPE_NAME_STATE;
-                    $this->data->unconsume();
+                    goto Reconsume;
                 }
                 # EOF
                 elseif ($char === '') {
@@ -2433,20 +2436,17 @@ class Tokenizer {
                     $this->error(ParseError::EOF_IN_DOCTYPE);
                     $token = new DOCTYPEToken();
                     $token->forceQuirks = true;
-                    // DEVIATION:
-                    // We cannot emit two tokens, so we switch to
-                    // the data state, which will emit the EOF token
-                    $this->state = self::DATA_STATE;
-                    $this->data->unconsume();
-                    return $token;
+                    yield $token;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
                     # This is a missing-whitespace-before-doctype-name parse error.
                     # Reconsume in the before DOCTYPE name state.
-                    $this->data->unconsume();
                     $this->error(ParseError::MISSING_WHITESPACE_BEFORE_DOCTYPE_NAME);
                     $this->state = self::BEFORE_DOCTYPE_NAME_STATE;
+                    goto Reconsume;
                 }
             }
 
@@ -2483,7 +2483,7 @@ class Tokenizer {
                     $token = new DOCTYPEToken();
                     $token->forceQuirks = true;
                     $this->state = self::DATA_STATE;
-                    return $token;
+                    yield $token;
                 }
                 # EOF
                 elseif ($char === '') {
@@ -2495,12 +2495,9 @@ class Tokenizer {
                     $this->error(ParseError::EOF_IN_DOCTYPE);
                     $token = new DOCTYPEToken();
                     $token->forceQuirks = true;
-                    // DEVIATION:
-                    // We cannot emit two tokens, so we switch to
-                    // the data state, which will emit the EOF token
-                    $this->state = self::DATA_STATE;
-                    $this->data->unconsume();
-                    return $token;
+                    yield $token;
+                    yield new EOFToken;
+                    return;
                 }
                 # ASCII upper alpha
                 # Anything else
@@ -2533,7 +2530,7 @@ class Tokenizer {
                     # Switch to the data state.
                     # Emit the current DOCTYPE token.
                     $this->state = self::DATA_STATE;
-                    return $token;
+                    yield $token;
                 }
                 // See below for ASCII upper alpha
                 # U+0000 NULL
@@ -2552,12 +2549,9 @@ class Tokenizer {
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_DOCTYPE);
                     $token->forceQuirks = true;
-                    // DEVIATION:
-                    // We cannot emit two tokens, so we switch to
-                    // the data state, which will emit the EOF token
-                    $this->state = self::DATA_STATE;
-                    $this->data->unconsume();
-                    return $token;
+                    yield $token;
+                    yield new EOFToken;
+                    return;
                 }
                 # ASCII upper alpha
                 # Anything else
@@ -2588,7 +2582,7 @@ class Tokenizer {
                     # Switch to the data state.
                     # Emit the current DOCTYPE token.
                     $this->state = self::DATA_STATE;
-                    return $token;
+                    yield $token;
                 }
                 # EOF
                 elseif ($char === '') {
@@ -2598,12 +2592,9 @@ class Tokenizer {
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_DOCTYPE);
                     $token->forceQuirks = true;
-                    // DEVIATION:
-                    // We cannot emit two tokens, so we switch to
-                    // the data state, which will emit the EOF token
-                    $this->state = self::DATA_STATE;
-                    $this->data->unconsume();
-                    return $token;
+                    yield $token;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -2631,10 +2622,10 @@ class Tokenizer {
                     # Set the DOCTYPE token's force-quirks flag to on.
                     # Reconsume in the bogus DOCTYPE state.
                     else {
-                        $this->data->unconsume();
                         $this->error(ParseError::INVALID_CHARACTER_SEQUENCE_AFTER_DOCTYPE_NAME);
                         $token->forceQuirks = true;
                         $this->state = self::BOGUS_DOCTYPE_STATE;
+                        goto Reconsume;
                     }
                 }
             }
@@ -2678,7 +2669,7 @@ class Tokenizer {
                     $this->error(ParseError::MISSING_DOCTYPE_PUBLIC_IDENTIFIER);
                     $token->forceQuirks = true;
                     $this->state = self::DATA_STATE;
-                    return $token;
+                    yield $token;
                 }
                 # EOF
                 elseif ($char === '') {
@@ -2688,22 +2679,19 @@ class Tokenizer {
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_DOCTYPE);
                     $token->forceQuirks = true;
-                    // DEVIATION:
-                    // We cannot emit two tokens, so we switch to
-                    // the data state, which will emit the EOF token
-                    $this->state = self::DATA_STATE;
-                    $this->data->unconsume();
-                    return $token;
+                    yield $token;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
                     # This is a missing-quote-before-doctype-public-identifier parse error.
                     # Set the DOCTYPE token's force-quirks flag to on.
                     # Reconsume in the bogus DOCTYPE state.
-                    $this->data->unconsume();
                     $this->error(ParseError::MISSING_QUOTE_BEFORE_DOCTYPE_PUBLIC_IDENTIFIER);
                     $token->forceQuirks = true;
                     $this->state = self::BOGUS_DOCTYPE_STATE;
+                    goto Reconsume;
                 }
             }
 
@@ -2741,7 +2729,7 @@ class Tokenizer {
                     $this->error(ParseError::MISSING_DOCTYPE_PUBLIC_IDENTIFIER);
                     $token->forceQuirks = true;
                     $this->state = self::DATA_STATE;
-                    return $token;
+                    yield $token;
                 }
                 # EOF
                 elseif ($char === '') {
@@ -2751,22 +2739,19 @@ class Tokenizer {
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_DOCTYPE);
                     $token->forceQuirks = true;
-                    // DEVIATION:
-                    // We cannot emit two tokens, so we switch to
-                    // the data state, which will emit the EOF token
-                    $this->state = self::DATA_STATE;
-                    $this->data->unconsume();
-                    return $token;
+                    yield $token;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
                     # This is a missing-quote-before-doctype-public-identifier parse error.
                     # Set the DOCTYPE token's force-quirks flag to on.
                     # Reconsume in the bogus DOCTYPE state.
-                    $this->data->unconsume();
                     $this->error(ParseError::MISSING_QUOTE_BEFORE_DOCTYPE_PUBLIC_IDENTIFIER);
                     $token->forceQuirks = true;
                     $this->state = self::BOGUS_DOCTYPE_STATE;
+                    goto Reconsume;
                 }
             }
 
@@ -2796,7 +2781,7 @@ class Tokenizer {
                     $this->error(ParseError::ABRUPT_DOCTYPE_PUBLIC_IDENTIFIER);
                     $token->forceQuirks = true;
                     $this->state = self::DATA_STATE;
-                    return $token;
+                    yield $token;
                 }
                 # EOF
                 elseif ($char === '') {
@@ -2806,12 +2791,9 @@ class Tokenizer {
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_DOCTYPE);
                     $token->forceQuirks = true;
-                    // DEVIATION:
-                    // We cannot emit two tokens, so we switch to
-                    // the data state, which will emit the EOF token
-                    $this->state = self::DATA_STATE;
-                    $this->data->unconsume();
-                    return $token;
+                    yield $token;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -2851,7 +2833,7 @@ class Tokenizer {
                     $this->error(ParseError::ABRUPT_DOCTYPE_PUBLIC_IDENTIFIER);
                     $token->forceQuirks = true;
                     $this->state = self::DATA_STATE;
-                    return $token;
+                    yield $token;
                 }
                 # EOF
                 elseif ($char === '') {
@@ -2861,12 +2843,9 @@ class Tokenizer {
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_DOCTYPE);
                     $token->forceQuirks = true;
-                    // DEVIATION:
-                    // We cannot emit two tokens, so we switch to
-                    // the data state, which will emit the EOF token
-                    $this->state = self::DATA_STATE;
-                    $this->data->unconsume();
-                    return $token;
+                    yield $token;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -2897,7 +2876,7 @@ class Tokenizer {
                     # Switch to the data state.
                     # Emit the current DOCTYPE token.
                     $this->state = self::DATA_STATE;
-                    return $token;
+                    yield $token;
                 }
                 # U+0022 QUOTATION MARK (")
                 elseif ($char === '"') {
@@ -2925,22 +2904,19 @@ class Tokenizer {
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_DOCTYPE);
                     $token->forceQuirks = true;
-                    // DEVIATION:
-                    // We cannot emit two tokens, so we switch to
-                    // the data state, which will emit the EOF token
-                    $this->state = self::DATA_STATE;
-                    $this->data->unconsume();
-                    return $token;
+                    yield $token;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
                     # This is a missing-quote-before-doctype-system-identifier parse error.
                     # Set the DOCTYPE token's force-quirks flag to on.
                     # Reconsume in the bogus DOCTYPE state.
-                    $this->data->unconsume();
                     $this->error(ParseError::MISSING_QUOTE_BEFORE_DOCTYPE_SYSTEM_IDENTIFIER);
                     $token->forceQuirks = true;
                     $this->state = self::BOGUS_DOCTYPE_STATE;
+                    goto Reconsume;
                 }
             }
 
@@ -2960,7 +2936,7 @@ class Tokenizer {
                     # Switch to the data state.
                     # Emit the current DOCTYPE token.
                     $this->state = self::DATA_STATE;
-                    return $token;
+                    yield $token;
                 }
                 # U+0022 QUOTATION MARK (")
                 elseif ($char === '"') {
@@ -2986,22 +2962,19 @@ class Tokenizer {
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_DOCTYPE);
                     $token->forceQuirks = true;
-                    // DEVIATION:
-                    // We cannot emit two tokens, so we switch to
-                    // the data state, which will emit the EOF token
-                    $this->state = self::DATA_STATE;
-                    $this->data->unconsume();
-                    return $token;
+                    yield $token;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
                     # This is a missing-quote-before-doctype-system-identifier parse error.
                     # Set the DOCTYPE token's force-quirks flag to on.
                     # Reconsume in the bogus DOCTYPE state.
-                    $this->data->unconsume();
                     $this->error(ParseError::MISSING_QUOTE_BEFORE_DOCTYPE_SYSTEM_IDENTIFIER);
                     $token->forceQuirks = true;
                     $this->state = self::BOGUS_DOCTYPE_STATE;
+                    goto Reconsume;
                 }
             }
 
@@ -3044,7 +3017,7 @@ class Tokenizer {
                     $this->error(ParseError::MISSING_DOCTYPE_SYSTEM_IDENTIFIER);
                     $token->forceQuirks = true;
                     $this->state = self::DATA_STATE;
-                    return $token;
+                    yield $token;
                 }
                 # EOF
                 elseif ($char === '') {
@@ -3054,22 +3027,19 @@ class Tokenizer {
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_DOCTYPE);
                     $token->forceQuirks = true;
-                    // DEVIATION:
-                    // We cannot emit two tokens, so we switch to
-                    // the data state, which will emit the EOF token
-                    $this->state = self::DATA_STATE;
-                    $this->data->unconsume();
-                    return $token;
+                    yield $token;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
                     # This is a missing-quote-before-doctype-system-identifier parse error.
                     # Set the DOCTYPE token's force-quirks flag to on.
                     # Reconsume in the bogus DOCTYPE state.
-                    $this->data->unconsume();
                     $this->error(ParseError::MISSING_QUOTE_BEFORE_DOCTYPE_SYSTEM_IDENTIFIER);
                     $token->forceQuirks = true;
                     $this->state = self::BOGUS_DOCTYPE_STATE;
+                    goto Reconsume;
                 }
             }
 
@@ -3109,7 +3079,7 @@ class Tokenizer {
                     $this->error(ParseError::MISSING_DOCTYPE_SYSTEM_IDENTIFIER);
                     $token->forceQuirks = true;
                     $this->state = self::DATA_STATE;
-                    return $token;
+                    yield $token;
                 }
                 # EOF
                 elseif ($char === '') {
@@ -3119,22 +3089,19 @@ class Tokenizer {
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_DOCTYPE);
                     $token->forceQuirks = true;
-                    // DEVIATION:
-                    // We cannot emit two tokens, so we switch to
-                    // the data state, which will emit the EOF token
-                    $this->state = self::DATA_STATE;
-                    $this->data->unconsume();
-                    return $token;
+                    yield $token;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
                     # This is a missing-quote-before-doctype-system-identifier parse error.
                     # Set the DOCTYPE token's force-quirks flag to on.
                     # Reconsume in the bogus DOCTYPE state.
-                    $this->data->unconsume();
                     $this->error(ParseError::MISSING_QUOTE_BEFORE_DOCTYPE_SYSTEM_IDENTIFIER);
                     $token->forceQuirks = true;
                     $this->state = self::BOGUS_DOCTYPE_STATE;
+                    goto Reconsume;
                 }
             }
 
@@ -3164,7 +3131,7 @@ class Tokenizer {
                     $this->error(ParseError::ABRUPT_DOCTYPE_SYSTEM_IDENTIFIER);
                     $token->forceQuirks = true;
                     $this->state = self::DATA_STATE;
-                    return $token;
+                    yield $token;
                 }
                 # EOF
                 elseif ($char === '') {
@@ -3174,12 +3141,9 @@ class Tokenizer {
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_DOCTYPE);
                     $token->forceQuirks = true;
-                    // DEVIATION:
-                    // We cannot emit two tokens, so we switch to
-                    // the data state, which will emit the EOF token
-                    $this->state = self::DATA_STATE;
-                    $this->data->unconsume();
-                    return $token;
+                    yield $token;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -3218,7 +3182,7 @@ class Tokenizer {
                     $this->error(ParseError::ABRUPT_DOCTYPE_SYSTEM_IDENTIFIER);
                     $token->forceQuirks = true;
                     $this->state = self::DATA_STATE;
-                    return $token;
+                    yield $token;
                 }
                 # EOF
                 elseif ($char === '') {
@@ -3228,12 +3192,9 @@ class Tokenizer {
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_DOCTYPE);
                     $token->forceQuirks = true;
-                    // DEVIATION:
-                    // We cannot emit two tokens, so we switch to
-                    // the data state, which will emit the EOF token
-                    $this->state = self::DATA_STATE;
-                    $this->data->unconsume();
-                    return $token;
+                    yield $token;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -3262,7 +3223,7 @@ class Tokenizer {
                     # Switch to the data state.
                     # Emit the current DOCTYPE token.
                     $this->state = self::DATA_STATE;
-                    return $token;
+                    yield $token;
                 }
                 # EOF
                 elseif ($char === '') {
@@ -3272,21 +3233,18 @@ class Tokenizer {
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_DOCTYPE);
                     $token->forceQuirks = true;
-                    // DEVIATION:
-                    // We cannot emit two tokens, so we switch to
-                    // the data state, which will emit the EOF token
-                    $this->state = self::DATA_STATE;
-                    $this->data->unconsume();
-                    return $token;
+                    yield $token;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
                     # This is an unexpected-character-after-doctype-system-identifier parse error.
                     # Reconsume in the bogus DOCTYPE state.
                     # (This does not set the DOCTYPE token's force-quirks flag to on.)
-                    $this->data->unconsume();
                     $this->error(ParseError::UNEXPECTED_CHARACTER_AFTER_DOCTYPE_SYSTEM_IDENTIFIER, $char);
                     $this->state = self::BOGUS_DOCTYPE_STATE;
+                    goto Reconsume;
                 }
             }
 
@@ -3299,7 +3257,7 @@ class Tokenizer {
                     # Switch to the data state.
                     # Emit the DOCTYPE token.
                     $this->state = self::DATA_STATE;
-                    return $token;
+                    yield $token;
                 }
                 # U+0000 NULL
                 elseif ($char === "\0") {
@@ -3311,13 +3269,9 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Emit the DOCTYPE token.
                     # Emit an end-of-file token.
-
-                    // DEVIATION:
-                    // We cannot emit two tokens, so we switch to
-                    // the data state, which will emit the EOF token
-                    $this->state = self::DATA_STATE;
-                    $this->data->unconsume();
-                    return $token;
+                    yield $token;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 # Ignore the character.
@@ -3337,7 +3291,8 @@ class Tokenizer {
                     # This is an eof-in-cdata parse error.
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_CDATA);
-                    return new EOFToken;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
@@ -3348,11 +3303,11 @@ class Tokenizer {
                     // to loop back through here every single time; only null characters
                     // are emitted singly
                     if ($char === "\0") {
-                        return new CharacterToken($char);
+                        yield new CharacterToken($char);
                     } elseif (strspn($char, Data::WHITESPACE)) {
-                        return new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
+                        yield new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
                     } else {
-                        return new CharacterToken($char.$this->data->consumeUntil("]\0"));
+                        yield new CharacterToken($char.$this->data->consumeUntil("]\0"));
                     }
                 }
             }
@@ -3371,8 +3326,8 @@ class Tokenizer {
                     # Emit a U+005D RIGHT SQUARE BRACKET character token.
                     # Reconsume in the CDATA section state.
                     $this->state = self::CDATA_SECTION_STATE;
-                    $this->data->unconsume();
-                    return new CharacterToken(']');
+                    yield new CharacterToken(']');
+                    goto Reconsume;
                 }
             }
 
@@ -3385,7 +3340,7 @@ class Tokenizer {
                     # Emit a U+005D RIGHT SQUARE BRACKET character token.
 
                     // OTPIMIZATION: Consume any additional right square brackets
-                    return new CharacterToken(']'.$this->data->consumeWhile(']'));
+                    yield new CharacterToken(']'.$this->data->consumeWhile(']'));
                 }
                 # U+003E GREATER-THAN SIGN character
                 elseif ($char === '>') {
@@ -3397,8 +3352,8 @@ class Tokenizer {
                     # Emit two U+005D RIGHT SQUARE BRACKET character tokens.
                     # Reconsume in the CDATA section state.
                     $this->state = self::CDATA_SECTION_STATE;
-                    $char = $this->data->unconsume();
-                    return new CharacterToken(']]');
+                    yield new CharacterToken(']]');
+                    goto Reconsume;
                 }
             }
 

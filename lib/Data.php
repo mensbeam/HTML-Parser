@@ -18,7 +18,7 @@ class Data {
     // Used for error reporting to display line number.
     protected $_line = 1;
     // Used for error reporting to display column number.
-    protected $_column = 1;
+    protected $_column = 0;
     // array of normalized CR+LF pairs, denoted by the character offset of the LF
     protected $normalized = [];
     // Holds the character position and column number of each newline
@@ -102,12 +102,13 @@ class Data {
         // track line and column number, and EOF
         if ($char === "\n") {
             $this->newlines[$this->data->posChar()] = $this->_column;
-            $this->_column = 1;
+            $this->_column = 0;
             $this->_line++;
         } elseif ($char === '') {
             $this->eof = true;
             return false;
         } else {
+            $this->_column++;
             $len = strlen($char);    
             $here = $this->data->posChar();
             if ($this->lastError < $here) {
@@ -150,14 +151,8 @@ class Data {
                         $this->error(ParseError::NONCHARACTER_IN_INPUT_STREAM);
                         $this->lastError = $here;
                     }
+                    $this->astrals[$here] = true;
                 }
-            }
-            $this->_column++;
-            if ($len === 4) {
-                // If the character is on a supplementary Unicode plane, 
-                //  it counts as two columns for the purposes of error reporting
-                $this->astrals[$here] = true;
-                $this->_column++;
             }
         }
         return true;
@@ -226,7 +221,13 @@ class Data {
     /** Returns an indexed array with the line and column positions of the requested offset from the current position */
     public function whereIs(int $relativePos): array {
         if ($relativePos === 0) {
-            return [$this->_line, $this->_column];
+            if (!$this->_column && $this->_line > 1) {
+                return [$this->_line - 1, $this->newlines[$this->data->posChar()] + 1];
+            } elseif ($this->astrals[$this->data->posChar()] ?? false) {
+                return [$this->_line, $this->_column + 1];
+            } else {
+                return [$this->_line, $this->_column];
+            }
         } elseif ($relativePos < 0) {
             $pos = $this->data->posChar();
             $line = $this->_line;
@@ -252,6 +253,8 @@ class Data {
                 $pos--;
             } while (++$relativePos < 0);
             return [$line, $col];
+        } else {
+            return [$this->_line, $this->_column + $relativePos];
         }
     }
 
