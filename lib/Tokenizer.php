@@ -292,7 +292,7 @@ class Tokenizer {
                     # This is an unexpected-null-character parse error.
                     # Emit the current input character as a character token.
                     $this->error(ParseError::UNEXPECTED_NULL_CHARACTER);
-                    yield new CharacterToken($char);
+                    yield new NullCharacterToken($char);
                 }
                 # EOF
                 elseif ($char === '') {
@@ -3301,7 +3301,7 @@ class Tokenizer {
                     // to loop back through here every single time; only null characters
                     // are emitted singly
                     if ($char === "\0") {
-                        yield new CharacterToken($char);
+                        yield new NullCharacterToken($char);
                     } elseif (strspn($char, Data::WHITESPACE)) {
                         yield new WhitespaceToken($char.$this->data->consumeWhile(Data::WHITESPACE_SAFE));
                     } else {

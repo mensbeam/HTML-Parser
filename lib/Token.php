@@ -41,6 +41,8 @@ class CharacterToken extends DataToken {
 
 class WhitespaceToken extends CharacterToken {}
 
+class NullCharacterToken extends CharacterToken {}
+
 class CommentToken extends DataToken {
     public const NAME = "Comment token";
 

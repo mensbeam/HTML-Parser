@@ -1041,7 +1041,7 @@ class TreeBuilder {
         # 13.2.6.4.7. The "in body" insertion mode
         elseif ($insertionMode === self::IN_BODY_MODE) {
             # A character token that is U+0000 NULL
-            if ($token instanceof CharacterToken && $token->data === "\0") {
+            if ($token instanceof NullCharacterToken) {
                 # Parse error. Ignore the token
                 // DEVIATION: the parse error is already reported by the tokenizer; 
                 // this is probably an oversight in the specification, so we don't
@@ -2191,7 +2191,7 @@ class TreeBuilder {
         # 13.2.6.4.10 The "in table text" insertion mode
         elseif ($insertionMode === self::IN_TABLE_TEXT_MODE) {
             # A character token that is U+0000 NULL
-            if ($token instanceof CharacterToken && $token->data === "\0") {
+            if ($token instanceof NullCharacterToken) {
                 # Parse error. Ignore the token.
                 $this->error(ParseError::UNEXPECTED_NULL_CHARACTER);
             }
@@ -2216,6 +2216,8 @@ class TreeBuilder {
                 #   in the pending table character tokens list using the rules
                 #   given in the "anything else" entry in the "in table"
                 #   insertion mode.
+                // NOTE: This is efectively the same as reprocessing in the
+                //   "in body" mode
                 if (!$ws) {
                     $this->error(ParseError::UNEXPECTED_CHAR);
                     $this->fosterParenting = true;
@@ -2674,7 +2676,7 @@ class TreeBuilder {
         # 13.2.6.4.16 The "in select" insertion mode
         elseif ($insertionMode === self::IN_SELECT_MODE) {
             # A character token that is U+0000 NULL
-            if ($token instanceof CharacterToken && $token->data === "\0") {
+            if ($token instanceof NullCharacterToken) {
                 # Parse error. Ignore the token.
                 $this->error(ParseError::UNEXPECTED_NULL_CHARACTER);
             }
@@ -3576,7 +3578,7 @@ class TreeBuilder {
 
 
         # A character token that is U+0000 NULL
-        if ($token instanceof CharacterToken && $token->data === "\0") {
+        if ($token instanceof NullCharacterToken) {
             # Parse error. Insert a U+FFFD REPLACEMENT CHARACTER character.
             // DEVIATION: Parse errors for null characters are already emitted by the tokenizer
             $this->insertCharacterToken(new CharacterToken("\u{FFFD}"));

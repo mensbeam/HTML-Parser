@@ -11,6 +11,7 @@ use dW\HTML5\CharacterToken;
 use dW\HTML5\CommentToken;
 use dW\HTML5\DOCTYPEToken;
 use dW\HTML5\EndTagToken;
+use dW\HTML5\NullCharacterToken;
 use dW\HTML5\StartTagToken;
 use dW\HTML5\WhitespaceToken;
 
@@ -61,7 +62,12 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
         $actual = [];
         try {
             foreach ($tokenizer->tokenize() as $t) {
-                assert(!$t instanceof CharacterToken || ($t instanceof WhitespaceToken && strspn($t->data, Data::WHITESPACE) === strlen($t->data)) || strspn($t->data, Data::WHITESPACE) === 0, new \Exception("Character token must either consist only of whitespace, or start with other than whitespace: ".var_export($t->data ?? "''", true)));
+                assert(
+                    (!$t instanceof CharacterToken)
+                    || ($t instanceof NullCharacterToken && $t->data === "\0")
+                    || ($t instanceof WhitespaceToken && strspn($t->data, Data::WHITESPACE) === strlen($t->data))
+                    || ($t->data !== "\0" && strspn($t->data, Data::WHITESPACE) === 0)
+                , new \Exception("Character token must either consist of a single null character, consist only of whitespace, or start with other than whitespace: ".get_class($t)." ".var_export($t->data ?? "''", true)));
                 $actual[] = $t;
             }
         } finally {
@@ -99,7 +105,7 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
         foreach ($tokens as $t) {
             if ($t instanceof CharacterToken) {
                 if (!$pending) {
-                    if ($t instanceof WhitespaceToken) {
+                    if ($t instanceof WhitespaceToken || $t instanceof NullCharacterToken) {
                         $t = new CharacterToken($t->data);
                     }
                     $pending = $t;
