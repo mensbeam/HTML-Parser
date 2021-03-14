@@ -23,12 +23,32 @@ trait Serialize {
             $node = $node->content;
         }
 
-        # 3. For each child node of the node, in tree order, run the following steps:
-        for ($i = 0; $i < $node->childNodes->length; $i++) {
-            # 1. Let current node be the child node being processed.
-            # 2. Append the appropriate string from the following list to s:
-            // Implementing this by allowing each of the node types to serialize themselves.
-            $s .= $node->childNodes->item($i);
+        $nodesLength = $node->childNodes->length;
+        if ($nodesLength > 0) {
+            // If the provided node is a document node and the first element in
+            // the tree is a document type then print the document type. There's
+            // no sense in checking for this on every single element in the tree.
+            // If the document type is present it will always be the first node
+            // because of how PHP's XML DOM works.
+            $start = 0;
+            if ($node->nodeType === XML_DOCUMENT_NODE && $node->childNodes->item(0)->nodeType === XML_DOCUMENT_TYPE_NODE) {
+                # Append the literal string "<!DOCTYPE" (U+003C LESS-THAN SIGN, U+0021
+                # EXCLAMATION MARK, U+0044 LATIN CAPITAL LETTER D, U+004F LATIN CAPITAL LETTER
+                # O, U+0043 LATIN CAPITAL LETTER C, U+0054 LATIN CAPITAL LETTER T, U+0059
+                # LATIN CAPITAL LETTER Y, U+0050 LATIN CAPITAL LETTER P, U+0045 LATIN CAPITAL
+                # LETTER E), followed by a space (U+0020 SPACE), followed by the value of
+                # current node's name IDL attribute, followed by the literal string ">" (U+003E
+                # GREATER-THAN SIGN).
+                $s .= "<!DOCTYPE {$node->childNodes->item(0)->name}>";
+                $start = 1;
+            }
+
+            # 3. For each child node of the node, in tree order, run the following steps:
+            for ($i = $start; $i < $nodesLength; $i++) {
+                # 1. Let current node be the child node being processed.
+                # 2. Append the appropriate string from the following list to s:
+                $s .= $node->childNodes->item($i);
+            }
         }
 
         # 4. The result of the algorithm is the string s.
