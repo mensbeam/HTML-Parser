@@ -91,7 +91,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         $this->assertEquals($exp, $act, $treeBuilder->debugLog);
         if ($errors !== false) {
             // If $errors is false, the test does not include errors when there are in fact errors
-            //$this->assertCount(sizeof($errors), $actualErrors, var_export($errors, true).var_export($actualErrors, true));
+            $this->assertCount(sizeof($errors), $actualErrors, var_export($errors, true).var_export($actualErrors, true));
         }
     }
 

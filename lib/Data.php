@@ -220,11 +220,15 @@ class Data {
 
     /** Returns an indexed array with the line and column positions of the requested offset from the current position */
     public function whereIs(int $relativePos): array {
+        if ($this->eof) {
+            $relativePos++;
+            if ($this->astrals[$this->data->posChar()] ?? false) {
+                $relativePos++;
+            }
+        }
         if ($relativePos === 0) {
             if (!$this->_column && $this->_line > 1) {
                 return [$this->_line - 1, $this->newlines[$this->data->posChar()] + 1];
-            } elseif ($this->astrals[$this->data->posChar()] ?? false) {
-                return [$this->_line, $this->_column + 1];
             } else {
                 return [$this->_line, $this->_column];
             }

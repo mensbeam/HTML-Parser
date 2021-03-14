@@ -146,12 +146,6 @@ class ParseError {
     ];
 
     const REPORT_OFFSETS = [
-        self::EOF_IN_TAG                                       => 1,
-        self::EOF_IN_COMMENT                                   => 1,
-        self::EOF_IN_DOCTYPE                                   => 1,
-        self::EOF_BEFORE_TAG_NAME                              => 1,
-        self::EOF_IN_SCRIPT_HTML_COMMENT_LIKE_TEXT             => 1,
-        self::EOF_IN_CDATA                                     => 1,
         self::INCORRECTLY_OPENED_COMMENT                       => 1,
         self::SURROGATE_CHARACTER_REFERENCE                    => 1,
         self::CHARACTER_REFERENCE_OUTSIDE_UNICODE_RANGE        => 1,
@@ -159,7 +153,8 @@ class ParseError {
         self::ABSENCE_OF_DIGITS_IN_NUMERIC_CHARACTER_REFERENCE => 1,
         self::NULL_CHARACTER_REFERENCE                         => 1,
         self::MISSING_SEMICOLON_AFTER_CHARACTER_REFERENCE      => 1,
-
+        self::CONTROL_CHARACTER_REFERENCE                      => 1,
+        self::UNKNOWN_NAMED_CHARACTER_REFERENCE                => 1,
     ];
 
     public function setHandler() {
