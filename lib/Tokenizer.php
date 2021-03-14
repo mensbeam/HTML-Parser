@@ -561,11 +561,9 @@ class Tokenizer {
                     # Emit a U+003C LESS-THAN SIGN character token, a U+002F SOLIDUS character token and an end-of-file token.
                     // Making errors more expressive.
                     $this->error(ParseError::EOF_BEFORE_TAG_NAME);
-                    // DEVIATION:
-                    // We cannot emit two tokens, so we switch to
-                    // the data state, which will emit the EOF token
-                    $this->state = self::DATA_STATE;
                     yield new CharacterToken('</');
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
