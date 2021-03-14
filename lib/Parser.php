@@ -35,9 +35,7 @@ class Parser {
         $errorHandler->setHandler();
         try {
             // run the parser to completion
-            foreach ($tokenList as $token) {
-                $treeBuilder->emitToken($token);
-            }
+            $treeBuilder->constructTree();
         } finally {
             // Restore error handling
             $errorHandler->clearHandler();

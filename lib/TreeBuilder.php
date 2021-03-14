@@ -288,76 +288,61 @@ class TreeBuilder {
         }
     }
 
-    public function emitToken(Token $token): void {
-        assert((function() use ($token) {
-            $this->debugLog .= "EMITTED: ".constant(get_class($token)."::NAME")."\n";
-            return true;
-        })());
+    public function constructTree(): void {
+        foreach ($this->tokenList as $token) {
+            assert((function() use ($token) {
+                $this->debugLog .= "EMITTED: ".constant(get_class($token)."::NAME")."\n";
+                return true;
+            })());
 
-        // If element name coercison has occurred at some earlier point,
-        //   we must coerce all end tag names to match mangled start tags
-        if ($token instanceof EndTagToken && $this->DOM->mangledElements) {
-            $token->name = $this->coerceName($token->name);
-        }
-        // Loop used for reprocessing.
-        $iterations = 0;
-        while (true) {
-            assert($iterations++ < 50, new LoopException("Probable infinite loop detected in HTML content handling (outer reprocessing)"));
+            // If element name coercison has occurred at some earlier point,
+            //   we must coerce all end tag names to match mangled start tags
+            if ($token instanceof EndTagToken && $this->DOM->mangledElements) {
+                $token->name = $this->coerceName($token->name);
+            }
+            ProcessToken:
             $adjustedCurrentNode = $this->stack->adjustedCurrentNode;
             $adjustedCurrentNodeName = $this->stack->adjustedCurrentNodeName;
-            assert(!$adjustedCurrentNode || $adjustedCurrentNodeName, new \Exception("The adjusted current node must have a name if not null"));
             $adjustedCurrentNodeNamespace = $this->stack->adjustedCurrentNodeNamespace;
 
             # 13.2.6 Tree construction
             #
             # As each token is emitted from the tokenizer, the user agent must follow the
-            # appropriate steps from the following list, known as the tree construction dispatcher:
-            #
-            # If the stack of open elements is empty
-            if (count($this->stack) === 0 ||
+            # appropriate steps from the following list, known as the tree construction dispatcher:            
+            if (
+                # If the stack of open elements is empty
+                !$this->stack->currentNode
                 # If the adjusted current node is an element in the HTML namespace
-                // PHP's DOM returns null when the namespace isn't specified... eg. HTML.
-                is_null($adjustedCurrentNodeNamespace) || (
-                        # If the adjusted current node is a MathML text integration point and the token is a
-                        # start tag whose tag name is neither "mglyph" nor "malignmark"
-                        # If the adjusted current node is a MathML text integration point and the token is a
-                        # character token
-                        $adjustedCurrentNode->isMathMLTextIntegrationPoint() && ((
-                                $token instanceof StartTagToken && (
-                                    $token->name !== 'mglyph' && $token->name !== 'malignmark'
-                                ) ||
-                                $token instanceof CharacterToken
-                            )
-                        )
-                    ) || (
-                        # If the adjusted current node is an annotation-xml element in the MathML namespace and
-                        # the token is a start tag whose tag name is "svg"
-                        $adjustedCurrentNodeNamespace === Parser::MATHML_NAMESPACE &&
-                        $adjustedCurrentNodeName === 'annotation-xml' &&
-                        $token instanceof StartTagToken &&
-                        $token->name === 'svg'
-                    ) || (
-                        # If the adjusted current node is an HTML integration point and the token is a start tag
-                        # If the adjusted current node is an HTML integration point and the token is a character
-                        # token
-                        $adjustedCurrentNode->isHTMLIntegrationPoint() && (
-                            $token instanceof StartTagToken || $token instanceof CharacterToken
-                        )
-                    ) ||
-                    # If the token is an end-of-file token
-                    $token instanceof EOFToken) {
-                # Process the token according to the rules given in the section corresponding to
-                # the current insertion mode in HTML content.
+                // DEVIATION: For the purposes of this implementation the HTML namespace is null
+                //   rather than the XHTML namespace
+                || $adjustedCurrentNodeNamespace === null
+                # If the adjusted current node is a MathML text integration
+                #   point and the token is a start tag whose tag name is
+                #   neither "mglyph" nor "malignmark"
+                # If the adjusted current node is a MathML text integration
+                #   point and the token is a character token
+                || ($adjustedCurrentNode->isMathMLTextIntegrationPoint() && (($token instanceof StartTagToken && ($token->name !== 'mglyph' && $token->name !== 'malignmark') || $token instanceof CharacterToken)))
+                # If the adjusted current node is an annotation-xml element
+                #   in the MathML namespace and the token is a start tag
+                #   whose tag name is "svg"
+                || ($adjustedCurrentNodeNamespace === Parser::MATHML_NAMESPACE && $adjustedCurrentNodeName === 'annotation-xml' && $token instanceof StartTagToken && $token->name === 'svg')
+                # If the adjusted current node is an HTML integration point
+                #   and the token is a start tag
+                # If the adjusted current node is an HTML integration point
+                #   and the token is a character token
+                || ($adjustedCurrentNode->isHTMLIntegrationPoint() && ($token instanceof StartTagToken || $token instanceof CharacterToken))
+                # If the token is an end-of-file token
+                || $token instanceof EOFToken
+            ) {
+                # Process the token according to the rules given in the section
+                #   corresponding to the current insertion mode in HTML content.
                 $this->parseTokenInHTMLContent($token);
             }
             # Otherwise
             else {
-                # Process the token according to the rules given in the section for parsing
-                # tokens in foreign content.
-                // Returns false when needing to reprocess.
-                if ($this->parseTokenInForeignContent($token) === false) {
-                    continue;
-                }
+                # Process the token according to the rules given in the section
+                # for parsing tokens in foreign content.
+                $this->parseTokenInForeignContent($token);
             }
             # When a start tag token is emitted with its self-closing flag set, if the flag
             #   is not acknowledged when it is processed by the tree construction stage, that
@@ -365,7 +350,6 @@ class TreeBuilder {
             if ($token instanceof StartTagToken && $token->selfClosing && !$token->selfClosingAcknowledged) {
                 $this->error(ParseError::NON_VOID_HTML_ELEMENT_START_TAG_WITH_TRAILING_SOLIDUS, $token->name);
             }
-            break;
         }
     }
 
@@ -624,7 +608,8 @@ class TreeBuilder {
             # A start tag whose tag name is "html"
             elseif ($token instanceof StartTagToken && $token->name === 'html') {
                 # Process the token using the rules for the "in body" insertion mode.
-                return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+                $insertionMode = self::IN_BODY_MODE;
+                goto ProcessToken;
             }
             # A start tag whose tag name is "head"
             elseif ($token instanceof StartTagToken && $token->name === 'head') {
@@ -679,7 +664,8 @@ class TreeBuilder {
                 # A start tag whose tag name is "html"
                 if ($token->name === 'html') {
                     # Process the token using the rules for the "in body" insertion mode.
-                    return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+                    $insertionMode = self::IN_BODY_MODE;
+                    goto ProcessToken;
                 }
                 # A start tag whose tag name is one of: "base", "basefont", "bgsound", "link"
                 elseif ($token->name === 'base' || $token->name === 'basefont' || $token->name === 'bgsound' || $token->name === 'link') {
@@ -872,13 +858,15 @@ class TreeBuilder {
                 # A start tag whose tag name is "html"
                 if ($token->name === 'html') {
                     # Process the token using the rules for the "in body" insertion mode.
-                    return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+                    $insertionMode = self::IN_BODY_MODE;
+                    goto ProcessToken;
                 }
                 # A start tag whose tag name is one of: "basefont", "bgsound", "link", "meta",
                 # "noframes", "style"
                 elseif ($token->name === 'basefont' || $token->name === 'bgsound' || $token->name === 'link' || $token->name === 'meta' || $token->name === 'noframes' || $token->name === 'style'){
                     # Process the token using the rules for the "in head" insertion mode.
-                    return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
+                    $insertionMode = self::IN_HEAD_MODE;
+                    goto ProcessToken;
                 }
                 # A start tag whose tag name is one of: "head", "noscript"
                 elseif ($token->name === 'head' || $token->name === 'noscript') {
@@ -920,7 +908,8 @@ class TreeBuilder {
             # A comment token
             elseif ($token instanceof CommentToken || $token instanceof WhitespaceToken) {
                 # Process the token using the rules for the "in head" insertion mode.
-                return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
+                $insertionMode = self::IN_HEAD_MODE;
+                goto ProcessToken;
             }
             # Anything else
             else {
@@ -966,7 +955,8 @@ class TreeBuilder {
                 # A start tag whose tag name is "html"
                 if ($token->name === 'html') {
                     # Process the token using the rules for the "in body" insertion mode.
-                    return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+                    $insertionMode = self::IN_BODY_MODE;
+                    goto ProcessToken;
                 }
                 # A start tag whose tag name is "body"
                 elseif ($token->name === 'body') {
@@ -1018,7 +1008,8 @@ class TreeBuilder {
                 # An end tag whose tag name is "template"
                 if ($token->name === 'template') {
                     # Process the token using the rules for the "in head" insertion mode.
-                    return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
+                    $insertionMode = self::IN_HEAD_MODE;
+                    goto ProcessToken;
                 }
                 # An end tag whose tag name is one of: "body", "html", "br"
                 elseif ($token->name === 'body' || $token->name === 'html' || $token->name === 'br') {
@@ -1107,7 +1098,8 @@ class TreeBuilder {
                 # "meta", "noframes", "script", "style", "template", "title"
                 elseif ($token->name === 'base' || $token->name === 'basefont' || $token->name === 'bgsound' || $token->name === 'link' || $token->name === 'meta' || $token->name === 'noframes' || $token->name === 'script' || $token->name === 'style' || $token->name === 'template' || $token->name === 'title') {
                     # Process the token using the rules for the "in head" insertion mode.
-                    return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
+                    $insertionMode = self::IN_HEAD_MODE;
+                    goto ProcessToken;
                 }
                 # A start tag whose tag name is "body"
                 elseif ($token->name === 'body') {
@@ -1669,7 +1661,8 @@ class TreeBuilder {
                 # An end tag whose tag name is "template"
                 if ($token->name === 'template') {
                     # Process the token using the rules for the "in head" insertion mode.
-                    return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
+                    $insertionMode = self::IN_HEAD_MODE;
+                    goto ProcessToken;
                 }
                 # An end tag whose tag name is "body"
                 # An end tag whose tag name is "html"
@@ -1889,7 +1882,8 @@ class TreeBuilder {
                     #   in the next entry; i.e. act as if this was a "br" start tag token with
                     #   no attributes, rather than the end tag token that it actually is.
                     $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
-                    return $this->parseTokenInHTMLContent(new StartTagToken("br"), $insertionMode);
+                    $token = new StartTagToken("br");
+                    goto ProcessToken;
                 }
                 # Any other end tag
                 else {
@@ -1925,7 +1919,8 @@ class TreeBuilder {
             elseif ($token instanceof EOFToken) {
                 # If the stack of template insertion modes is not empty, then process the token using the rules for the "in template" insertion mode.
                 if (count($this->templateInsertionModes) !== 0) {
-                    return $this->parseTokenInHTMLContent($token, self::IN_TEMPLATE_MODE);
+                    $insertionMode = self::IN_TEMPLATE_MODE;
+                    goto ProcessToken;
                 }
 
                 # Otherwise, follow these steps:
@@ -2079,7 +2074,8 @@ class TreeBuilder {
                 # A start tag whose tag name is one of: "style", "script", "template"
                 elseif ($token->name === "style" || $token->name === "script" || $token->name === "template") {
                     # Process the token using the rules for the "in head" insertion mode.
-                    return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
+                    $insertionMode = self::IN_HEAD_MODE;
+                    goto ProcessToken;
                 }
                 # A start tag whose tag name is "input"
                 elseif ($token->name === "input") {
@@ -2158,7 +2154,8 @@ class TreeBuilder {
                 elseif ($token->name === "template") {
                     # Process the token using the rules for the "in head"
                     #   insertion mode.
-                    return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
+                    $insertionMode = self::IN_HEAD_MODE;
+                    goto ProcessToken;
                 }
                 // Any other end tag
                 else {
@@ -2169,7 +2166,8 @@ class TreeBuilder {
             elseif ($token instanceof EOFToken) {
                 # Process the token using the rules for the "in body"
                 #   insertion mode.
-                return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+                $insertionMode = self::IN_BODY_MODE;
+                goto ProcessToken;
             }
             # Anything else
             else {
@@ -2313,7 +2311,8 @@ class TreeBuilder {
             # Anything else
             else {
                 # Process the token using the rules for the "in body" insertion mode.
-                return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+                $insertionMode = self::IN_BODY_MODE;
+                goto ProcessToken;
             }
         }
         # 13.2.6.4.12 The "in column group" insertion mode
@@ -2339,7 +2338,8 @@ class TreeBuilder {
             elseif ($token instanceof StartTagToken && $token->name === "html") {
                 # Process the token using the rules for the "in body"
                 #   insertion mode.
-                return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+                $insertionMode = self::IN_BODY_MODE;
+                goto ProcessToken;
             }
             # A start tag whose tag name is "col"
             elseif ($token instanceof StartTagToken && $token->name === "col") {
@@ -2374,13 +2374,15 @@ class TreeBuilder {
             elseif ($token instanceof TagToken && $token->name === "template") {
                 # Process the token using the rules for
                 #   the "in head" insertion mode.
-                return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
+                $insertionMode = self::IN_HEAD_MODE;
+                goto ProcessToken;
             }
             # An end-of-file token
             elseif ($token instanceof EOFToken) {
                 # Process the token using the rules for
                 #   the "in body" insertion mode.
-                return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+                $insertionMode = self::IN_BODY_MODE;
+                goto ProcessToken;
             }
             # Anything else
             else {
@@ -2487,7 +2489,8 @@ class TreeBuilder {
             else {
                 # Process the token using the rules for
                 # the "in table" insertion mode.
-                return $this->parseTokenInHTMLContent($token, self::IN_TABLE_MODE);
+                $insertionMode = self::IN_TABLE_MODE;
+                goto ProcessToken;
             }
         }
         # 13.2.6.4.14 The "in row" insertion mode
@@ -2588,7 +2591,8 @@ class TreeBuilder {
             else {
                 # Process the token using the rules for the
                 #   "in table" insertion mode.
-                return $this->parseTokenInHTMLContent($token, self::IN_TABLE_MODE);
+                $insertionMode = self::IN_TABLE_MODE;
+                goto ProcessToken;
             }
         }
         # 13.2.6.4.15 The "in cell" insertion mode
@@ -2663,7 +2667,8 @@ class TreeBuilder {
             else {
                 # Process the token using the rules for
                 #   the "in body" insertion mode.
-                return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+                $insertionMode = self::IN_BODY_MODE;
+                goto ProcessToken;
             }
         }
         # 13.2.6.4.16 The "in select" insertion mode
@@ -2693,7 +2698,8 @@ class TreeBuilder {
                 # A start tag whose tag name is "html"
                 if ($token->name === "html") {
                     # Process the token using the rules for the "in body" insertion mode.
-                    return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+                    $insertionMode = self::IN_BODY_MODE;
+                    goto ProcessToken;
                 }
                 # A start tag whose tag name is "option"
                 elseif ($token->name === "option") {
@@ -2762,7 +2768,8 @@ class TreeBuilder {
                 elseif ($token->name === "script" || $token->name === "template") {
                     # Process the token using the rules for the
                     # "in head" insertion mode.
-                    return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
+                    $insertionMode = self::IN_HEAD_MODE;
+                    goto ProcessToken;
                 }
                 // Any other start tag
                 else {
@@ -2775,7 +2782,8 @@ class TreeBuilder {
                 # An end tag whose tag name is "template"
                 if ($token->name === "tenplate") {
                     # Process the token using the rules for the "in head" insertion mode.
-                    return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
+                    $insertionMode = self::IN_HEAD_MODE;
+                    goto ProcessToken;
                 }
                 # An end tag whose tag name is "optgroup"
                 elseif ($token->name === "optgroup") {
@@ -2834,7 +2842,8 @@ class TreeBuilder {
             # An end-of-file token
             elseif ($token instanceof EOFToken) {
                 # Process the token using the rules for the "in body" insertion mode.
-                return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+                $insertionMode = self::IN_BODY_MODE;
+                goto ProcessToken;
             }
             # Anything else
             else {
@@ -2884,7 +2893,8 @@ class TreeBuilder {
             else {
                 # Process the token using the rules for the
                 #   "in select" insertion mode.
-                return $this->parseTokenInHTMLContent($token, self::IN_SELECT_MODE);
+                $insertionMode = self::IN_SELECT_MODE;
+                goto ProcessToken;
             }
         }
         # 13.2.6.4.18 The "in template" insertion mode
@@ -2895,7 +2905,8 @@ class TreeBuilder {
             if ($token instanceof CharacterToken || $token instanceof CommentToken || $token instanceof DOCTYPEToken) {
                 # Process the token using the rules for the
                 #   "in body" insertion mode.
-                return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+                $insertionMode = self::IN_BODY_MODE;
+                goto ProcessToken;
             }
             # A start tag...
             elseif ($token instanceof StartTagToken) {
@@ -2905,7 +2916,8 @@ class TreeBuilder {
                 if (in_array($token->name, ["base", "basefont", "bgsound", "link", "meta", "noframes", "script", "style", "template", "title"])) {
                     # Process the token using the rules for the
                     #   "in head" insertion mode.
-                    return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
+                    $insertionMode = self::IN_HEAD_MODE;
+                    goto ProcessToken;
                 }
                 # A start tag whose tag name is one of: "caption",
                 #   "colgroup", "tbody", "tfoot", "thead"
@@ -2983,7 +2995,8 @@ class TreeBuilder {
             elseif ($token instanceof EndTagToken && $token->name === "template") {
                 # Process the token using the rules for the
                 #   "in head" insertion mode.
-                return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
+                $insertionMode = self::IN_HEAD_MODE;
+                goto ProcessToken;
             }
             # Any other end tag
             elseif ($token instanceof EndTagToken) {
@@ -3024,7 +3037,8 @@ class TreeBuilder {
             if ($token instanceof WhitespaceToken) {
                 # Process the token using the rules for
                 #   the "in body" insertion mode.
-                return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+                $insertionMode = self::IN_BODY_MODE;
+                goto ProcessToken;
             }
             # A comment token
             elseif ($token instanceof CommentToken) {
@@ -3041,7 +3055,8 @@ class TreeBuilder {
             elseif ($token instanceof StartTagToken && $token->name === "html") {
                 # Process the token using the rules for
                 #   the "in body" insertion mode.
-                return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+                $insertionMode = self::IN_BODY_MODE;
+                goto ProcessToken;
             }
             # An end tag whose tag name is "html"
             elseif ($token instanceof EndTagToken && $token->name === "html") {
@@ -3104,7 +3119,8 @@ class TreeBuilder {
                 if ($token->name === "html") {
                     # Process the token using the rules for
                     #   the "in body" insertion mode.
-                    return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+                    $insertionMode = self::IN_BODY_MODE;
+                    goto ProcessToken;
                 }
                 # A start tag whose tag name is "frameset"
                 elseif ($token->name === "frameset") {
@@ -3124,7 +3140,8 @@ class TreeBuilder {
                 elseif ($token->name === "noframes") {
                     # Process the token using the rules
                     #   for the "in head" insertion mode.
-                    return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
+                    $insertionMode = self::IN_HEAD_MODE;
+                    goto ProcessToken;
                 }
                 // Any other start tag
                 else {
@@ -3204,7 +3221,8 @@ class TreeBuilder {
             elseif ($token instanceof StartTagToken && $token->name === "html") {
                 # Process the token using the rules for
                 #   the "in body" insertion mode.
-                return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+                $insertionMode = self::IN_BODY_MODE;
+                goto ProcessToken;
             }
             # An end tag whose tag name is "html"
             elseif ($token instanceof EndTagToken && $token->name === "html") {
@@ -3215,7 +3233,8 @@ class TreeBuilder {
             elseif ($token instanceof StartTagToken && $token->name === "noframes") {
                 # Process the token using the rules for
                 #   the "in head" insertion mode.
-                return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
+                $insertionMode = self::IN_HEAD_MODE;
+                goto ProcessToken;
             }
             # An end-of-file token
             elseif ($token instanceof EOFToken) {
@@ -3256,7 +3275,8 @@ class TreeBuilder {
             elseif ($token instanceof DOCTYPEToken || $token instanceof WhitespaceToken || ($token instanceof StartTagToken && $token->name === "html")) {
                 # Process the token using the rules for
                 #   the "in body" insertion mode.
-                return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+                $insertionMode = self::IN_BODY_MODE;
+                goto ProcessToken;
             }
             # An end-of-file token
             elseif ($token instanceof EOFToken) {
@@ -3295,7 +3315,8 @@ class TreeBuilder {
             elseif ($token instanceof DOCTYPEToken || $token instanceof WhitespaceToken || ($token instanceof StartTagToken && $token->name === "html")) {
                 # Process the token using the rules for
                 #   the "in body" insertion mode.
-                return $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+                $insertionMode = self::IN_BODY_MODE;
+                goto ProcessToken;
             }
             # An end-of-file token
             elseif ($token instanceof EOFToken) {
@@ -3306,7 +3327,8 @@ class TreeBuilder {
             elseif ($token instanceof StartTagToken && $token->name === "noframes") {
                 # Process the token using the rules for
                 #   the "in head" insertion mode.
-                return $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
+                $insertionMode = self::IN_HEAD_MODE;
+                goto ProcessToken;
             }
             # Anything else
             else {

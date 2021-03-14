@@ -73,9 +73,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         $treeBuilder = new TreeBuilder($doc, $decoder, $tokenizer, $tokenList, $errorHandler, $stack, new TemplateInsertionModesStack, $fragmentContext);
         // run the tree builder
         try {
-            foreach($tokenList as $token) {
-                $treeBuilder->emitToken($token);
-            }
+            $treeBuilder->constructTree();
         } catch (\DOMException $e) {
             $this->markTestIncomplete('Requires implementation of the "Coercing an HTML DOM into an infoset" specification section');
             return;
