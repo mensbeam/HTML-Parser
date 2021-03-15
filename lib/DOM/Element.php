@@ -37,30 +37,6 @@ class Element extends \DOMElement {
             parent::setAttributeNS($namespaceURI, $qualifiedName, $value);
         }
     }
-    
-    public function isMathMLTextIntegrationPoint(): bool {
-        return (
-            $this->namespaceURI === Parser::MATHML_NAMESPACE && (
-                $this->nodeName === 'mi' || $this->nodeName === 'mo' || $this->nodeName === 'mn' || $this->nodeName === 'ms' || $this->nodeName === 'mtext'
-            )
-        );
-    }
-
-    public function isHTMLIntegrationPoint(): bool {
-        $encoding = strtolower($this->getAttribute('encoding'));
-
-        return ((
-                $this->namespaceURI === Parser::MATHML_NAMESPACE &&
-                $this->nodeName === 'annotation-xml' && (
-                    $encoding === 'text/html' || $encoding === 'application/xhtml+xml'
-                )
-            ) || (
-                $this->namespaceURI === Parser::SVG_NAMESPACE && (
-                    $this->nodeName === 'foreignObject' || $this->nodeName === 'desc' || $this->nodeName === 'title'
-                )
-            )
-        );
-    }
 
     public function __toString(): string {
         # If current node is an element in the HTML namespace, the MathML namespace,

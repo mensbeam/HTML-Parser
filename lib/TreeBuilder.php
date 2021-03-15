@@ -319,7 +319,7 @@ class TreeBuilder {
                 #   neither "mglyph" nor "malignmark"
                 # If the adjusted current node is a MathML text integration
                 #   point and the token is a character token
-                || ($this->stack->adjustedCurrentNode->isMathMLTextIntegrationPoint() && (($token instanceof StartTagToken && ($token->name !== 'mglyph' && $token->name !== 'malignmark') || $token instanceof CharacterToken)))
+                || ($this->isMathMLTextIntegrationPoint($this->stack->adjustedCurrentNode) && (($token instanceof StartTagToken && ($token->name !== 'mglyph' && $token->name !== 'malignmark') || $token instanceof CharacterToken)))
                 # If the adjusted current node is an annotation-xml element
                 #   in the MathML namespace and the token is a start tag
                 #   whose tag name is "svg"
@@ -328,7 +328,7 @@ class TreeBuilder {
                 #   and the token is a start tag
                 # If the adjusted current node is an HTML integration point
                 #   and the token is a character token
-                || ($this->stack->adjustedCurrentNode->isHTMLIntegrationPoint() && ($token instanceof StartTagToken || $token instanceof CharacterToken))
+                || ($this->isHTMLIntegrationPoint($this->stack->adjustedCurrentNode) && ($token instanceof StartTagToken || $token instanceof CharacterToken))
                 # If the token is an end-of-file token
                 || $token instanceof EOFToken
             ) {
@@ -3490,7 +3490,7 @@ class TreeBuilder {
                         #   point, an HTML integration point, or an element in the
                         #   HTML namespace, pop elements from the stack of
                         #   open elements.
-                        while (($node = $this->stack->currentNode) && !($node->namespaceURI === null || $node->isMathMLTextIntegrationPoint() || $node->isHTMLIntegrationPoint())) {
+                        while (($node = $this->stack->currentNode) && !($node->namespaceURI === null || $this->isMathMLTextIntegrationPoint($node) || $this->isHTMLIntegrationPoint($node))) {
                             $this->stack->pop();
                         }
                         # Process the token using the rules for the 
@@ -4308,5 +4308,29 @@ class TreeBuilder {
         }
         # Return element.
         return $element;
+    }
+    
+    public function isMathMLTextIntegrationPoint(Element $e): bool {
+        return (
+            $e->namespaceURI === Parser::MATHML_NAMESPACE && (
+                $e->nodeName === 'mi' || $e->nodeName === 'mo' || $e->nodeName === 'mn' || $e->nodeName === 'ms' || $e->nodeName === 'mtext'
+            )
+        );
+    }
+
+    public function isHTMLIntegrationPoint(Element $e): bool {
+        $encoding = strtolower($e->getAttribute('encoding'));
+
+        return ((
+                $e->namespaceURI === Parser::MATHML_NAMESPACE &&
+                $e->nodeName === 'annotation-xml' && (
+                    $encoding === 'text/html' || $encoding === 'application/xhtml+xml'
+                )
+            ) || (
+                $e->namespaceURI === Parser::SVG_NAMESPACE && (
+                    $e->nodeName === 'foreignObject' || $e->nodeName === 'desc' || $e->nodeName === 'title'
+                )
+            )
+        );
     }
 }
