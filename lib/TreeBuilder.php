@@ -982,7 +982,34 @@ class TreeBuilder {
                     # Push the node pointed to by the head element pointer onto the stack of open elements.
                     $this->stack[] = $this->headElement;
                     # Process the token using the rules for the "in head" insertion mode.
-                    $this->parseTokenInHTMLContent($token, self::IN_HEAD_MODE);
+                    // The relevant rules for the mode are reproduced here in minimal form
+                    if ($token->name === 'title') {
+                        $this->parseGenericRCDATA($token);
+                    }
+                    elseif ($token->name === 'noframes' || $token->name === 'style') {
+                        $this->parseGenericRawText($token);
+                    }
+                    elseif ($token->name === 'noscript') {
+                        $this->insertStartTagToken($token);
+                        $this->insertionMode = self::IN_HEAD_NOSCRIPT_MODE;
+                    }
+                    elseif ($token->name === 'script') {
+                        $this->insertStartTagToken($token);
+                        $this->tokenizer->state = Tokenizer::SCRIPT_DATA_STATE;
+                        $this->originalInsertionMode = $this->insertionMode;
+                        $this->insertionMode = self::TEXT_MODE;
+                    }
+                    elseif ($token->name === 'template') {
+                        $this->insertStartTagToken($token);
+                        $this->activeFormattingElementsList->insertMarker();
+                        $this->framesetOk = false;
+                        $this->insertionMode = self::IN_TEMPLATE_MODE;
+                        $this->templateInsertionModes[] = self::IN_TEMPLATE_MODE;
+                    } else {
+                        $this->insertStartTagToken($token);
+                        $this->stack->pop();
+                        $token->selfClosingAcknowledged = true;
+                    }
                     # Remove the node pointed to by the head element pointer from the stack of open
                     # elements. (It might not be the current node at this point.)
                     $this->stack->removeSame($this->headElement);
@@ -2175,17 +2202,27 @@ class TreeBuilder {
                 # Parse error. Enable foster parenting, process the token
                 #   using the rules for the "in body" insertion mode, and
                 #   then disable foster parenting.
+                $this->fosterParenting = true;
                 if ($token instanceof CharacterToken) {
                     $this->error(ParseError::FOSTERED_CHAR);
-                } elseif ($token instanceof StartTagToken) {
-                    $this->error(ParseError::FOSTERED_START_TAG, $token->name);    
-                } elseif ($token instanceof EndTagToken) {
-                    $this->error(ParseError::FOSTERED_END_TAG, $token->name);
+                    $this->activeFormattingElementsList->reconstruct();
+                    if ($token instanceof NullCharacterToken) {
+                        // Ignore the token
+                    } elseif ($token instanceof WhitespaceToken) {
+                        $this->insertCharacterToken($token);
+                    } else {
+                        $this->insertCharacterToken($token);
+                        $this->framesetOk = false;
+                    }
+                } else {
+                    if ($token instanceof StartTagToken) {
+                        $this->error(ParseError::FOSTERED_START_TAG, $token->name);
+                    } elseif ($token instanceof EndTagToken) {
+                        $this->error(ParseError::FOSTERED_END_TAG, $token->name);
+                    }
+                    $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
                 }
-                $this->fosterParenting = true;
-                $result = $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
                 $this->fosterParenting = false;
-                return $result;
             }
         }
         # 13.2.6.4.10 The "in table text" insertion mode
@@ -2222,7 +2259,16 @@ class TreeBuilder {
                     $this->error(ParseError::UNEXPECTED_CHAR);
                     $this->fosterParenting = true;
                     foreach ($this->pendingTableCharacterTokens as $pending) {
-                        $this->parseTokenInHTMLContent($pending, self::IN_BODY_MODE);
+                        // The relevant parts of the "in body" mode are reproduced here
+                        $this->activeFormattingElementsList->reconstruct();
+                        if ($pending instanceof NullCharacterToken) {
+                            // Ignore the token
+                        } elseif ($pending instanceof WhitespaceToken) {
+                            $this->insertCharacterToken($pending);
+                        } else {
+                            $this->insertCharacterToken($pending);
+                            $this->framesetOk = false;
+                        }
                     }
                     $this->fosterParenting = false;
                 }
