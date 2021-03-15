@@ -2002,6 +2002,10 @@ class TreeBuilder {
         }
         # 13.2.6.4.9 The "in table" insertion mode
         elseif ($insertionMode === self::IN_TABLE_MODE) {
+            // NOTE: Foster parenting is turned off when evaluating this
+            //   mode as it may have been turned on in a previous evluation
+            //   of this mode
+            $this->fosterParenting = false;
             # A character token, if the current node is table, tbody, tfoot, thead, or tr element
             if ($token instanceof CharacterToken && in_array($this->stack->currentNodeName, ["table", "tbody", "tfoot", "thead", "tr"])) {
                 # Let the pending table character tokens be an empty list of tokens.
@@ -2202,27 +2206,17 @@ class TreeBuilder {
                 # Parse error. Enable foster parenting, process the token
                 #   using the rules for the "in body" insertion mode, and
                 #   then disable foster parenting.
-                $this->fosterParenting = true;
                 if ($token instanceof CharacterToken) {
                     $this->error(ParseError::FOSTERED_CHAR);
-                    $this->activeFormattingElementsList->reconstruct();
-                    if ($token instanceof NullCharacterToken) {
-                        // Ignore the token
-                    } elseif ($token instanceof WhitespaceToken) {
-                        $this->insertCharacterToken($token);
-                    } else {
-                        $this->insertCharacterToken($token);
-                        $this->framesetOk = false;
-                    }
-                } else {
-                    if ($token instanceof StartTagToken) {
-                        $this->error(ParseError::FOSTERED_START_TAG, $token->name);
-                    } elseif ($token instanceof EndTagToken) {
-                        $this->error(ParseError::FOSTERED_END_TAG, $token->name);
-                    }
-                    $this->parseTokenInHTMLContent($token, self::IN_BODY_MODE);
+                } elseif ($token instanceof StartTagToken) {
+                    $this->error(ParseError::FOSTERED_START_TAG, $token->name);    
+                } elseif ($token instanceof EndTagToken) {
+                    $this->error(ParseError::FOSTERED_END_TAG, $token->name);
                 }
-                $this->fosterParenting = false;
+                $this->fosterParenting = true;
+                $insertionMode = self::IN_BODY_MODE;
+                goto ProcessToken;
+                // NOTE: Foster parenting will be turned off when re-entering this mode with the next token
             }
         }
         # 13.2.6.4.10 The "in table text" insertion mode
@@ -2458,6 +2452,10 @@ class TreeBuilder {
         }
         # 13.2.6.4.13 The "in table body" insertion mode
         elseif ($insertionMode === self::IN_TABLE_BODY_MODE) {
+            // NOTE: Foster parenting is turned off when evaluating this
+            //   mode as it may have been turned on in a previous evluation
+            //   of the "in table" mode
+            $this->fosterParenting = false;
             # A start tag whose tag name is "tr"
             if ($token instanceof StartTagToken && $token->name === "tr") {
                 # Clear the stack back to a table body context. (See below.)
@@ -2543,6 +2541,10 @@ class TreeBuilder {
         }
         # 13.2.6.4.14 The "in row" insertion mode
         elseif ($insertionMode === self::IN_ROW_MODE) {
+            // NOTE: Foster parenting is turned off when evaluating this
+            //   mode as it may have been turned on in a previous evluation
+            //   of the "in table" mode
+            $this->fosterParenting = false;
             # A start tag whose tag name is one of: "th", "td"
             if ($token instanceof StartTagToken && ($token->name === "th" || $token->name === "td")) {
                 # Clear the stack back to a table row context.
@@ -3623,6 +3625,11 @@ class TreeBuilder {
         # content, the user agent must handle the token as follows:
 
 
+        
+        // NOTE: Foster parenting is turned off when evaluating this
+        //   mode as it may have been turned on in a previous evluation
+        //   of the "in table" mode
+        $this->fosterParenting = false;
         # A character token that is U+0000 NULL
         if ($token instanceof NullCharacterToken) {
             # Parse error. Insert a U+FFFD REPLACEMENT CHARACTER character.
