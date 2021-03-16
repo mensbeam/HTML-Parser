@@ -3,21 +3,35 @@ declare(strict_types=1);
 namespace dW\HTML5;
 
 trait Serialize {
+    protected function serializesAsVoid(): bool {
+        $name = $this->nodeName;
+        if ($name === 'area' || $name === 'base' || $name === 'basefont' || $name === 'bgsound' || $name === 'br' || $name === 'col' || $name === 'embed' || $name === 'hr' || $name === 'img' || $name === 'input' || $name === 'link' || $name === 'meta' || $name === 'param' || $name === 'source' || $name === 'track' || $name === 'wbr') {
+            return true;
+        }
+
+        return false;
+    }
+
     protected function serialize(\DOMNode $node = null): string {
         if (is_null($node)) {
             $node = $this;
         }
 
         if (!$node instanceof Element && !$node instanceof Document && !$node instanceof DocumentFragment) {
-            throw new Exception(Exception::DOM_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED, gettype($node));
+            throw new DOMException(DOMException::DOCUMENT_DOCUMENTFRAG_EXPECTED, gettype($node));
         }
 
-        # 8.3. Serializing HTML fragments
+        # 13.3. Serializing HTML fragments
         #
-        # 1. Let s be a string, and initialize it to the empty string.
+        # 1. If the node serializes as void, then return the empty string.
+        if ($this->serializesAsVoid()) {
+            return '';
+        }
+
+        # 2. Let s be a string, and initialize it to the empty string.
         $s = '';
 
-        # 2. If the node is a template element, then let the node instead be the
+        # 3. If the node is a template element, then let the node instead be the
         # template element’s template contents (a DocumentFragment node).
         if ($node instanceof Element && $node->nodeName === 'template') {
             $node = $node->content;
@@ -43,7 +57,7 @@ trait Serialize {
                 $start = 1;
             }
 
-            # 3. For each child node of the node, in tree order, run the following steps:
+            # 4. For each child node of the node, in tree order, run the following steps:
             for ($i = $start; $i < $nodesLength; $i++) {
                 # 1. Let current node be the child node being processed.
                 # 2. Append the appropriate string from the following list to s:
@@ -51,7 +65,7 @@ trait Serialize {
             }
         }
 
-        # 4. The result of the algorithm is the string s.
+        # 5. Return s.
         return $s;
     }
 }

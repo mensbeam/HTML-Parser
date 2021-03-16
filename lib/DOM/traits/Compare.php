@@ -17,7 +17,7 @@ trait Compare {
                 return $context;
             }
         } else {
-            throw new Exception(Exception::DOM_DOMNODE_STRING_OR_CLOSURE_EXPECTED, gettype($needle));
+            throw new DOMException(DOMException::STRING_OR_CLOSURE_EXPECTED, gettype($needle));
         }
 
         return null;

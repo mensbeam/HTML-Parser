@@ -10,8 +10,6 @@ class Element extends \DOMElement {
     // Used for template elements
     public $content = null;
 
-    protected const SELF_CLOSING_ELEMENTS = ['area', 'base', 'basefont', 'bgsound', 'br', 'col', 'embed', 'frame', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'];
-
     public function setAttribute($name, $value) {
         try {
             parent::setAttribute($name, $value);
@@ -24,7 +22,7 @@ class Element extends \DOMElement {
             parent::setAttribute($name, $value);
         }
     }
-    
+
     public function setAttributeNS($namespaceURI, $qualifiedName, $value) {
         try {
             parent::setAttributeNS($namespaceURI, $qualifiedName, $value);
@@ -38,6 +36,120 @@ class Element extends \DOMElement {
         }
     }
 
+    public function __get(string $prop) {
+        switch ($prop) {
+            ### DOM Parsing Specification ###
+            # 2.3 The InnerHTML mixin
+            #
+            # On getting, return the result of invoking the fragment serializing algorithm
+            # on the context object providing true for the require well-formed flag (this
+            # might throw an exception instead of returning a string).
+            // DEVIATION: Parsing of XML documents will not be handled by this
+            // implementation, so there's no need for the well-formed flag.
+            case 'innerHTML': return $this->serialize($this);
+            break;
+            ### DOM Parsing Specification ###
+            # 2.4 Extensions to the Element interface
+            # outerHTML
+            #
+            # On getting, return the result of invoking the fragment serializing algorithm on a fictional node whose only child is the context object providing true for the require well-formed flag (this might throw an exception instead of returning a string).
+            // DEVIATION: Parsing of XML documents will not be handled by this
+            // implementation, so there's no need for the well-formed flag.
+            // OPTIMIZATION: When following the instructions above the fragment serializing
+            // algorithm (Element::serialize) would invoke Element::__toString, so just
+            // doing that instead of multiple function calls.
+            case 'outerHTML': return $this->__toString();
+            break;
+        }
+    }
+
+    public function __set(string $prop, $value) {
+        switch ($prop) {
+            case 'innerHTML':
+                ### DOM Parsing Specification ###
+                # 2.3 The InnerHTML mixin
+                #
+                # On setting, these steps must be run:
+                # 1. Let context element be the context object's host if the context object is a
+                # ShadowRoot object, or the context object otherwise.
+                // DEVIATION: There is no scripting in this implementation.
+
+                # 2. Let fragment be the result of invoking the fragment parsing algorithm with
+                # the new value as markup, and with context element.
+                $frag = Parser::parse($value, $this->ownerDocument, $this->ownerDocument->documentEncoding, $this);
+
+                # 3. If the context object is a template element, then let context object be the
+                # template's template contents (a DocumentFragment).
+                if ($this->nodeName === 'template') {
+                    $this->content = $frag;
+                }
+                # 4. Replace all with fragment within the context object.
+                else {
+                    # To replace all with a node within a parent, run these steps:
+                    #
+                    # 1. Let removedNodes be parent’s children.
+                    // DEVIATION: removedNodes is used below for scripting. There is no scripting in
+                    // this implementation.
+
+                    # 2. Let addedNodes be parent’s children.
+                    // DEVIATION: addedNodes is used below for scripting. There is no scripting in
+                    // this implementation.
+
+                    # 3. If node is a DocumentFragment node, then set addedNodes to node’s
+                    # children.
+
+                    // DEVIATION: Again, there is no scripting in this implementation.
+                    # 4. Otherwise, if node is non-null, set addedNodes to « node ».
+                    // DEVIATION: Yet again, there is no scripting in this implementation.
+
+                    # 5. Remove all parent’s children, in tree order, with the suppress observers
+                    # flag set.
+                    // DEVIATION: There are no observers to suppress as there is no scripting in
+                    // this implementation.
+                    while ($this->hasChildNodes()) {
+                        $this->removeChild($this->firstChild);
+                    }
+
+                    # 6. Otherwise, if node is non-null, set addedNodes to « node ».
+                    # If node is non-null, then insert node into parent before null with the
+                    # suppress observers flag set.
+                    // DEVIATION: Yet again, there is no scripting in this implementation.
+
+                    # 7. If either addedNodes or removedNodes is not empty, then queue a tree
+                    # mutation record for parent with addedNodes, removedNodes, null, and null.
+                    // DEVIATION: Normally the tree mutation record would do the actual replacement,
+                    // but there is no scripting in this implementation. Going to simply append the
+                    // fragment instead.
+                    $this->appendChild($ook);
+                }
+            break;
+
+            case 'outerHTML':
+                ### DOM Parsing Specification ###
+                # 2.4 Extensions to the Element interface
+                # outerHTML
+                #
+                # On setting, the following steps must be run:
+                # 1. Let parent be the context object's parent.
+                $parent = $this->parentNode;
+
+                # 2. If parent is null, terminate these steps. There would be no way to obtain a
+                # reference to the nodes created even if the remaining steps were run.
+                // The spec is unclear here as to what to do. What do you return? Most browsers
+                // throw an exception here, so that's what we're going to do.
+                if ($parent === null) {
+                    throw new DOMException(DOMException::OUTER_HTML_FAILED_NOPARENT);
+                }
+                # 3. If parent is a Document, throw a "NoModificationAllowedError" DOMException.
+                elseif ($parent instanceof Document) {
+                    throw new DOMException(DOMException::NO_MODIFICATION_ALLOWED);
+                }
+                # 4. parent is a DocumentFragment, let parent be a new Element with:
+
+            break;
+        }
+    }
+
     public function __toString(): string {
         # If current node is an element in the HTML namespace, the MathML namespace,
         # or the SVG namespace, then let tagname be current node’s local name.
@@ -48,8 +160,20 @@ class Element extends \DOMElement {
             $tagName = $this->nodeName;
         }
 
+        // Since tag names can contain characters that are invalid in PHP's XML DOM
+        // uncoerce the name when printing.
+        if (strpos($tagName, 'U') !== false) {
+            $tagName = $this->uncoerceName($tagName);
+        }
+
         # Append a U+003C LESS-THAN SIGN character (<), followed by tagname.
         $s = "<$tagName";
+
+        # If current node's is value is not null, and the element does not have an is
+        # attribute in its attribute list, then append the string " is="", followed by
+        # current node's is value escaped as described below in attribute mode, followed
+        # by a U+0022 QUOTATION MARK character (").
+        // DEVIATION: There is no scripting support in this implementation.
 
         # For each attribute that the element has, append a U+0020 SPACE character,
         # the attribute’s serialized name as described below, a U+003D EQUALS SIGN
@@ -113,10 +237,9 @@ class Element extends \DOMElement {
         # Append a U+003E GREATER-THAN SIGN character (>).
         $s .= '>';
 
-        # If current node is an area, base, basefont, bgsound, br, col, embed, frame,
-        # hr, img, input, link, meta, param, source, track or wbr element, then continue
-        # on to the next child node at this point.
-        if (in_array($tagName, self::SELF_CLOSING_ELEMENTS)) {
+        # If current node serializes as void, then continue on to the next child node at
+        # this point.
+        if ($this->serializesAsVoid()) {
             return $s;
         }
 

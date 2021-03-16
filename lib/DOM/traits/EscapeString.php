@@ -18,11 +18,7 @@ trait EscapeString {
         # 4. If the algorithm was not invoked in the attribute mode, replace any
         # occurrences of the "&lt;" character by the string "&amp;lt;", and any
         # occurrences of the "&gt;" character by the string "&amp;gt;".
-        if ($attribute) {
-            $string = str_replace(['&quot;', '&lt;', '&gt;'], ['&amp;quot;', '&amp;lt;', '&amp;gt;'], $string);
-        }
-
-        return $string;
+        return ($attribute) ? str_replace('&quot;', '&amp;quot;', $string) : str_replace(['&lt;', '&gt;'], ['&amp;lt;', '&amp;gt;'], $string);
     }
 
     protected function coerceName(string $name): string {

@@ -1,5 +1,5 @@
 # html5-parser specific
-test.php
+test*.php
 
 # General
 *.DS_Store
