@@ -12,6 +12,8 @@ class Data {
     public $filePath;
     // Whether the encoding is certain or tentative; this is a feature of the specification, but not relevant for this implementation
     public $encodingCertain = false;
+    // The canonical name of the encoding
+    public $encoding;
 
     // Internal storage for the Intl data object.
     protected $data;
@@ -60,6 +62,7 @@ class Data {
             // Encoding is tentative; fall back to the configured default encoding
             $encoding = Charset::fromCharset(Parser::$fallbackEncoding) ?? "windows-1252";
         }
+        $this->encoding = $encoding;
         $this->data = Encoding::createDecoder($encoding, $data, false, true);
     }
 

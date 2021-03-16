@@ -13,6 +13,7 @@ class Document extends \DOMDocument {
     public $quirksMode = self::NO_QUIRKS_MODE;
     public $mangledElements = false;
     public $mangledAttributes = false;
+    public $documentEncoding = null;
 
     // An array of all template elements created in the document
     // This exists because values of properties on derived DOM classes
