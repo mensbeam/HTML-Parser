@@ -3,8 +3,6 @@ declare(strict_types=1);
 namespace dW\HTML5;
 
 class ParseError {
-    protected $data;
-
     // tokenization parse errors; these have been standardized
     const ENCODING_ERROR                                                    = 100;
     const UNEXPECTED_NULL_CHARACTER                                         = 101;
@@ -159,7 +157,7 @@ class ParseError {
 
     public function setHandler() {
         // Set the errror handler and honor already-set error reporting rules.
-        set_error_handler([$this, 'errorHandler'], error_reporting());
+        set_error_handler([$this, 'errorHandler'], \E_USER_WARNING);
     }
 
     public function clearHandler() {
@@ -207,9 +205,7 @@ class ParseError {
         return trigger_error($this->prepareMessage($file, $line, $column, $code, ...$arg), \E_USER_WARNING);
     }
 
-    public function errorHandler(int $code, string $message, string $file, int $line) {
-        if ($code === E_USER_WARNING) {
-            echo "$message\n";
-        }
+    public function errorHandler(int $code, string $message) {
+        echo "$message\n";
     }
 }

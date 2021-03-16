@@ -2019,13 +2019,9 @@ class Tokenizer {
                 elseif ($char === '') {
                     # Emit the comment.
                     # Emit an end-of-file token.
-
-                    // DEVIATION:
-                    // We cannot emit two tokens, so we switch to
-                    // the data state, which will emit the EOF token
-                    $this->state = self::DATA_STATE;
                     yield $token;
-                    goto Reconsume;
+                    yield new EOFToken;
+                    return;
                 }
                 # U+0000 NULL
                 elseif ($char === "\0") {
@@ -2148,12 +2144,9 @@ class Tokenizer {
                     # Emit the comment token.
                     # Emit an end-of-file token.
                     $this->error(ParseError::EOF_IN_COMMENT);
-                    // DEVIATION:
-                    // We cannot emit two tokens, so we switch to
-                    // the data state, which will emit the EOF token
-                    $this->state = self::DATA_STATE;
                     yield $token;
-                    goto Reconsume;
+                    yield new EOFToken;
+                    return;
                 }
                 # Anything else
                 else {
