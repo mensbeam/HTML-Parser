@@ -16,11 +16,6 @@ namespace dW\HTML5;
 # can be created for that token if necessary.
 class ActiveFormattingElementsList extends Stack {
     protected $_storage = [];
-    protected $stack;
-
-    public function __construct(OpenElementsStack $stack) {
-        $this->stack = $stack;
-    }
 
     public function offsetSet($offset, $value) {
         $count = $this->count;

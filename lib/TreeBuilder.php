@@ -238,7 +238,7 @@ class TreeBuilder {
         $this->tokenizer = $tokenizer;
         $this->data = $data;
         $this->errorHandler = $errorHandler;
-        $this->activeFormattingElementsList = new ActiveFormattingElementsList($stack);
+        $this->activeFormattingElementsList = new ActiveFormattingElementsList;
         $this->tokenList = $tokenList;
 
         # Parsing HTML fragments
