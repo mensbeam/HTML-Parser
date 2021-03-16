@@ -45,6 +45,7 @@ class Data {
         $this->errorHandler = $errorHandler ?? new ParseError;
         $this->filePath = $filePath;
         $encodingOrContentType = (string) $encodingOrContentType;
+        // don't track the current line/column position if erroro reporting has been suppressed
         if (!(error_reporting() & \E_USER_WARNING)) {
             $this->track = false;
         }
@@ -223,45 +224,49 @@ class Data {
 
     /** Returns an indexed array with the line and column positions of the requested offset from the current position */
     public function whereIs(int $relativePos): array {
-        if ($this->eof) {
-            $relativePos++;
-            if ($this->astrals[$this->data->posChar()] ?? false) {
+        if ($this->track) {
+            if ($this->eof) {
                 $relativePos++;
-            }
-        }
-        if ($relativePos === 0) {
-            if (!$this->_column && $this->_line > 1) {
-                return [$this->_line - 1, $this->newlines[$this->data->posChar()] + 1];
-            } else {
-                return [$this->_line, $this->_column];
-            }
-        } elseif ($relativePos < 0) {
-            $pos = $this->data->posChar();
-            $line = $this->_line;
-            $col = $this->_column;
-            do {
-                // If the current position is the start of a line, 
-                //  get the column position of the end of the previous line
-                if (isset($this->newlines[$pos])) {
-                    $line--;
-                    $col = $this->newlines[$pos];
-                    // If the newline was a normalized CR+LF pair, 
-                    //  go back one extra character
-                    if (isset($this->normalized[$pos])) {
-                        $pos--;
-                    }
-                } else {
-                    $col--;
-                    // supplementary plane characters count as two
-                    if ($this->astrals[$pos] ?? false) {
-                        $this->_column--;
-                    }
+                if ($this->astrals[$this->data->posChar()] ?? false) {
+                    $relativePos++;
                 }
-                $pos--;
-            } while (++$relativePos < 0);
-            return [$line, $col];
+            }
+            if ($relativePos === 0) {
+                if (!$this->_column && $this->_line > 1) {
+                    return [$this->_line - 1, $this->newlines[$this->data->posChar()] + 1];
+                } else {
+                    return [$this->_line, $this->_column];
+                }
+            } elseif ($relativePos < 0) {
+                $pos = $this->data->posChar();
+                $line = $this->_line;
+                $col = $this->_column;
+                do {
+                    // If the current position is the start of a line, 
+                    //  get the column position of the end of the previous line
+                    if (isset($this->newlines[$pos])) {
+                        $line--;
+                        $col = $this->newlines[$pos];
+                        // If the newline was a normalized CR+LF pair, 
+                        //  go back one extra character
+                        if (isset($this->normalized[$pos])) {
+                            $pos--;
+                        }
+                    } else {
+                        $col--;
+                        // supplementary plane characters count as two
+                        if ($this->astrals[$pos] ?? false) {
+                            $this->_column--;
+                        }
+                    }
+                    $pos--;
+                } while (++$relativePos < 0);
+                return [$line, $col];
+            } else {
+                return [$this->_line, $this->_column + $relativePos];
+            }
         } else {
-            return [$this->_line, $this->_column + $relativePos];
+            return [0, 0];
         }
     }
 

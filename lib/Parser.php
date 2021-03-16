@@ -25,7 +25,11 @@ class Parser {
     public static function parse(string $data, ?Document $document = null, ?string $encodingOrContentType = null, ?\DOMElement $fragmentContext = null, ?String $file = null): Document {
         // Initialize the various classes needed for parsing
         $document = $document ?? new Document;
-        $errorHandler = new ParseError;
+        if ((error_reporting() & \E_USER_WARNING)) {
+            $errorHandler = new ParseError;
+        } else {
+            $errorHandler = new ParseErrorDummy;
+        }        
         $decoder = new Data($data, $file ?? "STDIN", $errorHandler, $encodingOrContentType);
         $document->documentEncoding = $decoder->encoding;
         $stack = new OpenElementsStack($fragmentContext);
