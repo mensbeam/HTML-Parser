@@ -17,10 +17,8 @@ namespace dW\HTML5;
 class ActiveFormattingElementsList extends Stack {
     protected $_storage = [];
     protected $stack;
-    protected $tree;
 
-    public function __construct(TreeBuilder $tree, OpenElementsStack $stack) {
-        $this->tree = $tree;
+    public function __construct(OpenElementsStack $stack) {
         $this->stack = $stack;
     }
 
@@ -117,61 +115,6 @@ class ActiveFormattingElementsList extends Stack {
 
     public function insertMarker(): void {
         $this[] = new ActiveFormattingElementsMarker;
-    }
-
-    public function reconstruct(): void {
-        # When the steps below require the UA to reconstruct the active formatting
-        #   elements, the UA must perform the following steps:
-        # 1. If there are no entries in the list of active formatting elements, then
-        #   there is nothing to reconstruct; stop this algorithm.
-        if (!$this->_storage) {
-            return;
-        }
-        $last = $this->count - 1;
-        # 2. If the last (most recently added) entry in the list of active formatting
-        #   elements is a marker, or if it is an element that is in the stack of open
-        #   elements, then there is nothing to reconstruct; stop this algorithm.
-        $pos = $last;
-        $entry = $this[$pos];
-        if ($entry instanceof ActiveFormattingElementsMarker || $this->stack->findSame($entry['element']) > -1) {
-            return;
-        }
-        # 3. Let entry be the last (most recently added) element in the list of 
-        #   active formatting elements.
-        // Already done
-        while ($pos >= 0) {
-            # 4. Rewind: If there are no entries before entry in the list of active
-            #   formatting elements, then jump to the step labeled Create.
-            if ($pos === 0) {
-                // DEVIATION: Instead don't increment position before breaking, unlike below
-                break;
-            }
-            # 5. Let entry be the entry one earlier than entry in the list of active
-            #   formatting elements.
-            $entry = $this[--$pos];
-            # 6. If entry is neither a marker nor an element that is also in the stack of
-            #   open elements, go to the step labeled Rewind.
-            // Instead break if it is a marker or present in the stack
-            if ($entry instanceof ActiveFormattingElementsMarker || $this->stack->findSame($entry['element']) > -1) {
-                // DEVIATION: We increment before breaking to avoid having two loop exit points
-                $pos++;
-                break;
-            }
-        }
-        while ($pos <= $last) {
-            # 7. Advance: Let entry be the element one later than entry in the list of
-            # active formatting elements.
-            // DEVIATION: We increment at the end of the loop since we incremented when necessary before breaking out of the earlier loop
-            $entry = $this[$pos];
-            # 8. Create: Insert an HTML element for the token for which the element entry
-            # was created, to obtain new element.
-            $element = $this->tree->insertStartTagToken($entry['token']);
-            # 9. Replace the entry for entry in the list with an entry for new element.
-            $this->_storage[$pos]['element'] = $element;
-            # 10. If the entry for new element in the list of active formatting elements is
-            # not the last entry in the list, return to the step labeled Advance.
-            $pos++;
-        }
     }
 
     public function clearToTheLastMarker(): void {

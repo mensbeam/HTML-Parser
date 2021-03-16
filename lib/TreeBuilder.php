@@ -238,7 +238,7 @@ class TreeBuilder {
         $this->tokenizer = $tokenizer;
         $this->data = $data;
         $this->errorHandler = $errorHandler;
-        $this->activeFormattingElementsList = new ActiveFormattingElementsList($this, $stack);
+        $this->activeFormattingElementsList = new ActiveFormattingElementsList($stack);
         $this->tokenList = $tokenList;
 
         # Parsing HTML fragments
@@ -1057,14 +1057,14 @@ class TreeBuilder {
                     # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
                     elseif ($token instanceof WhitespaceToken) {
                         # Reconstruct the active formatting elements, if any.
-                        $this->activeFormattingElementsList->reconstruct();
+                        $this->reconstructActiveFormattingElements();
                         # Insert the token’s character.
                         $this->insertCharacterToken($token);
                     }
                     # Any other character token
                     elseif ($token instanceof CharacterToken) {
                         # Reconstruct the active formatting elements, if any.
-                        $this->activeFormattingElementsList->reconstruct();
+                        $this->reconstructActiveFormattingElements();
                         # Insert the token’s character.
                         $this->insertCharacterToken($token);
                         # Set the frameset-ok flag to "not ok".
@@ -1347,7 +1347,7 @@ class TreeBuilder {
                                 $this->stack->popUntil('button');
                             }
                             # 2. Reconstruct the active formatting elements, if any.
-                            $this->activeFormattingElementsList->reconstruct();
+                            $this->reconstructActiveFormattingElements();
                             # 3. Insert an HTML element for the token.
                             $this->insertStartTagToken($token);
                             # 4. Set the frameset-ok flag to "not ok".
@@ -1370,7 +1370,7 @@ class TreeBuilder {
                                 $this->stack->removeSame($element);
                             }
                             # Reconstruct the active formatting elements, if any.
-                            $this->activeFormattingElementsList->reconstruct();
+                            $this->reconstructActiveFormattingElements();
                             # Insert an HTML element for the token.
                             $element = $this->insertStartTagToken($token);
                             # Push onto the list of active formatting elements that element.
@@ -1381,7 +1381,7 @@ class TreeBuilder {
                         #   "strong", "tt", "u"
                         elseif ($token->name === "b" || $token->name === "big" || $token->name === "code" || $token->name === "em" || $token->name === "font" || $token->name === "i" || $token->name === "s" || $token->name === "small" || $token->name === "strike" || $token->name === "strong" || $token->name === "tt" || $token->name === "u") {
                             # Reconstruct the active formatting elements, if any.
-                            $this->activeFormattingElementsList->reconstruct();
+                            $this->reconstructActiveFormattingElements();
                             # Insert an HTML element for the token.
                             $element = $this->insertStartTagToken($token);
                             # Push onto the list of active formatting elements that element.
@@ -1390,14 +1390,14 @@ class TreeBuilder {
                         # A start tag whose tag name is "nobr"
                         elseif ($token->name === "nobr") {
                             # Reconstruct the active formatting elements, if any.
-                            $this->activeFormattingElementsList->reconstruct();
+                            $this->reconstructActiveFormattingElements();
                             # If the stack of open elements has a nobr element in scope, then this is a parse error;
                             if($this->stack->hasElementInScope("nobr")) {
                                 $this->error(ParseError::UNEXPECTED_START_TAG_IMPLIES_END_TAG, $token->name);
                                 # ... run the adoption agency algorithm for the token, 
                                 $this->adopt($token);
                                 # ... then once again reconstruct the active formatting elements, if any.
-                                $this->activeFormattingElementsList->reconstruct();
+                                $this->reconstructActiveFormattingElements();
                             }
                             # Insert an HTML element for the token.
                             $element = $this->insertStartTagToken($token);
@@ -1407,7 +1407,7 @@ class TreeBuilder {
                         # A start tag whose tag name is one of: "applet", "marquee", "object"
                         elseif ($token->name === "applet" || $token->name === "marquee" || $token->name === "object") {
                             # Reconstruct the active formatting elements, if any.
-                            $this->activeFormattingElementsList->reconstruct();
+                            $this->reconstructActiveFormattingElements();
                             # Insert an HTML element for the token.
                             $this->insertStartTagToken($token);
                             # Insert a marker at the end of the list of active formatting elements.
@@ -1432,7 +1432,7 @@ class TreeBuilder {
                         #   "embed", "img", "keygen", "wbr"
                         elseif ($token->name === "area" || $token->name === "br" || $token->name === "embed" || $token->name === "img" || $token->name === "keygen" || $token->name === "wbr") {
                             # Reconstruct the active formatting elements, if any.
-                            $this->activeFormattingElementsList->reconstruct();
+                            $this->reconstructActiveFormattingElements();
                             # Insert an HTML element for the token. 
                             # Immediately pop the current node off the stack of open elements.
                             $this->insertStartTagToken($token);
@@ -1445,7 +1445,7 @@ class TreeBuilder {
                         # A start tag whose tag name is "input"
                         elseif ($token->name === "input") {
                             # Reconstruct the active formatting elements, if any.
-                            $this->activeFormattingElementsList->reconstruct();
+                            $this->reconstructActiveFormattingElements();
                             # Insert an HTML element for the token. 
                             # Immediately pop the current node off the stack of open elements.
                             $element = $this->insertStartTagToken($token);
@@ -1528,7 +1528,7 @@ class TreeBuilder {
                                 $this->closePElement($token);
                             }
                             # Reconstruct the active formatting elements, if any.
-                            $this->activeFormattingElementsList->reconstruct();
+                            $this->reconstructActiveFormattingElements();
                             # Set the frameset-ok flag to "not ok".
                             $this->framesetOk = false;
                             # Follow the generic raw text element parsing algorithm.
@@ -1551,7 +1551,7 @@ class TreeBuilder {
                         # A start tag whose tag name is "select"
                         elseif ($token->name === "select") {
                             # Reconstruct the active formatting elements, if any.
-                            $this->activeFormattingElementsList->reconstruct();
+                            $this->reconstructActiveFormattingElements();
                             # Insert an HTML element for the token.
                             $this->insertStartTagToken($token);
                             # Set the frameset-ok flag to "not ok".
@@ -1580,7 +1580,7 @@ class TreeBuilder {
                                 $this->stack->pop();
                             }
                             # Reconstruct the active formatting elements, if any.
-                            $this->activeFormattingElementsList->reconstruct();
+                            $this->reconstructActiveFormattingElements();
                             # Insert an HTML element for the token.
                             $this->insertStartTagToken($token);
                         }
@@ -1614,7 +1614,7 @@ class TreeBuilder {
                         # A start tag whose tag name is "math"
                         elseif ($token->name === "math") {
                             # Reconstruct the active formatting elements, if any.
-                            $this->activeFormattingElementsList->reconstruct();
+                            $this->reconstructActiveFormattingElements();
                             # Adjust MathML attributes for the token. (This fixes the case of MathML attributes that are not all lowercase.)      
                             # Adjust foreign attributes for the token. (This fixes the use of namespaced attributes, in particular XLink.)
                             foreach ($token->attributes as $a) {
@@ -1634,7 +1634,7 @@ class TreeBuilder {
                         # A start tag whose tag name is "svg"
                         elseif ($token->name === "svg") {
                             # Reconstruct the active formatting elements, if any.
-                            $this->activeFormattingElementsList->reconstruct();
+                            $this->reconstructActiveFormattingElements();
                             # Adjust SVG attributes for the token. (This fixes the case of SVG attributes that are not all lowercase.)
                             # Adjust foreign attributes for the token. (This fixes the use of namespaced attributes, in particular XLink in SVG.)
                             foreach ($token->attributes as $a) {
@@ -1657,7 +1657,7 @@ class TreeBuilder {
                         # Any other start tag
                         else {
                             # Reconstruct the active formatting elements, if any.
-                            $this->activeFormattingElementsList->reconstruct();
+                            $this->reconstructActiveFormattingElements();
                             # Insert an HTML element for the token.
                             $this->insertStartTagToken($token);
                         }
@@ -2233,7 +2233,7 @@ class TreeBuilder {
                             $this->fosterParenting = true;
                             foreach ($this->pendingTableCharacterTokens as $pending) {
                                 // The relevant parts of the "in body" mode are reproduced here
-                                $this->activeFormattingElementsList->reconstruct();
+                                $this->reconstructActiveFormattingElements();
                                 if ($pending instanceof NullCharacterToken) {
                                     // Ignore the token
                                 } elseif ($pending instanceof WhitespaceToken) {
@@ -4332,5 +4332,60 @@ class TreeBuilder {
                 )
             )
         );
+    }
+
+    public function reconstructActiveFormattingElements(): void {
+        # When the steps below require the UA to reconstruct the active formatting
+        #   elements, the UA must perform the following steps:
+        # 1. If there are no entries in the list of active formatting elements, then
+        #   there is nothing to reconstruct; stop this algorithm.
+        $last = count($this->activeFormattingElementsList) - 1;
+        if ($last < 0) {
+            return;
+        }
+        # 2. If the last (most recently added) entry in the list of active formatting
+        #   elements is a marker, or if it is an element that is in the stack of open
+        #   elements, then there is nothing to reconstruct; stop this algorithm.
+        $pos = $last;
+        $entry = $this->activeFormattingElementsList[$pos];
+        if ($entry instanceof ActiveFormattingElementsMarker || $this->stack->findSame($entry['element']) > -1) {
+            return;
+        }
+        # 3. Let entry be the last (most recently added) element in the list of 
+        #   active formatting elements.
+        // Already done
+        while ($pos >= 0) {
+            # 4. Rewind: If there are no entries before entry in the list of active
+            #   formatting elements, then jump to the step labeled Create.
+            if ($pos === 0) {
+                // DEVIATION: Instead don't increment position before breaking, unlike below
+                break;
+            }
+            # 5. Let entry be the entry one earlier than entry in the list of active
+            #   formatting elements.
+            $entry = $this->activeFormattingElementsList[--$pos];
+            # 6. If entry is neither a marker nor an element that is also in the stack of
+            #   open elements, go to the step labeled Rewind.
+            // Instead break if it is a marker or present in the stack
+            if ($entry instanceof ActiveFormattingElementsMarker || $this->stack->findSame($entry['element']) > -1) {
+                // DEVIATION: We increment before breaking to avoid having two loop exit points
+                $pos++;
+                break;
+            }
+        }
+        while ($pos <= $last) {
+            # 7. Advance: Let entry be the element one later than entry in the list of
+            # active formatting elements.
+            // DEVIATION: We increment at the end of the loop since we incremented when necessary before breaking out of the earlier loop
+            $entry = $this->activeFormattingElementsList[$pos];
+            # 8. Create: Insert an HTML element for the token for which the element entry
+            # was created, to obtain new element.
+            $element = $this->insertStartTagToken($entry['token']);
+            # 9. Replace the entry for entry in the list with an entry for new element.
+            $this->activeFormattingElementsList[$pos] = ['token' => $entry['token'], 'element' => $element];
+            # 10. If the entry for new element in the list of active formatting elements is
+            # not the last entry in the list, return to the step labeled Advance.
+            $pos++;
+        }
     }
 }
