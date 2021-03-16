@@ -12,12 +12,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/mensbeam/intl.git",
-                "reference": "cc9c93781061eaedf41022911699d81c6cfc0d83"
+                "reference": "60a5487e46e9c509c0ddbd7924520ce15151fd27"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/mensbeam/intl/zipball/cc9c93781061eaedf41022911699d81c6cfc0d83",
-                "reference": "cc9c93781061eaedf41022911699d81c6cfc0d83",
+                "url": "https://api.github.com/repos/mensbeam/intl/zipball/60a5487e46e9c509c0ddbd7924520ce15151fd27",
+                "reference": "60a5487e46e9c509c0ddbd7924520ce15151fd27",
                 "shasum": ""
             },
             "require": {
@@ -59,7 +59,7 @@
                 "issues": "https://github.com/mensbeam/intl/issues",
                 "source": "https://github.com/mensbeam/intl/tree/span"
             },
-            "time": "2021-03-13T04:01:37+00:00"
+            "time": "2021-03-16T22:58:18+00:00"
         },
         {
             "name": "mensbeam/mimesniff",
