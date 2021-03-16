@@ -230,12 +230,6 @@ class Tokenizer {
         #   an attribute on the token with the exact same name,
         #   then this is a duplicate-attribute parse error and the
         #   new attribute must be removed from the token.
-
-
-        // DEVIATION:
-        // Because this implementation uses a buffer to hold the
-        // attribute name it is only added if it is valid.
-        // The result is the same, though.
         if ($token->hasAttribute($attribute->name)) {
             $this->error(ParseError::DUPLICATE_ATTRIBUTE, $attribute->name);
         } else {
@@ -526,7 +520,6 @@ class Tokenizer {
                     # Emit a U+003C LESS-THAN SIGN character token.
                     # Reconsume in the data state.
                     $this->error(ParseError::INVALID_FIRST_CHARACTER_OF_TAG_NAME, $char);
-                    // DEVIATION: unconsume and change state before emitting
                     $this->state = self::DATA_STATE;
                     yield new CharacterToken('<');
                     goto Reconsume;

@@ -33,7 +33,7 @@ class TreeBuilder {
     protected $tokenizer;
     /** @var \dW\HTML5\TemplateInsertionModesStack Used to store the template insertion modes */
     protected $templateInsertionModes;
-    /** @var array TODO */
+    /** @var array An array holding character tokens which may need to be foster-parented during table parsing */
     protected $pendingTableCharacterTokens = [];
 
     // Constants used for insertion modes
