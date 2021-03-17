@@ -84,7 +84,7 @@ class Element extends \DOMElement {
                 # 3. If the context object is a template element, then let context object be the
                 # template's template contents (a DocumentFragment).
                 if ($this->nodeName === 'template') {
-                    $this->content = $frag;
+                    $this->content = $fragment;
                 }
                 # 4. Replace all with fragment within the context object.
                 else {
