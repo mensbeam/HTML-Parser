@@ -16,6 +16,7 @@ use dW\HTML5\StartTagToken;
 use dW\HTML5\WhitespaceToken;
 
 /** 
+ * @covers \dW\HTML5\Data
  * @covers \dW\HTML5\Tokenizer
  * @covers \dW\HTML5\CharacterToken
  * @covers \dW\HTML5\CommentToken
