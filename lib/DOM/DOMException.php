@@ -11,8 +11,7 @@ class DOMException extends \Exception {
     const OUTER_HTML_FAILED_NOPARENT = 102;
 
     protected static $messages = [
-          7 => 'Modification not allowed here'
-
+          7 => 'Modification not allowed here',
         100 => 'Element, Document, or DOMDocumentFragment expected; found %s',
         101 => 'The first argument must either be an instance of \DOMNode, a string, or a closure; found %s',
         102 => 'Failed to set the "outerHTML" property; the element does not have a parent node'
