@@ -21,6 +21,9 @@ class Element extends \DOMElement {
             $name = $this->coerceName($name);
             parent::setAttribute($name, $value);
         }
+        if ($name === "id") {
+            $this->setIdAttribute($name, true);
+        }
     }
 
     public function setAttributeNS($namespaceURI, $qualifiedName, $value) {
@@ -33,6 +36,9 @@ class Element extends \DOMElement {
             $this->ownerDocument->mangledAttributes = true;
             $qualifiedName = $this->coerceName($qualifiedName);
             parent::setAttributeNS($namespaceURI, $qualifiedName, $value);
+        }
+        if ($qualifiedName === "id" && $namespaceURI === null) {
+            $this->setIdAttribute($qualifiedName, true);
         }
     }
 

@@ -31,36 +31,6 @@ class Document extends \DOMDocument {
         $this->registerNodeClass('DOMText', '\dW\HTML5\Text');
     }
 
-    public function fixIdAttributes() {
-        // TODO: Accept DOMDocumentFragment, append it to a document, fix shit, and
-        // then poop out a fragment so selecting id attributes works on fragments.
-
-        // Fix id attributes so they may be selected by the DOM. Fix the PHP id attribute
-        // bug. Allows DOMDocument->getElementById() to work on id attributes.
-        $this->relaxNGValidateSource('<grammar xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
- <start>
-  <element>
-   <anyName/>
-   <ref name="anythingID"/>
-  </element>
- </start>
- <define name="anythingID">
-  <zeroOrMore>
-   <choice>
-    <element>
-     <anyName/>
-     <ref name="anythingID"/>
-    </element>
-    <attribute name="id"><data type="ID"/></attribute>
-    <zeroOrMore><attribute><anyName/></attribute></zeroOrMore>
-    <text/>
-   </choice>
-  </zeroOrMore>
- </define>
-</grammar>');
-        $this->normalize();
-    }
-
     public function load($source, $options = null, ?string $encodingOrContentType = null): bool {
         $data = Parser::fetchFile($source, $encodingOrContentType);
         if (!$data) {
