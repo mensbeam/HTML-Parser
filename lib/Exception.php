@@ -48,11 +48,11 @@ class Exception extends \Exception {
     ];
 
     public function __construct(int $code, ...$args) {
-        if (!isset(static::$messages[$code])) {
-            throw new Exception(self::INVALID_CODE);
+        if (!isset(self::$messages[$code])) {
+            throw new self(self::INVALID_CODE);
         }
 
-        $message = static::$messages[$code];
+        $message = self::$messages[$code];
         $previous = null;
 
         if ($args) {
@@ -70,7 +70,7 @@ class Exception extends \Exception {
 
         // If the number of replacements don't match the arguments then oops.
         if (count($args) !== $count) {
-            throw new Exception(self::INCORRECT_PARAMETERS_FOR_MESSAGE, $count);
+            throw new self(self::INCORRECT_PARAMETERS_FOR_MESSAGE, $count);
         }
 
         if ($count > 0) {

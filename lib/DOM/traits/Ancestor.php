@@ -16,7 +16,7 @@ trait Ancestor {
     protected function ancestor($needle, bool $returnNode = true) {
         $context = $this->parentNode;
         do {
-            $result = static::compare($needle, $context);
+            $result = self::compare($needle, $context);
             if (!is_null($result)) {
                 return ($returnNode === true) ? $result : true;
             }

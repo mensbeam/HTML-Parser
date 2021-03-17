@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace dW\HTML5;
 
-class DOMException extends \DOMException {
+class DOMException extends \Exception {
     // From PHP's DOMException; keeping error codes consistent
     const NO_MODIFICATION_ALLOWED = 7;
 
@@ -19,11 +19,11 @@ class DOMException extends \DOMException {
     ];
 
     public function __construct(int $code, ...$args) {
-        if (!isset(static::$messages[$code])) {
+        if (!isset(self::$messages[$code])) {
             throw new Exception(Exception::INVALID_CODE);
         }
 
-        $message = static::$messages[$code];
+        $message = self::$messages[$code];
         $previous = null;
 
         if ($args) {

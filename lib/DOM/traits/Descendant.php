@@ -6,11 +6,11 @@ trait Descendant {
     use Compare;
 
     public function getDescendant($needle): \DOMNode {
-        return static::descendant($needle, true);
+        return self::descendant($needle, true);
     }
 
     public function hasDescendant($needle): bool {
-        return static::descendant($needle, false);
+        return self::descendant($needle, false);
     }
 
     protected function descendant($needle, bool $returnNode = true): \DOMNode {

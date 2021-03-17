@@ -42,6 +42,22 @@ class Element extends \DOMElement {
         }
     }
 
+    public function setAttributeNode(\DOMAttr $attribute) {
+        parent::setAttributeNode($attribute);
+
+        if ($attribute->name === 'id') {
+            $this->setIdAttribute($attribute->name, true);
+        }
+    }
+
+    public function setAttributeNodeNS(\DOMAttr $attribute) {
+        parent::setAttributeNodeNS($attribute);
+
+        if ($attribute->name === 'id') {
+            $this->setIdAttribute($attribute->name, true);
+        }
+    }
+
     public function __get(string $prop) {
         switch ($prop) {
             ### DOM Parsing Specification ###
