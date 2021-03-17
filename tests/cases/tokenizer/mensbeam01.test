@@ -1,0 +1,27 @@
+{
+    "tests": [
+        {
+            "description":"Whitespace character references",
+            "initialStates":["RCDATA state"],
+            "input":"&#x20;",
+            "output":[["Character", " "]]
+        },
+        {
+            "description":"Script end tag with whitespace",
+            "initialStates":["Script data state"],
+            "lastStartTag":"script",
+            "input":"</script >",
+            "output":[["EndTag", "script"]]
+        },
+        {
+            "description":"Self-closing script end tag with whitespace",
+            "initialStates":["Script data state"],
+            "lastStartTag":"script",
+            "input":"</script/>",
+            "output":[["EndTag", "script"]],
+            "errors":[
+                { "code": "end-tag-with-trailing-solidus", "line": 1, "col": 10 }
+            ]
+        }
+    ]
+}

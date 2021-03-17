@@ -81,7 +81,10 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
     public function provideStandardTokenizerTests() {
         $tests = [];
         $blacklist = ["xmlViolation.test"];
-        foreach (new \GlobIterator(\dW\HTML5\BASE."tests/html5lib-tests/tokenizer/*.test", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME) as $file) {
+        $files = new \AppendIterator();
+        $files->append(new \GlobIterator(\dW\HTML5\BASE."tests/html5lib-tests/tokenizer/*.test", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
+        $files->append(new \GlobIterator(\dW\HTML5\BASE."tests/cases/tokenizer/*.test", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
+        foreach ($files as $file) {
             if (!in_array(basename($file), $blacklist)) {
                 $tests[] = $file;
             }

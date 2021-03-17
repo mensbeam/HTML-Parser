@@ -18,7 +18,6 @@ use dW\HTML5\TreeBuilder;
  * @covers \dW\HTML5\Document
  * @covers \dW\HTML5\Element
  * @covers \dW\HTML5\TreeBuilder
- * @covers \dW\HTML5\Tokenizer
  * @covers \dW\HTML5\ActiveFormattingElementsList
  * @covers \dW\HTML5\TemplateInsertionModesStack
  * @covers \dW\HTML5\OpenElementsStack
@@ -377,7 +376,10 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
 
     public function provideStandardTreeTests(): iterable {
         $blacklist = [];
-        foreach (new \GlobIterator(\dW\HTML5\BASE."tests/html5lib-tests/tree-construction/*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME) as $file) {
+        $files = new \AppendIterator();
+        $files->append(new \GlobIterator(\dW\HTML5\BASE."tests/html5lib-tests/tree-construction/*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
+        $files->append(new \GlobIterator(\dW\HTML5\BASE."tests/cases/tree-construction/*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
+        foreach ($files as $file) {
             $index = 0;
             $l = 0;
             if (!in_array(basename($file), $blacklist)) {
