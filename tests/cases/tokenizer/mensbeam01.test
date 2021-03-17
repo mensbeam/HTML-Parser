@@ -14,7 +14,7 @@
             "output":[["EndTag", "script"]]
         },
         {
-            "description":"Self-closing script end tag with whitespace",
+            "description":"Self-closing script end tag",
             "initialStates":["Script data state"],
             "lastStartTag":"script",
             "input":"</script/>",
