@@ -79,7 +79,7 @@ class Element extends \DOMElement {
 
                 # 2. Let fragment be the result of invoking the fragment parsing algorithm with
                 # the new value as markup, and with context element.
-                $frag = Parser::parse($value, $this->ownerDocument, $this->ownerDocument->documentEncoding, $this);
+                $fragment = Parser::parseFragment($value, $this->ownerDocument, 'UTF-8', $this);
 
                 # 3. If the context object is a template element, then let context object be the
                 # template's template contents (a DocumentFragment).
@@ -123,7 +123,7 @@ class Element extends \DOMElement {
                     // DEVIATION: Normally the tree mutation record would do the actual replacement,
                     // but there is no scripting in this implementation. Going to simply append the
                     // fragment instead.
-                    $this->appendChild($frag);
+                    $this->appendChild($fragment);
                 }
             break;
 
@@ -157,7 +157,7 @@ class Element extends \DOMElement {
 
                 # 5. Let fragment be the result of invoking the fragment parsing algorithm with
                 # the new value as markup, and parent as the context element.
-                $fragment = Parser::parse($value, $this->ownerDocument, $this->ownerDocument->documentEncoding, $parent);
+                $fragment = Parser::parseFragment($value, $this->ownerDocument, 'UTF-8', $parent);
 
                 # 6. Replace the context object with fragment within the context object's
                 # parent.

@@ -29,7 +29,7 @@ class Parser {
             $errorHandler = new ParseError;
         } else {
             $errorHandler = new ParseErrorDummy;
-        }        
+        }
         $decoder = new Data($data, $file ?? "STDIN", $errorHandler, $encodingOrContentType);
         $document->documentEncoding = $decoder->encoding;
         $stack = new OpenElementsStack($fragmentContext);
@@ -51,13 +51,12 @@ class Parser {
     public static function parseFragment(string $data, ?Document $document = null, ?string $encodingOrContentType = null, ?\DOMElement $fragmentContext = null, ?String $file = null): DocumentFragment {
         // Create the requisite parsing context if none was supplied
         $document = $document ?? new Document;
-        $tempDocument = new Document;
         $fragmentContext = $fragmentContext ?? $document->createElement("div");
         // parse the fragment into the temporary document
-        self::parse($data, $tempDocument, $encodingOrContentType, $fragmentContext, $file);
+        self::parse($data, $document, $encodingOrContentType, $fragmentContext, $file);
         // extract the nodes from the temp document into a fragment
         $fragment = $document->createDocumentFragment();
-        foreach ($tempDocument->documentElement->childNodes as $node) {
+        foreach ($document->documentElement->childNodes as $node) {
             $document->importNode($node, true);
             $fragment->appendChild($node);
         }
