@@ -52,7 +52,10 @@ class Element extends \DOMElement {
             # 2.4 Extensions to the Element interface
             # outerHTML
             #
-            # On getting, return the result of invoking the fragment serializing algorithm on a fictional node whose only child is the context object providing true for the require well-formed flag (this might throw an exception instead of returning a string).
+            # On getting, return the result of invoking the fragment serializing algorithm
+            # on a fictional node whose only child is the context object providing true for
+            # the require well-formed flag (this might throw an exception instead of
+            # returning a string).
             // DEVIATION: Parsing of XML documents will not be handled by this
             // implementation, so there's no need for the well-formed flag.
             // OPTIMIZATION: When following the instructions above the fragment serializing
@@ -120,7 +123,7 @@ class Element extends \DOMElement {
                     // DEVIATION: Normally the tree mutation record would do the actual replacement,
                     // but there is no scripting in this implementation. Going to simply append the
                     // fragment instead.
-                    $this->appendChild($ook);
+                    $this->appendChild($frag);
                 }
             break;
 
@@ -145,7 +148,20 @@ class Element extends \DOMElement {
                     throw new DOMException(DOMException::NO_MODIFICATION_ALLOWED);
                 }
                 # 4. parent is a DocumentFragment, let parent be a new Element with:
+                # • body as its local name,
+                # • The HTML namespace as its namespace, and
+                # • The context object's node document as its node document.
+                elseif ($parent instanceof DocumentFragment) {
+                    $parent = $this->ownerDocument->createElement('body');
+                }
 
+                # 5. Let fragment be the result of invoking the fragment parsing algorithm with
+                # the new value as markup, and parent as the context element.
+                $fragment = Parser::parse($value, $this->ownerDocument, $this->ownerDocument->documentEncoding, $parent);
+
+                # 6. Replace the context object with fragment within the context object's
+                # parent.
+                $this->parentNode->replaceChild($fragment, $this);
             break;
         }
     }
@@ -161,7 +177,7 @@ class Element extends \DOMElement {
         }
 
         // Since tag names can contain characters that are invalid in PHP's XML DOM
-        // uncoerce the name when printing.
+        // uncoerce the name when printing if necessary.
         if (strpos($tagName, 'U') !== false) {
             $tagName = $this->uncoerceName($tagName);
         }
