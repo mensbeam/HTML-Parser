@@ -294,6 +294,7 @@ class TreeBuilder {
                 $this->debugLog .= "EMITTED: ".constant(get_class($token)."::NAME")."\n";
                 return true;
             })());
+            assert($token instanceof CharacterToken || $token instanceof CommentToken || $token instanceof TagToken || $token instanceof DOCTYPEToken || $token instanceof EOFToken, new \Exception("Unknown token class ".get_class($token)));
             $iterations = 0;
             $insertionMode = $this->insertionMode;
 
@@ -491,6 +492,7 @@ class TreeBuilder {
                         # set the Document to quirks mode.
                         // DEVIATION: There is no iframe srcdoc document because there are no nested
                         // browsing contexts in this implementation.
+                        assert($token instanceof CharacterToken || $token instanceof TagToken || $token instanceof EOFToken, new \Exception("Unexpected token class ".get_class($token)));
                         if ($token instanceof StartTagToken) {
                             $this->error(ParseError::EXPECTED_DOCTYPE_BUT_GOT_START_TAG, $token->name);
                         } elseif ($token instanceof EndTagToken) {
@@ -499,8 +501,6 @@ class TreeBuilder {
                             $this->error(ParseError::EXPECTED_DOCTYPE_BUT_GOT_CHARS);
                         } elseif ($token instanceof EOFToken) {
                             $this->error(ParseError::EXPECTED_DOCTYPE_BUT_GOT_EOF);
-                        } else {
-                            throw new \Exception("Unexpected token type".get_class($token));
                         }
 
                         $this->DOM->quirksMode = Document::QUIRKS_MODE;
@@ -3108,14 +3108,13 @@ class TreeBuilder {
                     # Anything else
                     else {
                         # Parse error.
+                        assert($token instanceof CharacterToken || $token instanceof TagToken, new \Exception("Unexpected token class ".get_class($token)));
                         if ($token instanceof StartTagToken) {
                             $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                         } elseif ($token instanceof EndTagToken) {
                             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                         } elseif ($token instanceof CharacterToken) {
                             $this->error(ParseError::UNEXPECTED_CHAR);
-                        } else {
-                            throw new \Exception("Unexpected token type".get_class($token));
                         }
                         # Switch the insertion mode to "in body"
                         #   and reprocess the token.
@@ -3211,6 +3210,7 @@ class TreeBuilder {
                     # Anything else
                     else {
                         # Parse error. Ignore the token.
+                        assert($token instanceof CharacterToken || $token instanceof TagToken, new \Exception("Unexpected token class ".get_class($token)));
                         if ($token instanceof StartTagToken) {
                             $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                         } elseif ($token instanceof EndTagToken) {
@@ -3222,8 +3222,6 @@ class TreeBuilder {
                             if (strlen($ws)) {
                                 $this->insertCharacterToken(new WhitespaceToken($ws));
                             }
-                        } else {
-                            throw new \Exception("Unexpected token type".get_class($token));
                         }
                     }
                 }
@@ -3273,6 +3271,7 @@ class TreeBuilder {
                     # Anything else
                     else {
                         # Parse error. Ignore the token.
+                        assert($token instanceof CharacterToken || $token instanceof TagToken, new \Exception("Unexpected token class ".get_class($token)));
                         if ($token instanceof StartTagToken) {
                             $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                         } elseif ($token instanceof EndTagToken) {
@@ -3284,8 +3283,6 @@ class TreeBuilder {
                             if (strlen($ws)) {
                                 $this->insertCharacterToken(new WhitespaceToken($ws));
                             }
-                        } else {
-                            throw new \Exception("Unexpected token type".get_class($token));
                         }
                     }
                 }
@@ -3315,14 +3312,13 @@ class TreeBuilder {
                     # Anything else
                     else {
                         # Parse error.
+                        assert($token instanceof CharacterToken || $token instanceof TagToken, new \Exception("Unexpected token class ".get_class($token)));
                         if ($token instanceof StartTagToken) {
                             $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                         } elseif ($token instanceof EndTagToken) {
                             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                         } elseif ($token instanceof CharacterToken) {
                             $this->error(ParseError::UNEXPECTED_CHAR);
-                        } else {
-                            throw new \Exception("Unexpected token type".get_class($token));
                         }
                         # Switch the insertion mode to "in body" and reprocess the token.
                         $insertionMode = $this->insertionMode = self::IN_BODY_MODE;
@@ -3362,19 +3358,18 @@ class TreeBuilder {
                     # Anything else
                     else {
                         # Parse error. Ignore the token.
+                        assert($token instanceof CharacterToken || $token instanceof TagToken, new \Exception("Unexpected token class ".get_class($token)));
                         if ($token instanceof StartTagToken) {
                             $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                         } elseif ($token instanceof EndTagToken) {
                             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                         } elseif ($token instanceof CharacterToken) {
                             $this->error(ParseError::UNEXPECTED_CHAR);
-                        } else {
-                            throw new \Exception("Unexpected token type".get_class($token));
                         }
                     }
                 }
                 else {
-                    throw new \Exception("UNREACHABLE CODE");
+                    throw new \Exception("UNREACHABLE CODE"); // @codeCoverageIgnore
                 }
             }
             # Otherwise
