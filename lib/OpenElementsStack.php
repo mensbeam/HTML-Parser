@@ -133,7 +133,7 @@ class OpenElementsStack extends Stack {
     }
 
     public function insert(Element $element, ?int $at = null): void  {
-        assert($at === null || ($at >= 0 && $at <= count($this->_storage)), new \Exception("Invalid stack index $at"));
+        assert($at === null || ($at >= 0 && $at <= count($this->_storage)), new Exception(Exception::STACK_INVALID_INDEX, $at));
         if ($at === null) {
             $this[] = $element;
         } else {
@@ -145,7 +145,7 @@ class OpenElementsStack extends Stack {
     public function popUntil(string ...$target): void {
         do {
             $node = array_pop($this->_storage);
-            assert(isset($node), new \Exception("Stack is empty"));
+            assert(isset($node), new Exception(Exception::STACK_INCORRECTLY_EMPTY));
         } while ($node->namespaceURI !== null || !in_array($node->nodeName, $target));
         $this->computeProperties();
     }
@@ -192,7 +192,7 @@ class OpenElementsStack extends Stack {
     }
 
     public function generateImpliedEndTags(string ...$exclude): void {
-        # When the steps below require the UA to generate implied end tags, 
+        # When the steps below require the UA to generate implied end tags,
         #   then, while the current node is {elided list of element names},
         #   the UA must pop the current node off the stack of open elements.
         #
@@ -211,7 +211,7 @@ class OpenElementsStack extends Stack {
     }
 
     public function generateImpliedEndTagsThoroughly(): void {
-        # When the steps below require the UA to generate all implied end tags 
+        # When the steps below require the UA to generate all implied end tags
         #   thoroughly, then, while the current node is {elided list of element names},
         #   the UA must pop the current node off the stack of open elements.
         while (!$this->isEmpty() && $this->top()->namespaceURI === null && (self::IMPLIED_END_TAGS_THOROUGH[$this->top()->nodeName] ?? false)) {
@@ -226,9 +226,9 @@ class OpenElementsStack extends Stack {
         #   table context, it means that the UA must, while the current node
         #   is not a table, template, or html element, pop elements from the
         #   stack of open elements.
-        assert(count($this->_storage) > 0, new \Exception("Stack is empty"));
+        assert(count($this->_storage) > 0, new Exception(Exception::STACK_INCORRECTLY_EMPTY));
         $pos = $this->find("table", "template", "html");
-        assert($pos > -1, new \Exception("No table context exists"));
+        assert($pos > -1, new Exception(Exception::STACK_NO_CONTEXT_EXISTS, 'table'));
         $stop = $pos + 1;
         while (count($this->_storage) > $stop) {
             array_pop($this->_storage);
@@ -241,9 +241,9 @@ class OpenElementsStack extends Stack {
         #   table body context, it means that the UA must, while the current
         #   node is not a tbody, tfoot, thead, template, or html element,
         #   pop elements from the stack of open elements.
-        assert(count($this->_storage) > 0, new \Exception("Stack is empty"));
+        assert(count($this->_storage) > 0, new Exception(Exception::STACK_INCORRECTLY_EMPTY));
         $pos = $this->find("tbody", "tfoot", "thead", "template", "html");
-        assert($pos > -1, new \Exception("No table body context exists"));
+        assert($pos > -1, new Exception(Exception::STACK_NO_CONTEXT_EXISTS, 'table body'));
         $stop = $pos + 1;
         while (count($this->_storage) > $stop) {
             array_pop($this->_storage);
@@ -256,9 +256,9 @@ class OpenElementsStack extends Stack {
         #   table row context, it means that the UA must, while the current
         #   node is not a tr, template, or html element, pop elements from
         #   the stack of open elements.
-        assert(count($this->_storage) > 0, new \Exception("Stack is empty"));
+        assert(count($this->_storage) > 0, new Exception(Exception::STACK_INCORRECTLY_EMPTY));
         $pos = $this->find("tr", "template", "html");
-        assert($pos > -1, new \Exception("No table row context exists"));
+        assert($pos > -1, new Exception(Exception::STACK_NO_CONTEXT_EXISTS, 'table row'));
         $stop = $pos + 1;
         while (count($this->_storage) > $stop) {
             array_pop($this->_storage);
@@ -292,8 +292,8 @@ class OpenElementsStack extends Stack {
     }
 
     public function hasElementInSelectScope(...$target): bool {
-        # The stack of open elements is said to have a particular element 
-        #   in select scope when it has that element in the specific scope 
+        # The stack of open elements is said to have a particular element
+        #   in select scope when it has that element in the specific scope
         #   consisting of all element types EXCEPT the following:
         #
         # optgroup in the HTML namespace
@@ -324,12 +324,12 @@ class OpenElementsStack extends Stack {
             if (in_array($node->nodeName, $list[$ns] ?? []) === $matchType) {
                 return false;
             }
-            # Otherwise, set node to the previous entry in the stack of 
-            #   open elements and return to step 2. (This will never fail, 
-            #   since the loop will always terminate in the previous step 
+            # Otherwise, set node to the previous entry in the stack of
+            #   open elements and return to step 2. (This will never fail,
+            #   since the loop will always terminate in the previous step
             #   if the top of the stack — an html element — is reached.)
         }
-        assert(false, new \Exception("Stack is invalid: ".(string) $this));
+        assert(false, new Exception(Exception::STACK_INVALID_STATE, (string)$this));
     }
 
     protected function computeProperties(): void {
