@@ -265,7 +265,7 @@ abstract class Charset {
         spaces:
         #  If the byte at position is one of 0x09 (HT), 0x0A (LF), 0x0C (FF), 0x0D (CR), 
         #   or 0x20 (SP) then advance position to the next byte, then, repeat this step.
-        while (in_array(@$s[$pos], ["\x09", "\x0A", "\x0C", "\x0D", " ", "/"])) {
+        while (in_array(@$s[$pos], ["\x09", "\x0A", "\x0C", "\x0D", " "])) {
             $pos++;
         }
         $char = @$s[$pos];
@@ -284,7 +284,7 @@ abstract class Charset {
         value:
         # If the byte at position is one of 0x09 (HT), 0x0A (LF), 0x0C (FF), 0x0D (CR), 
         #   or 0x20 (SP) then advance position to the next byte, then, repeat this step.
-        while (in_array(@$s[$pos], ["\x09", "\x0A", "\x0C", "\x0D", " ", "/"])) {
+        while (in_array(@$s[$pos], ["\x09", "\x0A", "\x0C", "\x0D", " "])) {
             $pos++;
         }
         $char = @$s[$pos];
@@ -424,5 +424,5 @@ abstract class Charset {
                 return self::fromCharset(substr($s, $pos, $size));
             }
         }
-    }
+    } // @codeCoverageIgnore
 }

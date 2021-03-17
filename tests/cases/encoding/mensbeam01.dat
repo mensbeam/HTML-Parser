@@ -1,0 +1,35 @@
+#data
+<!DOCTYPE HTML>
+<meta charset="x-user-defined">
+#encoding
+Windows-1252
+
+#data
+<!DOCTYPE HTML>
+<meta charset="utf-8" charset="windows-1252">
+#encoding
+UTF-8
+
+#data
+<!DOCTYPE HTML>
+<meta charset 
+#encoding
+Windows-1252
+
+#data
+<!DOCTYPE HTML>
+<meta charset=>
+#encoding
+Windows-1252
+
+#data
+<!DOCTYPE HTML>
+<meta http-equiv="Content-Type" content="text/html; charset charset=">
+#encoding
+Windows-1252
+
+#data
+<!DOCTYPE HTML>
+<meta http-equiv="Content-Type" content="text/html; charset charset=utf-8">
+#encoding
+UTF-8

@@ -86,7 +86,10 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
     public function provideStandardEncodingTests() {
         $tests = [];
         $blacklist = [];
-        foreach (new \GlobIterator(\dW\HTML5\BASE."tests/html5lib-tests/encoding/*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME) as $file) {
+        $files = new \AppendIterator();
+        $files->append(new \GlobIterator(\dW\HTML5\BASE."tests/html5lib-tests/encoding/*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
+        $files->append(new \GlobIterator(\dW\HTML5\BASE."tests/cases/encoding/*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
+        foreach ($files as $file) {
             if (!in_array(basename($file), $blacklist)) {
                 $tests[] = $file;
             }
@@ -111,7 +114,7 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
                 if ($l >= $end) {
                     return;
                 }
-                yield $testId => [trim($data), trim($test[$l++])];
+                yield $testId => [trim($data, "\r\n"), trim($test[$l++])];
             }
         }
     }

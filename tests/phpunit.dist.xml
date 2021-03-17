@@ -16,8 +16,10 @@
 </filter>
 
 <testsuites>
-    <testsuite name="Tokenizer">
+    <testsuite name="Charset">
         <file>cases/TestCharset.php</file>
+    </testsuite>
+    <testsuite name="Tokenizer">
         <file>cases/TestTokenizer.php</file>
     </testsuite>
     <testsuite name="Tree">
