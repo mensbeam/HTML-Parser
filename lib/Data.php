@@ -46,9 +46,7 @@ class Data {
         $this->filePath = $filePath;
         $encodingOrContentType = (string) $encodingOrContentType;
         // don't track the current line/column position if erroro reporting has been suppressed
-        if (!(error_reporting() & \E_USER_WARNING)) {
-            $this->track = false;
-        }
+        $this->track = (bool) (error_reporting() & \E_USER_WARNING);
 
         if ($encoding = Charset::fromBOM($data)) {
             // encoding determined from Unicode byte order mark
@@ -66,7 +64,6 @@ class Data {
         $this->encoding = $encoding;
         $this->data = Encoding::createDecoder($encoding, $data, false, true);
     }
-
 
     public function consume(int $length = 1, $advancePointer = true): string {
         assert($length > 0, new Exception(Exception::DATA_INVALID_DATA_CONSUMPTION_LENGTH, $length));

@@ -12,7 +12,7 @@ abstract class Stack implements \ArrayAccess, \Countable, \IteratorAggregate {
         if (is_null($offset)) {
             $this->_storage[] = $value;
         } else {
-            $this->_storage[$offset] = $value;
+            $this->_storage[$offset] = $value; // @codeCoverageIgnore
         }
         $this->count = count($this->_storage);
     }

@@ -158,6 +158,7 @@ class ActiveFormattingElementsList extends Stack {
         }
     }
 
+    /** @codeCoverageIgnore */
     public function __toString(): string {
         $out = [];
         foreach ($this as $entry) {

@@ -23,6 +23,7 @@ use dW\HTML5\TreeBuilder;
  * @covers \dW\HTML5\TemplateInsertionModesStack
  * @covers \dW\HTML5\OpenElementsStack
  * @covers \dW\HTML5\Stack
+ * @covers \dW\HTML5\TagToken
  */
 class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
     use \dW\HTML5\EscapeString;

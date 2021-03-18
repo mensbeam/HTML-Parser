@@ -261,7 +261,7 @@ class TreeBuilder {
             $this->stack[] = $dom->documentElement;
             # If the context element is a template element, push "in template" onto the stack of
             #   template insertion modes so that it is the new current template insertion mode.
-            if ($fragmentContext->nodeName === "template" && !$fragmentContext->namespaceURI) {
+            if ($fragmentContext->nodeName === "template" && $fragmentContext->namespaceURI === null) {
                 $this->templateInsertionModes[] = self::IN_TEMPLATE_MODE;
             }
             # Create a start tag token whose name is the local name of context and whose attributes are the attributes of context.
@@ -275,7 +275,7 @@ class TreeBuilder {
             #   the form element pointer keeps its initial value, null.)
             $node = $fragmentContext;
             do {
-                if ($node->nodeName === "form" && !$fragmentContext->namespaceURI) {
+                if ($node->nodeName === "form" && $fragmentContext->namespaceURI === null) {
                     $this->formElement = $node;
                     break;
                 }
@@ -1094,8 +1094,8 @@ class TreeBuilder {
                                 # not, add the attribute and its corresponding value to that element.
                                 $top = $this->stack[0];
                                 foreach ($token->attributes as $a) {
-                                    if (!$top->hasAttribute($a->name)) {
-                                        $top->setAttribute($a->name, $a->value);
+                                    if (!$top->hasAttributeNS(null, $a->name)) {
+                                        $top->setAttributeNS(null, $a->name, $a->value);
                                     }
                                 }
                             }
@@ -1122,8 +1122,8 @@ class TreeBuilder {
                                 $this->framesetOk = false;
                                 $body = $this->stack[1];
                                 foreach ($token->attributes as $a) {
-                                    if (!$body->hasAttribute($a->name)) {
-                                        $body->setAttribute($a->name, $a->value);
+                                    if (!$body->hasAttributeNS(null, $a->name)) {
+                                        $body->setAttributeNS(null, $a->name, $a->value);
                                     }
                                 }
                             }
@@ -4269,12 +4269,10 @@ class TreeBuilder {
     protected function createElementForToken(TagToken $token, ?string $namespace = null, ?\DOMNode $intendedParent = null): Element {
         // DEVIATION: Steps related to scripting have been elided entirely
         # Let document be intended parent's node document.
-        $document = $this->DOM;
         # Let local name be the tag name of the token.
-        $localName = $token->name;
         # Let element be the result of creating an element given document,
         #   localName, given namespace, null, and is.
-        $element = $document->createElementNS($namespace, $localName);
+        $element = $this->DOM->createElementNS($namespace, $token->name);
         # Append each attribute in the given token to element.
         foreach ($token->attributes as $attr) {
             # If element has an xmlns attribute in the XMLNS namespace whose value

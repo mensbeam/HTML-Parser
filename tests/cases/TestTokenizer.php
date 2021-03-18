@@ -13,6 +13,7 @@ use dW\HTML5\DOCTYPEToken;
 use dW\HTML5\EndTagToken;
 use dW\HTML5\NullCharacterToken;
 use dW\HTML5\StartTagToken;
+use dW\HTML5\TokenAttr;
 use dW\HTML5\WhitespaceToken;
 
 /** 
@@ -161,7 +162,7 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
                             case "StartTag":
                                 $t = new StartTagToken($token[1], $token[3] ?? false);
                                 foreach ($token[2] ?? [] as $name => $value) {
-                                    $t->setAttribute((string) $name, $value);
+                                    $t->attributes[] = new TokenAttr((string) $name, $value);
                                 }
                                 $tokens[] = $t;
                                 break;

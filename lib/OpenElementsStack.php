@@ -135,7 +135,7 @@ class OpenElementsStack extends Stack {
     public function insert(Element $element, ?int $at = null): void  {
         assert($at === null || ($at >= 0 && $at <= count($this->_storage)), new Exception(Exception::STACK_INVALID_INDEX, $at));
         if ($at === null) {
-            $this[] = $element;
+            $this[] = $element; // @codeCoverageIgnore
         } else {
             array_splice($this->_storage, $at, 0, [$element]);
         }
@@ -329,8 +329,8 @@ class OpenElementsStack extends Stack {
             #   since the loop will always terminate in the previous step
             #   if the top of the stack — an html element — is reached.)
         }
-        assert(false, new Exception(Exception::STACK_INVALID_STATE, (string)$this));
-    }
+        assert(false, new Exception(Exception::STACK_INVALID_STATE, (string)$this)); // @codeCoverageIgnore
+    } // @codeCoverageIgnore
 
     protected function computeProperties(): void {
         $this->count = count($this->_storage);
@@ -348,15 +348,15 @@ class OpenElementsStack extends Stack {
             $this->currentNodeName = $this->currentNode->nodeName;
             $this->currentNodeNamespace = $this->currentNode->namespaceURI;
         } else {
-            $this->currentNodeName = null;
-            $this->currentNodeNamespace = null;
+            $this->currentNodeName = null; // @codeCoverageIgnore
+            $this->currentNodeNamespace = null; // @codeCoverageIgnore
         }
         if ($this->adjustedCurrentNode) {
             $this->adjustedCurrentNodeName = $this->adjustedCurrentNode->nodeName;
             $this->adjustedCurrentNodeNamespace = $this->adjustedCurrentNode->namespaceURI;
         } else {
-            $this->adjustedCurrentNodeName = null;
-            $this->adjustedCurrentNodeNamespace = null;
+            $this->adjustedCurrentNodeName = null; // @codeCoverageIgnore
+            $this->adjustedCurrentNodeNamespace = null; // @codeCoverageIgnore
         }
     }
 
