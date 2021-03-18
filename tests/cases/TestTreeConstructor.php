@@ -17,6 +17,7 @@ use dW\HTML5\TreeBuilder;
 /** 
  * @covers \dW\HTML5\Document
  * @covers \dW\HTML5\Element
+ * @covers \dW\HTML5\Tokenizer
  * @covers \dW\HTML5\TreeBuilder
  * @covers \dW\HTML5\ActiveFormattingElementsList
  * @covers \dW\HTML5\TemplateInsertionModesStack

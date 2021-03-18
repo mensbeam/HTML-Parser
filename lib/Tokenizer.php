@@ -3346,12 +3346,13 @@ class Tokenizer {
                 throw new Exception(Exception::TOKENIZER_INVALID_STATE, (self::STATE_NAMES[$this->state] ?? $this->state)); // @codeCoverageIgnore
             }
         }
-    }
+    } // @codeCoverageIgnore
 
     protected function switchToCharacterReferenceState(int $returnState): string {
         // This function implements states 72 through 80,
         // "Character reference" through "Numeric character reference end" states
         $this->state = self::CHARACTER_REFERENCE_STATE;
+        $charRefCode = 0;
 
         while (true) {
             assert((function() {
@@ -3690,5 +3691,5 @@ class Tokenizer {
                 throw new Exception(Exception::TOKENIZER_INVALID_CHARACTER_REFERENCE_STATE, (self::STATE_NAMES[$this->state] ?? $this->state)); // @codeCoverageIgnore
             }
         }
-    }
+    } // @codeCoverageIgnore
 }
