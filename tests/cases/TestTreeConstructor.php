@@ -76,9 +76,6 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         // run the tree builder
         try {
             $treeBuilder->constructTree();
-        } catch (\DOMException $e) {
-            $this->markTestIncomplete('Requires implementation of the "Coercing an HTML DOM into an infoset" specification section');
-            return;
         } catch (LoopException $e) {
             $act = $this->balanceTree($this->serializeTree($doc, (bool) $fragmentContext), $exp);
             $this->assertEquals($exp, $act, $e->getMessage()."\n".$treeBuilder->debugLog);

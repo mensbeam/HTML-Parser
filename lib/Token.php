@@ -70,41 +70,34 @@ abstract class TagToken extends Token {
         $this->name = $name;
     }
 
-     public function getAttribute(string $name) {
-         $key = $this->_getAttributeKey($name);
+    public function hasAttribute(string $name): bool {
+        return (!is_null($this->_getAttributeKey($name)));
+    }
 
-         return (isset($this->attributes[$key])) ? $this->attributes[$key] : null;
-     }
+    public function getAttribute(string $name) {
+        $key = $this->_getAttributeKey($name);
+        return (isset($this->attributes[$key])) ? $this->attributes[$key] : null;
+    }
 
-     public function hasAttribute(string $name): bool {
-         return (!is_null($this->_getAttributeKey($name)));
-     }
+    public function setAttribute(string $name, string $value) {
+        $key = $this->_getAttributeKey($name);
+        if (is_null($key)) {
+            $this->attributes[] = new TokenAttr($name, $value);
+        } else {
+            $attribute = &$this->attributes[$key];
+            $attribute->name = $name;
+            $attribute->value = $value;
+        }
+    }
 
-     public function removeAttribute(string $name) {
-         unset($this->attributes[$this->_getAttributeKey($name)]);
-     }
-
-     public function setAttribute(string $name, string $value) {
-         $key = $this->_getAttributeKey($name);
-
-         if (is_null($key)) {
-             $this->attributes[] = new TokenAttr($name, $value);
-         } else {
-             $attribute = &$this->attributes[$key];
-             $attribute->name = $name;
-             $attribute->value = $value;
-         }
-     }
-
-     private function _getAttributeKey(string $name) {
-         foreach ($this->attributes as $key => $a) {
-             if ($a->name === $name) {
-                 return $key;
-             }
-         }
-
-         return null;
-     }
+    private function _getAttributeKey(string $name) {
+        foreach ($this->attributes as $key => $a) {
+            if ($a->name === $name) {
+                return $key;
+            }
+        }
+        return null;
+    }
 }
 
 class StartTagToken extends TagToken {
@@ -120,8 +113,12 @@ class EOFToken extends Token {
 }
 
 class TokenAttr {
+    /** @var string The name of the attribute */
     public $name;
+    /** @var string The attribute's value */
     public $value;
+    /** @var string|null The attribute's namespace. This is normally null but may be set during tree construction */
+    public $namespace = null;
 
     public function __construct(string $name, string $value) {
         $this->name = $name;

@@ -1,0 +1,53 @@
+#data
+<!DOCTYPE html><svg xmlns="http://www.w3.org/2000/svg"/>
+#errors
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <svg svg>
+
+#data
+<!DOCTYPE html><svg xmlns="http://www.w3.org/1999/xlink"/>
+#errors
+(1,58): invalid-namespace-attribute-value
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <svg svg>
+
+#data
+<!DOCTYPE html><svg xmlns:xlink="http://www.w3.org/1999/xlink"/>
+#errors
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <svg svg>
+
+#data
+<!DOCTYPE html><svg xlink:href="http://example.com/"/>
+#errors
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <svg svg>
+|       xlink href="http://example.com/"
+
+#data
+<!DOCTYPE html><svg xmlns:xlink="http://www.w3.org/1999/xhtml" xlink:href="http://example.com/"/>
+#errors
+(1,97): invalid-namespace-attribute-value
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <svg svg>
+|       xlink href="http://example.com/"

@@ -192,11 +192,11 @@ class TreeBuilder {
             'xlink:show'    => Parser::XLINK_NAMESPACE,
             'xlink:title'   => Parser::XLINK_NAMESPACE,
             'xlink:type'    => Parser::XLINK_NAMESPACE,
-            'xml:base'      => Parser::XML_NAMESPACE,
+            'xml:id'        => Parser::XML_NAMESPACE, // DEVIATION
             'xml:lang'      => Parser::XML_NAMESPACE,
             'xml:space'     => Parser::XML_NAMESPACE,
             'xmlns'         => Parser::XMLNS_NAMESPACE,
-            'xmlns:xlink'   => Parser::XLINK_NAMESPACE,
+            'xmlns:xlink'   => Parser::XMLNS_NAMESPACE,
     ];
     # The following elements have varying levels of special parsing rules: HTML’s
     # address, applet, area, article, aside, base, basefont, bgsound, blockquote,
@@ -4277,29 +4277,21 @@ class TreeBuilder {
         $element = $document->createElementNS($namespace, $localName);
         # Append each attribute in the given token to element.
         foreach ($token->attributes as $attr) {
-            $ns = null;
-            if ($namespace) {
-                // Determine the namespace URI for the prefix, if any
-                if (strpos($attr->name, "xml:") === 0) {
-                    $ns = Parser::XML_NAMESPACE;
-                } elseif (strpos($attr->name, "xmlns:") === 0) {
-                    $ns = Parser::XMLNS_NAMESPACE;
-                } elseif (strpos($attr->name, "xlink:") === 0) {
-                    $ns = Parser::XLINK_NAMESPACE;
-                }
+            # If element has an xmlns attribute in the XMLNS namespace whose value
+            #   is not exactly the same as the element's namespace, that is a
+            #   parse error. Similarly, if element has an xmlns:xlink attribute in
+            #   the XMLNS namespace whose value is not the XLink Namespace, that
+            #   is a parse error.
+            // NOTE: The specification is silent as to how to handle these
+            //   attributes. We assume these bad attributes should be dropped,
+            //   since they break the DOM when added
+            if ($attr->name === "xmlns" && $namespace !== null && $attr->value !== $namespace) {
+                $this->error(ParseError::INVALID_NAMESPACE_ATTRIBUTE_VALUE, "xmlns", $namespace);
+            } elseif ($attr->name === "xmlns:xlink" && $namespace !== null && $attr->value !== Parser::XLINK_NAMESPACE) {
+                $this->error(ParseError::INVALID_NAMESPACE_ATTRIBUTE_VALUE, "xmlns:xlink", Parser::XLINK_NAMESPACE);
+            } else {
+                $element->setAttributeNS($attr->namespace, $attr->name, $attr->value);
             }
-            $element->setAttributeNS($ns, $attr->name, $attr->value);
-        }
-        # If element has an xmlns attribute in the XMLNS namespace whose value
-        #   is not exactly the same as the element's namespace, that is a
-        #   parse error. Similarly, if element has an xmlns:xlink attribute in
-        #   the XMLNS namespace whose value is not the XLink Namespace, that
-        #   is a parse error.
-        if ($element->hasAttributeNS(Parser::XMLNS_NAMESPACE, "xmlns") && $element->getAttributeNS(Parser::XMLNS_NAMESPACE, "xmlns") !== $element->namespaceURI) {
-            $this->error(ParseError::UNEXPECTED_ATTRIBUTE_VALUE, "xmlns");
-        }
-        if ($element->hasAttributeNS(Parser::XMLNS_NAMESPACE, "xmlns:link") && $element->getAttributeNS(Parser::XMLNS_NAMESPACE, "xmlns:xlink") !== Parser::XLINK_NAMESPACE) {
-            $this->error(ParseError::UNEXPECTED_ATTRIBUTE_VALUE, "xmlns:xlink");
         }
         # Return element.
         return $element;

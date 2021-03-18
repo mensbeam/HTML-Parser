@@ -68,7 +68,7 @@ class ParseError {
     const UNEXPECTED_CHAR                                                   = 211;
     const UNEXPECTED_EOF                                                    = 212;
     const UNEXPECTED_PARENT                                                 = 213;
-    const UNEXPECTED_ATTRIBUTE_VALUE                                        = 214;
+    const INVALID_NAMESPACE_ATTRIBUTE_VALUE                                 = 214;
     const FOSTERED_START_TAG                                                = 215;
     const FOSTERED_END_TAG                                                  = 216;
     const FOSTERED_CHAR                                                     = 217;
@@ -87,7 +87,7 @@ class ParseError {
         self::UNEXPECTED_CHAR                                                   => 'Unexpected character data',
         self::UNEXPECTED_EOF                                                    => 'Unexpected end of file',
         self::UNEXPECTED_PARENT                                                 => 'Start tag <%s> not valid in parent <%s>',
-        self::UNEXPECTED_ATTRIBUTE_VALUE                                        => 'Unexpected value in attribute "%s"',
+        self::INVALID_NAMESPACE_ATTRIBUTE_VALUE                                 => 'Invalid value for attribute "%s"; it must have value "%s" or be omitted',
         self::FOSTERED_START_TAG                                                => 'Start tag <%s> moved to before table',
         self::FOSTERED_END_TAG                                                  => 'End tag </%s> moved to before table',
         self::FOSTERED_CHAR                                                     => 'Character moved to before table',
