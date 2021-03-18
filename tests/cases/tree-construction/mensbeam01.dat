@@ -51,3 +51,16 @@
 |   <body>
 |     <svg svg>
 |       xlink href="http://example.com/"
+
+#data
+<!DOCTYPE html><svg xml:id="proper"/><p xml:id="bogus">
+#errors
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <svg svg>
+|       xml id="proper"
+|     <p>
+|       xml:id="bogus"
