@@ -180,11 +180,11 @@ class Tokenizer {
     ];
 
     const ATTRIBUTE_VALUE_STATE_SET = [
-        # A character reference is said to be consumed as part of an attribute 
-        #   if the return state is either attribute value (double-quoted) state, 
+        # A character reference is said to be consumed as part of an attribute
+        #   if the return state is either attribute value (double-quoted) state,
         #   attribute value (single-quoted) state or attribute value (unquoted) state.
-        self::ATTRIBUTE_VALUE_DOUBLE_QUOTED_STATE, 
-        self::ATTRIBUTE_VALUE_SINGLE_QUOTED_STATE, 
+        self::ATTRIBUTE_VALUE_DOUBLE_QUOTED_STATE,
+        self::ATTRIBUTE_VALUE_SINGLE_QUOTED_STATE,
         self::ATTRIBUTE_VALUE_UNQUOTED_STATE
     ];
 
@@ -608,7 +608,7 @@ class Tokenizer {
                 # U+0000 NULL
                 elseif ($char === "\0") {
                     # This is an unexpected-null-character parse error.
-                    # Append a U+FFFD REPLACEMENT CHARACTER character to 
+                    # Append a U+FFFD REPLACEMENT CHARACTER character to
                     #   the current tag token's tag name.
                     $this->error(ParseError::UNEXPECTED_NULL_CHARACTER);
                     $token->name .= "\u{FFFD}";
@@ -3343,14 +3343,14 @@ class Tokenizer {
 
             # Not a valid state, unimplemented, or implemented elsewhere
             else {
-                throw new \Exception("Unimplemented state: ".(self::STATE_NAMES[$this->state] ?? $this->state)); // @codeCoverageIgnore
+                throw new Exception(Exception::TOKENIZER_INVALID_STATE, (self::STATE_NAMES[$this->state] ?? $this->state)); // @codeCoverageIgnore
             }
         }
     }
 
     protected function switchToCharacterReferenceState(int $returnState): string {
-        // This function implements states 72 through 80, 
-        // "Character reference" through "Numeric character reference end" states 
+        // This function implements states 72 through 80,
+        // "Character reference" through "Numeric character reference end" states
         $this->state = self::CHARACTER_REFERENCE_STATE;
 
         while (true) {
@@ -3394,13 +3394,13 @@ class Tokenizer {
 
             # 13.2.5.73 Named character reference state
             elseif ($this->state === self::NAMED_CHARACTER_REFERENCE_STATE) {
-                # Consume the maximum number of characters possible, 
-                #   with the consumed characters matching one of the 
-                #   identifiers in the first column of the named character 
+                # Consume the maximum number of characters possible,
+                #   with the consumed characters matching one of the
+                #   identifiers in the first column of the named character
                 #   references table (in a case-sensitive manner).
-                
+
                 // DEVIATION:
-                // We consume all possible alphanumeric characters, 
+                // We consume all possible alphanumeric characters,
                 // up to the length of the longest in the table
                 $candidate = $this->data->consumeWhile(self::CTYPE_ALNUM, CharacterReference::LONGEST_NAME);
                 // Keep a record of the terminating character, which is used later
@@ -3421,33 +3421,33 @@ class Tokenizer {
                         $match = CharacterReference::NAMES[$match];
                     }
                 }
-                
+
                 # Append each character to the temporary buffer when it's consumed.
                 $this->temporaryBuffer .= $candidate;
 
                 # If there is a match
                 if (!is_null($match)) {
-                    # If the character reference was consumed as part of an attribute, 
-                    #   and the last character matched is not a U+003B SEMICOLON character (;), 
+                    # If the character reference was consumed as part of an attribute,
+                    #   and the last character matched is not a U+003B SEMICOLON character (;),
                     #   and the next input character is either a U+003D EQUALS SIGN character (=)
                     #   or an ASCII alphanumeric...
                     if (in_array($returnState, self::ATTRIBUTE_VALUE_STATE_SET) && $next !== ';' && ($next === '=' || ctype_alnum($next))) {
-                        # ... then, for historical reasons, flush code points consumed 
+                        # ... then, for historical reasons, flush code points consumed
                         #   as a character reference and switch to the return state.
                         $this->state = $returnState;
                         return $this->temporaryBuffer;
-                    } 
+                    }
                     # Otherwise:
                     else {
-                        # If the last character matched is not a U+003B SEMICOLON character (;), 
+                        # If the last character matched is not a U+003B SEMICOLON character (;),
                         #   then this is a missing-semicolon-after-character-reference parse error.
                         if ($next !== ';') {
                             $this->error(ParseError::MISSING_SEMICOLON_AFTER_CHARACTER_REFERENCE);
                         }
-                        # Set the temporary buffer to the empty string. 
-                        # Append one or two characters corresponding to the 
-                        #   character reference name (as given by the second 
-                        #   column of the named character references table) 
+                        # Set the temporary buffer to the empty string.
+                        # Append one or two characters corresponding to the
+                        #   character reference name (as given by the second
+                        #   column of the named character references table)
                         #   to the temporary buffer.
                         # Flush code points consumed as a character reference.
                         # Switch to the return state.
@@ -3459,7 +3459,7 @@ class Tokenizer {
                 }
                 # Otherwise:
                 else {
-                    # Flush code points consumed as a character reference. 
+                    # Flush code points consumed as a character reference.
                     # Switch to the ambiguous ampersand state.
 
                     // DEVIATION: We flush only when switching to the return state
@@ -3479,7 +3479,7 @@ class Tokenizer {
 
                 # ASCII alphanumeric
                 if (ctype_alnum($char)) {
-                    # If the character reference was consumed as part of an attribute, 
+                    # If the character reference was consumed as part of an attribute,
                     #   then append the current input character to the current attribute's value.
                     # Otherwise, emit the current input character as a character token.
 
@@ -3510,7 +3510,7 @@ class Tokenizer {
                 $charRefCode = 0;
                 # Consume the next input character.
                 $char = $this->data->consume();
-                
+
                 # U+0078 LATIN SMALL LETTER X
                 #U+0058 LATIN CAPITAL LETTER X
                 if ($char === 'x' || $char === 'X') {
@@ -3531,7 +3531,7 @@ class Tokenizer {
             elseif ($this->state === self::HEXADECIMAL_CHARACTER_REFERENCE_START_STATE) {
                 # Consume the next input character.
                 $char = $this->data->consume();
-                
+
                 # ASCII hex digit
                 if (ctype_xdigit($char)) {
                     # Reconsume in the hexadecimal character reference state.
@@ -3557,7 +3557,7 @@ class Tokenizer {
             elseif ($this->state === self::DECIMAL_CHARACTER_REFERENCE_START_STATE) {
                 # Consume the next input character.
                 $char = $this->data->consume();
-                
+
                 # ASCII digit
                 if (ctype_digit($char)) {
                     # Reconsume in the decimal character reference state.
@@ -3583,17 +3583,17 @@ class Tokenizer {
             elseif ($this->state === self::HEXADECIMAL_CHARACTER_REFERENCE_STATE) {
                 # Consume the next input character.
                 $char = $this->data->consume();
-                
+
                 # ASCII digit
                 # ASCII upper hex digit
                 # ASCII lower hex digit
                 if (ctype_xdigit($char)) {
-                    # Multiply the character reference code by 16. 
-                    # Add a numeric version of the current input 
+                    # Multiply the character reference code by 16.
+                    # Add a numeric version of the current input
                     #   character to the character reference code.
 
                     // OPTIMIZATION: Combine all digit types
-                    // NOTE: This branch should never be reached 
+                    // NOTE: This branch should never be reached
                     $charRefCode = ($charRefCode * 16) + hexdec($char); // @codeCoverageIgnore
                 }
                 # U+003B SEMICOLON
@@ -3615,15 +3615,15 @@ class Tokenizer {
             elseif ($this->state === self::DECIMAL_CHARACTER_REFERENCE_STATE) {
                 # Consume the next input character.
                 $char = $this->data->consume();
-                
+
                 # ASCII digit
                 if (ctype_digit($char)) {
-                    # Multiply the character reference code by 10. 
-                    # Add a numeric version of the current input 
+                    # Multiply the character reference code by 10.
+                    # Add a numeric version of the current input
                     #   character to the character reference code.
 
                     // OPTIMIZATION: Combine all digit types
-                    // NOTE: This branch should never be reached 
+                    // NOTE: This branch should never be reached
                     $charRefCode = ($charRefCode * 10) + ((int) ($char)); // @codeCoverageIgnore
                 }
                 # U+003B SEMICOLON
@@ -3651,29 +3651,29 @@ class Tokenizer {
                     $this->error(ParseError::NULL_CHARACTER_REFERENCE);
                     $charRefCode = 0xFFFD;
                 }
-                # If the number is greater than 0x10FFFF, then this is a 
+                # If the number is greater than 0x10FFFF, then this is a
                 #   character-reference-outside-unicode-range parse error.
                 # Set the character reference code to 0xFFFD.
                 elseif ($charRefCode > 0x10FFFF) {
                     $this->error(ParseError::CHARACTER_REFERENCE_OUTSIDE_UNICODE_RANGE);
                     $charRefCode = 0xFFFD;
                 }
-                # If the number is a surrogate, then this is a 
+                # If the number is a surrogate, then this is a
                 #   surrogate-character-reference parse error.
                 # Set the character reference code to 0xFFFD.
                 elseif ($charRefCode >= 0xD800 && $charRefCode <= 0xDFFF) {
                     $this->error(ParseError::SURROGATE_CHARACTER_REFERENCE);
                     $charRefCode = 0xFFFD;
                 }
-                # If the number is a noncharacter, then this is a 
+                # If the number is a noncharacter, then this is a
                 #   noncharacter-character-reference parse error.
                 elseif (($charRefCode >= 0xFDD0 && $charRefCode <= 0xFDEF) || ($charRefCode % 0x10000 & 0xFFFE) === 0xFFFE) {
                     $this->error(ParseError::NONCHARACTER_CHARACTER_REFERENCE);
                 }
-                # If the number is 0x0D, or a control that's not ASCII whitespace, then 
-                #   this is a control-character-reference parse error. 
-                # If the number is one of the numbers in the first column of the following 
-                #   table, then find the row with that number in the first column, and set 
+                # If the number is 0x0D, or a control that's not ASCII whitespace, then
+                #   this is a control-character-reference parse error.
+                # If the number is one of the numbers in the first column of the following
+                #   table, then find the row with that number in the first column, and set
                 #   the character reference code to the number in the second column of that row.
                 elseif (($charRefCode < 0x20 && !in_array($charRefCode, [0x9, 0xA, 0xC])) || ($charRefCode >= 0x7F && $charRefCode <= 0x9F)) {
                     // NOTE: Table elided
@@ -3687,8 +3687,8 @@ class Tokenizer {
 
             # Not a valid state, unimplemented, or implemented elsewhere
             else {
-                throw new \Exception("Unimplemented character reference consumption state: ".(self::STATE_NAMES[$this->state] ?? $this->state)); // @codeCoverageIgnore
+                throw new Exception(Exception::TOKENIZER_INVALID_CHARACTER_REFERENCE_STATE, (self::STATE_NAMES[$this->state] ?? $this->state)); // @codeCoverageIgnore
             }
-        }        
+        }
     }
 }

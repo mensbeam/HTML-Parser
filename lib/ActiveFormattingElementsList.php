@@ -21,13 +21,13 @@ class ActiveFormattingElementsList extends Stack {
         $count = $this->count;
         assert($offset >= 0 && $offset <= $count, new Exception(Exception::STACK_INVALID_INDEX, $offset));
         assert($value instanceof ActiveFormattingElementsMarker || (
-            is_array($value) 
-            && count($value) === 2 
-            && isset($value['token']) 
+            is_array($value)
+            && count($value) === 2
+            && isset($value['token'])
             && isset($value['element'])
             && $value['token'] instanceof StartTagToken
             && $value['element'] instanceof Element
-        ), new \Exception("Active formatting element value is invalid"));
+        ), new Exception(Exception::STACK_INVALID_VALUE));
         if ($value instanceof ActiveFormattingElementsMarker) {
             $this->_storage[$offset ?? $count] = $value;
         } elseif ($count && ($offset ?? $count) === $count) {
@@ -51,7 +51,7 @@ class ActiveFormattingElementsList extends Stack {
             if ($pos > $lastMarker) {
                 do {
                     $matches += (int) $this->matchElement($value['element'], $this->_storage[$pos]['element']);
-                    // Stop once there are three matches or the marker is reached 
+                    // Stop once there are three matches or the marker is reached
                 } while ($matches < 3 && (--$pos) > $lastMarker);
             }
             if ($matches === 3) {
@@ -78,8 +78,8 @@ class ActiveFormattingElementsList extends Stack {
         #   attributes in each pair have identical names, namespaces, and values (the
         #   order of the attributes does not matter).
         if (
-            $a->nodeName !== $b->nodeName 
-            || $a->namespaceURI !== $b->namespaceURI 
+            $a->nodeName !== $b->nodeName
+            || $a->namespaceURI !== $b->namespaceURI
             || $a->attributes->length !== $b->attributes->length
         ) {
             return false;
@@ -93,7 +93,7 @@ class ActiveFormattingElementsList extends Stack {
     }
 
     public function insert(StartTagToken $token, Element $element, ?int $at = null): void  {
-        assert($at === null || ($at >= 0 && $at <= $this->count), new \Exception("Invalid list index $at (max ".$this->count.")"));
+        assert($at === null || ($at >= 0 && $at <= $this->count), new Exception(Exception::STACK_INVALID_INDEX, $at));
         if ($at === null) {
             $this[] = [
                 'token' => $token,

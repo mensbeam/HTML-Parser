@@ -31,7 +31,7 @@ abstract class Stack implements \ArrayAccess, \Countable, \IteratorAggregate {
         assert($offset >= 0 && $offset < count($this->_storage), new Exception(Exception::STACK_INVALID_INDEX, $offset));
         return $this->_storage[$offset];
     }
-    
+
     public function count(): int {
         return $this->count;
     }
@@ -52,7 +52,7 @@ abstract class Stack implements \ArrayAccess, \Countable, \IteratorAggregate {
     }
 
     public function top(int $offset = 0) {
-        assert($offset >= 0, new \Exception("Offset must be at least 0"));
+        assert($offset >= 0, new Exception(Exception::STACK_INVALID_OFFSET, '<= 0'));
         return ($c = $this->count) > $offset ? $this->_storage[$c - ($offset + 1)] : null;
     }
 }
