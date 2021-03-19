@@ -4,16 +4,18 @@ namespace dW\HTML5;
 
 class DOMException extends \Exception {
     // From PHP's DOMException; keeping error codes consistent
+    const WRONG_DOCUMENT = 4;
     const NO_MODIFICATION_ALLOWED = 7;
 
-    const DOCUMENT_DOCUMENTFRAG_EXPECTED = 100;
-    const STRING_OR_CLOSURE_EXPECTED = 101;
+    const DOCUMENT_ELEMENT_DOCUMENTFRAG_EXPECTED = 100;
+    const STRING_EXPECTED = 101;
     const OUTER_HTML_FAILED_NOPARENT = 102;
 
     protected static $messages = [
+          4 => 'Supplied node does not belong to this document',
           7 => 'Modification not allowed here',
-        100 => 'Element, Document, or DOMDocumentFragment expected; found %s',
-        101 => 'The first argument must either be an instance of \DOMNode, a string, or a closure; found %s',
+        100 => 'Document, Element, or DocumentFragment expected; found %s',
+        101 => 'The "%s" argument should be a string; found %s',
         102 => 'Failed to set the "outerHTML" property; the element does not have a parent node'
     ];
 
@@ -36,7 +38,7 @@ class DOMException extends \Exception {
 
         // Count the number of replacements needed in the message.
         preg_match_all('/(\%(?:\d+\$)?s)/', $message, $matches);
-        $count = count(array_unique($matches[1]));
+        $count = count($matches[1]);
 
         // If the number of replacements don't match the arguments then oops.
         if (count($args) !== $count) {

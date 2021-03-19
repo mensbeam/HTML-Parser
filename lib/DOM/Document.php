@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace dW\HTML5;
 
 class Document extends \DOMDocument {
-    use Descendant, Serialize, EscapeString;
+    use EscapeString, Moonwalk, Serialize, Walk;
 
     // Quirks mode constants
     public const NO_QUIRKS_MODE = 0;
@@ -31,22 +31,31 @@ class Document extends \DOMDocument {
         $this->registerNodeClass('DOMText', '\dW\HTML5\Text');
     }
 
-    public function load($source, $options = null, ?string $encodingOrContentType = null): bool {
-        $data = Parser::fetchFile($source, $encodingOrContentType);
-        if (!$data) {
-            return false;
+    public function createAttribute($name) {
+        try {
+            return parent::createAttribute($name);
+        } catch (\DOMException $e) {
+            // The element name is invalid for XML
+            // Replace any offending characters with "UHHHHHH" where H are the
+            //   uppercase hexadecimal digits of the character's code point
+            $this->mangledAttributes = true;
+            $name = $this->coerceName($name);
+            return parent::createAttribute($name);
         }
-        [$data, $encodingOrContentType] = $data;
-        Parser::parse($data, $this, $encodingOrContentType, null, (string) $source);
-        return true;
     }
 
-    public function loadHTML($source, $options = null, ?string $encodingOrContentType = null): bool {
-        Parser::parse((string)$source, $this, $encodingOrContentType);
-        return true;
+    public function createAttributeNS($namespaceURI, $qualifiedName) {
+        try {
+            return parent::createAttributeNS($namespaceURI, $qualifiedName);
+        } catch (\DOMException $e) {
+            // The element name is invalid for XML
+            // Replace any offending characters with "UHHHHHH" where H are the
+            //   uppercase hexadecimal digits of the character's code point
+            $this->mangledAttributes = true;
+            $qualifiedName = $this->coerceName($qualifiedName);
+            return parent::createAttributeNS($namespaceURI, $qualifiedName);
+        }
     }
-
-    public function saveHTMLFile($filename) {}
 
     public function createElement($name, $value = "") {
         try {
@@ -84,30 +93,50 @@ class Document extends \DOMDocument {
         }
     }
 
-    public function createAttribute($name) {
-        try {
-            return parent::createAttribute($name);
-        } catch (\DOMException $e) {
-            // The element name is invalid for XML
-            // Replace any offending characters with "UHHHHHH" where H are the
-            //   uppercase hexadecimal digits of the character's code point
-            $this->mangledAttributes = true;
-            $name = $this->coerceName($name);
-            return parent::createAttribute($name);
+    public function load($source, $options = null, ?string $encodingOrContentType = null): bool {
+        $data = Parser::fetchFile($source, $encodingOrContentType);
+        if (!$data) {
+            return false;
         }
+        [$data, $encodingOrContentType] = $data;
+        Parser::parse($data, $this, $encodingOrContentType, null, (string) $source);
+        return true;
     }
 
-    public function createAttributeNS($namespaceURI, $qualifiedName) {
-        try {
-            return parent::createAttributeNS($namespaceURI, $qualifiedName);
-        } catch (\DOMException $e) {
-            // The element name is invalid for XML
-            // Replace any offending characters with "UHHHHHH" where H are the
-            //   uppercase hexadecimal digits of the character's code point
-            $this->mangledAttributes = true;
-            $qualifiedName = $this->coerceName($qualifiedName);
-            return parent::createAttributeNS($namespaceURI, $qualifiedName);
+    public function loadHTML($source, $options = null, ?string $encodingOrContentType = null): bool {
+        assert(is_string($source), new DOMException(DOMException::STRING_EXPECTED, 'source', gettype($source)));
+        Parser::parse($source, $this, $encodingOrContentType);
+        return true;
+    }
+
+    public function save($filename, $options = 0): string {
+        return file_put_contents($filename, $this->serialize());
+    }
+
+    public function saveHTML(\DOMNode $node = null): string {
+        if ($node === null) {
+            $node = $this;
+        } elseif ($node->ownerDocument !== $this) {
+            throw new DOMException(DOMException::WRONG_DOCUMENT);
         }
+
+        return $node->serialize();
+    }
+
+    public function saveHTMLFile($filename): int {
+        return $this->save($filename);
+    }
+
+    public function saveXML(?\DOMNode $node = null, $options = null) {
+        return false;
+    }
+
+    public function validate(): bool {
+        return true;
+    }
+
+    public function xinclude($options = null): bool {
+        return false;
     }
 
     public function __toString() {

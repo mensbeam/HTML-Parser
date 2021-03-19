@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace dW\HTML5;
 
 class Text extends \DOMText {
-    use Ancestor, EscapeString;
+    use EscapeString, Moonwalk;
 
     function __toString(): string {
         # If the parent of current node is a style, script, xmp, iframe, noembed,

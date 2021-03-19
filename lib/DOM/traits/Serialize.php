@@ -18,7 +18,7 @@ trait Serialize {
         }
 
         if (!$node instanceof Element && !$node instanceof Document && !$node instanceof DocumentFragment) {
-            throw new DOMException(DOMException::DOCUMENT_DOCUMENTFRAG_EXPECTED, gettype($node));
+            throw new DOMException(DOMException::DOCUMENT_ELEMENT_DOCUMENTFRAG_EXPECTED, gettype($node));
         }
 
         # 13.3. Serializing HTML fragments

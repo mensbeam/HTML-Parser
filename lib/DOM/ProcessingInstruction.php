@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace dW\HTML5;
 
 class ProcessingInstruction extends \DOMProcessingInstruction {
-    use Ancestor;
+    use Moonwalk;
 
     public function __toString(): string {
         # Append the literal string "<?" (U+003C LESS-THAN SIGN, U+003F QUESTION MARK),

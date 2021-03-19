@@ -3,9 +3,7 @@ declare(strict_types=1);
 namespace dW\HTML5;
 
 class Element extends \DOMElement {
-    use Ancestor, Descendant, EscapeString, Serialize {
-        Ancestor::compare insteadof Descendant;
-    }
+    use EscapeString, Moonwalk, Serialize, Walk;
 
     // Used for template elements
     public $content = null;
