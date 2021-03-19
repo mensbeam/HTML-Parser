@@ -12,6 +12,7 @@ UTF-8
 
 #data
 <!DOCTYPE HTML>
+<!-- There is a space at the end of the next line. This must not be removed. -->
 <meta charset 
 #encoding
 Windows-1252

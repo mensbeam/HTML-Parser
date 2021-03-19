@@ -2,24 +2,6 @@
 declare(strict_types=1);
 namespace dW\HTML5\TestCase;
 
-/* Missing tests:
-
-Pre-scan:
-
-- UTF-16LE and UTF-16BE BOM tests
-- Duplicate attributes
-- x-user-defined substitution
-- EOF after attribute name
-- Greater-than sign after equals sign
-- EOF after equals sign
-
-Meta parsing:
-
-- No equals sign after charset
-- EOF after equals sign
-
-*/
-
 use dW\HTML5\Charset;
 
 /** 
