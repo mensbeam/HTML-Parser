@@ -192,7 +192,7 @@ class TreeBuilder {
             'xlink:show'    => Parser::XLINK_NAMESPACE,
             'xlink:title'   => Parser::XLINK_NAMESPACE,
             'xlink:type'    => Parser::XLINK_NAMESPACE,
-            'xml:id'        => Parser::XML_NAMESPACE, // DEVIATION
+            'xml:id'        => Parser::XML_NAMESPACE, // DEVIATION: We support xml:id simply because we can
             'xml:lang'      => Parser::XML_NAMESPACE,
             'xml:space'     => Parser::XML_NAMESPACE,
             'xmlns'         => Parser::XMLNS_NAMESPACE,
@@ -227,6 +227,17 @@ class TreeBuilder {
             'noscript'  => Tokenizer::DATA_STATE, // NOTE: If ever this implementation were scripted, this would need special handling
             'plaintext' => Tokenizer::PLAINTEXT_STATE,
         ],
+    ];
+    protected const APPROPRIATE_INSERTION_MODES = [
+        "tr"       => self::IN_ROW_MODE,
+        "tbody"    => self::IN_TABLE_BODY_MODE,
+        "thead"    => self::IN_TABLE_BODY_MODE,
+        "tfoot"    => self::IN_TABLE_BODY_MODE,
+        "caption"  => self::IN_CAPTION_MODE,
+        "colgroup" => self::IN_COLUMN_GROUP_MODE,
+        "table"    => self::IN_TABLE_MODE,
+        "body"     => self::IN_BODY_MODE,
+        "frameset" => self::IN_FRAMESET_MODE,
     ];
 
     public function __construct(Document $dom, Data $data, Tokenizer $tokenizer, \Generator $tokenList, ParseError $errorHandler, OpenElementsStack $stack, TemplateInsertionModesStack $templateInsertionModes, ?\DOMElement $fragmentContext = null) {
@@ -3934,86 +3945,25 @@ class TreeBuilder {
     }
 
     public function insertStartTagToken(StartTagToken $token, \DOMNode $intendedParent = null, string $namespace = null): Element {
-        $namespace = $namespace ?? $token->namespace;
-        # When the steps below require the UA to create an element for a token in a
-        # particular given namespace and with a particular intended parent, the UA must
-        # run the following steps:
-
-        # 1. Let document be intended parent’s node document.
-        // DEVIATION: Unnecessary because there aren't any nested contexts to consider.
-        // The document will always be $this->DOM.
-        # 2. Let local name be the tag name of the token.
-        // Nope. Don't need it because when creating elements with
-        // DOMElement::createElementNS the prefix and local name are combined.
-
-        // DEVIATION: Steps three through six are unnecessary because there is no
-        // scripting in this implementation.
-
-        # 7. Let element be the result of creating an element given document, local
-        # name, given namespace, null, and is. If will execute script is true, set the
-        # synchronous custom elements flag; otherwise, leave it unset.
-        // DEVIATION: There is no point to setting the synchronous custom elements flag
-        // and custom element definition; there is no scripting in this implementation.
-        # 8. Append each attribute in the given token to element.
-        $element = $this->createElementForToken($token, $namespace, $intendedParent);
-        # 9. If will execute script is true, then:
-        # - 1. Let queue be the result of popping the current element queue from the
-        # custom element reactions stack. (This will be the same element queue as was
-        # pushed above.)
-        # - 2. Invoke custom element reactions in queue.
-        # - 3. Decrement document’s throw-on-dynamic-markup-insertion counter.
-        // DEVIATION: These steps are unnecessary because there is no scripting in this
-        // implementation.
-
-        # 10. If element has an xmlns attribute *in the XMLNS namespace* whose value is
-        # not exactly the same as the element’s namespace, that is a parse error.
-        # Similarly, if element has an xmlns:xlink attribute in the XMLNS namespace
-        # whose value is not the XLink namespace, that is a parse error.
-        # 11. If element is a resettable element, invoke its reset algorithm. (This
-        # initializes the element’s value and checkedness based on the element’s
-        # attributes.)
-        // DEVIATION: Unnecessary because there is no scripting in this implementation.
-
-        # 12. If element is a form-associated element, and the form element pointer is
-        # not null, and there is no template element on the stack of open elements, and
-        # element is either not listed or doesn’t have a form attribute, and the
-        # intended parent is in the same tree as the element pointed to by the form
-        # element pointer, associate element with the form element pointed to by the
-        # form element pointer, and suppress the running of the reset the form owner
-        # algorithm when the parser subsequently attempts to insert the element.
-        // DEVIATION: Unnecessary because there is no scripting in this implementation.
-
-        # 13. Return element.
-        // Nope. Going straight into element insertion.
-
-        # When the steps below require the user agent to insert an HTML element for a
-        # token, the user agent must insert a foreign element for the token, in the HTML
-        # namespace.
-
-        # When the steps below require the user agent to insert a foreign element for a
-        # token in a given namespace, the user agent must run these steps:
-        // Doing both foreign and HTML elements here because the only difference between
-        // the two is that foreign elements are inserted with a namespace and HTML
-        // elements are not.
-
-        # 1. Let the adjusted insertion location be the appropriate place for inserting
+        # When the steps below require the user agent to insert a foreign 
+        #   element for a token in a given namespace, the user agent must
+        #   run these steps:
+        // Doing both foreign and HTML elements here because the only
+        //   difference between the two is that foreign elements are inserted
+        //   with a namespace and HTML elements are not.
+        # Let the adjusted insertion location be the appropriate place for inserting
         # a node.
         $location = $this->appropriatePlaceForInsertingNode($intendedParent);
-
         $adjustedInsertionLocation = $location['node'];
         $insertBefore = $location['insert before'];
-
-        # 2. Let element be the result of creating an element for the token in the given
+        # Let element be the result of creating an element for the token in the given
         # namespace, with the intended parent being the element in which the adjusted
         # insertion location finds itself.
-        // Element is supplied.
-        // Have that, too.
-
+        $element = $this->createElementForToken($token, $namespace ?? $token->namespace, $intendedParent);
         # 3. If it is possible to insert element at the adjusted insertion location,
         # then:
         # - 1. Push a new element queue onto the custom element reactions stack.
         // DEVIATION: Unnecessary because there is no scripting in this implementation.
-
         # - 2. Insert element at the adjusted insertion location.
         if ($insertBefore === false) {
             $adjustedInsertionLocation->appendChild($element);
@@ -4024,10 +3974,8 @@ class TreeBuilder {
         # - 3. Pop the element queue from the custom element reactions stack, and
         # invoke custom element reactions in that queue.
         // DEVIATION: Unnecessary because there is no scripting in this implementation.
-
         # 4. Push element onto the stack of open elements so that it is the new current node.
         $this->stack[] = $element;
-
         # Return element.
         return $element;
     }
@@ -4112,28 +4060,20 @@ class TreeBuilder {
             }
             # 6. If node is a tr element, then switch the insertion mode to "in row" and
             # abort these steps.
-            elseif ($nodeName === 'tr') {
-                return $this->insertionMode = self::IN_ROW_MODE;
-            }
             # 7. If node is a tbody, thead, or tfoot element, then switch the insertion mode
             # to "in table body" and abort these steps.
-            elseif ($nodeName === 'tbody' || $nodeName === 'thead' || $nodeName === 'tfoot') {
-                return $this->insertionMode = self::IN_TABLE_BODY_MODE;
-            }
             # 8. If node is a caption element, then switch the insertion mode to "in
             # caption" and abort these steps.
-            elseif ($nodeName === 'caption') {
-                return $this->insertionMode = self::IN_CAPTION_MODE;
-            }
             # 9. If node is a colgroup element, then switch the insertion mode to "in column
             # group" and abort these steps.
-            elseif ($nodeName === 'colgroup') {
-                return $this->insertionMode = self::IN_COLUMN_GROUP_MODE;
-            }
             # 10. If node is a table element, then switch the insertion mode to "in table"
             # and abort these steps.
-            elseif ($nodeName === 'table') {
-                return $this->insertionMode = self::IN_TABLE_MODE;
+            # 13. If node is a body element, then switch the insertion mode to "in body" and
+            # abort these steps.
+            # 14. If node is a frameset element, then switch the insertion mode to "in
+            # frameset" and abort these steps. (fragment case)
+            elseif (($mode = self::APPROPRIATE_INSERTION_MODES[$nodeName] ?? null) !== null) {
+                return $this->insertionMode = $mode;
             }
             # 11. If node is a template element, then switch the insertion mode to the
             # current template insertion mode and abort these steps.
@@ -4144,16 +4084,6 @@ class TreeBuilder {
             # mode to "in head" and abort these steps.
             elseif ($nodeName === 'head' && $last === false) {
                 return $this->insertionMode = self::IN_HEAD_MODE;
-            }
-            # 13. If node is a body element, then switch the insertion mode to "in body" and
-            # abort these steps.
-            elseif ($nodeName === 'body') {
-                return $this->insertionMode = self::IN_BODY_MODE;
-            }
-            # 14. If node is a frameset element, then switch the insertion mode to "in
-            # frameset" and abort these steps. (fragment case)
-            elseif ($nodeName === 'frameset') {
-                return $this->insertionMode = self::IN_FRAMESET_MODE;
             }
             # 15. If node is an html element, run these substeps:
             elseif ($nodeName === 'html') {
@@ -4253,9 +4183,7 @@ class TreeBuilder {
 
     public function isMathMLTextIntegrationPoint(Element $e): bool {
         return (
-            $e->namespaceURI === Parser::MATHML_NAMESPACE && (
-                $e->nodeName === 'mi' || $e->nodeName === 'mo' || $e->nodeName === 'mn' || $e->nodeName === 'ms' || $e->nodeName === 'mtext'
-            )
+            $e->namespaceURI === Parser::MATHML_NAMESPACE && (in_array($e->nodeName, ['mi', 'mo', 'mn', 'ms', 'mtext']))
         );
     }
 
@@ -4268,9 +4196,7 @@ class TreeBuilder {
                     $encoding === 'text/html' || $encoding === 'application/xhtml+xml'
                 )
             ) || (
-                $e->namespaceURI === Parser::SVG_NAMESPACE && (
-                    $e->nodeName === 'foreignObject' || $e->nodeName === 'desc' || $e->nodeName === 'title'
-                )
+                $e->namespaceURI === Parser::SVG_NAMESPACE && (in_array($e->nodeName, ['foreignObject', 'desc', 'title']))
             )
         );
     }

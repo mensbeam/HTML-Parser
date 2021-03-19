@@ -176,8 +176,8 @@ class OpenElementsStack extends Stack {
     }
 
     public function findSame(Element $target): int {
-        foreach ($this as $k => $node) {
-            if ($node->isSameNode($target)) {
+        for ($k = (sizeof($this->_storage) - 1); $k > -1; $k--) {
+            if ($this->_storage[$k]->isSameNode($target)) {
                 return $k;
             }
         }
