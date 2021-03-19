@@ -3,9 +3,11 @@ declare(strict_types=1);
 namespace dW\HTML5;
 
 trait Serialize {
+    protected static $voidElements = [ 'area', 'base', 'basefont', 'bgsound', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr' ];
+
     protected function serializesAsVoid(): bool {
         $name = $this->nodeName;
-        if ($name === 'area' || $name === 'base' || $name === 'basefont' || $name === 'bgsound' || $name === 'br' || $name === 'col' || $name === 'embed' || $name === 'hr' || $name === 'img' || $name === 'input' || $name === 'link' || $name === 'meta' || $name === 'param' || $name === 'source' || $name === 'track' || $name === 'wbr') {
+        if (in_array($name, self::$voidElements)) {
             return true;
         }
 
