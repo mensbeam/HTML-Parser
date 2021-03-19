@@ -578,7 +578,7 @@ class Tokenizer {
                 # "LF" (U+000A)
                 # "FF" (U+000C)
                 # U+0020 SPACE
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
+                if (strspn($char, " \t\n\x0C")) {
                     # Switch to the before attribute name state.
                     $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
                 }
@@ -683,7 +683,7 @@ class Tokenizer {
                 # "LF" (U+000A)
                 # "FF" (U+000C)
                 # U+0020 SPACE
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
+                if (strspn($char, " \t\n\x0C")) {
                     # If the current end tag token is an appropriate end tag token, then switch to the
                     # before attribute name state. Otherwise, treat it as per the "anything else"
                     # entry below.
@@ -802,7 +802,7 @@ class Tokenizer {
                 # "LF" (U+000A)
                 # "FF" (U+000C)
                 # U+0020 SPACE
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
+                if (strspn($char, " \t\n\x0C")) {
                     # If the current end tag token is an appropriate end tag token,
                     #   then switch to the before attribute name state.
                     # Otherwise, treat it as per the "anything else" entry below.
@@ -930,7 +930,7 @@ class Tokenizer {
                 # "LF" (U+000A)
                 # "FF" (U+000C)
                 # U+0020 SPACE
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
+                if (strspn($char, " \t\n\x0C")) {
                     # If the current end tag token is an appropriate end tag token,
                     #   then switch to the before attribute name state.
                     # Otherwise, treat it as per the "anything else" entry below.
@@ -1246,7 +1246,7 @@ class Tokenizer {
                 # "LF" (U+000A)
                 # "FF" (U+000C)
                 # U+0020 SPACE
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
+                if (strspn($char, " \t\n\x0C")) {
                     # If the current end tag token is an appropriate end tag token,
                     #   then switch to the before attribute name state.
                     # Otherwise, treat it as per the "anything else" entry below.
@@ -1324,7 +1324,7 @@ class Tokenizer {
                 # U+0020 SPACE
                 # U+002F SOLIDUS (/)
                 # U+003E GREATER-THAN SIGN (>)
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ' || $char === '/' || $char === '>') {
+                if (strspn($char, " />\t\n\x0C")) {
                     # If the temporary buffer is the string "script",
                     #   then switch to the script data double escaped state.
                     # Otherwise, switch to the script data escaped state.
@@ -1543,7 +1543,7 @@ class Tokenizer {
                 # U+0020 SPACE
                 # "/" (U+002F)
                 # ">" (U+003E)
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ' || $char === '/' || $char === '>') {
+                if (strspn($char, " />\t\n\x0C")) {
                     # If the temporary buffer is the string "script",
                     #   then switch to the script data escaped state.
                     # Otherwise, switch to the script data double escaped state.
@@ -1593,7 +1593,7 @@ class Tokenizer {
                 # "LF" (U+000A)
                 # "FF" (U+000C)
                 # U+0020 SPACE
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
+                if (strspn($char, " \t\n\x0C")) {
                     # Ignore the character.
                 }
                 # "/" (U+002F)
@@ -1637,7 +1637,7 @@ class Tokenizer {
                 # "/" (U+002F)
                 # U+003E GREATER-THAN SIGN (>)
                 # EOF
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ' || $char === '/' || $char === '>' || $char === '') {
+                if (strspn($char, " />\t\n\x0C") || $char === '') {
                     # Reconsume in the after attribute name state.
                     $this->keepOrDiscardAttribute($token, $attribute);
                     $this->state = self::AFTER_ATTRIBUTE_NAME_STATE;
@@ -1692,7 +1692,7 @@ class Tokenizer {
                 # "LF" (U+000A)
                 # "FF" (U+000C)
                 # U+0020 SPACE
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
+                if (strspn($char, " \t\n\x0C")) {
                     # Ignore the character.
                 }
                 # U+002F SOLIDUS (/)
@@ -1740,7 +1740,7 @@ class Tokenizer {
                 # "LF" (U+000A)
                 # "FF" (U+000C)
                 # U+0020 SPACE
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
+                if (strspn($char, " \t\n\x0C")) {
                     # Ignore the character.
                 }
                 # U+0022 QUOTATION MARK (")
@@ -1866,7 +1866,7 @@ class Tokenizer {
                 # "LF" (U+000A)
                 # "FF" (U+000C)
                 # U+0020 SPACE
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
+                if (strspn($char, " \t\n\x0C")) {
                     # Switch to the before attribute name state.
                     $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
                 }
@@ -1897,7 +1897,7 @@ class Tokenizer {
                 # "<" (U+003C)
                 # "=" (U+003D)
                 # "`" (U+0060)
-                elseif ($char === '"' || $char === "'" || $char === '<' || $char === '=' || $char === '`') {
+                elseif (strspn($char,"\"'<=`")) {
                     # This is an unexpected-character-in-unquoted-attribute-value parse error.
                     # Treat it as per the "anything else" entry below.
                     $this->error(ParseError::UNEXPECTED_CHARACTER_IN_UNQUOTED_ATTRIBUTE_VALUE, $char);
@@ -1930,7 +1930,7 @@ class Tokenizer {
                 # "LF" (U+000A)
                 # "FF" (U+000C)
                 # U+0020 SPACE
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
+                if (strspn($char, " \t\n\x0C")) {
                     # Switch to the before attribute name state.
                     $this->state = self::BEFORE_ATTRIBUTE_NAME_STATE;
                 }
@@ -2400,7 +2400,7 @@ class Tokenizer {
                 # "LF" (U+000A)
                 # "FF" (U+000C)
                 # U+0020 SPACE
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
+                if (strspn($char, "\t\n\x0C ")) {
                     # Switch to the before DOCTYPE name state.
                     $this->state = self::BEFORE_DOCTYPE_NAME_STATE;
                 }
@@ -2442,7 +2442,7 @@ class Tokenizer {
                 # "LF" (U+000A)
                 # "FF" (U+000C)
                 # U+0020 SPACE
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
+                if (strspn($char, "\t\n\x0C ")) {
                     # Ignore the character.
                 }
                 // See below for ASCII upper alpha
@@ -2505,7 +2505,7 @@ class Tokenizer {
                 # "LF" (U+000A)
                 # "FF" (U+000C)
                 # U+0020 SPACE
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
+                if (strspn($char, "\t\n\x0C ")) {
                     # Switch to the after DOCTYPE name state.
                     $this->state = self::AFTER_DOCTYPE_NAME_STATE;
                 }
@@ -2558,7 +2558,7 @@ class Tokenizer {
                 # "LF" (U+000A)
                 # "FF" (U+000C)
                 # U+0020 SPACE
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
+                if (strspn($char, "\t\n\x0C ")) {
                     # Ignore the character
                 }
                 # ">" (U+003E)
@@ -2622,7 +2622,7 @@ class Tokenizer {
                 # "LF" (U+000A)
                 # "FF" (U+000C)
                 # U+0020 SPACE
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
+                if (strspn($char, "\t\n\x0C ")) {
                     # Switch to the before DOCTYPE public identifier state.
                     $this->state = self::BEFORE_DOCTYPE_PUBLIC_IDENTIFIER_STATE;
                 }
@@ -2687,7 +2687,7 @@ class Tokenizer {
                 # "LF" (U+000A)
                 # "FF" (U+000C)
                 # U+0020 SPACE
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
+                if (strspn($char, "\t\n\x0C ")) {
                     # Ignore the character.
                 }
                 # U+0022 QUOTATION MARK (")
@@ -2851,7 +2851,7 @@ class Tokenizer {
                 # "LF" (U+000A)
                 # "FF" (U+000C)
                 # U+0020 SPACE
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
+                if (strspn($char, "\t\n\x0C ")) {
                     # Switch to the between DOCTYPE public and system identifiers state.
                     $this->state = self::BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS_STATE;
                 }
@@ -2912,7 +2912,7 @@ class Tokenizer {
                 # "LF" (U+000A)
                 # "FF" (U+000C)
                 # U+0020 SPACE
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
+                if (strspn($char, "\t\n\x0C ")) {
                     # Ignore the character.
                 }
                 # ">" (U+003E)
@@ -2970,7 +2970,7 @@ class Tokenizer {
                 # "LF" (U+000A)
                 # "FF" (U+000C)
                 # U+0020 SPACE
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
+                if (strspn($char, "\t\n\x0C ")) {
                     # Switch to the before DOCTYPE system identifier state.
                     $this->state = self::BEFORE_DOCTYPE_SYSTEM_IDENTIFIER_STATE;
                 }
@@ -3035,7 +3035,7 @@ class Tokenizer {
                 # "LF" (U+000A)
                 # "FF" (U+000C)
                 # U+0020 SPACE
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
+                if (strspn($char, "\t\n\x0C ")) {
                     # Ignore the character.
                 }
                 # U+0022 QUOTATION MARK (")
@@ -3199,7 +3199,7 @@ class Tokenizer {
                 # "LF" (U+000A)
                 # "FF" (U+000C)
                 # U+0020 SPACE
-                if ($char === "\t" || $char === "\n" || $char === "\x0c" || $char === ' ') {
+                if (strspn($char, "\t\n\x0C ")) {
                     # Ignore the character
                 }
                 # ">" (U+003E)
