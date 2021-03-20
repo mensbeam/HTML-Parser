@@ -65,38 +65,29 @@ class Data {
         $this->data = Encoding::createDecoder($encoding, $data, false, true);
     }
 
-    public function consume(int $length = 1, $advancePointer = true): string {
-        assert($length > 0, new Exception(Exception::DATA_INVALID_DATA_CONSUMPTION_LENGTH, $length));
-
-        for ($i = 0, $string = ''; $i < $length; $i++) {
-            $char = $this->data->nextChar();
-
-            # Before the tokenization stage, the input stream must be 
-            #   preprocessed by normalizing newlines.
-            # Thus, newlines in HTML DOMs are represented by U+000A LF characters, 
-            #   and there are never any U+000D CR characters in the input to the tokenization stage.
-            if ($char === "\r") {
-                // if this is a CR+LF pair, skip the CR and note the normalization
-                if ($this->data->peekChar() === "\n") {
-                    $char = $this->data->nextChar();
-                    $this->normalized[$this->data->posChar()] = true;
-                }
-                // otherwise just silently change the character to LF; 
-                // the bare CR will be trivial to process when seeking backwards
-                else {
-                    $char = "\n";
-                }
+    public function consume(): string {
+        $char = $this->data->nextChar();
+        # Before the tokenization stage, the input stream must be 
+        #   preprocessed by normalizing newlines.
+        # Thus, newlines in HTML DOMs are represented by U+000A LF characters, 
+        #   and there are never any U+000D CR characters in the input to the tokenization stage.
+        if ($char === "\r") {
+            // if this is a CR+LF pair, skip the CR and note the normalization
+            if ($this->data->peekChar() === "\n") {
+                $char = $this->data->nextChar();
+                $this->normalized[$this->data->posChar()] = true;
             }
-            // append the character to the output string
-            $string .= $char;
-            // unless we're peeking, track line and column position, and whether we've hit EOF
-            if ($advancePointer && $this->track) {
-                if (!$this->checkChar($char)) {
-                    break;
-                }
+            // otherwise just silently change the character to LF; 
+            // the bare CR will be trivial to process when seeking backwards
+            else {
+                $char = "\n";
             }
         }
-        return $string;
+        // unless we're peeking, track line and column position, and whether we've hit EOF
+        if ($this->track) {
+            $this->checkChar($char);
+        }
+        return $char;
     }
 
     protected function checkChar(string $char): bool {

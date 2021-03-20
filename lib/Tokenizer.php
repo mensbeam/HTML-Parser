@@ -2043,7 +2043,7 @@ class Tokenizer {
                     # Consume those two characters,
                     #   create a comment token whose data is the empty string,
                     #   and switch to the comment start state.
-                    $this->data->consume(2);
+                    $this->data->consumeWhile("-", 2);
                     $token = new CommentToken('');
                     $this->state = self::COMMENT_START_STATE;
                 }
@@ -2053,7 +2053,7 @@ class Tokenizer {
                     # ASCII case-insensitive match for the word "DOCTYPE"
                     if (strtoupper($peek) === 'DOCTYPE') {
                         # Consume those characters and switch to the DOCTYPE state.
-                        $this->data->consume(7);
+                        $this->data->consumeWhile(self::CTYPE_ALPHA, 7);
                         $this->state = self::DOCTYPE_STATE;
                     }
                     # Case-sensitive match for the string "[CDATA["
@@ -2065,7 +2065,7 @@ class Tokenizer {
                         # Otherwise, this is a cdata-in-html-content parse error.
                         #   Create a comment token whose data is the "[CDATA[" string.
                         #   Switch to the bogus comment state.
-                        $this->data->consume(7);
+                        $this->data->consumeWhile(self::CTYPE_ALPHA."[", 7);
                         if ($this->stack->adjustedCurrentNode && ($this->stack->adjustedCurrentNode->namespaceURI ?? Parser::HTML_NAMESPACE) !== Parser::HTML_NAMESPACE) {
                             $this->state = self::CDATA_SECTION_STATE;
                         } else {
@@ -2589,7 +2589,7 @@ class Tokenizer {
                     #   word "PUBLIC", then consume those characters and
                     #   switch to the after DOCTYPE public keyword state.
                     if($peek === 'PUBLIC') {
-                        $this->data->consume(5);
+                        $this->data->consumeWhile(self::CTYPE_ALPHA, 5);
                         $this->state = self::AFTER_DOCTYPE_PUBLIC_KEYWORD_STATE;
                     }
                     # Otherwise, if the six characters starting from the current input
@@ -2597,7 +2597,7 @@ class Tokenizer {
                     #   word "SYSTEM", then consume those characters and
                     #   switch to the after DOCTYPE system keyword state.
                     elseif ($peek === 'SYSTEM') {
-                        $this->data->consume(5);
+                        $this->data->consumeWhile(self::CTYPE_ALPHA, 5);
                         $this->state = self::AFTER_DOCTYPE_SYSTEM_KEYWORD_STATE;
                     }
                     # Otherwise, this is an

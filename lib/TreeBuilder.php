@@ -1145,7 +1145,8 @@ class TreeBuilder {
                             if (
                                 $token->name == $this->stack->currentNodeName
                                 && $this->stack->currentNodeNamespace == null
-                                && (count($this->activeFormattingElementsList) && $this->activeFormattingElementsList->top()['element']->isSameNode($this->stack->currentNode))
+                                && count($this->activeFormattingElementsList)
+                                && $this->activeFormattingElementsList->top()['element']->isSameNode($this->stack->currentNode)
                             ) {
                                 $this->stack->pop();
                                 $this->activeFormattingElementsList->pop();
@@ -4190,14 +4191,11 @@ class TreeBuilder {
     }
 
     public function isMathMLTextIntegrationPoint(Element $e): bool {
-        return (
-            $e->namespaceURI === Parser::MATHML_NAMESPACE && (in_array($e->nodeName, ['mi', 'mo', 'mn', 'ms', 'mtext']))
-        );
+        return ($e->namespaceURI === Parser::MATHML_NAMESPACE && (in_array($e->nodeName, ['mi', 'mo', 'mn', 'ms', 'mtext'])));
     }
 
     public function isHTMLIntegrationPoint(Element $e): bool {
         $encoding = strtolower($e->getAttribute('encoding'));
-
         return ((
                 $e->namespaceURI === Parser::MATHML_NAMESPACE &&
                 $e->nodeName === 'annotation-xml' && (
