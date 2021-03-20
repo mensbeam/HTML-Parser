@@ -1141,7 +1141,17 @@ class TreeBuilder {
                         #   "strike", "strong", "tt", "u"
                         elseif (in_array($token->name, ["a", "b", "big", "code", "em", "font", "i", "nobr", "s", "small", "strike", "strong", "tt", "u"])) {
                             # Run the adoption agency algorithm for the token.
-                            $this->adopt($token);
+                            // OPTIMIZATION: Only run the adoption agency if it's necessary
+                            if (
+                                $token->name == $this->stack->currentNodeName
+                                && $this->stack->currentNodeNamespace == null
+                                && (count($this->activeFormattingElementsList) && $this->activeFormattingElementsList->top()['element']->isSameNode($this->stack->currentNode))
+                            ) {
+                                $this->stack->pop();
+                                $this->activeFormattingElementsList->pop();
+                            } else {
+                                $this->adopt($token);
+                            }
                         }
                         # An end tag token whose tag name is one of: "applet", "marquee", "object"
                         elseif (in_array($token->name, ["applet", "marquee", "object"])) {
@@ -3584,20 +3594,18 @@ class TreeBuilder {
         })());
 
         # Let subject be token's tag name.
-        $subject = $token->name;
-        $errorCode = $token instanceof StartTagToken ? ParseError::UNEXPECTED_START_TAG : ParseError::UNEXPECTED_END_TAG;
         # If the current node is an HTML element whose tag name is subject,
         #   and the current node is not in the list of active formatting elements,
         #   then pop the current node off the stack of open elements, and return.
-        $currentNode = $this->stack->currentNode;
         if (
-            $currentNode->namespaceURI === null
-            && $currentNode->nodeName === $subject
-            && $this->activeFormattingElementsList->findSame($currentNode) === -1
+            $this->stack->currentNodeNamespace === null
+            && $this->stack->currentNodeName === $token->name
+            && $this->activeFormattingElementsList->findSame($this->stack->currentNode) === -1
         ) {
             $this->stack->pop();
             return;
         }
+        $errorCode = $token instanceof StartTagToken ? ParseError::UNEXPECTED_START_TAG : ParseError::UNEXPECTED_END_TAG;
         # Let outer loop counter be zero.
         $outerLoopCounter = 0;
         # Outer loop: If outer loop counter is greater than or equal to eight, then return.
@@ -3612,7 +3620,7 @@ class TreeBuilder {
         # 1. is between the end of the list and the last marker in the list,
         #   if any, or the start of the list otherwise, and
         # 2. has the tag name subject.
-        $formattingElementIndex = $this->activeFormattingElementsList->findToMarker($subject);
+        $formattingElementIndex = $this->activeFormattingElementsList->findToMarker($token->name);
         if ($formattingElementIndex > -1) {
             $formattingElement = $this->activeFormattingElementsList[$formattingElementIndex]['element'];
             $formattingToken = $this->activeFormattingElementsList[$formattingElementIndex]['token'];

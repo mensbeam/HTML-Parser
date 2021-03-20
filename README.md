@@ -37,7 +37,7 @@ This library and [masterminds/html5](https://packagist.org/packages/masterminds/
 | Handling of processing instructions                 | Processing instructions are retained                     | Per specification                      |
 | Handling of bogus XLink namespace\*                 | XLink attributes are lost if preceded by bogus namespace | Bogus namespace is ignored             |
 | Namespace for HTML elements                         | Per specification, configurable                          | Null                                   |
-| Time needed to parse single-page HTML specification | 2.8 seconds†                                             | 6.6 seconds‡                           |
+| Time needed to parse single-page HTML specification | 2.7 seconds†                                             | 6.2 seconds‡                           |
 | Peak memory needed for same                         | 38 MB                                                    | 13.9 MB                                |
 
 \* For example: `<svg xmlns:xlink='http://www.w3.org/1999/xhtml' xlink:href='http://example.com/'/>`. It is unclear what correct behaviour is, but we believe our behaviour to be more consistent with the intent of the specification.
