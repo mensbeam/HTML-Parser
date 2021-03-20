@@ -3876,7 +3876,7 @@ class TreeBuilder {
         ];
     }
 
-    public function insertCharacterToken(CharacterToken $token) {
+    public function insertCharacterToken(CharacterToken $token): void {
         # 1. Let data be the characters passed to the algorithm, or, if no characters
         # were explicitly specified, the character of the character token being
         # processed.
@@ -3890,7 +3890,8 @@ class TreeBuilder {
         assert($adjustedInsertionLocation instanceof \DOMNode, new Exception(Exception::TREEBUILDER_INVALID_INSERTION_LOCATION));
         # 3. If the adjusted insertion location is in a Document node, then abort these
         # steps.
-        if ((($insertBefore === false) ? $adjustedInsertionLocation : $adjustedInsertionLocation->parentNode) instanceof \DOMDocument) {
+        // NOTE: foster parenting will never point to before the root element
+        if ($adjustedInsertionLocation instanceof \DOMDocument) {
             return;
         }
 
@@ -3915,42 +3916,23 @@ class TreeBuilder {
         }
     }
 
-    public function insertCommentToken(CommentToken $token, \DOMNode $position = null) {
+    public function insertCommentToken(CommentToken $token, \DOMNode $position = null): void {
         # When the steps below require the user agent to insert a comment while
         # processing a comment token, optionally with an explicitly insertion position
         # position, the user agent must run the following steps:
 
         # 1. Let data be the data given in the comment token being processed.
         // Already provided through the token object.
-
         # 2. If position was specified, then let the adjusted insertion location be
         # position. Otherwise, let adjusted insertion location be the appropriate place
         # for inserting a node.
-        if (!is_null($position)) {
-            $adjustedInsertionLocation = $position;
-            $insertBefore = false;
-        } else {
-            $location = $this->appropriatePlaceForInsertingNode();
-            $adjustedInsertionLocation = $location['node'];
-            $insertBefore = $location['insert before'];
-        }
-
+        // OPTIMIZATION: Comments are never foster-parented
+        $position = $position ?? $this->appropriatePlaceForInsertingNode()['node'];
         # 3. Create a Comment node whose data attribute is set to data and whose node
         # document is the same as that of the node in which the adjusted insertion
         # location finds itself.
-        if ($adjustedInsertionLocation instanceof \DOMDocument) {
-            $nodeDocument = $adjustedInsertionLocation;
-        } else {
-            $nodeDocument = $adjustedInsertionLocation->ownerDocument;
-        }
-        $commentNode = $nodeDocument->createComment($token->data);
-
         # 4. Insert the newly created node at the adjusted insertion location.
-        if ($insertBefore === false) {
-            $adjustedInsertionLocation->appendChild($commentNode);
-        } else {
-            $adjustedInsertionLocation->parentNode->insertBefore($commentNode, $adjustedInsertionLocation);
-        }
+        $position->appendChild($this->DOM->createComment($token->data));
     }
 
     public function insertStartTagToken(StartTagToken $token, \DOMNode $intendedParent = null, string $namespace = null): Element {
@@ -3963,8 +3945,6 @@ class TreeBuilder {
         # Let the adjusted insertion location be the appropriate place for inserting
         # a node.
         $location = $this->appropriatePlaceForInsertingNode($intendedParent);
-        $adjustedInsertionLocation = $location['node'];
-        $insertBefore = $location['insert before'];
         # Let element be the result of creating an element for the token in the given
         # namespace, with the intended parent being the element in which the adjusted
         # insertion location finds itself.
@@ -3974,12 +3954,11 @@ class TreeBuilder {
         # - 1. Push a new element queue onto the custom element reactions stack.
         // DEVIATION: Unnecessary because there is no scripting in this implementation.
         # - 2. Insert element at the adjusted insertion location.
-        if ($insertBefore === false) {
-            $adjustedInsertionLocation->appendChild($element);
+        if ($location['insert before'] === false) {
+            $location['node']->appendChild($element);
         } else {
-            $adjustedInsertionLocation->parentNode->insertBefore($element, $adjustedInsertionLocation);
+            $location['node']->parentNode->insertBefore($element, $location['node']);
         }
-
         # - 3. Pop the element queue from the custom element reactions stack, and
         # invoke custom element reactions in that queue.
         // DEVIATION: Unnecessary because there is no scripting in this implementation.

@@ -85,69 +85,62 @@ class Data {
         }
         // unless we're peeking, track line and column position, and whether we've hit EOF
         if ($this->track) {
-            $this->checkChar($char);
-        }
-        return $char;
-    }
-
-    protected function checkChar(string $char): bool {
-        // track line and column number, and EOF
-        if ($char === "\n") {
-            $this->newlines[$this->data->posChar()] = $this->_column;
-            $this->_column = 0;
-            $this->_line++;
-        } elseif ($char === '') {
-            $this->eof = true;
-            return false;
-        } else {
-            $this->_column++;
-            $len = strlen($char);    
-            $here = $this->data->posChar();
-            if ($this->lastError < $here) {
-                // look for erroneous characters
-                if ($len === 1) {
-                    $ord = ord($char);
-                    if (($ord < 0x20 && !in_array($ord, [0x0, 0x9, 0xA, 0xC])) || $ord === 0x7F) {
-                        $this->error(ParseError::CONTROL_CHARACTER_IN_INPUT_STREAM);
-                        $this->lastError = $here;
-                    }
-                } elseif ($len === 2) {
-                    if  (ord($char[0]) == 0xC2) {
-                        $ord = ord($char[1]);
-                        if ($ord >= 0x80 && $ord <= 0x9F) {
+            if ($char === "\n") {
+                $this->newlines[$this->data->posChar()] = $this->_column;
+                $this->_column = 0;
+                $this->_line++;
+            } elseif ($char === '') {
+                $this->eof = true;
+            } else {
+                $this->_column++;
+                $len = strlen($char);    
+                $here = $this->data->posChar();
+                if ($this->lastError < $here) {
+                    // look for erroneous characters
+                    if ($len === 1) {
+                        $ord = ord($char);
+                        if (($ord < 0x20 && !in_array($ord, [0x0, 0x9, 0xA, 0xC])) || $ord === 0x7F) {
                             $this->error(ParseError::CONTROL_CHARACTER_IN_INPUT_STREAM);
                             $this->lastError = $here;
                         }
-                    }
-                } elseif ($len === 3) {
-                    $head = ord($char[0]);
-                    if ($head === 0xED) {
-                        $tail = (ord($char[1]) << 8) + ord($char[2]);
-                        if ($tail >= 0xA080 && $tail <= 0xBFBF) {
-                            $this->error(ParseError::SURROGATE_IN_INPUT_STREAM);
-                            $this->lastError = $here;
+                    } elseif ($len === 2) {
+                        if  (ord($char[0]) == 0xC2) {
+                            $ord = ord($char[1]);
+                            if ($ord >= 0x80 && $ord <= 0x9F) {
+                                $this->error(ParseError::CONTROL_CHARACTER_IN_INPUT_STREAM);
+                                $this->lastError = $here;
+                            }
                         }
-                    } elseif ($head === 0xEF) {
-                        $tail = (ord($char[1]) << 8) + ord($char[2]);
-                        if (($tail >= 0xB790 && $tail <= 0xB7AF) || $tail >= 0xBFBE) {
+                    } elseif ($len === 3) {
+                        $head = ord($char[0]);
+                        if ($head === 0xED) {
+                            $tail = (ord($char[1]) << 8) + ord($char[2]);
+                            if ($tail >= 0xA080 && $tail <= 0xBFBF) {
+                                $this->error(ParseError::SURROGATE_IN_INPUT_STREAM);
+                                $this->lastError = $here;
+                            }
+                        } elseif ($head === 0xEF) {
+                            $tail = (ord($char[1]) << 8) + ord($char[2]);
+                            if (($tail >= 0xB790 && $tail <= 0xB7AF) || $tail >= 0xBFBE) {
+                                $this->error(ParseError::NONCHARACTER_IN_INPUT_STREAM);
+                                $this->lastError = $here;
+                            } elseif ($tail === 0xBFBD && $this->data->posErr === $here) {
+                                $this->error(ParseError::NONCHARACTER_IN_INPUT_STREAM, $this->data->posByte);
+                                $this->lastError = $here;
+                            }
+                        }
+                    } elseif ($len === 4) {
+                        $tail = (ord($char[2]) << 8) + ord($char[3]);
+                        if ($tail >= 0xBFBE) {
                             $this->error(ParseError::NONCHARACTER_IN_INPUT_STREAM);
                             $this->lastError = $here;
-                        } elseif ($tail === 0xBFBD && $this->data->posErr === $here) {
-                            $this->error(ParseError::NONCHARACTER_IN_INPUT_STREAM, $this->data->posByte);
-                            $this->lastError = $here;
                         }
+                        $this->astrals[$here] = true;
                     }
-                } elseif ($len === 4) {
-                    $tail = (ord($char[2]) << 8) + ord($char[3]);
-                    if ($tail >= 0xBFBE) {
-                        $this->error(ParseError::NONCHARACTER_IN_INPUT_STREAM);
-                        $this->lastError = $here;
-                    }
-                    $this->astrals[$here] = true;
                 }
             }
         }
-        return true;
+        return $char;
     }
 
     public function unconsume(int $length = 1, bool $retreatPointer = true): void {
@@ -194,20 +187,17 @@ class Data {
         if ($this->track) {
             // control characters produce parse errors
             $match .= "\x01\x02\x03\x04\x05\x06\x07\x08\x0B\x0D\x0E\x0F\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F\x7F";
-        }
-        $out =  $this->data->asciiSpanNot($match."\r\n", $limit);
-        if ($this->track) {
+            $out =  $this->data->asciiSpanNot($match."\r\n", $limit);
             $this->_column += ($this->data->posChar() - $start);
+            return $out;
+        } else {
+            return  $this->data->asciiSpanNot($match."\r\n", $limit);
         }
-        return $out;
     }
 
     public function peek(int $length = 1): string {
         assert($length > 0, new Exception(Exception::DATA_INVALID_DATA_CONSUMPTION_LENGTH, $length));
-
-        $string = $this->data->peekChar($length);
-
-        return $string;
+        return $this->data->peekChar($length);
     }
 
     /** Returns an indexed array with the line and column positions of the requested offset from the current position */
