@@ -1,6 +1,10 @@
 <?php
+/** @license MIT
+ * Copyright 2017 , Dustin Wilson, J. King et al.
+ * See LICENSE and AUTHORS files for details */
+
 declare(strict_types=1);
-namespace dW\HTML5;
+namespace MensBeam\HTML;
 
 class Document extends \DOMDocument {
     use EscapeString, Moonwalk, Serialize, Walk;
@@ -24,11 +28,11 @@ class Document extends \DOMDocument {
     public function __construct() {
         parent::__construct();
 
-        $this->registerNodeClass('DOMComment', '\dW\HTML5\Comment');
-        $this->registerNodeClass('DOMDocumentFragment', '\dW\HTML5\DocumentFragment');
-        $this->registerNodeClass('DOMElement', '\dW\HTML5\Element');
-        $this->registerNodeClass('DOMProcessingInstruction', '\dW\HTML5\ProcessingInstruction');
-        $this->registerNodeClass('DOMText', '\dW\HTML5\Text');
+        $this->registerNodeClass('DOMComment', '\MensBeam\HTML\Comment');
+        $this->registerNodeClass('DOMDocumentFragment', '\MensBeam\HTML\DocumentFragment');
+        $this->registerNodeClass('DOMElement', '\MensBeam\HTML\Element');
+        $this->registerNodeClass('DOMProcessingInstruction', '\MensBeam\HTML\ProcessingInstruction');
+        $this->registerNodeClass('DOMText', '\MensBeam\HTML\Text');
     }
 
     public function createAttribute($name) {

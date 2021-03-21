@@ -1,6 +1,10 @@
 <?php
+/** @license MIT
+ * Copyright 2017 , Dustin Wilson, J. King et al.
+ * See LICENSE and AUTHORS files for details */
+
 declare(strict_types=1);
-namespace dW\HTML5;
+namespace MensBeam\HTML;
 
 # 8.2.3.3. The list of active formatting elements
 # Initially, the list of active formatting elements is empty. It is used to

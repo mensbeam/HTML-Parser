@@ -1,15 +1,19 @@
 <?php
+/** @license MIT
+ * Copyright 2017 , Dustin Wilson, J. King et al.
+ * See LICENSE and AUTHORS files for details */
+
 declare(strict_types=1);
-namespace dW\HTML5;
+namespace MensBeam\HTML;
 
 class TreeBuilder {
     use ParseErrorEmitter, EscapeString;
 
     public $debugLog = "";
 
-    /** @var \dW\HTML5\ActiveFormattingElementsList The list of active formatting elements, used when elements are improperly nested */
+    /** @var \MensBeam\HTML\ActiveFormattingElementsList The list of active formatting elements, used when elements are improperly nested */
     protected $activeFormattingElementsList;
-    /** @var \dW\HTML5\Document The DOMDocument that is assembled by this class */
+    /** @var \MensBeam\HTML\Document The DOMDocument that is assembled by this class */
     protected $DOM;
     /** @var ?\DOMElement The form element pointer points to the last form element that was opened and whose end tag has not yet been seen. It is used to make form controls associate with forms in the face of dramatically bad markup, for historical reasons. It is ignored inside template elements */
     protected $formElement;
@@ -25,13 +29,13 @@ class TreeBuilder {
     protected $insertionMode = self::INITIAL_MODE;
     /** @var int When the insertion mode is switched to "text" or "in table text", the original insertion mode is also set. This is the insertion mode to which the tree construction stage will return. */
     protected $originalInsertionMode;
-    /** @var \dW\HTML5\OpenElementsStack The stack of open elements, uses Stack */
+    /** @var \MensBeam\HTML\OpenElementsStack The stack of open elements, uses Stack */
     protected $stack;
-    /** @var \dW\HTML5\Data Instance of the Data class used for reading the input character-stream */
+    /** @var \MensBeam\HTML\Data Instance of the Data class used for reading the input character-stream */
     protected $data;
     /** @var \Generator Instance of the Tokenizer class used for creating tokens */
     protected $tokenizer;
-    /** @var \dW\HTML5\TemplateInsertionModesStack Used to store the template insertion modes */
+    /** @var \MensBeam\HTML\TemplateInsertionModesStack Used to store the template insertion modes */
     protected $templateInsertionModes;
     /** @var array An array holding character tokens which may need to be foster-parented during table parsing */
     protected $pendingTableCharacterTokens = [];

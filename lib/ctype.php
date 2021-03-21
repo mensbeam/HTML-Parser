@@ -1,5 +1,9 @@
 <?php
-namespace dW\HTML5;
+/** @license MIT
+ * Copyright 2017 , Dustin Wilson, J. King et al.
+ * See LICENSE and AUTHORS files for details */
+
+namespace MensBeam\HTML;
 
 // This file adds shims for matching single characters 
 //  using the same API as the ctype extension, if the

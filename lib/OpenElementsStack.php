@@ -1,6 +1,10 @@
 <?php
+/** @license MIT
+ * Copyright 2017 , Dustin Wilson, J. King et al.
+ * See LICENSE and AUTHORS files for details */
+
 declare(strict_types=1);
-namespace dW\HTML5;
+namespace MensBeam\HTML;
 
 class OpenElementsStack extends Stack {
     protected const IMPLIED_END_TAGS = [
@@ -85,15 +89,15 @@ class OpenElementsStack extends Stack {
         ],
     ];
 
-    /** @var ?\dW\HTML5\Element */
+    /** @var ?\MensBeam\HTML\Element */
     protected $fragmentContext = null;
-    /** @var ?\dW\HTML5\Element */
+    /** @var ?\MensBeam\HTML\Element */
     public $currentNode = null;
     /** @var ?string */
     public $currentNodeName = null;
     /** @var ?string */
     public $currentNodeNamespace = null;
-    /** @var ?\dW\HTML5\Element */
+    /** @var ?\MensBeam\HTML\Element */
     public $adjustedCurrentNode = null;
     /** @var ?string */
     public $adjustedCurrentNodeName = null;
