@@ -105,7 +105,7 @@ class OpenElementsStack extends Stack {
         // or element then we have a problem. Additionally, if the parser is created for
         // parsing a fragment and the fragment context is null then we have a problem,
         // too.
-        assert(is_null($fragmentContext) || $fragmentContext instanceof \DOMDocumentFragment || $fragmentContext instanceof \DOMDocument || $fragmentContext instanceof \DOMElement,new Exception(Exception::STACK_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED));
+        assert($fragmentContext === null || $fragmentContext instanceof \DOMDocumentFragment || $fragmentContext instanceof \DOMDocument || $fragmentContext instanceof \DOMElement,new Exception(Exception::STACK_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED));
         $this->fragmentContext = $fragmentContext;
     }
 
@@ -118,7 +118,7 @@ class OpenElementsStack extends Stack {
     public function offsetSet($offset, $value) {
         assert($offset >= 0, new Exception(Exception::STACK_INVALID_INDEX, $offset));
 
-        if (is_null($offset)) {
+        if ($offset === null) {
             $this->_storage[] = $value;
         } else {
             $this->_storage[$offset] = $value;

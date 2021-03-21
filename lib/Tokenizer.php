@@ -3412,10 +3412,10 @@ class Tokenizer {
                 }
                 // Look for an exact match; if not found look for a prefix match
                 $match = CharacterReference::NAMES[$candidate] ?? null;
-                if (is_null($match)) {
+                if ($match === null) {
                     $match = (preg_match(CharacterReference::PREFIX_PATTERN, $candidate, $match)) ? $match[0] : null;
                     // If a prefix match is found, unconsume to the end of the prefix and look up the entry in the table
-                    if (!is_null($match)) {
+                    if ($match !== null) {
                         $this->data->unconsume(strlen($candidate) - strlen($match));
                         $next = $candidate[strlen($match)];
                         $candidate = $match;
@@ -3427,7 +3427,7 @@ class Tokenizer {
                 $this->temporaryBuffer .= $candidate;
 
                 # If there is a match
-                if (!is_null($match)) {
+                if ($match !== null) {
                     # If the character reference was consumed as part of an attribute,
                     #   and the last character matched is not a U+003B SEMICOLON character (;),
                     #   and the next input character is either a U+003D EQUALS SIGN character (=)

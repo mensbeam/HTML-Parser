@@ -1381,8 +1381,8 @@ class TreeBuilder {
                             || strpos($public, '-//w3o//dtd w3 html 3.0//') === 0
                             || strpos($public, '-//webtechs//dtd mozilla html 2.0//') === 0
                             || strpos($public, '-//webtechs//dtd mozilla html//') === 0
-                            || (is_null($token->system) && strpos($public, '-//w3c//dtd html 4.01 frameset//') === 0)
-                            || (is_null($token->system) && strpos($public, '-//w3c//dtd html 4.01 transitional//') === 0)
+                            || ($token->system === null && strpos($public, '-//w3c//dtd html 4.01 frameset//') === 0)
+                            || ($token->system === null && strpos($public, '-//w3c//dtd html 4.01 transitional//') === 0)
                         ) {
                             $this->DOM->quirksMode = Document::QUIRKS_MODE;
                         }
@@ -1394,8 +1394,8 @@ class TreeBuilder {
                         elseif (
                             strpos($public, '-//w3c//dtd xhtml 1.0 frameset//') === 0
                             || strpos($public, '-//w3c//dtd xhtml 1.0 transitional//') === 0
-                            || (!is_null($token->system) && strpos($public, '-//w3c//dtd html 4.01 frameset//') === 0)
-                            || (!is_null($token->system) && strpos($public, '-//w3c//dtd html 4.01 transitional//') === 0)
+                            || ($token->system !== null && strpos($public, '-//w3c//dtd html 4.01 frameset//') === 0)
+                            || ($token->system !== null && strpos($public, '-//w3c//dtd html 4.01 transitional//') === 0)
                         ) {
                             $this->DOM->quirksMode = Document::LIMITED_QUIRKS_MODE;
                         }
@@ -3474,7 +3474,6 @@ class TreeBuilder {
                     }
                     # Any other start tag
                     else {
-                        // ¡TEMPORARY!
                         foreignContentAnyOtherStartTag:
                         $currentNodeNamespace = $this->stack->currentNodeNamespace;
                         # If the adjusted current node is an element in the SVG namespace, and the
@@ -4077,7 +4076,7 @@ class TreeBuilder {
             elseif ($nodeName === 'html') {
                 # 1. If the head element pointer is null, switch the insertion mode to "before
                 # head" and abort these steps. (fragment case)
-                if (is_null($this->headElement)) {
+                if ($this->headElement === null) {
                     return $this->insertionMode = self::BEFORE_HEAD_MODE;
                 }
                 # 2. Otherwise, the head element pointer is not null, switch the insertion mode

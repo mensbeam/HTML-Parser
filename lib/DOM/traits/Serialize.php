@@ -15,9 +15,7 @@ trait Serialize {
     }
 
     protected function serialize(\DOMNode $node = null): string {
-        if (is_null($node)) {
-            $node = $this;
-        }
+        $node = $node ?? $this;
 
         if (!$node instanceof Element && !$node instanceof Document && !$node instanceof DocumentFragment) {
             throw new DOMException(DOMException::DOCUMENT_ELEMENT_DOCUMENTFRAG_EXPECTED, gettype($node));

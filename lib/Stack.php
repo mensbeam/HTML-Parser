@@ -9,7 +9,7 @@ abstract class Stack implements \ArrayAccess, \Countable, \IteratorAggregate {
     public function offsetSet($offset, $value) {
         assert($offset >= 0, new Exception(Exception::STACK_INVALID_INDEX, $offset));
 
-        if (is_null($offset)) {
+        if ($offset === null) {
             $this->_storage[] = $value;
         } else {
             $this->_storage[$offset] = $value; // @codeCoverageIgnore

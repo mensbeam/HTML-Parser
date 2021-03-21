@@ -135,7 +135,7 @@ abstract class Charset {
                             #   null, let charset be the encoding returned, and set need pragma to true.
                             
                             // OPTIMIZATION: Check if charset is null before performing the algorithm
-                            if (is_null($charset) && $candidate = self::fromMeta($attr['value'])) {
+                            if ($charset === null && $candidate = self::fromMeta($attr['value'])) {
                                 $charset = $candidate;
                                 $needPragma = true;
                             }
@@ -152,7 +152,7 @@ abstract class Charset {
 
                     # Processing: If need pragma is null, then jump to the step below labeled next byte.
                     # If need pragma is true but got pragma is false, then jump to the step below labeled next byte.
-                    if (is_null($needPragma) || ($needPragma && !$gotPragma)) {
+                    if ($needPragma === null || ($needPragma && !$gotPragma)) {
                         continue;
                     }
                     # If charset is failure, then jump to the step below labeled next byte.

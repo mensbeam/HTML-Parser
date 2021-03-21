@@ -181,7 +181,7 @@ class ParseError {
                     return 'Newline';
                 } elseif ($value === "\t") {
                     return 'Tab';
-                } elseif (is_null($value)) {
+                } elseif ($value === null) {
                     return 'nothing';
                 } else {
                     return $value;

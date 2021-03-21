@@ -190,7 +190,7 @@ class Element extends \DOMElement {
         # If current node is an element in the HTML namespace, the MathML namespace,
         # or the SVG namespace, then let tagname be current node’s local name.
         # Otherwise, let tagname be current node’s qualified name.
-        if (is_null($this->namespaceURI) || $this->namespaceURI === Parser::MATHML_NAMESPACE || $this->namespaceURI === Parser::SVG_NAMESPACE) {
+        if ($this->namespaceURI === null || $this->namespaceURI === Parser::MATHML_NAMESPACE || $this->namespaceURI === Parser::SVG_NAMESPACE) {
             $tagName = $this->localName;
         } else {
             $tagName = $this->nodeName;
