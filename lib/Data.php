@@ -52,18 +52,40 @@ class Data {
         // don't track the current line/column position if erroro reporting has been suppressed
         $this->track = (bool) (error_reporting() & \E_USER_WARNING);
 
+        # 13.2.3.2 Determining the character encoding
+        # User agents must use the following algorithm, called the encoding
+        #   sniffing algorithm, to determine the character encoding to use
+        #   when decoding a document in the first pass. This algorithm takes
+        #   as input any out-of-band metadata available to the user agent 
+        #  (e.g. the Content-Type metadata of the document) and all the bytes
+        #   available so far, and returns a character encoding and a confidence
+        #   that is either tentative or certain.
+        // NOTE: We implement steps 1, 2, 4, 5, and 9
         if ($encoding = Charset::fromBOM($data)) {
-            // encoding determined from Unicode byte order mark
+            # If the result of BOM sniffing is an encoding, return that
+            #   encoding with confidence certain.
             $this->encodingCertain = true;
         } elseif ($encoding = Charset::fromCharset($encodingOrContentType)) {
+            # If the user has explicitly instructed the user agent to override
+            #   the document's character encoding with a specific encoding,
+            #   optionally return that encoding with the confidence certain.
             $this->encodingCertain = true;
         } elseif ($encoding = Charset::fromTransport($encodingOrContentType)) {
+            # If the transport layer specifies a character encoding, and it is
+            #   supported, return that encoding with the confidence certain.
             $this->encodingCertain = true;
         } elseif ($encoding = Charset::fromPrescan($data)) {
-            // Encoding is tentative
+            # Optionally prescan the byte stream to determine its encoding.
+            # The aforementioned algorithm either aborts unsuccessfully or
+            #   returns a character encoding. If it returns a character
+            #   encoding, then return the same encoding, with confidence
+            #   tentative.
+            $this->encodingCertain = false;
         } else {
-            // Encoding is tentative; fall back to the configured default encoding
+            # Otherwise, return an implementation-defined or user-specified
+            #   default character encoding, with the confidence tentative.
             $encoding = Charset::fromCharset(Parser::$fallbackEncoding) ?? "windows-1252";
+            $this->encodingCertain = false;
         }
         $this->encoding = $encoding;
         $this->data = Encoding::createDecoder($encoding, $data, false, true);
