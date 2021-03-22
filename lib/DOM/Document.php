@@ -63,11 +63,14 @@ class Document extends \DOMDocument {
 
     public function createElement($name, $value = "") {
         try {
-            $e = parent::createElement($name, $value);
-            if ($name === "template") {
+            if ($name !== 'template') {
+                $e = parent::createElement($name, $value);
+            } else {
+                $e = new TemplateElement($name, $value);
                 $this->templateElements[] = $e;
                 $e->content = $this->createDocumentFragment();
             }
+
             return $e;
         } catch (\DOMException $e) {
             // The element name is invalid for XML
@@ -81,11 +84,14 @@ class Document extends \DOMDocument {
 
     public function createElementNS($namespaceURI, $qualifiedName, $value = "") {
         try {
-            $e = parent::createElementNS($namespaceURI, $qualifiedName, $value);
-            if ($qualifiedName === "template" && $namespaceURI === null) {
+            if ($qualifiedName !== 'template' && $namespaceURI !== null) {
+                $e = parent::createElementNS($namespaceURI, $qualifiedName, $value);
+            } else {
+                $e = new TemplateElement($qualifiedName, $value);
                 $this->templateElements[] = $e;
                 $e->content = $this->createDocumentFragment();
             }
+
             return $e;
         } catch (\DOMException $e) {
             // The element name is invalid for XML

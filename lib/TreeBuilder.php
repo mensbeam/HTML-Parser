@@ -3939,7 +3939,7 @@ class TreeBuilder {
     }
 
     public function insertStartTagToken(StartTagToken $token, \DOMNode $intendedParent = null, string $namespace = null): Element {
-        # When the steps below require the user agent to insert a foreign 
+        # When the steps below require the user agent to insert a foreign
         #   element for a token in a given namespace, the user agent must
         #   run these steps:
         // Doing both foreign and HTML elements here because the only

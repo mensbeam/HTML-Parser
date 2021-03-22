@@ -9,9 +9,6 @@ namespace MensBeam\HTML;
 class Element extends \DOMElement {
     use EscapeString, Moonwalk, Serialize, Walk;
 
-    // Used for template elements
-    public $content = null;
-
     public function setAttribute($name, $value) {
         try {
             parent::setAttribute($name, $value);
