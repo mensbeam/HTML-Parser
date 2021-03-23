@@ -9,9 +9,37 @@ namespace MensBeam\HTML;
 class Element extends \DOMElement {
     use EscapeString, Moonwalk, Serialize, Walk;
 
+    protected $_classList;
+
+    public function getAttribute($name) {
+        // Newer versions of the DOM spec have getAttribute return an empty string only
+        // when the attribute exists and is empty, otherwise null. This fixes that.
+        $value = parent::getAttribute($name);
+        if ($value === '' && !$this->hasAttribute($name)) {
+            return null;
+        }
+
+        return $value;
+    }
+
+    public function getAttributeNS($namespaceURI, $qualifiedName) {
+        // Newer versions of the DOM spec have getAttributeNS return an empty string
+        // only when the attribute exists and is empty, otherwise null. This fixes that.
+        $value = parent::getAttributeNS($namespaceURI, $qualifiedName);
+        if ($value === '' && !$this->hasAttribute($qualifiedName)) {
+            return null;
+        }
+
+        return $value;
+    }
+
     public function setAttribute($name, $value) {
         try {
-            parent::setAttribute($name, $value);
+            if ($this->_classList !== null && $name === 'class') {
+                $this->_classList->value = $value;
+            } else {
+                parent::setAttribute($name, $value);
+            }
         } catch (\DOMException $e) {
             // The attribute name is invalid for XML
             // Replace any offending characters with "UHHHHHH" where H are the
@@ -27,7 +55,11 @@ class Element extends \DOMElement {
 
     public function setAttributeNS($namespaceURI, $qualifiedName, $value) {
         try {
-            parent::setAttributeNS($namespaceURI, $qualifiedName, $value);
+            if ($namespaceURI === null && $this->_classList !== null && $qualifiedName === 'class') {
+                $this->_classList->value = $value;
+            } else {
+                parent::setAttributeNS($namespaceURI, $qualifiedName, $value);
+            }
         } catch (\DOMException $e) {
             // The attribute name is invalid for XML
             // Replace any offending characters with "UHHHHHH" where H are the
@@ -59,6 +91,20 @@ class Element extends \DOMElement {
 
     public function __get(string $prop) {
         switch ($prop) {
+            case 'classList':
+                // MensBeam\HTML\TokenList uses WeakReference to prevent a circular reference,
+                // so it requires PHP 7.4 to work.
+                if (version_compare(\PHP_VERSION, '7.4.0', '>=')) {
+                    // Only create the class list if it is actually used.
+                    if ($this->_classList === null) {
+                        $this->_classList = new TokenList($this, 'class');
+                    }
+
+                    return $this->_classList;
+                }
+
+                return null;
+            break;
             ### DOM Parsing Specification ###
             # 2.3 The InnerHTML mixin
             #

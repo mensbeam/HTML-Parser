@@ -4177,7 +4177,7 @@ class TreeBuilder {
     }
 
     public function isHTMLIntegrationPoint(Element $e): bool {
-        $encoding = strtolower($e->getAttribute('encoding'));
+        $encoding = strtolower((string)$e->getAttribute('encoding'));
         return ((
                 $e->namespaceURI === Parser::MATHML_NAMESPACE &&
                 $e->nodeName === 'annotation-xml' && (

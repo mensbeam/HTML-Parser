@@ -9,7 +9,9 @@ namespace MensBeam\HTML;
 class DOMException extends \Exception {
     // From PHP's DOMException; keeping error codes consistent
     const WRONG_DOCUMENT = 4;
+    const INVALID_CHARACTER = 5;
     const NO_MODIFICATION_ALLOWED = 7;
+    const SYNTAX_ERROR = 12;
 
     const DOCUMENT_ELEMENT_DOCUMENTFRAG_EXPECTED = 100;
     const STRING_EXPECTED = 101;
@@ -17,7 +19,9 @@ class DOMException extends \Exception {
 
     protected static $messages = [
           4 => 'Supplied node does not belong to this document',
+          5 => 'Invalid character',
           7 => 'Modification not allowed here',
+         12 => 'Syntax error',
         100 => 'Document, Element, or DocumentFragment expected; found %s',
         101 => 'The "%s" argument should be a string; found %s',
         102 => 'Failed to set the "outerHTML" property; the element does not have a parent node'

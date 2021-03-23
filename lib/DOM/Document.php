@@ -66,16 +66,7 @@ class Document extends \DOMDocument {
             if ($name !== 'template') {
                 $e = parent::createElement($name, $value);
             } else {
-                $e = new TemplateElement($name, $value);
-
-                // Elements that are created by their constructor in PHP aren't owned by any
-                // document and are readonly until owned by one. Temporarily append to a
-                // document fragment so the element will be owned by the document.
-                $frag = $this->createDocumentFragment();
-                $frag->appendChild($e);
-                $frag->removeChild($e);
-                unset($frag);
-
+                $e = new TemplateElement($this, $name, $value);
                 $this->templateElements[] = $e;
                 $e->content = $this->createDocumentFragment();
             }
@@ -93,19 +84,10 @@ class Document extends \DOMDocument {
 
     public function createElementNS($namespaceURI, $qualifiedName, $value = "") {
         try {
-            if ($qualifiedName !== 'template' && $namespaceURI !== null) {
+            if ($qualifiedName !== 'template' || $namespaceURI !== null) {
                 $e = parent::createElementNS($namespaceURI, $qualifiedName, $value);
             } else {
-                $e = new TemplateElement($qualifiedName, $value);
-
-                // Elements that are created by their constructor in PHP aren't owned by any
-                // document and are readonly until owned by one. Temporarily append to a
-                // document fragment so the element will be owned by the document.
-                $frag = $this->createDocumentFragment();
-                $frag->appendChild($e);
-                $frag->removeChild($e);
-                unset($frag);
-
+                $e = new TemplateElement($this, $qualifiedName, $value);
                 $this->templateElements[] = $e;
                 $e->content = $this->createDocumentFragment();
             }
