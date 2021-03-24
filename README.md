@@ -1,4 +1,4 @@
-# HTML5
+# HTML
 
 Tools for parsing and printing HTML5 documents and fragments.
 
