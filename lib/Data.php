@@ -42,6 +42,7 @@ class Data {
     const DIGIT = '0123456789';
     const HEX = '0123456789ABCDEFabcdef';
     const WHITESPACE = "\t\n\x0C\x0D ";
+    const WHITESPACE_REGEX = '/[\t\n\x0c\x0D ]+/';
     const WHITESPACE_SAFE = "\t\x0C ";
 
 
@@ -56,7 +57,7 @@ class Data {
         # User agents must use the following algorithm, called the encoding
         #   sniffing algorithm, to determine the character encoding to use
         #   when decoding a document in the first pass. This algorithm takes
-        #   as input any out-of-band metadata available to the user agent 
+        #   as input any out-of-band metadata available to the user agent
         #  (e.g. the Content-Type metadata of the document) and all the bytes
         #   available so far, and returns a character encoding and a confidence
         #   that is either tentative or certain.
@@ -93,9 +94,9 @@ class Data {
 
     public function consume(): string {
         $char = $this->data->nextChar();
-        # Before the tokenization stage, the input stream must be 
+        # Before the tokenization stage, the input stream must be
         #   preprocessed by normalizing newlines.
-        # Thus, newlines in HTML DOMs are represented by U+000A LF characters, 
+        # Thus, newlines in HTML DOMs are represented by U+000A LF characters,
         #   and there are never any U+000D CR characters in the input to the tokenization stage.
         if ($char === "\r") {
             // if this is a CR+LF pair, skip the CR and note the normalization
@@ -103,7 +104,7 @@ class Data {
                 $char = $this->data->nextChar();
                 $this->normalized[$this->data->posChar()] = true;
             }
-            // otherwise just silently change the character to LF; 
+            // otherwise just silently change the character to LF;
             // the bare CR will be trivial to process when seeking backwards
             else {
                 $char = "\n";
@@ -119,7 +120,7 @@ class Data {
                 $this->eof = true;
             } else {
                 $this->_column++;
-                $len = strlen($char);    
+                $len = strlen($char);
                 $here = $this->data->posChar();
                 if ($this->lastError < $here) {
                     // look for erroneous characters
@@ -246,12 +247,12 @@ class Data {
                 $line = $this->_line;
                 $col = $this->_column;
                 do {
-                    // If the current position is the start of a line, 
+                    // If the current position is the start of a line,
                     //  get the column position of the end of the previous line
                     if (isset($this->newlines[$pos])) {
                         $line--;
                         $col = $this->newlines[$pos];
-                        // If the newline was a normalized CR+LF pair, 
+                        // If the newline was a normalized CR+LF pair,
                         //  go back one extra character
                         if (isset($this->normalized[$pos])) {
                             $pos--;

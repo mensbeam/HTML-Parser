@@ -47,7 +47,7 @@ class TokenList implements \ArrayAccess, \Countable, \Iterator {
 
             # 2. If token contains any ASCII whitespace, then throw an
             # "InvalidCharacterError" DOMException.
-            if (preg_match(self::ASCII_WHITESPACE_REGEX, $token)) {
+            if (preg_match(Data::WHITESPACE_REGEX, $token)) {
                 throw new DOMException(DOMException::INVALID_CHARACTER);
             }
         }
@@ -119,7 +119,7 @@ class TokenList implements \ArrayAccess, \Countable, \Iterator {
 
             # 2. If token contains any ASCII whitespace, then throw an
             # "InvalidCharacterError" DOMException.
-            if (preg_match(self::ASCII_WHITESPACE_REGEX, $token)) {
+            if (preg_match(Data::WHITESPACE_REGEX, $token)) {
                 throw new DOMException(DOMException::INVALID_CHARACTER);
             }
         }
@@ -151,7 +151,7 @@ class TokenList implements \ArrayAccess, \Countable, \Iterator {
 
         # 2. If either token or newToken contains any ASCII whitespace, then throw an
         # "InvalidCharacterError" DOMException.
-        if (preg_match(self::ASCII_WHITESPACE_REGEX, $token) || preg_match(self::ASCII_WHITESPACE_REGEX, $newToken)) {
+        if (preg_match(Data::WHITESPACE_REGEX, $token) || preg_match(Data::WHITESPACE_REGEX, $newToken)) {
             throw new DOMException(DOMException::INVALID_CHARACTER);
         }
 
@@ -201,7 +201,7 @@ class TokenList implements \ArrayAccess, \Countable, \Iterator {
 
         # 2. If token contains any ASCII whitespace, then throw an
         # "InvalidCharacterError" DOMException.
-        if (preg_match(self::ASCII_WHITESPACE_REGEX, $token)) {
+        if (preg_match(Data::WHITESPACE_REGEX, $token)) {
             throw new DOMException(DOMException::INVALID_CHARACTER);
         }
 
@@ -264,7 +264,7 @@ class TokenList implements \ArrayAccess, \Countable, \Iterator {
         #
         # 1. Let inputTokens be the result of splitting input on ASCII whitespace.
         // There isn't a Set in php, so make sure all the tokens are unique.
-        $inputTokens = array_unique(preg_split(self::ASCII_WHITESPACE_REGEX, $input));
+        $inputTokens = array_unique(preg_split(Data::WHITESPACE_REGEX, $input));
 
         # 2. Let tokens be a new ordered set.
         # 3. For each token in inputTokens, append token to tokens.
@@ -274,11 +274,18 @@ class TokenList implements \ArrayAccess, \Countable, \Iterator {
     }
 
     protected function update() {
-        // Create the attribute using createAttribute because setAttribute has been
-        // extended to use TokenList when necessary.
+        # A DOMTokenList object’s update steps are:
+        #
+        # 1. If the associated element does not have an associated attribute and token
+        # set is empty, then return.
+        // Not sure what this is about. This class is constructed with a provided
+        // associated element and attribute; there is no need to do this.
+
+        # 2. Set an attribute value for the associated element using associated
+        # attribute’s local name and the result of running the ordered set serializer
+        # for token set.
         $element = $this->element->get();
-        $doc = $element->ownerDocument;
-        $class = $doc->createAttribute($this->localName);
+        $class = $element->ownerDocument->createAttribute($this->localName);
         $class->value = $this->__toString();
         $element->appendChild($class);
     }

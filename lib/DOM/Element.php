@@ -11,6 +11,22 @@ class Element extends \DOMElement {
 
     protected $_classList;
 
+    public function appendChild($node) {
+        // If appending a class attribute node, and classList has been invoked set
+        // the class using classList instead of appending the attribute node. Will
+        // return the created node instead. TokenList appends an attribute node
+        // internally to set the class attribute, so to prevent an infinite call loop
+        // from occurring, a check between the normalized value and classList's
+        // serialized value is performed. The spec is vague on how this is supposed to
+        // be handled.
+        if ($node instanceof \DOMAttr && $this->_classList !== null && $node->namespaceURI === null && $node->name === 'class' && preg_replace(Data::WHITESPACE_REGEX, ' ', $node->value) !== $this->_classList->value) {
+            $this->_classList->value = $node->value;
+            return $this->getAttributeNode('class');
+        }
+
+        return parent::appendChild($node);
+    }
+
     public function getAttribute($name) {
         // Newer versions of the DOM spec have getAttribute return an empty string only
         // when the attribute exists and is empty, otherwise null. This fixes that.
@@ -35,6 +51,8 @@ class Element extends \DOMElement {
 
     public function setAttribute($name, $value) {
         try {
+            // If setting a class attribute and classList has been invoked use classList to
+            // set it.
             if ($this->_classList !== null && $name === 'class') {
                 $this->_classList->value = $value;
             } else {
@@ -55,7 +73,9 @@ class Element extends \DOMElement {
 
     public function setAttributeNS($namespaceURI, $qualifiedName, $value) {
         try {
-            if ($namespaceURI === null && $this->_classList !== null && $qualifiedName === 'class') {
+            // If setting a class attribute and classList has been invoked use classList to
+            // set it.
+            if ($this->_classList !== null && $namespaceURI === null && $qualifiedName === 'class') {
                 $this->_classList->value = $value;
             } else {
                 parent::setAttributeNS($namespaceURI, $qualifiedName, $value);
