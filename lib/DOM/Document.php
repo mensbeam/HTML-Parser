@@ -14,10 +14,10 @@ class Document extends \DOMDocument {
     public const QUIRKS_MODE = 1;
     public const LIMITED_QUIRKS_MODE = 2;
 
-    public $quirksMode = self::NO_QUIRKS_MODE;
-    public $mangledElements = false;
-    public $mangledAttributes = false;
     public $documentEncoding = null;
+    public $mangledAttributes = false;
+    public $mangledElements = false;
+    public $quirksMode = self::NO_QUIRKS_MODE;
 
     // An array of all template elements created in the document
     // This exists because values of properties on derived DOM classes
@@ -103,13 +103,13 @@ class Document extends \DOMDocument {
         }
     }
 
-    public function load($source, $options = null, ?string $encodingOrContentType = null): bool {
-        $data = Parser::fetchFile($source, $encodingOrContentType);
+    public function load($filename, $options = null, ?string $encodingOrContentType = null): bool {
+        $data = Parser::fetchFile($filename, $encodingOrContentType);
         if (!$data) {
             return false;
         }
         [$data, $encodingOrContentType] = $data;
-        Parser::parse($data, $this, $encodingOrContentType, null, (string) $source);
+        Parser::parse($data, $this, $encodingOrContentType, null, (string)$filename);
         return true;
     }
 
@@ -119,7 +119,15 @@ class Document extends \DOMDocument {
         return true;
     }
 
-    public function save($filename, $options = 0): string {
+    public function loadHTMLFile($filename, $options = null, ?string $encodingOrContentType = null): bool {
+        return $this->load($filename, $options, $encodingOrContentType);
+    }
+
+    public function loadXML($source, $options = null): bool {
+        return false;
+    }
+
+    public function save($filename, $options = null) {
         return file_put_contents($filename, $this->serialize());
     }
 
@@ -137,7 +145,7 @@ class Document extends \DOMDocument {
         return $this->save($filename);
     }
 
-    public function saveXML(?\DOMNode $node = null, $options = null) {
+    public function saveXML(?\DOMNode $node = null, $options = null): bool {
         return false;
     }
 
