@@ -25,5 +25,8 @@
     <testsuite name="Tree">
         <file>cases/TestTreeConstructor.php</file>
     </testsuite>
+    <testsuite name="Serializer">
+        <file>cases/TestSerializer.php</file>
+    </testsuite>
 </testsuites>
 </phpunit>

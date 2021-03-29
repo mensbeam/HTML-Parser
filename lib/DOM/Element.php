@@ -323,7 +323,7 @@ class Element extends \DOMElement {
                 # If the attribute is in some other namespace
                 default:
                     # The attribute’s serialized name is the attribute’s qualified name.
-                    $name = $attr->name;
+                    $name = $attr->nodeName;
             }
 
             $value = $this->escapeString($attr->value, true);

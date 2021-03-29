@@ -8,7 +8,6 @@ namespace MensBeam\HTML\TestCase;
 
 use MensBeam\HTML\Data;
 use MensBeam\HTML\Document;
-use MensBeam\HTML\EOFToken;
 use MensBeam\HTML\LoopException;
 use MensBeam\HTML\NotImplementedException;
 use MensBeam\HTML\OpenElementsStack;
@@ -286,7 +285,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
     protected function balanceTree(array $act, array $exp): array {
         // makes sure that the actual tree contain the same number of lines as the expected tree
         // lines are inserted where the two trees diverge, until the end of the actual tree is reached
-        // this usuallyresults in clean PHPUnit comparison failure output
+        // this usually results in cleaner PHPUnit comparison failure output
         for ($a = 0; $a < sizeof($act) && sizeof($act) < sizeof($exp); $a++) {
             if (!isset($act[$a]) || $exp[$a] !== $act[$a]) {
                 array_splice($act, $a, 0, [""]);
@@ -431,7 +430,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                     }
                     // collect the output tree
                     $exp = [];
-                    assert($lines[$l] === "#document", new \Exception("Test $file #$index follows dociument fragment with something other than document at line ".($l + 1)));
+                    assert($lines[$l] === "#document", new \Exception("Test $file #$index follows document fragment with something other than document at line ".($l + 1)));
                     for (++$l; $l < sizeof($lines); $l++) {
                         if ($lines[$l] === "" && ($lines[$l + 1] ?? "") === "#data") {
                             break;

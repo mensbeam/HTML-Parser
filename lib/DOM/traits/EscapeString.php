@@ -13,16 +13,16 @@ trait EscapeString {
         # Escaping a string (for the purposes of the algorithm above) consists of
         # running the following steps:
 
-        # 1. Replace any occurrence of the "&amp;" character by the string "&amp;amp;".
+        # 1. Replace any occurrence of the "&" character by the string "&amp;".
         # 2. Replace any occurrences of the U+00A0 NO-BREAK SPACE character by the
-        # string "&amp;nbsp;".
-        $string = str_replace(['&amp;', chr(0x00A0)], ['&amp;amp;', '&amp;nbsp;'], $string);
+        # string "&nbsp;".
+        $string = str_replace(['&', "\u{A0}"], ['&amp;', '&nbsp;'], $string);
         # 3. If the algorithm was invoked in the attribute mode, replace any
-        # occurrences of the "&quot;" character by the string "&amp;quot;".
+        # occurrences of the """ character by the string "&quot;".
         # 4. If the algorithm was not invoked in the attribute mode, replace any
-        # occurrences of the "&lt;" character by the string "&amp;lt;", and any
-        # occurrences of the "&gt;" character by the string "&amp;gt;".
-        return ($attribute) ? str_replace('&quot;', '&amp;quot;', $string) : str_replace(['&lt;', '&gt;'], ['&amp;lt;', '&amp;gt;'], $string);
+        # occurrences of the "<" character by the string "&lt;", and any
+        # occurrences of the ">" character by the string "&gt;".
+        return ($attribute) ? str_replace('"', '&quot;', $string) : str_replace(['<', '>'], ['&lt;', '&gt;'], $string);
     }
 
     protected function coerceName(string $name): string {

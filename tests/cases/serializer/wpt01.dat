@@ -26,7 +26,7 @@
 #fragment
 | <span>
 |   <a>
-|     b=" "
+|     b=" "
 #output
 <span><a b="&nbsp;"></a></span>
 
@@ -42,33 +42,33 @@
 |   <a>
 |     b="<"
 #output
-<span><a b="&lt;"></a></span>
+<span><a b="<"></a></span>
 
 #fragment
 | <span>
 |   <a>
 |     b=">"
 #output
-<span><a b="&gt;"></a></span>
+<span><a b=">"></a></span>
 
 #fragment
 | <span>
 |   <a>
 |     href="javascript:"<>""
 #output
-<span><a href="javascript:&quot;&lt;>&quot;"></a></span>
+<span><a href="javascript:&quot;<>&quot;"></a></span>
 
 #fragment
 | <span>
 |   <svg svg>
-|     xlink href="a"
+|     xlink xlink:href="a"
 #output
 <span><svg xlink:href="a"></svg></span>
 
 #fragment
 | <span>
 |   <svg svg>
-|     xmlns svg="test"
+|     xmlns xmlns:svg="test"
 #output
 <span><svg xmlns:svg="test"></svg></span>
 
@@ -86,7 +86,7 @@
 
 #fragment
 | <span>
-|   " "
+|   " "
 #output
 <span>&nbsp;</span>
 
@@ -106,7 +106,7 @@
 | <span>
 |   """
 #output
-<span>&quot;</span>
+<span>"</span>
 
 #fragment
 | <span>
@@ -162,6 +162,15 @@
 | <span>
 |   <noscript>
 |     "<&>"
+#script-off
+#output
+<span><noscript>&lt;&amp;&gt;</noscript></span>
+
+#fragment
+| <span>
+|   <noscript>
+|     "<&>"
+#script-on
 #output
 <span><noscript><&></noscript></span>
 
@@ -176,11 +185,11 @@
 |   <a>
 |     <b>
 |       <c>
-|   <d>
-|     "e"
-|   <f>
-|     <g>
-|       "h"
+|     <d>
+|       "e"
+|     <f>
+|       <g>
+|         "h"
 #output
 <span><a><b><c></c></b><d>e</d><f><g>h</g></f></a></span>
 
@@ -193,7 +202,7 @@
 #fragment
 | <span>
 |   <svg svg>
-|     xml foo="test"
+|     xml xml:foo="test"
 #output
 <span><svg xml:foo="test"></svg></span>
 
@@ -207,7 +216,7 @@
 #fragment
 | <span>
 |   <svg svg>
-|     xmlns foo="test"
+|     xmlns xmlns:foo="test"
 #output
 <span><svg xmlns:foo="test"></svg></span>
 
@@ -253,7 +262,7 @@
 #fragment
 | <span>
 |   <pre>
-|     "abc
+|     "a
 "
 #output
 <span><pre>a
@@ -287,7 +296,7 @@
 #fragment
 | <span>
 |   <textarea>
-|     "abc
+|     "a
 "
 #output
 <span><textarea>a
@@ -321,7 +330,7 @@
 #fragment
 | <span>
 |   <listing>
-|     "abc
+|     "a
 "
 #output
 <span><listing>a
