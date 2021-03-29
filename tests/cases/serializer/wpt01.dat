@@ -1,0 +1,904 @@
+#fragment
+| <span>
+#output
+<span></span>
+
+#fragment
+| <span>
+|   <a>
+#output
+<span><a></a></span>
+
+#fragment
+| <span>
+|   <a>
+|     b="c"
+#output
+<span><a b="c"></a></span>
+
+#fragment
+| <span>
+|   <a>
+|     b="&"
+#output
+<span><a b="&amp;"></a></span>
+
+#fragment
+| <span>
+|   <a>
+|     b=" "
+#output
+<span><a b="&nbsp;"></a></span>
+
+#fragment
+| <span>
+|   <a>
+|     b="""
+#output
+<span><a b="&quot;"></a></span>
+
+#fragment
+| <span>
+|   <a>
+|     b="<"
+#output
+<span><a b="&lt;"></a></span>
+
+#fragment
+| <span>
+|   <a>
+|     b=">"
+#output
+<span><a b="&gt;"></a></span>
+
+#fragment
+| <span>
+|   <a>
+|     href="javascript:"<>""
+#output
+<span><a href="javascript:&quot;&lt;>&quot;"></a></span>
+
+#fragment
+| <span>
+|   <svg svg>
+|     xlink href="a"
+#output
+<span><svg xlink:href="a"></svg></span>
+
+#fragment
+| <span>
+|   <svg svg>
+|     xmlns svg="test"
+#output
+<span><svg xmlns:svg="test"></svg></span>
+
+#fragment
+| <span>
+|   "a"
+#output
+<span>a</span>
+
+#fragment
+| <span>
+|   "&"
+#output
+<span>&amp;</span>
+
+#fragment
+| <span>
+|   " "
+#output
+<span>&nbsp;</span>
+
+#fragment
+| <span>
+|   "<"
+#output
+<span>&lt;</span>
+
+#fragment
+| <span>
+|   ">"
+#output
+<span>&gt;</span>
+
+#fragment
+| <span>
+|   """
+#output
+<span>&quot;</span>
+
+#fragment
+| <span>
+|   <style>
+|     "<&>"
+#output
+<span><style><&></style></span>
+
+#fragment
+| <span>
+|   <script>
+|     type="test"
+|     "<&>"
+#output
+<span><script type="test"><&></script></span>
+
+#fragment
+| <script>
+|   type="test"
+|   "<&>"
+#output
+<script type="test"><&></script>
+
+#fragment
+| <span>
+|   <xmp>
+|     "<&>"
+#output
+<span><xmp><&></xmp></span>
+
+#fragment
+| <span>
+|   <iframe>
+|     "<&>"
+#output
+<span><iframe><&></iframe></span>
+
+#fragment
+| <span>
+|   <noembed>
+|     "<&>"
+#output
+<span><noembed><&></noembed></span>
+
+#fragment
+| <span>
+|   <noframes>
+|     "<&>"
+#output
+<span><noframes><&></noframes></span>
+
+#fragment
+| <span>
+|   <noscript>
+|     "<&>"
+#output
+<span><noscript><&></noscript></span>
+
+#fragment
+| <span>
+|   <!-- data -->
+#output
+<span><!--data--></span>
+
+#fragment
+| <span>
+|   <a>
+|     <b>
+|       <c>
+|   <d>
+|     "e"
+|   <f>
+|     <g>
+|       "h"
+#output
+<span><a><b><c></c></b><d>e</d><f><g>h</g></f></a></span>
+
+#fragment
+| <span>
+|   b="c"
+#output
+<span b="c"></span>
+
+#fragment
+| <span>
+|   <svg svg>
+|     xml foo="test"
+#output
+<span><svg xml:foo="test"></svg></span>
+
+#fragment
+| <span>
+|   <svg svg>
+|     xml abc:foo="test"
+#output
+<span><svg xml:foo="test"></svg></span>
+
+#fragment
+| <span>
+|   <svg svg>
+|     xmlns foo="test"
+#output
+<span><svg xmlns:foo="test"></svg></span>
+
+#fragment
+| <span>
+|   <svg svg>
+|     xmlns xmlns="test"
+#output
+<span><svg xmlns="test"></svg></span>
+
+#fragment
+| <span>
+|   <svg svg>
+|     fake_ns abc:def="test"
+#output
+<span><svg abc:def="test"></svg></span>
+
+#fragment
+| <pre>
+|   "
+"
+#output
+<pre>
+</pre>
+
+#fragment
+| <pre>
+|   "a
+"
+#output
+<pre>a
+</pre>
+
+#fragment
+| <span>
+|   <pre>
+|     "
+"
+#output
+<span><pre>
+</pre></span>
+
+#fragment
+| <span>
+|   <pre>
+|     "abc
+"
+#output
+<span><pre>a
+</pre></span>
+
+#fragment
+| <textarea>
+|   "
+"
+#output
+<textarea>
+</textarea>
+
+#fragment
+| <textarea>
+|   "a
+"
+#output
+<textarea>a
+</textarea>
+
+#fragment
+| <span>
+|   <textarea>
+|     "
+"
+#output
+<span><textarea>
+</textarea></span>
+
+#fragment
+| <span>
+|   <textarea>
+|     "abc
+"
+#output
+<span><textarea>a
+</textarea></span>
+
+#fragment
+| <listing>
+|   "
+"
+#output
+<listing>
+</listing>
+
+#fragment
+| <listing>
+|   "a
+"
+#output
+<listing>a
+</listing>
+
+#fragment
+| <span>
+|   <listing>
+|     "
+"
+#output
+<span><listing>
+</listing></span>
+
+#fragment
+| <span>
+|   <listing>
+|     "abc
+"
+#output
+<span><listing>a
+</listing></span>
+
+#fragment
+| <area>
+#output
+<area>
+
+#fragment
+| <span>
+|   <area>
+|   <a>
+|     "test"
+|   <b>
+#output
+<span><area><a>test</a><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <area>
+|   <b>
+#output
+<span><a>test</a><area><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <b>
+|   <area>
+#output
+<span><a>test</a><b></b><area></span>
+
+#fragment
+| <base>
+#output
+<base>
+
+#fragment
+| <span>
+|   <base>
+|   <a>
+|     "test"
+|   <b>
+#output
+<span><base><a>test</a><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <base>
+|   <b>
+#output
+<span><a>test</a><base><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <b>
+|   <base>
+#output
+<span><a>test</a><b></b><base></span>
+
+#fragment
+| <basefont>
+#output
+<basefont>
+
+#fragment
+| <span>
+|   <basefont>
+|   <a>
+|     "test"
+|   <b>
+#output
+<span><basefont><a>test</a><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <basefont>
+|   <b>
+#output
+<span><a>test</a><basefont><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <b>
+|   <basefont>
+#output
+<span><a>test</a><b></b><basefont></span>
+
+#fragment
+| <bgsound>
+#output
+<bgsound>
+
+#fragment
+| <span>
+|   <bgsound>
+|   <a>
+|     "test"
+|   <b>
+#output
+<span><bgsound><a>test</a><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <bgsound>
+|   <b>
+#output
+<span><a>test</a><bgsound><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <b>
+|   <bgsound>
+#output
+<span><a>test</a><b></b><bgsound></span>
+
+#fragment
+| <br>
+#output
+<br>
+
+#fragment
+| <span>
+|   <br>
+|   <a>
+|     "test"
+|   <b>
+#output
+<span><br><a>test</a><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <br>
+|   <b>
+#output
+<span><a>test</a><br><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <b>
+|   <br>
+#output
+<span><a>test</a><b></b><br></span>
+
+#fragment
+| <col>
+#output
+<col>
+
+#fragment
+| <span>
+|   <col>
+|   <a>
+|     "test"
+|   <b>
+#output
+<span><col><a>test</a><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <col>
+|   <b>
+#output
+<span><a>test</a><col><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <b>
+|   <col>
+#output
+<span><a>test</a><b></b><col></span>
+
+#fragment
+| <embed>
+#output
+<embed>
+
+#fragment
+| <span>
+|   <embed>
+|   <a>
+|     "test"
+|   <b>
+#output
+<span><embed><a>test</a><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <embed>
+|   <b>
+#output
+<span><a>test</a><embed><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <b>
+|   <embed>
+#output
+<span><a>test</a><b></b><embed></span>
+
+#fragment
+| <frame>
+#output
+<frame>
+
+#fragment
+| <span>
+|   <frame>
+|   <a>
+|     "test"
+|   <b>
+#output
+<span><frame><a>test</a><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <frame>
+|   <b>
+#output
+<span><a>test</a><frame><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <b>
+|   <frame>
+#output
+<span><a>test</a><b></b><frame></span>
+
+#fragment
+| <hr>
+#output
+<hr>
+
+#fragment
+| <span>
+|   <hr>
+|   <a>
+|     "test"
+|   <b>
+#output
+<span><hr><a>test</a><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <hr>
+|   <b>
+#output
+<span><a>test</a><hr><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <b>
+|   <hr>
+#output
+<span><a>test</a><b></b><hr></span>
+
+#fragment
+| <img>
+#output
+<img>
+
+#fragment
+| <span>
+|   <img>
+|   <a>
+|     "test"
+|   <b>
+#output
+<span><img><a>test</a><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <img>
+|   <b>
+#output
+<span><a>test</a><img><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <b>
+|   <img>
+#output
+<span><a>test</a><b></b><img></span>
+
+#fragment
+| <input>
+#output
+<input>
+
+#fragment
+| <span>
+|   <input>
+|   <a>
+|     "test"
+|   <b>
+#output
+<span><input><a>test</a><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <input>
+|   <b>
+#output
+<span><a>test</a><input><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <b>
+|   <input>
+#output
+<span><a>test</a><b></b><input></span>
+
+#fragment
+| <keygen>
+#output
+<keygen>
+
+#fragment
+| <span>
+|   <keygen>
+|   <a>
+|     "test"
+|   <b>
+#output
+<span><keygen><a>test</a><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <keygen>
+|   <b>
+#output
+<span><a>test</a><keygen><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <b>
+|   <keygen>
+#output
+<span><a>test</a><b></b><keygen></span>
+
+#fragment
+| <link>
+#output
+<link>
+
+#fragment
+| <span>
+|   <link>
+|   <a>
+|     "test"
+|   <b>
+#output
+<span><link><a>test</a><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <link>
+|   <b>
+#output
+<span><a>test</a><link><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <b>
+|   <link>
+#output
+<span><a>test</a><b></b><link></span>
+
+#fragment
+| <meta>
+#output
+<meta>
+
+#fragment
+| <span>
+|   <meta>
+|   <a>
+|     "test"
+|   <b>
+#output
+<span><meta><a>test</a><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <meta>
+|   <b>
+#output
+<span><a>test</a><meta><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <b>
+|   <meta>
+#output
+<span><a>test</a><b></b><meta></span>
+
+#fragment
+| <param>
+#output
+<param>
+
+#fragment
+| <span>
+|   <param>
+|   <a>
+|     "test"
+|   <b>
+#output
+<span><param><a>test</a><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <param>
+|   <b>
+#output
+<span><a>test</a><param><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <b>
+|   <param>
+#output
+<span><a>test</a><b></b><param></span>
+
+#fragment
+| <source>
+#output
+<source>
+
+#fragment
+| <span>
+|   <source>
+|   <a>
+|     "test"
+|   <b>
+#output
+<span><source><a>test</a><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <source>
+|   <b>
+#output
+<span><a>test</a><source><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <b>
+|   <source>
+#output
+<span><a>test</a><b></b><source></span>
+
+#fragment
+| <track>
+#output
+<track>
+
+#fragment
+| <span>
+|   <track>
+|   <a>
+|     "test"
+|   <b>
+#output
+<span><track><a>test</a><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <track>
+|   <b>
+#output
+<span><a>test</a><track><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <b>
+|   <track>
+#output
+<span><a>test</a><b></b><track></span>
+
+#fragment
+| <wbr>
+#output
+<wbr>
+
+#fragment
+| <span>
+|   <wbr>
+|   <a>
+|     "test"
+|   <b>
+#output
+<span><wbr><a>test</a><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <wbr>
+|   <b>
+#output
+<span><a>test</a><wbr><b></b></span>
+
+#fragment
+| <span>
+|   <a>
+|     "test"
+|   <b>
+|   <wbr>
+#output
+<span><a>test</a><b></b><wbr></span>
