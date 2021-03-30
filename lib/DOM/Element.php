@@ -76,20 +76,30 @@ class Element extends \DOMElement {
         // set it.
         if ($qualifiedName === 'class' && $namespaceURI === null && $this->_classList !== null) {
             $this->_classList->value = $value;
+        } elseif ($namespaceURI === Parser::XMLNS_NAMESPACE) {
+            // NOTE: We create attribute nodes so that xmlns attributes
+            //   don't get lost; otherwise they cannot be serialized
+            $a = @$this->ownerDocument->createAttributeNS($namespaceURI, $qualifiedName);
+            if ($a === false) {
+                // The document element does not exist yet, so we need
+                //   to insert this element into the document
+                $this->ownerDocument->appendChild($this);
+                $a = $this->ownerDocument->createAttributeNS($namespaceURI, $qualifiedName);
+                $this->ownerDocument->removeChild($this);
+            }
+            $a->value = $this->escapeString($value, true);
+            $this->appendChild($a);
         } else {
             try {
-                // NOTE: We create attribute nodes so that xmlns attributes don't get lost
-                $a = $this->ownerDocument->createAttributeNS($namespaceURI, $qualifiedName);
+                parent::setAttributeNS($namespaceURI, $qualifiedName, $value);
             } catch (\DOMException $e) {
                 // The attribute name is invalid for XML
                 // Replace any offending characters with "UHHHHHH" where H are the
                 //   uppercase hexadecimal digits of the character's code point
                 $this->ownerDocument->mangledAttributes = true;
                 $qualifiedName = $this->coerceName($qualifiedName);
-                $a = $this->ownerDocument->createAttributeNS($namespaceURI, $qualifiedName);
+                parent::setAttributeNS($namespaceURI, $qualifiedName, $value);
             }
-            $a->value = $this->escapeString($value, true);
-            $this->appendChild($a);
             if ($qualifiedName === "id" && $namespaceURI === null) {
                 $this->setIdAttribute($qualifiedName, true);
             }
