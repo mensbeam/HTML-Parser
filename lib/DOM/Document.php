@@ -50,15 +50,19 @@ class Document extends \DOMDocument {
 
     public function createAttributeNS($namespaceURI, $qualifiedName) {
         try {
-            return parent::createAttributeNS($namespaceURI, $qualifiedName);
+            $out = @parent::createAttributeNS($namespaceURI, $qualifiedName);
         } catch (\DOMException $e) {
             // The element name is invalid for XML
             // Replace any offending characters with "UHHHHHH" where H are the
             //   uppercase hexadecimal digits of the character's code point
             $this->mangledAttributes = true;
             $qualifiedName = $this->coerceName($qualifiedName);
-            return parent::createAttributeNS($namespaceURI, $qualifiedName);
+            $out = parent::createAttributeNS($namespaceURI, $qualifiedName);
         }
+        if ($out === false) {
+            throw new \DOMException("Document element must be inserted first");
+        }
+        return $out;
     }
 
     public function createElement($name, $value = "") {

@@ -50,52 +50,54 @@ class Element extends \DOMElement {
     }
 
     public function setAttribute($name, $value) {
-        try {
-            // If setting a class attribute and classList has been invoked use classList to
-            // set it.
-            if ($this->_classList !== null && $name === 'class') {
-                $this->_classList->value = $value;
-            } else {
+        // If setting a class attribute and classList has been invoked use classList to
+        // set it.
+        if ($name === 'class' && $this->_classList !== null) {
+            $this->_classList->value = $value;
+        } else {
+            try {
+                parent::setAttribute($name, $value);
+            } catch (\DOMException $e) {
+                // The attribute name is invalid for XML
+                // Replace any offending characters with "UHHHHHH" where H are the
+                //   uppercase hexadecimal digits of the character's code point
+                $this->ownerDocument->mangledAttributes = true;
+                $name = $this->coerceName($name);
                 parent::setAttribute($name, $value);
             }
-        } catch (\DOMException $e) {
-            // The attribute name is invalid for XML
-            // Replace any offending characters with "UHHHHHH" where H are the
-            //   uppercase hexadecimal digits of the character's code point
-            $this->ownerDocument->mangledAttributes = true;
-            $name = $this->coerceName($name);
-            parent::setAttribute($name, $value);
-        }
-        if ($name === "id") {
-            $this->setIdAttribute($name, true);
+            if ($name === "id") {
+                $this->setIdAttribute($name, true);
+            }
         }
     }
 
     public function setAttributeNS($namespaceURI, $qualifiedName, $value) {
-        try {
-            // If setting a class attribute and classList has been invoked use classList to
-            // set it.
-            if ($this->_classList !== null && $namespaceURI === null && $qualifiedName === 'class') {
-                $this->_classList->value = $value;
-            } else {
-                parent::setAttributeNS($namespaceURI, $qualifiedName, $value);
+        // If setting a class attribute and classList has been invoked use classList to
+        // set it.
+        if ($qualifiedName === 'class' && $namespaceURI === null && $this->_classList !== null) {
+            $this->_classList->value = $value;
+        } else {
+            try {
+                // NOTE: We create attribute nodes so that xmlns attributes don't get lost
+                $a = $this->ownerDocument->createAttributeNS($namespaceURI, $qualifiedName);
+            } catch (\DOMException $e) {
+                // The attribute name is invalid for XML
+                // Replace any offending characters with "UHHHHHH" where H are the
+                //   uppercase hexadecimal digits of the character's code point
+                $this->ownerDocument->mangledAttributes = true;
+                $qualifiedName = $this->coerceName($qualifiedName);
+                $a = $this->ownerDocument->createAttributeNS($namespaceURI, $qualifiedName);
             }
-        } catch (\DOMException $e) {
-            // The attribute name is invalid for XML
-            // Replace any offending characters with "UHHHHHH" where H are the
-            //   uppercase hexadecimal digits of the character's code point
-            $this->ownerDocument->mangledAttributes = true;
-            $qualifiedName = $this->coerceName($qualifiedName);
-            parent::setAttributeNS($namespaceURI, $qualifiedName, $value);
-        }
-        if ($qualifiedName === "id" && $namespaceURI === null) {
-            $this->setIdAttribute($qualifiedName, true);
+            $a->value = $this->escapeString($value, true);
+            $this->appendChild($a);
+            if ($qualifiedName === "id" && $namespaceURI === null) {
+                $this->setIdAttribute($qualifiedName, true);
+            }
         }
     }
 
     public function setAttributeNode(\DOMAttr $attribute) {
         parent::setAttributeNode($attribute);
-
         if ($attribute->name === 'id') {
             $this->setIdAttribute($attribute->name, true);
         }
@@ -103,8 +105,7 @@ class Element extends \DOMElement {
 
     public function setAttributeNodeNS(\DOMAttr $attribute) {
         parent::setAttributeNodeNS($attribute);
-
-        if ($attribute->name === 'id') {
+        if ($attribute->name === 'id' && $attribute->namespaceURI === null) {
             $this->setIdAttribute($attribute->name, true);
         }
     }

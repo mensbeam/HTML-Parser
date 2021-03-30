@@ -4150,6 +4150,12 @@ class TreeBuilder {
         # Let element be the result of creating an element given document,
         #   localName, given namespace, null, and is.
         $element = $this->DOM->createElementNS($namespace, $token->name);
+        // DEVIATION: If there is no document (root) element yet, temporarily
+        //   insert this element so that creating attributes for it does not
+        //   fail due to a PHP DOM limitation
+        if (!$this->DOM->documentElement) {
+            $this->DOM->appendChild($element);
+        }
         # Append each attribute in the given token to element.
         foreach ($token->attributes as $attr) {
             # If element has an xmlns attribute in the XMLNS namespace whose value
@@ -4167,6 +4173,10 @@ class TreeBuilder {
             } else {
                 $element->setAttributeNS($attr->namespace, $attr->name, $attr->value);
             }
+        }
+        if ($this->DOM->documentElement && $this->DOM->documentElement->isSameNode($element)) {
+            // Pop off the document element if it was inserted above
+            $this->DOM->removeChild($element);
         }
         # Return element.
         return $element;

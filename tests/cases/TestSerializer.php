@@ -17,7 +17,7 @@ use MensBeam\HTML\Parser;
  * @covers \MensBeam\HTML\Comment
  * @covers \MensBeam\HTML\Text
  */
-class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
+class TestSerializer extends \PHPUnit\Framework\TestCase {
     use \MensBeam\HTML\EscapeString;
 
     protected $out;
@@ -85,6 +85,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
 
     protected function buildTree(array $data, bool $fragment): \DOMNode {
         $document = new Document;
+        $document->appendChild($document->createElement("html"));
         $out = $fragment ? $document->createDocumentFragment() : $document;
         $cur = $out;
         $pad = 2;
