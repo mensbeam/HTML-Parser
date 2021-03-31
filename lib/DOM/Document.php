@@ -7,7 +7,7 @@ declare(strict_types=1);
 namespace MensBeam\HTML;
 
 class Document extends \DOMDocument {
-    use EscapeString, Moonwalk, Serialize, Walk;
+    use Attributes, EscapeString, Moonwalk, Serialize, Walk;
 
     // Quirks mode constants
     public const NO_QUIRKS_MODE = 0;
