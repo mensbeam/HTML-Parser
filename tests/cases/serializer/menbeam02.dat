@@ -26,3 +26,9 @@
 | <html>
 #output
 <!DOCTYPE ><html></html>
+
+#document
+| <html>
+|   <?php echo "Hello world!"; ?>
+#output
+<html><?php echo "Hello world!"; ?></html>

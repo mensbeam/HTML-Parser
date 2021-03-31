@@ -16,6 +16,7 @@ use MensBeam\HTML\Parser;
  * @covers \MensBeam\HTML\TemplateElement
  * @covers \MensBeam\HTML\Comment
  * @covers \MensBeam\HTML\Text
+ * @covers \MensBeam\HTML\ProcessingInstruction
  */
 class TestSerializer extends \PHPUnit\Framework\TestCase {
     /** @dataProvider provideStandardSerializerTests */
@@ -109,6 +110,8 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
                 $public = strlen((string) ($m[2] ?? "")) ? $m[2] : "";
                 $system = strlen((string) ($m[3] ?? "")) ? $m[3] : "";
                 $cur->appendChild($document->implementation->createDocumentType($name, $public, $system));
+            } elseif (preg_match('/^<\?([^ ]+) ([^>]*)>$/', $d, $m)) {
+                $cur->appendChild($document->createProcessingInstruction($m[1], $m[2]));
             } elseif (preg_match('/^<(?:([^ ]+) )?([^>]+)>$/', $d, $m)) {
                 // element
                 $ns = strlen((string) $m[1]) ? (array_flip(Parser::NAMESPACE_MAP)[$m[1]] ?? $m[1]) : null;

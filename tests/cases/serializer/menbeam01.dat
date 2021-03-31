@@ -18,3 +18,15 @@
 |   test<test="test"
 #output
 <span test<test="test"></span>
+
+#fragment
+| <wbr>
+|   "You should not see this text."
+#output
+<wbr>
+
+#fragment
+| <wbr>
+|   class="test"
+#output
+<wbr class="test">

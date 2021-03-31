@@ -35,6 +35,7 @@ class TestDOM extends \PHPUnit\Framework\TestCase {
             ["fake_ns",                    "test:test",      "test",            "test"],
             ["fake_ns",                    "test:test:test", "testU00003Atest", "test"],
             ["fake_ns",                    "te st:test",     "test",            "teU000020st"],
+            [null,                         "9",              "U000039",         ""],
         ];
     }
 }
