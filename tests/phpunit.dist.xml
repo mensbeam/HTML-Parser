@@ -16,6 +16,9 @@
 </filter>
 
 <testsuites>
+    <testsuite name="DOM">
+        <file>cases/TestDOM.php</file>
+    </testsuite>
     <testsuite name="Charset">
         <file>cases/TestCharset.php</file>
     </testsuite>

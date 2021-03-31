@@ -18,11 +18,6 @@ use MensBeam\HTML\Parser;
  * @covers \MensBeam\HTML\Text
  */
 class TestSerializer extends \PHPUnit\Framework\TestCase {
-    use \MensBeam\HTML\EscapeString;
-
-    protected $out;
-    protected $depth;
-
     /** @dataProvider provideStandardSerializerTests */
     public function testStandardTreeTests(array $data, bool $fragment, string $exp): void {
         $node = $this->buildTree($data, $fragment);
@@ -112,7 +107,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
                 $cur->appendChild($document->implementation->createDocumentType($name, $public, $system));
             } elseif (preg_match('/^<(?:([^ ]+) )?([^>]+)>$/', $d, $m)) {
                 // element
-                $ns = strlen((string) $m[1]) ? (array_flip(Parser::NAMESPACE_MAP)[$m[1]] ?? null) : null;
+                $ns = strlen((string) $m[1]) ? (array_flip(Parser::NAMESPACE_MAP)[$m[1]] ?? $m[1]) : null;
                 $cur = $cur->appendChild($document->createElementNS($ns, $m[2]));
                 $pad += 2;
             } elseif (preg_match('/^(?:([^" ]+) )?([^"=]+)="((?:[^"]|"(?!$))*)"$/', $d, $m)) {

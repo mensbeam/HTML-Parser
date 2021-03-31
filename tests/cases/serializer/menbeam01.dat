@@ -1,0 +1,20 @@
+#fragment
+| <fake_ns test:test>
+#output
+<test:test></test:test>
+
+#fragment
+| <fake_ns test:te<st>
+#output
+<test:te<st></test:te<st>
+
+#fragment
+| <test<test>
+#output
+<test<test></test<test>
+
+#fragment
+| <span>
+|   test<test="test"
+#output
+<span test<test="test"></span>

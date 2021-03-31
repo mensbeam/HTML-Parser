@@ -336,9 +336,11 @@ class Element extends \DOMElement {
                     # The attribute’s serialized name is the attribute’s qualified name.
                     $name = $attr->nodeName;
             }
-
+            // undo any name mangling
+            if (strpos($name, 'U') !== false) {
+                $name = $this->uncoerceName($name);
+            }
             $value = $this->escapeString($attr->value, true);
-
             $s .= " $name=\"$value\"";
         }
 
