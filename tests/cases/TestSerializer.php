@@ -61,10 +61,10 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
                     $exp = [];
                     assert($lines[$l] === "#output", new \Exception("Test $file #$index follows input with something other than output at line ".($l + 1)));
                     for (++$l; $l < sizeof($lines); $l++) {
-                        if ($lines[$l] === "" && in_array(($lines[$l + 1] ?? ""), ["#ddocument", "#fragment"])) {
+                        if ($lines[$l] === "" && in_array(($lines[$l + 1] ?? ""), ["#document", "#fragment"])) {
                             break;
                         }
-                        assert(preg_match('/^[^#]/', $lines[$l]) === 1, new \Exception("Test $file #$index contains unrecognized data after document at line ".($l + 1)));
+                        assert(preg_match('/^[^#]/', $lines[$l]) === 1, new \Exception("Test $file #$index contains unrecognized data after output at line ".($l + 1)));
                         $exp[] = $lines[$l];
                     }
                     $exp = implode("\n", $exp);
@@ -80,8 +80,12 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
 
     protected function buildTree(array $data, bool $fragment): \DOMNode {
         $document = new Document;
-        $document->appendChild($document->createElement("html"));
-        $out = $fragment ? $document->createDocumentFragment() : $document;
+        if ($fragment) {
+            $document->appendChild($document->createElement("html"));
+            $out = $document->createDocumentFragment();
+        } else {
+            $out = $document;
+        }
         $cur = $out;
         $pad = 2;
         // process each line in turn
@@ -99,11 +103,11 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
             if (preg_match('/^<!-- (.*?) -->$/', $d, $m)) {
                 // comment
                 $cur->appendChild($document->createComment($m[1]));
-            } elseif (preg_match('/^<!DOCTYPE ([^ >]*)(?: "([^"]*)" "([^"]*)")?>$/', $d, $m)) {
+            } elseif (preg_match('/^<!DOCTYPE(?: ([^ >]*)(?: "([^"]*)" "([^"]*)")?)?>$/', $d, $m)) {
                 // doctype
-                $name = strlen((string) $m[1]) ? $m[1] : null;
-                $public = strlen((string) $m[2]) ? $m[2] : null;
-                $system = strlen((string) $m[3]) ? $m[3] : null;
+                $name = strlen((string) ($m[1] ?? "")) ? $m[1] : " ";
+                $public = strlen((string) ($m[2] ?? "")) ? $m[2] : "";
+                $system = strlen((string) ($m[3] ?? "")) ? $m[3] : "";
                 $cur->appendChild($document->implementation->createDocumentType($name, $public, $system));
             } elseif (preg_match('/^<(?:([^ ]+) )?([^>]+)>$/', $d, $m)) {
                 // element

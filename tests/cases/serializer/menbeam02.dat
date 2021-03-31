@@ -1,0 +1,28 @@
+#document
+| <html>
+#output
+<html></html>
+
+#document
+| <!DOCTYPE html>
+| <html>
+#output
+<!DOCTYPE html><html></html>
+
+#document
+| <!DOCTYPE html "public" "system">
+| <html>
+#output
+<!DOCTYPE html><html></html>
+
+#document
+| <!DOCTYPE test>
+| <html>
+#output
+<!DOCTYPE test><html></html>
+
+#document
+| <!DOCTYPE>
+| <html>
+#output
+<!DOCTYPE ><html></html>

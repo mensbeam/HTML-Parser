@@ -57,7 +57,10 @@ trait Serialize {
                 # LETTER E), followed by a space (U+0020 SPACE), followed by the value of
                 # current node's name IDL attribute, followed by the literal string ">" (U+003E
                 # GREATER-THAN SIGN).
-                $s .= "<!DOCTYPE {$node->childNodes->item(0)->name}>";
+                // DEVIATION: The name is trimmed because PHP's DOM does not
+                //   accept the empty string as a DOCTYPE name
+                $name = trim($node->childNodes->item(0)->name, " ");
+                $s .= "<!DOCTYPE $name>";
                 $start = 1;
             }
 
