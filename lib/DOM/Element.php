@@ -12,22 +12,28 @@ class Element extends \DOMElement {
     protected $_classList;
 
     public function appendChild($node) {
-        // If appending a class attribute node, and classList has been invoked set
-        // the class using classList instead of appending the attribute node. Will
-        // return the created node instead. TokenList appends an attribute node
-        // internally to set the class attribute, so to prevent an infinite call loop
-        // from occurring, a check between the normalized value and classList's
-        // serialized value is performed. The spec is vague on how this is supposed to
-        // be handled.
-        if ($node instanceof \DOMAttr && $this->_classList !== null && $node->namespaceURI === null && $node->name === 'class' && preg_replace(Data::WHITESPACE_REGEX, ' ', $node->value) !== $this->_classList->value) {
-            $this->_classList->value = $node->value;
-            return $this->getAttributeNode('class');
+        $fixID = false;
+        if ($node instanceof \DOMAttr && $node->namespaceURI === null) {
+            if ($node->name === 'id') {
+                $fixID = true;
+            }
+            // If appending a class attribute node, and classList has been invoked set
+            // the class using classList instead of appending the attribute node. Will
+            // return the created node instead. TokenList appends an attribute node
+            // internally to set the class attribute, so to prevent an infinite call loop
+            // from occurring, a check between the normalized value and classList's
+            // serialized value is performed. The spec is vague on how this is supposed to
+            // be handled.
+            elseif ($this->_classList !== null && $node->name === 'class' && preg_replace(Data::WHITESPACE_REGEX, ' ', $node->value) !== $this->_classList->value) {
+                $this->_classList->value = $node->value;
+                return $this->getAttributeNode('class');
+            }
         }
 
         $node = parent::appendChild($node);
 
-        // Fix id attributes when appending attribute nodes.
-        if ($node instanceof \DOMAttr && $node->namespaceURI === null && $node->name === 'id') {
+        // Fix id attributes when appending id attribute nodes.
+        if ($fixID) {
             $this->setIdAttribute('id', true);
         }
 
