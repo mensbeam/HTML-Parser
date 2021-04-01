@@ -90,7 +90,7 @@ class Element extends \DOMElement {
     public function setAttributeNS($namespaceURI, $qualifiedName, $value) {
         // Normalize the attribute name and namespace URI per modern DOM specifications.
         if ($namespaceURI !== null) {
-            $namespaceURI = strtolower(trim($namespaceURI));
+            $namespaceURI = trim($namespaceURI);
         }
         $qualifiedName = trim($qualifiedName);
 

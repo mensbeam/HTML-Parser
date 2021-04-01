@@ -54,7 +54,7 @@ class Document extends \DOMDocument {
     public function createAttributeNS($namespaceURI, $qualifiedName) {
         // Normalize the attribute name and namespace URI per modern DOM specifications.
         if ($namespaceURI !== null) {
-            $namespaceURI = strtolower(trim($namespaceURI));
+            $namespaceURI = trim($namespaceURI);
         }
         $qualifiedName = trim($qualifiedName);
 
@@ -97,7 +97,7 @@ class Document extends \DOMDocument {
     public function createElementNS($namespaceURI, $qualifiedName, $value = "") {
         // Normalize the element name and namespace URI per modern DOM specifications.
         if ($namespaceURI !== null) {
-            $namespaceURI = strtolower(trim($namespaceURI));
+            $namespaceURI = trim($namespaceURI);
             $namespaceURI = ($namespaceURI === Parser::HTML_NAMESPACE) ? null : $namespaceURI;
         }
         $qualifiedName = trim($qualifiedName);
