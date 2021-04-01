@@ -76,7 +76,7 @@ class Document extends \DOMDocument {
 
         try {
             if ($name !== 'template') {
-                $e = parent::createElement($name, $value);
+                $e = parent::createElementNS(null, $name, $value);
             } else {
                 $e = new TemplateElement($this, $name, $value);
                 $this->templateElements[] = $e;
@@ -90,7 +90,7 @@ class Document extends \DOMDocument {
             //   uppercase hexadecimal digits of the character's code point
             $this->mangledElements = true;
             $name = $this->coerceName($name);
-            return parent::createElement($name, $value);
+            return parent::createElementNS(null, $name, $value);
         }
     }
 

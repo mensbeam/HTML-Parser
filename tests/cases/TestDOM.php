@@ -44,4 +44,21 @@ class TestDOM extends \PHPUnit\Framework\TestCase {
             ["http://www.w3.org/1998/Math/MathML", "TEST",           "http://www.w3.org/1998/Math/MathML", "TEST",            ""],
         ];
     }
+    /** @dataProvider provideBareElements */
+    public function testCreateBareElements(string $nameIn, $nameOut): void {
+        $d = new Document;
+        $e = $d->createElement($nameIn);
+        $this->assertNull($e->namespaceURI);
+        $this->assertSame("", $e->prefix);
+        $this->assertSame($nameOut, $e->localName);
+    }
+
+    public function provideBareElements(): iterable {
+        return [
+            ["test",      "test"],
+            ["test:test", "testU00003Atest"],
+            ["9",         "U000039"],
+            ["TEST",      "test"],
+        ];
+    }
 }
