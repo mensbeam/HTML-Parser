@@ -100,7 +100,7 @@ class Document extends \DOMDocument {
             $namespaceURI = trim($namespaceURI);
             $namespaceURI = ($namespaceURI === Parser::HTML_NAMESPACE) ? null : $namespaceURI;
         }
-        $qualifiedName = trim($qualifiedName);
+        $qualifiedName = ($namespaceURI === null) ? strtolower(trim($qualifiedName)) : trim($qualifiedName);
 
         try {
             if ($qualifiedName !== 'template' || $namespaceURI !== null) {
