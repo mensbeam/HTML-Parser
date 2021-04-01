@@ -37,7 +37,7 @@ trait Serialize {
 
         # 3. If the node is a template element, then let the node instead be the
         # template element’s template contents (a DocumentFragment node).
-        if ($node instanceof Element && $node->nodeName === 'template') {
+        if ($node instanceof TemplateElement) {
             $node = $node->content;
         }
 

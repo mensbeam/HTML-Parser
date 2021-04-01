@@ -36,6 +36,9 @@ class Document extends \DOMDocument {
     }
 
     public function createAttribute($name) {
+        // Normalize the attribute name per modern DOM specifications.
+        $name = strtolower(trim($name));
+
         try {
             return parent::createAttribute($name);
         } catch (\DOMException $e) {
@@ -49,6 +52,12 @@ class Document extends \DOMDocument {
     }
 
     public function createAttributeNS($namespaceURI, $qualifiedName) {
+        // Normalize the attribute name and namespace URI per modern DOM specifications.
+        if ($namespaceURI !== null) {
+            $namespaceURI = strtolower(trim($namespaceURI));
+        }
+        $qualifiedName = trim($qualifiedName);
+
         try {
             return parent::createAttributeNS($namespaceURI, $qualifiedName);
         } catch (\DOMException $e) {
@@ -62,6 +71,9 @@ class Document extends \DOMDocument {
     }
 
     public function createElement($name, $value = "") {
+        // Normalize the element name per modern DOM specifications.
+        $name = strtolower(trim($name));
+
         try {
             if ($name !== 'template') {
                 $e = parent::createElement($name, $value);
@@ -83,6 +95,13 @@ class Document extends \DOMDocument {
     }
 
     public function createElementNS($namespaceURI, $qualifiedName, $value = "") {
+        // Normalize the element name and namespace URI per modern DOM specifications.
+        if ($namespaceURI !== null) {
+            $namespaceURI = strtolower(trim($namespaceURI));
+            $namespaceURI = ($namespaceURI === Parser::HTML_NAMESPACE) ? null : $namespaceURI;
+        }
+        $qualifiedName = trim($qualifiedName);
+
         try {
             if ($qualifiedName !== 'template' || $namespaceURI !== null) {
                 $e = parent::createElementNS($namespaceURI, $qualifiedName, $value);

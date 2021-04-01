@@ -63,6 +63,9 @@ class Element extends \DOMElement {
     }
 
     public function setAttribute($name, $value) {
+        // Normalize the attribute name per modern DOM specifications.
+        $name = strtolower(trim($name));
+
         // If setting a class attribute and classList has been invoked use classList to
         // set it.
         if ($name === 'class' && $this->_classList !== null) {
@@ -85,6 +88,12 @@ class Element extends \DOMElement {
     }
 
     public function setAttributeNS($namespaceURI, $qualifiedName, $value) {
+        // Normalize the attribute name and namespace URI per modern DOM specifications.
+        if ($namespaceURI !== null) {
+            $namespaceURI = strtolower(trim($namespaceURI));
+        }
+        $qualifiedName = trim($qualifiedName);
+
         // If setting a class attribute and classList has been invoked use classList to
         // set it.
         if ($qualifiedName === 'class' && $namespaceURI === null && $this->_classList !== null) {
