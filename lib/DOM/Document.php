@@ -36,19 +36,7 @@ class Document extends \DOMDocument {
     }
 
     public function createAttribute($name) {
-        // Normalize the attribute name per modern DOM specifications.
-        $name = strtolower(trim($name));
-
-        try {
-            return parent::createAttribute($name);
-        } catch (\DOMException $e) {
-            // The element name is invalid for XML
-            // Replace any offending characters with "UHHHHHH" where H are the
-            //   uppercase hexadecimal digits of the character's code point
-            $this->mangledAttributes = true;
-            $name = $this->coerceName($name);
-            return parent::createAttribute($name);
-        }
+        return $this->createAttributeNS(null, $name);
     }
 
     public function createAttributeNS($namespaceURI, $qualifiedName) {
@@ -66,32 +54,12 @@ class Document extends \DOMDocument {
             //   uppercase hexadecimal digits of the character's code point
             $this->mangledAttributes = true;
             $qualifiedName = $this->coerceName($qualifiedName);
-            return parent::createAttributeNS($namespaceURI, $qualifiedName);
+            return $this->createAttributeNS($namespaceURI, $qualifiedName);
         }
     }
 
     public function createElement($name, $value = "") {
-        // Normalize the element name per modern DOM specifications.
-        $name = strtolower(trim($name));
-
-        try {
-            if ($name !== 'template') {
-                $e = parent::createElementNS(null, $name, $value);
-            } else {
-                $e = new TemplateElement($this, $name, $value);
-                $this->templateElements[] = $e;
-                $e->content = $this->createDocumentFragment();
-            }
-
-            return $e;
-        } catch (\DOMException $e) {
-            // The element name is invalid for XML
-            // Replace any offending characters with "UHHHHHH" where H is the
-            //   uppercase hexadecimal digits of the character's code point
-            $this->mangledElements = true;
-            $name = $this->coerceName($name);
-            return parent::createElementNS(null, $name, $value);
-        }
+        return $this->createElementNS(null, $name, $value);
     }
 
     public function createElementNS($namespaceURI, $qualifiedName, $value = "") {

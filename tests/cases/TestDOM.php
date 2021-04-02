@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace MensBeam\HTML\TestCase;
 
 use MensBeam\HTML\Document;
+use MensBeam\HTML\TemplateElement;
 
 /** 
  * @covers \MensBeam\HTML\Document
@@ -59,6 +60,66 @@ class TestDOM extends \PHPUnit\Framework\TestCase {
             ["test:test", "testU00003Atest"],
             ["9",         "U000039"],
             ["TEST",      "test"],
+        ];
+    }
+
+    public function testCreateTemplateElements(): void {
+        $d = new Document;
+        $t = $d->createElement("template");
+        $this->assertInstanceOf(TemplateElement::class, $t);
+        $this->assertNotNull($t->ownerDocument);
+        $t = $d->createElement("TEMPLATE");
+        $this->assertInstanceOf(TemplateElement::class, $t);
+        $this->assertNotNull($t->ownerDocument);
+        $t = $d->createElementNS(null, "template");
+        $this->assertInstanceOf(TemplateElement::class, $t);
+        $this->assertNotNull($t->ownerDocument);
+        $t = $d->createElementNS(null, "TEMPLATE");
+        $this->assertInstanceOf(TemplateElement::class, $t);
+        $this->assertNotNull($t->ownerDocument);
+        $t = $d->createElementNS("http://www.w3.org/1999/xhtml", "template");
+        $this->assertInstanceOf(TemplateElement::class, $t);
+        $this->assertNotNull($t->ownerDocument);
+        $t = $d->createElementNS("http://www.w3.org/1999/xhtml", "TEMPLATE");
+        $this->assertInstanceOf(TemplateElement::class, $t);
+        $this->assertNotNull($t->ownerDocument);
+    }
+
+    /** @dataProvider provideNamespacedAttributeCreations */
+    public function testCreateNamespacedAttributes(?string $nsIn, string $nameIn, string $local, string $prefix): void {
+        $d = new Document;
+        $d->appendChild($d->createElement("html"));
+        $a = $d->createAttributeNS($nsIn, $nameIn);
+        $this->assertSame($local, $a->localName);
+        $this->assertSame($nsIn, $a->namespaceURI);
+        $this->assertSame($prefix, $a->prefix);
+    }
+
+    public function provideNamespacedAttributeCreations(): iterable {
+        return [
+            [null,      "test",      "test",            ""],
+            [null,      "test:test", "testU00003Atest", ""],
+            [null,      "test",      "test",            ""],
+            [null,      "TEST:TEST", "TESTU00003ATEST", ""],
+            ["fake_ns", "test",      "test",            ""],
+        ];
+    }
+
+    /** @dataProvider provideBareAttributeCreations */
+    public function testCreateBareAttributes(string $nameIn, string $nameOut): void {
+        $d = new Document;
+        $d->appendChild($d->createElement("html"));
+        $a = $d->createAttribute($nameIn);
+        $this->assertSame($nameOut, $a->name);
+        $this->assertNull($a->namespaceURI);
+    }
+
+    public function provideBareAttributeCreations(): iterable {
+        return [
+            ["test",      "test"],
+            ["test:test", "testU00003Atest"],
+            ["TEST",      "TEST"],
+            ["TEST:TEST", "TESTU00003ATEST"],
         ];
     }
 }
