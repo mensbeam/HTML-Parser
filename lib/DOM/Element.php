@@ -63,28 +63,7 @@ class Element extends \DOMElement {
     }
 
     public function setAttribute($name, $value) {
-        // Normalize the attribute name per modern DOM specifications.
-        $name = strtolower(trim($name));
-
-        // If setting a class attribute and classList has been invoked use classList to
-        // set it.
-        if ($name === 'class' && $this->_classList !== null) {
-            $this->_classList->value = $value;
-        } else {
-            try {
-                parent::setAttribute($name, $value);
-            } catch (\DOMException $e) {
-                // The attribute name is invalid for XML
-                // Replace any offending characters with "UHHHHHH" where H are the
-                //   uppercase hexadecimal digits of the character's code point
-                $this->ownerDocument->mangledAttributes = true;
-                $name = $this->coerceName($name);
-                parent::setAttribute($name, $value);
-            }
-            if ($name === "id") {
-                $this->setIdAttribute($name, true);
-            }
-        }
+        $this->setAttributeNS(null, $name, $value);
     }
 
     public function setAttributeNS($namespaceURI, $qualifiedName, $value) {
@@ -93,7 +72,9 @@ class Element extends \DOMElement {
             $namespaceURI = trim($namespaceURI);
         }
         $qualifiedName = trim($qualifiedName);
-
+        if ($namespaceURI === null && ($this->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE && !$this->hasAttributeNS($namespaceURI, $qualifiedName)) {
+            $qualifiedName = trim(strtolower($qualifiedName));
+        }
         // If setting a class attribute and classList has been invoked use classList to
         // set it.
         if ($qualifiedName === 'class' && $namespaceURI === null && $this->_classList !== null) {

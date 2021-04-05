@@ -122,4 +122,30 @@ class TestDOM extends \PHPUnit\Framework\TestCase {
             ["TEST:TEST", "TESTU00003ATEST"],
         ];
     }
+
+    /** @dataProvider provideNamespacedAttributeSettings */
+    public function testSetNamespoacedAttributes(?string $elementNS, ?string $attrNS, string $nameIn, string $nameOut): void {
+        $d = new Document;
+        $e = $d->createElementNS($elementNS, "test");
+        $e->setAttributeNS($attrNS, $nameIn, "test");
+        $this->assertTrue($e->hasAttributeNS($attrNS, $nameOut));
+    }
+
+    public function provideNamespacedAttributeSettings(): iterable {
+        return [
+            [null,                                 null,                            "test",        "test"],
+            [null,                                 null,                            "TEST",        "test"],
+            ["http://www.w3.org/1999/xhtml",       null,                            "test",        "test"],
+            ["http://www.w3.org/1999/xhtml",       null,                            "TEST",        "test"],
+            [null,                                 null,                            "test:test",   "testU00003Atest"],
+            [null,                                 null,                            "TEST:TEST",   "testU00003Atest"],
+            ["http://www.w3.org/1999/xhtml",       null,                            "test:test",   "testU00003Atest"],
+            ["http://www.w3.org/1999/xhtml",       null,                            "TEST:TEST",   "testU00003Atest"],
+            [null,                                 "http://www.w3.org/1999/xhtml",  "test:test",   "test"],
+            [null,                                 "http://www.w3.org/1999/xhtml",  "TEST:TEST",   "TEST"],
+            ["http://www.w3.org/1998/Math/MathML", null,                            "test",        "test"],
+            ["http://www.w3.org/1998/Math/MathML", null,                            "TEST",        "TEST"],
+            [null,                                 "http://www.w3.org/2000/xmlns/", "xmlns:xlink", "xlink"],
+        ];
+    }
 }

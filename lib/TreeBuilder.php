@@ -359,14 +359,6 @@ class TreeBuilder {
                     return true;
                 })());
 
-                // If attribute name coercison has occurred at some earlier point,
-                //   we must coerce all attributes on html and body start tags in
-                //   case they are relocated to existing elements
-                if ($token instanceof StartTagToken && $this->DOM->mangledAttributes && in_array($token->name, ["html", "body"])) {
-                    foreach ($token->attributes as $attr) {
-                        $attr->name = $this->coerceName($attr->name);
-                    }
-                }
                 # 13.2.6.4. The rules for parsing tokens in HTML content
                 // OPTIMIZATION: Evaluation the "in body" mode first is
                 //   faster for typical documents
@@ -386,7 +378,10 @@ class TreeBuilder {
                                 # not, add the attribute and its corresponding value to that element.
                                 $top = $this->stack[0];
                                 foreach ($token->attributes as $a) {
-                                    if (!$top->hasAttributeNS(null, $a->name)) {
+                                    // If attribute name coercison has occurred at some earlier point,
+                                    //   we must coerce all attributes on html and body start tags in
+                                    //   case they are relocated to existing elements
+                                    if (!$top->hasAttributeNS(null, $this->DOM->mangledAttributes ? $this->coerceName($a->name) : $a->name)) {
                                         $top->setAttributeNS(null, $a->name, $a->value);
                                     }
                                 }
@@ -414,7 +409,10 @@ class TreeBuilder {
                                 $this->framesetOk = false;
                                 $body = $this->stack[1];
                                 foreach ($token->attributes as $a) {
-                                    if (!$body->hasAttributeNS(null, $a->name)) {
+                                    // If attribute name coercison has occurred at some earlier point,
+                                    //   we must coerce all attributes on html and body start tags in
+                                    //   case they are relocated to existing elements
+                                    if (!$body->hasAttributeNS(null, $this->DOM->mangledAttributes ? $this->coerceName($a->name) : $a->name)) {
                                         $body->setAttributeNS(null, $a->name, $a->value);
                                     }
                                 }
