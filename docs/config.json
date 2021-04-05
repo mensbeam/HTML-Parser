@@ -1,0 +1,13 @@
+{
+    "title": "HTML",
+    "tagline": "Tools for parsing and printing HTML5 documents and fragments.",
+    "author": "Dustin Wilson",
+    "languages": {
+        "en": "English"
+    },
+    "html": {
+        "float": false,
+        "toggle_code": false,
+        "search": false
+    }
+}

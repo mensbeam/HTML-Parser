@@ -126,6 +126,10 @@ class Document extends \DOMDocument {
         }
     }
 
+    public function createEntityReference($name): bool {
+        return false;
+    }
+
     public function load($filename, $options = null, ?string $encodingOrContentType = null): bool {
         $data = Parser::fetchFile($filename, $encodingOrContentType);
         if (!$data) {
@@ -157,7 +161,7 @@ class Document extends \DOMDocument {
     public function saveHTML(\DOMNode $node = null): string {
         if ($node === null) {
             $node = $this;
-        } elseif ($node->ownerDocument !== $this) {
+        } elseif (!$node->ownerDocument->isSameNode($this)) {
             throw new DOMException(DOMException::WRONG_DOCUMENT);
         }
 

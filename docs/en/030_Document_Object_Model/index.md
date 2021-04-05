@@ -1,0 +1,1 @@
+The MensBeam HTML library works by parsing HTML strings into PHP's existing XML DOM. It, however, has to force the antiquated PHP DOM extension into working properly with modern HTML DOM by extending many of the node types. The documentation below follows PHP's doc style guide as closely as possible. Each class should be listed separately in the menu under this section.

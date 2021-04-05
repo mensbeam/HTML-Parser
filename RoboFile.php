@@ -21,6 +21,23 @@ function norm(string $path): string {
 }
 
 class RoboFile extends \Robo\Tasks {
+    /** Generates static manual pages in the "manual" directory
+     *
+     * The resultant files are suitable for offline viewing and inclusion into release builds
+     */
+    public function manual(array $args): Result {
+        $execpath = escapeshellarg(norm(BASE."vendor/bin/daux"));
+        $t = $this->collectionBuilder();
+        $t->taskExec($execpath)->arg("generate")->option("-d", BASE."manual")->args($args);
+        return $t->run();
+    }
+
+    /** Serves a live view of the manual using the built-in Web server */
+    public function manualLive(array $args): Result {
+        $execpath = escapeshellarg(norm(BASE."vendor/bin/daux"));
+        return $this->taskExec($execpath)->arg("serve")->args($args)->run();
+    }
+
     /** Runs the typical test suite
      *
      * Arguments passed to the task are passed on to PHPUnit. Thus one may, for
