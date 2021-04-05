@@ -11,6 +11,7 @@ Represents an entire HTML document; serves as the root of the document tree. Unl
 <div class="info"><p><strong>Info</strong> Only new methods and methods which make outward-facing changes from <a href="https://www.php.net/manual/en/class.domdocument.php">\DOMDocument</a> will be documented here, otherwise they will be linked back to PHP's documentation.</p></div>
 
 <pre><code class="php">MensBeam\HTML\Document extends <a href="https://www.php.net/manual/en/class.domdocument.php">\DOMDocument</a> {
+    use <a href="../Walk/index.html">Walk</a>;
 
     /* Constants */
     public const NO_QUIRKS_MODE = 0 ;
@@ -18,26 +19,26 @@ Represents an entire HTML document; serves as the root of the document tree. Unl
     public const LIMITED_QUIRKS_MODE = 2 ;
 
     /* Properties */
-    public string|null $documentEncoding = null ;
-    public int $quirksMode = 0 ;
+    public string|null <a href="#document-props-documentencoding">$documentEncoding</a> = null ;
+    public int <a href="#document-props-quirksmode">$quirksMode</a> = 0 ;
 
     /* Inherited properties from <a href="https://www.php.net/manual/en/class.domdocument.php">\DOMDocument</a> */
     public readonly DocumentType <a href="https://www.php.net/manual/en/class.domdocument.php#domdocument.props.doctype">$doctype</a> ;
     public readonly Element <a href="https://www.php.net/manual/en/class.domdocument.php#domdocument.props.documentelement">$documentElement</a> ;
     public string|null <a href="https://www.php.net/manual/en/class.domdocument.php#domdocument.props.documenturi">$documentURI</a> ;
-    public readonly \<a href="https://www.php.net/manual/en/class.domimplementation.php">DOMImplementation</a> <a href="https://www.php.net/manual/en/class.domdocument.php#domdocument.props.implementation">$implementation</a> ;
+    public readonly <a href="https://www.php.net/manual/en/class.domimplementation.php">\DOMImplementation</a> <a href="https://www.php.net/manual/en/class.domdocument.php#domdocument.props.implementation">$implementation</a> ;
 
     /* Inherited properties from <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a> */
     public readonly string <a href="https://www.php.net/manual/en/class.domnode.php#domnode.props.nodename">$nodeName</a> ;
     public string <a href="https://www.php.net/manual/en/class.domnode.php#domnode.props.nodevalue">$nodeValue</a> ;
     public readonly int <a href="https://www.php.net/manual/en/class.domnode.php#domnode.props.nodetype">$nodeType</a> ;
-    public readonly \<a href="https://www.php.net/manual/en/class.domnode.php">DOMNode</a>|null <a href="https://www.php.net/manual/en/class.domnode.php#domnode.props.parentnode">$parentNode</a> ;
-    public readonly \<a href="https://www.php.net/manual/en/class.domnodelist.php">DOMNodeList</a> <a href="https://www.php.net/manual/en/class.domnode.php#domnode.props.childnodes">$childNodes</a> ;
-    public readonly \<a href="https://www.php.net/manual/en/class.domnode.php">DOMNode</a>|null <a href="https://www.php.net/manual/en/class.domnode.php#domnode.props.firstchild">$firstChild</a> ;
-    public readonly \<a href="https://www.php.net/manual/en/class.domnode.php">DOMNode</a>|null <a href="https://www.php.net/manual/en/class.domnode.php#domnode.props.lastchild">$lastChild</a> ;
-    public readonly \<a href="https://www.php.net/manual/en/class.domnode.php">DOMNode</a>|null <a href="https://www.php.net/manual/en/class.domnode.php#domnode.props.previoussibling">$previousSibling</a> ;
-    public readonly \<a href="https://www.php.net/manual/en/class.domnode.php">DOMNode</a>|null <a href="https://www.php.net/manual/en/class.domnode.php#domnode.props.nextsibling">$nextSibling</a> ;
-    public readonly \<a href="https://www.php.net/manual/en/class.domnamednodemap.php">DOMNamedNodeMap</a>|null <a href="https://www.php.net/manual/en/class.domnode.php#domnode.props.attributes">$attributes</a> ;
+    public readonly <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a>|null <a href="https://www.php.net/manual/en/class.domnode.php#domnode.props.parentnode">$parentNode</a> ;
+    public readonly <a href="https://www.php.net/manual/en/class.domnodelist.php">\DOMNodeList</a> <a href="https://www.php.net/manual/en/class.domnode.php#domnode.props.childnodes">$childNodes</a> ;
+    public readonly <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a>|null <a href="https://www.php.net/manual/en/class.domnode.php#domnode.props.firstchild">$firstChild</a> ;
+    public readonly <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a>|null <a href="https://www.php.net/manual/en/class.domnode.php#domnode.props.lastchild">$lastChild</a> ;
+    public readonly <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a>|null <a href="https://www.php.net/manual/en/class.domnode.php#domnode.props.previoussibling">$previousSibling</a> ;
+    public readonly <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a>|null <a href="https://www.php.net/manual/en/class.domnode.php#domnode.props.nextsibling">$nextSibling</a> ;
+    public readonly <a href="https://www.php.net/manual/en/class.domnamednodemap.php">\DOMNamedNodeMap</a>|null <a href="https://www.php.net/manual/en/class.domnode.php#domnode.props.attributes">$attributes</a> ;
     public readonly Document|null <a href="https://www.php.net/manual/en/class.domnode.php#domnode.props.ownerdocument">$ownerDocument</a> ;
     public readonly string|null <a href="https://www.php.net/manual/en/class.domnode.php#domnode.props.namespaceuri">$namespaceURI</a> ;
     public string <a href="https://www.php.net/manual/en/class.domnode.php#domnode.props.prefix">$prefix</a> ;
@@ -48,15 +49,59 @@ Represents an entire HTML document; serves as the root of the document tree. Unl
     /* Methods */
     public <a href="Document_construct.html">__construct</a> ( )
     public <a href="Document_createEntityReference.html">createEntityReference</a> ( string $name ) : false
+    public <a href="Document_C14N.html">C14N</a> ( bool $exclusive = false , bool $withComments = false , array|null $xpath = null , array|null $nsPrefixes = null ) : false
+    public <a href="Document_C14NFile.html">C14NFile</a> ( string $uri , bool $exclusive = false , bool $withComments = false , array|null $xpath = null , array|null $nsPrefixes = null ) : false
     public <a href="Document_load.html">load</a> ( string $filename , null $options = null , string|null $encodingOrContentType = null ) : bool
     public <a href="Document_loadHTML.html">loadHTML</a> ( string $source , null $options = null , string|null $encodingOrContentType = null ) : bool
     public <a href="Document_loadHTMLFile.html">loadHTMLFile</a> ( string $filename , null $options = null , string|null $encodingOrContentType = null ) : bool
     public <a href="Document_loadHTML.html">loadXML</a> ( string $source , null $options = null ) : false
     public <a href="Document_save.html">save</a> ( string $filename , null $options = null ) : int|false
     public <a href="Document_saveHTMLFile.html">saveHTMLFile</a> ( string $filename , null $options = null ) : int|false
-    public <a href="Document_saveXML.html">saveXML</a> ( DOMNode|null $node = null , null $options = null ) : false
+    public <a href="Document_saveXML.html">saveXML</a> ( <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a>|null $node = null , null $options = null ) : false
     public <a href="Document_validate.html">validate</a> ( ) : true
     public <a href="Document_xinclude.html">xinclude</a> ( null $options = null ) : false
+
+    /* Methods from <a href="../Walk/index.html">Walk</a> */
+    public <a href="../Walk/Walk_walk.html">walk</a> ( <a href="https://www.php.net/manual/en/class.closure.php">\Closure</a> $filter ) : <a href="https://www.php.net/manual/en/class.generator.php">\Generator</a>
+
+    /* Methods inherited from <a href="https://www.php.net/manual/en/class.domdocument.php">\DOMDocument</a> */
+    public <a href="https://www.php.net/manual/en/domdocument.createattribute.php">createAttribute</a> ( string $localName ) : <a href="https://www.php.net/manual/en/class.domattr.php">\DOMAttr</a>|false
+    public <a href="https://www.php.net/manual/en/domdocument.createattributens.php">createAttributeNS</a> ( string|null $namespace , string $qualifiedName ) : <a href="https://www.php.net/manual/en/class.domattr.php">\DOMAttr</a>|false
+    public <a href="https://www.php.net/manual/en/domdocument.createcdatasection.php">createCDATASection</a> ( string $data ) : <a href="https://www.php.net/manual/en/class.domcdatasection.php">\DOMCdataSection</a>|false
+    public <a href="https://www.php.net/manual/en/domdocument.createcomment.php">createComment</a> ( string $data ) : Comment|false
+    public <a href="https://www.php.net/manual/en/domdocument.createdocumentfragment.php">createDocumentFragment</a> ( ) : DocumentFragment|false
+    public <a href="https://www.php.net/manual/en/domdocument.createelement.php">createElement</a> ( string $localName , string $value = "" ) : Element|false
+    public <a href="https://www.php.net/manual/en/domdocument.createelementns.php">createElementNS</a> ( string|null $namespace , string $qualifiedName , string $value = "" ) : Element|false
+    public <a href="https://www.php.net/manual/en/domdocument.createprocessinginstruction.php">createProcessingInstruction</a> ( string $target , string $data = "" ) : ProcessingInstruction|false
+    public <a href="https://www.php.net/manual/en/domdocument.createtextnode.php">createTextNode</a> ( string $data ) : Text|false
+    public <a href="https://www.php.net/manual/en/domdocument.getelementbyid.php">getElementById</a> ( string $elementId ) : Element|null
+    public <a href="https://www.php.net/manual/en/domdocument.getelementsbytagname.php">getElementsByTagName</a> ( string $qualifiedName ) : <a href="https://www.php.net/manual/en/class.domnodelist.php">\DOMNodeList</a>
+    public <a href="https://www.php.net/manual/en/domdocument.createelementsbytagnamens.php">getElementsByTagNameNS</a> ( string $namespace , string $localName ) : <a href="https://www.php.net/manual/en/class.domnodelist.php">\DOMNodeList</a>
+    public <a href="https://www.php.net/manual/en/domdocument.importnode.php">importNode</a> ( <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a> $node , bool $deep = false ) : <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a>|false
+    public <a href="https://www.php.net/manual/en/domdocument.normalizedocument.php">normalizeDocument</a> ( ) : void
+    public <a href="https://www.php.net/manual/en/domdocument.registernodeclass.php">registerNodeClass</a> ( string $baseClass , string|null $extendedClass ) : bool
+    public <a href="https://www.php.net/manual/en/domdocument.relaxngvalidate.php">relaxNGValidate</a> ( string $filename ) : bool
+    public <a href="https://www.php.net/manual/en/domdocument.relaxngvalidatesource.php">relaxNGValidateSource</a> ( string $source ) : bool
+    public <a href="https://www.php.net/manual/en/domdocument.savehtml.php">saveHTML</a> ( <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a>|null $node = null ) : string|false
+    public <a href="https://www.php.net/manual/en/domdocument.schemavalidate.php">schemaValidate</a> ( string $filename , int $flags = 0 ) : bool
+    public <a href="https://www.php.net/manual/en/domdocument.schemavalidatesource.php">schemaValidateSource</a> ( string $source , int $flags = 0 ) : bool
+
+    /* Methods inherited from <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a> */
+    public <a href="https://www.php.net/manual/en/domnode.appendchild.php">\DOMNode::appendChild</a> ( <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a> $node ) : <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a>|false
+    public <a href="https://www.php.net/manual/en/domnode.clonenode.php">\DOMNode::cloneNode</a> ( bool $deep = false ) : <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a>|false
+    public <a href="https://www.php.net/manual/en/domnode.getlineno.php">\DOMNode::getLineNo</a> ( ) : int
+    public <a href="https://www.php.net/manual/en/domnode.getnodepath.php">\DOMNode::getNodePath</a> ( ) : string|null
+    public <a href="https://www.php.net/manual/en/domnode.hasattributes.php">\DOMNode::hasAttributes</a> ( ) : bool
+    public <a href="https://www.php.net/manual/en/domnode.haschildnodes.php">\DOMNode::hasChildNodes</a> ( ) : bool
+    public <a href="https://www.php.net/manual/en/domnode.insertbefore.php">\DOMNode::insertBefore</a> ( <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a> $node , <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a>|null $child = null ) : <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a>|false
+    public <a href="https://www.php.net/manual/en/domnode.isdefaultnamespace.php">\DOMNode::isDefaultNamespace</a> ( string $namespace ) : bool
+    public <a href="https://www.php.net/manual/en/domnode.issamenode.php">\DOMNode::isSameNode</a> ( <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a> $otherNode ) : bool
+    public <a href="https://www.php.net/manual/en/domnode.issupported.php">\DOMNode::isSupported</a> ( string $feature , string $version ) : bool
+    public <a href="https://www.php.net/manual/en/domnode.lookupnamespaceuri.php">\DOMNode::lookupNamespaceUri</a> ( string $prefix ) : string
+    public <a href="https://www.php.net/manual/en/domnode.lookupprefix.php">\DOMNode::lookupPrefix</a> ( string $namespace ) : string|null
+    public <a href="https://www.php.net/manual/en/domnode.normalize.php">\DOMNode::normalize</a> ( ) : void
+    public <a href="https://www.php.net/manual/en/domnode.removechild.php">\DOMNode::removeChild</a> ( <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a> $child ) : <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a>|false
+    public <a href="https://www.php.net/manual/en/domnode.replacechild.php">\DOMNode::replaceChild</a> ( <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a> $node , <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a> $child ) : <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a>|false
 
 }</code></pre>
 
@@ -78,7 +123,7 @@ Represents an entire HTML document; serves as the root of the document tree. Unl
  <dd>Used when parsing. Specifies which mode the document was parsed in. One of the <a href="#page_Constants">predefined quirks mode constants</a>.</dd>
 </dl>
 
-The following properties inherited from `\DOMDocument` have no effect in `Mensbeam\HTML\Document`, so therefore are not listed in the schema above:
+The following properties inherited from [`\DOMDocument`](https://www.php.net/manual/en/class.domdocument.php) have no effect in `Mensbeam\HTML\Document`, so therefore are not listed in the schema above:
 
 * <a href="https://www.php.net/manual/en/class.domdocument.php#domdocument.props.actualencoding"><var>actualEncoding</var></a>
 * <a href="https://www.php.net/manual/en/class.domdocument.php#domdocument.props.config"><var>config</var></a>

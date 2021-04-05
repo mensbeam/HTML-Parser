@@ -7,7 +7,7 @@ declare(strict_types=1);
 namespace MensBeam\HTML;
 
 class Text extends \DOMText {
-    use EscapeString, Moonwalk;
+    use C14N, EscapeString, Moonwalk;
 
     function __toString(): string {
         # If the parent of current node is a style, script, xmp, iframe, noembed,

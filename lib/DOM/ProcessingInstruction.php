@@ -7,7 +7,7 @@ declare(strict_types=1);
 namespace MensBeam\HTML;
 
 class ProcessingInstruction extends \DOMProcessingInstruction {
-    use Moonwalk;
+    use C14N, Moonwalk;
 
     public function __toString(): string {
         # Append the literal string "<?" (U+003C LESS-THAN SIGN, U+003F QUESTION MARK),
