@@ -137,7 +137,7 @@ class Element extends \DOMElement {
     }
 
     public function setAttributeNode(\DOMAttr $attribute) {
-        return setAttributeNodeNS($attribute, null);
+        return $this->setAttributeNodeNS($attribute, null);
     }
 
     public function setAttributeNodeNS(\DOMAttr $attribute) {
@@ -153,8 +153,8 @@ class Element extends \DOMElement {
             // from occurring, a check between the normalized value and classList's
             // serialized value is performed. The spec is vague on how this is supposed to
             // be handled.
-            elseif ($this->_classList !== null && $node->name === 'class' && preg_replace(Data::WHITESPACE_REGEX, ' ', $node->value) !== $this->_classList->value) {
-                $this->_classList->value = $node->value;
+            elseif ($this->_classList !== null && $attribute->name === 'class' && preg_replace(Data::WHITESPACE_REGEX, ' ', $attribute->value) !== $this->_classList->value) {
+                $this->_classList->value = $attribute->value;
                 return $this->getAttributeNode('class');
             }
         }
