@@ -118,7 +118,7 @@ class Element extends \DOMElement {
                 $this->ownerDocument->removeChild($this);
             }
             $a->value = $this->escapeString($value, true);
-            $this->appendChild($a);
+            $this->setAttributeNodeNS($a);
         } else {
             try {
                 parent::setAttributeNS($namespaceURI, $qualifiedName, $value);
