@@ -19,12 +19,6 @@ class Document extends \DOMDocument {
     public $mangledElements = false;
     public $quirksMode = self::NO_QUIRKS_MODE;
 
-    // An array of all template elements created in the document
-    // This exists because values of properties on derived DOM classes
-    //   are lost unless at least one PHP reference is kept for the
-    //   element somewhere in userspace. This is that somewhere.
-    protected $templateElements = [];
-
     public function __construct() {
         parent::__construct();
 
@@ -33,6 +27,21 @@ class Document extends \DOMDocument {
         $this->registerNodeClass('DOMElement', '\MensBeam\HTML\Element');
         $this->registerNodeClass('DOMProcessingInstruction', '\MensBeam\HTML\ProcessingInstruction');
         $this->registerNodeClass('DOMText', '\MensBeam\HTML\Text');
+    }
+
+    public function appendChild($node) {
+        # If node is not a DocumentFragment, DocumentType, Element, Text,
+        # ProcessingInstruction, or Comment node then throw a "HierarchyRequestError"
+        # DOMException.
+        if (!$node instanceof DocumentFragment && !$node instanceof \DOMDocumentType && !$node instanceof Element &&!$node instanceof Text && !$node instanceof ProcessingInstruction && !$node instanceof Comment) {
+            throw new DOMException(DOMException::HIERARCHY_REQUEST_ERROR);
+        }
+
+        $result = parent::appendChild($node);
+        if ($result !== false && $result instanceof TemplateElement) {
+            ElementRegistry::set($result);
+        }
+        return $result;
     }
 
     public function createAttribute($name) {
@@ -75,7 +84,8 @@ class Document extends \DOMDocument {
                 $e = parent::createElementNS($namespaceURI, $qualifiedName, $value);
             } else {
                 $e = new TemplateElement($this, $qualifiedName, $value);
-                $this->templateElements[] = $e;
+                // Template elements need to have a reference kept in userland
+                ElementRegistry::set($e);
                 $e->content = $this->createDocumentFragment();
             }
 
@@ -96,6 +106,26 @@ class Document extends \DOMDocument {
 
     public function createEntityReference($name): bool {
         return false;
+    }
+
+    public function insertBefore($node, $child = null) {
+        # If node is not a DocumentFragment, DocumentType, Element, Text,
+        # ProcessingInstruction, or Comment node then throw a "HierarchyRequestError"
+        # DOMException.
+        if (!$node instanceof DocumentFragment && !$node instanceof \DOMDocumentType && !$node instanceof Element &&!$node instanceof Text && !$node instanceof ProcessingInstruction && !$node instanceof Comment) {
+            throw new DOMException(DOMException::HIERARCHY_REQUEST_ERROR);
+        }
+
+        $result = parent::insertBefore($node, $child);
+        if ($result !== false) {
+            if ($result instanceof TemplateElement) {
+                ElementRegistry::set($result);
+            }
+            if ($child instanceof TemplateElement) {
+                ElementRegistry::delete($child);
+            }
+        }
+        return $result;
     }
 
     public function load($filename, $options = null, ?string $encodingOrContentType = null): bool {
@@ -120,6 +150,27 @@ class Document extends \DOMDocument {
 
     public function loadXML($source, $options = null): bool {
         return false;
+    }
+
+    public function removeChild($child) {
+        $result = parent::removeChild($child);
+        if ($result !== false && $result instanceof TemplateElement) {
+            ElementRegistry::delete($child);
+        }
+        return $result;
+    }
+
+    public function replaceChild($node, $child) {
+        $result = parent::replaceChild($node, $child);
+        if ($result !== false) {
+            if ($result instanceof TemplateElement) {
+                ElementRegistry::set($child);
+            }
+            if ($child instanceof TemplateElement) {
+                ElementRegistry::delete($child);
+            }
+        }
+        return $result;
     }
 
     public function save($filename, $options = null) {

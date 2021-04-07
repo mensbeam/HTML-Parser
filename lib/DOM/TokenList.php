@@ -287,7 +287,7 @@ class TokenList implements \ArrayAccess, \Countable, \Iterator {
         $element = $this->element->get();
         $class = $element->ownerDocument->createAttribute($this->localName);
         $class->value = $this->__toString();
-        $element->appendChild($class);
+        $element->setAttributeNode($class);
     }
 
     public function __get(string $prop) {

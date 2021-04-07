@@ -12,32 +12,18 @@ class Element extends \DOMElement {
     protected $_classList;
 
     public function appendChild($node) {
-        $fixID = false;
-        if ($node instanceof \DOMAttr && $node->namespaceURI === null) {
-            if ($node->name === 'id') {
-                $fixID = true;
-            }
-            // If appending a class attribute node, and classList has been invoked set
-            // the class using classList instead of appending the attribute node. Will
-            // return the created node instead. TokenList appends an attribute node
-            // internally to set the class attribute, so to prevent an infinite call loop
-            // from occurring, a check between the normalized value and classList's
-            // serialized value is performed. The spec is vague on how this is supposed to
-            // be handled.
-            elseif ($this->_classList !== null && $node->name === 'class' && preg_replace(Data::WHITESPACE_REGEX, ' ', $node->value) !== $this->_classList->value) {
-                $this->_classList->value = $node->value;
-                return $this->getAttributeNode('class');
-            }
+        # If node is not a DocumentFragment, DocumentType, Element, Text,
+        # ProcessingInstruction, or Comment node then throw a "HierarchyRequestError"
+        # DOMException.
+        if (!$node instanceof DocumentFragment && !$node instanceof \DOMDocumentType && !$node instanceof Element &&!$node instanceof Text && !$node instanceof ProcessingInstruction && !$node instanceof Comment) {
+            throw new DOMException(DOMException::HIERARCHY_REQUEST_ERROR);
         }
 
-        $node = parent::appendChild($node);
-
-        // Fix id attributes when appending id attribute nodes.
-        if ($fixID) {
-            $this->setIdAttribute('id', true);
+        $result = parent::appendChild($node);
+        if ($result !== false && $result instanceof TemplateElement) {
+            ElementRegistry::set($result);
         }
-
-        return $node;
+        return $result;
     }
 
     public function getAttribute($name) {
@@ -60,6 +46,47 @@ class Element extends \DOMElement {
         }
 
         return $value;
+    }
+
+    public function insertBefore($node, $child = null) {
+        # If node is not a DocumentFragment, DocumentType, Element, Text,
+        # ProcessingInstruction, or Comment node then throw a "HierarchyRequestError"
+        # DOMException.
+        if (!$node instanceof DocumentFragment && !$node instanceof \DOMDocumentType && !$node instanceof Element &&!$node instanceof Text && !$node instanceof ProcessingInstruction && !$node instanceof Comment) {
+            throw new DOMException(DOMException::HIERARCHY_REQUEST_ERROR);
+        }
+
+        $result = parent::insertBefore($node, $child);
+        if ($result !== false) {
+            if ($result instanceof TemplateElement) {
+                ElementRegistry::set($result);
+            }
+            if ($child instanceof TemplateElement) {
+                ElementRegistry::delete($child);
+            }
+        }
+        return $result;
+    }
+
+    public function removeChild($child) {
+        $result = parent::removeChild($child);
+        if ($result !== false && $result instanceof TemplateElement) {
+            ElementRegistry::delete($child);
+        }
+        return $result;
+    }
+
+    public function replaceChild($node, $child) {
+        $result = parent::replaceChild($node, $child);
+        if ($result !== false) {
+            if ($result instanceof TemplateElement) {
+                ElementRegistry::set($child);
+            }
+            if ($child instanceof TemplateElement) {
+                ElementRegistry::delete($child);
+            }
+        }
+        return $result;
     }
 
     public function setAttribute($name, $value) {
@@ -110,17 +137,35 @@ class Element extends \DOMElement {
     }
 
     public function setAttributeNode(\DOMAttr $attribute) {
-        parent::setAttributeNode($attribute);
-        if ($attribute->name === 'id') {
-            $this->setIdAttribute($attribute->name, true);
-        }
+        return setAttributeNodeNS($attribute, null);
     }
 
     public function setAttributeNodeNS(\DOMAttr $attribute) {
-        parent::setAttributeNodeNS($attribute);
-        if ($attribute->name === 'id' && $attribute->namespaceURI === null) {
+        $fixId = false;
+        if ($attribute->namespaceURI === null) {
+            if ($attribute->name === 'id') {
+                $fixId = true;
+            }
+            // If appending a class attribute node, and classList has been invoked set
+            // the class using classList instead of appending the attribute node. Will
+            // return the created node instead. TokenList appends an attribute node
+            // internally to set the class attribute, so to prevent an infinite call loop
+            // from occurring, a check between the normalized value and classList's
+            // serialized value is performed. The spec is vague on how this is supposed to
+            // be handled.
+            elseif ($this->_classList !== null && $node->name === 'class' && preg_replace(Data::WHITESPACE_REGEX, ' ', $node->value) !== $this->_classList->value) {
+                $this->_classList->value = $node->value;
+                return $this->getAttributeNode('class');
+            }
+        }
+
+        $result = parent::setAttributeNodeNS($attribute);
+
+        if ($fixId) {
             $this->setIdAttribute($attribute->name, true);
         }
+
+        return $result;
     }
 
     public function __get(string $prop) {

@@ -8,6 +8,7 @@ namespace MensBeam\HTML;
 
 class DOMException extends \Exception {
     // From PHP's DOMException; keeping error codes consistent
+    const HIERARCHY_REQUEST_ERROR = 3;
     const WRONG_DOCUMENT = 4;
     const INVALID_CHARACTER = 5;
     const NO_MODIFICATION_ALLOWED = 7;
@@ -18,6 +19,7 @@ class DOMException extends \Exception {
     const OUTER_HTML_FAILED_NOPARENT = 102;
 
     protected static $messages = [
+          3 => 'Hierarchy request error; supplied node is not allowed here',
           4 => 'Supplied node does not belong to this document',
           5 => 'Invalid character',
           7 => 'Modification not allowed here',
