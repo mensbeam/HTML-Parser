@@ -11,7 +11,7 @@ Represents an entire HTML document; serves as the root of the document tree. Unl
 <div class="info"><p><strong>Info</strong> Only new methods and methods which make outward-facing changes from <a href="https://www.php.net/manual/en/class.domdocument.php">\DOMDocument</a> will be documented here, otherwise they will be linked back to PHP's documentation.</p></div>
 
 <pre><code class="php">MensBeam\HTML\Document extends <a href="https://www.php.net/manual/en/class.domdocument.php">\DOMDocument</a> {
-    use <a href="../Walk/index.html">Walk</a>;
+    use <a href="../Node/index.html">Node</a>, <a href="../Walk/index.html">Walk</a>;
 
     /* Constants */
     public const NO_QUIRKS_MODE = 0 ;
@@ -19,6 +19,7 @@ Represents an entire HTML document; serves as the root of the document tree. Unl
     public const LIMITED_QUIRKS_MODE = 2 ;
 
     /* Properties */
+    public Element|null <a href="#document-props-body">$body</a> = null ;
     public string|null <a href="#document-props-documentencoding">$documentEncoding</a> = null ;
     public int <a href="#document-props-quirksmode">$quirksMode</a> = 0 ;
 
@@ -47,22 +48,23 @@ Represents an entire HTML document; serves as the root of the document tree. Unl
     public string <a href="https://www.php.net/manual/en/class.domnode.php#domnode.props.textcontent">$textContent</a> ;
 
     /* Methods */
-    public <a href="Document_construct.html">__construct</a> ( )
-    public <a href="Document_createEntityReference.html">createEntityReference</a> ( string $name ) : false
-    public <a href="Document_C14N.html">C14N</a> ( bool $exclusive = false , bool $withComments = false , array|null $xpath = null , array|null $nsPrefixes = null ) : false
-    public <a href="Document_C14NFile.html">C14NFile</a> ( string $uri , bool $exclusive = false , bool $withComments = false , array|null $xpath = null , array|null $nsPrefixes = null ) : false
-    public <a href="Document_load.html">load</a> ( string $filename , null $options = null , string|null $encodingOrContentType = null ) : bool
-    public <a href="Document_loadHTML.html">loadHTML</a> ( string $source , null $options = null , string|null $encodingOrContentType = null ) : bool
-    public <a href="Document_loadHTMLFile.html">loadHTMLFile</a> ( string $filename , null $options = null , string|null $encodingOrContentType = null ) : bool
-    public <a href="Document_loadHTML.html">loadXML</a> ( string $source , null $options = null ) : false
-    public <a href="Document_save.html">save</a> ( string $filename , null $options = null ) : int|false
-    public <a href="Document_saveHTMLFile.html">saveHTMLFile</a> ( string $filename , null $options = null ) : int|false
-    public <a href="Document_saveXML.html">saveXML</a> ( <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a>|null $node = null , null $options = null ) : false
-    public <a href="Document_validate.html">validate</a> ( ) : true
-    public <a href="Document_xinclude.html">xinclude</a> ( null $options = null ) : false
+    public <a href="construct.html">__construct</a> ( )
+    public <a href="createEntityReference.html">createEntityReference</a> ( string $name ) : false
+    public <a href="load.html">load</a> ( string $filename , null $options = null , string|null $encodingOrContentType = null ) : bool
+    public <a href="loadHTML.html">loadHTML</a> ( string $source , null $options = null , string|null $encodingOrContentType = null ) : bool
+    public <a href="loadHTMLFile.html">loadHTMLFile</a> ( string $filename , null $options = null , string|null $encodingOrContentType = null ) : bool
+    public <a href="loadHTML.html">loadXML</a> ( string $source , null $options = null ) : false
+    public <a href="save.html">save</a> ( string $filename , null $options = null ) : int|false
+    public <a href="saveHTMLFile.html">saveHTMLFile</a> ( string $filename , null $options = null ) : int|false
+    public <a href="saveXML.html">saveXML</a> ( <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a>|null $node = null , null $options = null ) : false
+    public <a href="validate.html">validate</a> ( ) : true
+    public <a href="xinclude.html">xinclude</a> ( null $options = null ) : false
+
+    /* Magic Methods */
+    public __toString() : string
 
     /* Methods from <a href="../Walk/index.html">Walk</a> */
-    public <a href="../Walk/Walk_walk.html">walk</a> ( <a href="https://www.php.net/manual/en/class.closure.php">\Closure</a> $filter ) : <a href="https://www.php.net/manual/en/class.generator.php">\Generator</a>
+    public <a href="../Walk/walk.html">walk</a> ( <a href="https://www.php.net/manual/en/class.closure.php">\Closure</a> $filter ) : <a href="https://www.php.net/manual/en/class.generator.php">\Generator</a>
 
     /* Methods inherited from <a href="https://www.php.net/manual/en/class.domdocument.php">\DOMDocument</a> */
     public <a href="https://www.php.net/manual/en/domdocument.createattribute.php">createAttribute</a> ( string $localName ) : <a href="https://www.php.net/manual/en/class.domattr.php">\DOMAttr</a>|false
@@ -116,6 +118,9 @@ Represents an entire HTML document; serves as the root of the document tree. Unl
 ## Properties ##
 
 <dl>
+ <dt id="document-props-body"><var>body</var></dt>
+ <dd>Represents the <code>body</code> or <code>frameset</code> node of the current document, or <code>null</code> if no such element exists.</dd>
+
  <dt id="document-props-documentencoding"><var>documentEncoding</var></dt>
  <dd>Encoding of the document, as specified when parsing or when determining encoding type. Use this instead of <a href="https://php.net/manual/en/class.domdocument.php#domdocument.props.encoding"><code>\DOMDocument::encoding</code></a>.</dd>
 

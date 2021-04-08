@@ -17,6 +17,7 @@ class ElementMap {
         foreach (self::$_storage as $k => $v) {
             if ($v->isSameNode($element)) {
                 unset(self::$_storage[$k]);
+                self::$_storage = array_values(self::$_storage);
                 return true;
             }
         }
@@ -25,11 +26,20 @@ class ElementMap {
     }
 
     public static function destroy(Document $document) {
+        $changed = false;
         foreach (self::$_storage as $k => $v) {
             if ($v->ownerDocument->isSameNode($document)) {
                 unset(self::$_storage[$k]);
+                $changed = true;
             }
         }
+
+        if ($changed) {
+            self::$_storage = array_values(self::$_storage);
+            return true;
+        }
+
+        return false;
     }
 
     public static function has(Element $element) {
@@ -45,6 +55,9 @@ class ElementMap {
     public static function set(Element $element) {
         if (!self::has($element)) {
             self::$_storage[] = $element;
+            return true;
         }
+
+        return false;
     }
 }

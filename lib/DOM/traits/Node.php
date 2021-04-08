@@ -9,6 +9,64 @@ namespace MensBeam\HTML;
 // Extensions to PHP's DOM cannot inherit from an extended Node parent, so a
 // trait is the next best thing...
 trait Node {
+    public function appendChild($node) {
+        $this->preInsertionValidity($node);
+
+        $result = parent::appendChild($node);
+        if ($result !== false && $result instanceof TemplateElement) {
+            if ($result instanceof TemplateElement) {
+                ElementMap::set($result);
+            }
+        }
+        return $result;
+    }
+
+    // Disable C14N
+    public function C14N($exclusive = null, $with_comments = null, ?array $xpath = null, ?array $ns_prefixes = null): bool {
+        return false;
+    }
+
+    // Disable C14NFile
+    public function C14NFile($uri, $exclusive = null, $with_comments = null, ?array $xpath = null, ?array $ns_prefixes = null): bool {
+        return false;
+    }
+
+    public function insertBefore($node, $child = null) {
+        $this->preInsertionValidity($node, $child);
+
+        $result = parent::insertBefore($node, $child);
+        if ($result !== false) {
+            if ($result instanceof TemplateElement) {
+                ElementMap::set($result);
+            }
+            if ($child instanceof TemplateElement) {
+                ElementMap::delete($child);
+            }
+        }
+        return $result;
+    }
+
+    public function removeChild($child) {
+        $result = parent::removeChild($child);
+        if ($result !== false && $result instanceof TemplateElement) {
+            ElementMap::delete($child);
+        }
+        return $result;
+    }
+
+    public function replaceChild($node, $child) {
+        $result = parent::replaceChild($node, $child);
+        if ($result !== false) {
+            if ($result instanceof TemplateElement) {
+                ElementMap::set($child);
+            }
+            if ($child instanceof TemplateElement) {
+                ElementMap::delete($child);
+            }
+        }
+        return $result;
+    }
+
     protected function preInsertionValidity(\DOMNode $node, ?\DOMNode $child = null) {
         // "parent" in the spec comments below is $this
 
@@ -133,61 +191,5 @@ trait Node {
                 }
             }
         }
-    }
-
-    public function appendChild($node) {
-        $this->preInsertionValidity($node);
-
-        $result = parent::appendChild($node);
-        if ($result !== false && $result instanceof TemplateElement) {
-            ElementMap::set($result);
-        }
-        return $result;
-    }
-
-    // Disable C14N
-    public function C14N($exclusive = null, $with_comments = null, ?array $xpath = null, ?array $ns_prefixes = null): bool {
-        return false;
-    }
-
-    // Disable C14NFile
-    public function C14NFile($uri, $exclusive = null, $with_comments = null, ?array $xpath = null, ?array $ns_prefixes = null): bool {
-        return false;
-    }
-
-    public function insertBefore($node, $child = null) {
-        $this->preInsertionValidity($node, $child);
-
-        $result = parent::insertBefore($node, $child);
-        if ($result !== false) {
-            if ($result instanceof TemplateElement) {
-                ElementMap::set($result);
-            }
-            if ($child instanceof TemplateElement) {
-                ElementMap::delete($child);
-            }
-        }
-        return $result;
-    }
-
-    public function removeChild($child) {
-        $result = parent::removeChild($child);
-        if ($result !== false && $result instanceof TemplateElement) {
-            ElementMap::delete($child);
-        }
-        return $result;
-    }
-
-    public function replaceChild($node, $child) {
-        $result = parent::replaceChild($node, $child);
-        if ($result !== false) {
-            if ($result instanceof TemplateElement) {
-                ElementMap::set($child);
-            }
-            if ($child instanceof TemplateElement) {
-                ElementMap::delete($child);
-            }
-        }
-        return $result;
     }
 }

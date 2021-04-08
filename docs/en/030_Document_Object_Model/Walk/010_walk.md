@@ -10,7 +10,7 @@ Walk::walk — Output generator for walking down the DOM tree
 public Walk::walk ( <a href="https://www.php.net/manual/en/class.closure.php">\Closure</a> $filter ) : <a href="https://www.php.net/manual/en/class.generator.php">\Generator</a>
 ```
 
-Creates a <a href="https://www.php.net/manual/en/class.generator.php">`\Generator`</a> object for walking down the DOM tree.
+Creates a [`\Generator`](https://www.php.net/manual/en/class.generator.php) object for walking down the DOM tree.
 
 ## Examples ##
 

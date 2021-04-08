@@ -19,6 +19,8 @@ class Document extends \DOMDocument {
     public $mangledElements = false;
     public $quirksMode = self::NO_QUIRKS_MODE;
 
+    protected $_body = null;
+
     public function __construct() {
         parent::__construct();
 
@@ -149,6 +151,65 @@ class Document extends \DOMDocument {
 
     public function __destruct() {
         ElementMap::destroy($this);
+    }
+
+    public function __get(string $prop) {
+        if ($prop === 'body') {
+            if ($this->documentElement === null || $this->documentElement->childNodes->length === 0) {
+                return null;
+            }
+
+            # The body element of a document is the first of the html element's children
+            # that is either a body element or a frameset element, or null if there is no
+            # such element.
+            $n = $this->documentElement->firstChild;
+            do {
+                if ($n instanceof Element && $n->namespaceURI === null && ($n->nodeName === 'body' || $n->nodeName === 'frameset')) {
+                    return $n;
+                }
+            } while ($n = $n->nextSibling);
+
+            return null;
+        }
+    }
+
+    public function __set(string $prop, $value) {
+        if ($prop === 'body') {
+            # On setting, the following algorithm must be run:
+            #
+            # 1. If the new value is not a body or frameset element, then throw a
+            # "HierarchyRequestError" DOMException.
+            if (!$value instanceof Element || $value->namespaceURI !== null) {
+                throw new DOMException(DOMException::HIERARCHY_REQUEST_ERROR);
+            }
+            if ($value->nodeName !== 'body' && $value->nodeName !== 'frameset') {
+                throw new DOMException(DOMException::HIERARCHY_REQUEST_ERROR);
+            }
+
+            if ($this->_body !== null) {
+                # 2. Otherwise, if the new value is the same as the body element, return.
+                if ($value->isSameNode($this->_body)) {
+                    return;
+                }
+
+                # 3. Otherwise, if the body element is not null, then replace the body element
+                # with the new value within the body element's parent and return.
+                $this->documentElement->replaceChild($value, $this->_body);
+                $this->_body = $value;
+                return;
+            }
+
+            # 4. Otherwise, if there is no document element, throw a "HierarchyRequestError"
+            # DOMException.
+            if ($this->documentElement === null) {
+                throw new DOMException(DOMException::HIERARCHY_REQUEST_ERROR);
+            }
+
+            # 5. Otherwise, the body element is null, but there's a document element. Append
+            # the new value to the document element.
+            $this->documentElement->appendChild($value);
+            $this->_body = $value;
+        }
     }
 
     public function __toString() {
