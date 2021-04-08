@@ -29,6 +29,13 @@ When using an existing node it will be moved.
  <p>Note that <code>\DOMAttr</code> is missing from this list.</p>
 </div>
 
+## Parameters ##
+
+<dl>
+ <dt><code>node</code></dt>
+ <dd>The new node.</dd>
+</dl>
+
 ## Examples ##
 
 **Example \#1 Adding a child to the body**
@@ -45,3 +52,4 @@ $node = $dom->createElement('br');
 $dom->body->appendChild($node);
 
 ?>
+```
