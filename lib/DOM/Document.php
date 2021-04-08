@@ -159,16 +159,30 @@ class Document extends \DOMDocument {
                 return null;
             }
 
+            $body = null;
+
             # The body element of a document is the first of the html element's children
             # that is either a body element or a frameset element, or null if there is no
             # such element.
             $n = $this->documentElement->firstChild;
             do {
                 if ($n instanceof Element && $n->namespaceURI === null && ($n->nodeName === 'body' || $n->nodeName === 'frameset')) {
-                    return $n;
+                    $body = $n;
                 }
             } while ($n = $n->nextSibling);
 
+            if ($body !== null) {
+                // References are handled weirdly by PHP's DOM. Return a stored body element
+                // unless it is changed so operations (like classList) can be done without
+                // losing the reference.
+                if ($body !== $this->_body) {
+                    $this->_body = $body;
+                }
+
+                return $this->_body;
+            }
+
+            $this->_body = null;
             return null;
         }
     }

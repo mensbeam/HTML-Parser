@@ -34,8 +34,6 @@ class Element extends \DOMElement {
     }
 
     public function isAncestorOf(\DOMNode $node): bool {
-        # An inclusive ancestor is an object or one of its ancestors.
-        #
         # An object A is called an ancestor of an object B if and only if B is a
         # descendant of A.
         // object A is $this, object B is $node

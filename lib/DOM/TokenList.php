@@ -285,6 +285,7 @@ class TokenList implements \ArrayAccess, \Countable, \Iterator {
         # attribute’s local name and the result of running the ordered set serializer
         # for token set.
         $element = $this->element->get();
+        die(var_export($this->element->get()));
         $class = $element->ownerDocument->createAttribute($this->localName);
         $class->value = $this->__toString();
         $element->setAttributeNode($class);
