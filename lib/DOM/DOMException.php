@@ -12,6 +12,7 @@ class DOMException extends \Exception {
     const WRONG_DOCUMENT = 4;
     const INVALID_CHARACTER = 5;
     const NO_MODIFICATION_ALLOWED = 7;
+    const NOT_FOUND = 8;
     const SYNTAX_ERROR = 12;
 
     const DOCUMENT_ELEMENT_DOCUMENTFRAG_EXPECTED = 100;
@@ -23,6 +24,7 @@ class DOMException extends \Exception {
           4 => 'Supplied node does not belong to this document',
           5 => 'Invalid character',
           7 => 'Modification not allowed here',
+          8 => 'Not found error',
          12 => 'Syntax error',
         100 => 'Document, Element, or DocumentFragment expected; found %s',
         101 => 'The "%s" argument should be a string; found %s',

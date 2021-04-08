@@ -9,8 +9,8 @@ namespace MensBeam\HTML;
 // This is a write-only map of elements which need to be kept in memory; it
 // exists because values of properties on derived DOM classes are lost unless at
 // least one PHP reference is kept for the element somewhere in userspace. This
-// is that somewhere. It is at present only used for TemplateElements.
-class ElementRegistry {
+// is that somewhere. It is at present only used for template elements.
+class ElementMap {
     public static $_storage = [];
 
     public static function delete(Element $element) {
@@ -22,6 +22,14 @@ class ElementRegistry {
         }
 
         return false;
+    }
+
+    public static function destroy(Document $document) {
+        foreach (self::$_storage as $k => $v) {
+            if ($v->ownerDocument->isSameNode($document)) {
+                unset(self::$_storage[$k]);
+            }
+        }
     }
 
     public static function has(Element $element) {

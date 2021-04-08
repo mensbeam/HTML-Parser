@@ -22,4 +22,8 @@ class TemplateElement extends Element {
         $frag->removeChild($this);
         unset($frag);
     }
+
+    public function __destruct() {
+        ElementMap::delete($this);
+    }
 }

@@ -7,7 +7,7 @@ declare(strict_types=1);
 namespace MensBeam\HTML;
 
 class DocumentFragment extends \DOMDocumentFragment {
-    use C14N, Moonwalk, Serialize;
+    use Moonwalk, Node, Serialize, Walk;
 
     public function __toString() {
         return $this->serialize();

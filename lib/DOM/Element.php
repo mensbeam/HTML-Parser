@@ -7,24 +7,9 @@ declare(strict_types=1);
 namespace MensBeam\HTML;
 
 class Element extends \DOMElement {
-    use C14N, EscapeString, Moonwalk, Serialize, Walk;
+    use EscapeString, Moonwalk, Node, Serialize, Walk;
 
     protected $_classList;
-
-    public function appendChild($node) {
-        # If node is not a DocumentFragment, DocumentType, Element, Text,
-        # ProcessingInstruction, or Comment node then throw a "HierarchyRequestError"
-        # DOMException.
-        if (!$node instanceof DocumentFragment && !$node instanceof \DOMDocumentType && !$node instanceof Element &&!$node instanceof Text && !$node instanceof ProcessingInstruction && !$node instanceof Comment) {
-            throw new DOMException(DOMException::HIERARCHY_REQUEST_ERROR);
-        }
-
-        $result = parent::appendChild($node);
-        if ($result !== false && $result instanceof TemplateElement) {
-            ElementRegistry::set($result);
-        }
-        return $result;
-    }
 
     public function getAttribute($name) {
         // Newer versions of the DOM spec have getAttribute return an empty string only
@@ -48,45 +33,19 @@ class Element extends \DOMElement {
         return $value;
     }
 
-    public function insertBefore($node, $child = null) {
-        # If node is not a DocumentFragment, DocumentType, Element, Text,
-        # ProcessingInstruction, or Comment node then throw a "HierarchyRequestError"
-        # DOMException.
-        if (!$node instanceof DocumentFragment && !$node instanceof \DOMDocumentType && !$node instanceof Element &&!$node instanceof Text && !$node instanceof ProcessingInstruction && !$node instanceof Comment) {
-            throw new DOMException(DOMException::HIERARCHY_REQUEST_ERROR);
-        }
+    public function isAncestorOf(\DOMNode $node): bool {
+        # An inclusive ancestor is an object or one of its ancestors.
+        #
+        # An object A is called an ancestor of an object B if and only if B is a
+        # descendant of A.
+        // object A is $this, object B is $node
+        $tree = $this->walk(function($n) use($node) {
+            if ($n->isSameNode($node)) {
+                return true;
+            }
+        });
 
-        $result = parent::insertBefore($node, $child);
-        if ($result !== false) {
-            if ($result instanceof TemplateElement) {
-                ElementRegistry::set($result);
-            }
-            if ($child instanceof TemplateElement) {
-                ElementRegistry::delete($child);
-            }
-        }
-        return $result;
-    }
-
-    public function removeChild($child) {
-        $result = parent::removeChild($child);
-        if ($result !== false && $result instanceof TemplateElement) {
-            ElementRegistry::delete($child);
-        }
-        return $result;
-    }
-
-    public function replaceChild($node, $child) {
-        $result = parent::replaceChild($node, $child);
-        if ($result !== false) {
-            if ($result instanceof TemplateElement) {
-                ElementRegistry::set($child);
-            }
-            if ($child instanceof TemplateElement) {
-                ElementRegistry::delete($child);
-            }
-        }
-        return $result;
+        return ($tree->current() !== null);
     }
 
     public function setAttribute($name, $value) {
