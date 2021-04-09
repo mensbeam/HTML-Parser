@@ -7,12 +7,12 @@ declare(strict_types=1);
 namespace MensBeam\HTML;
 
 trait Walk {
-    public function walk(\Closure $filter): \Generator {
+    public function walk(?\Closure $filter = null): \Generator {
         return $this->walkGenerator($this, $filter);
     }
-    
-    private function walkGenerator(\DOMNode $node, \Closure $filter) {
-        if ($filter($node)) {
+
+    private function walkGenerator(\DOMNode $node, ?\Closure $filter = null) {
+        if ($filter === null || $filter($node)) {
             yield $node;
         }
 

@@ -7,13 +7,13 @@ declare(strict_types=1);
 namespace MensBeam\HTML;
 
 trait Moonwalk {
-    public function moonwalk(\Closure $filter): \Generator {
+    public function moonwalk(?\Closure $filter = null): \Generator {
         return $this->moonwalkGenerator($this, $filter);
     }
-    
-    private function moonwalkGenerator(\DOMNode $node, \Closure $filter) {
+
+    private function moonwalkGenerator(\DOMNode $node, ?\Closure $filter = null) {
         do {
-            if ($filter($node)) {
+            if ($filter === null || $filter($node)) {
                 yield $node;
             }
         } while ($node = $node->parentNode);

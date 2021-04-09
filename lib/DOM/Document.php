@@ -168,6 +168,7 @@ class Document extends \DOMDocument {
             do {
                 if ($n instanceof Element && $n->namespaceURI === null && ($n->nodeName === 'body' || $n->nodeName === 'frameset')) {
                     $body = $n;
+                    break;
                 }
             } while ($n = $n->nextSibling);
 

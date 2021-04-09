@@ -2,7 +2,7 @@
 title: Document
 ---
 
-# The Document class #
+# The Document Class #
 
 ## Introduction ##
 
@@ -10,7 +10,10 @@ Represents an entire HTML document; serves as the root of the document tree. Unl
 
 <div class="info"><p><strong>Info</strong> Only new methods and methods which make outward-facing changes from <a href="https://www.php.net/manual/en/class.domdocument.php">\DOMDocument</a> will be documented here, otherwise they will be linked back to PHP's documentation.</p></div>
 
+## Class Synopsis ##
+
 <pre><code class="php">MensBeam\HTML\Document extends <a href="https://www.php.net/manual/en/class.domdocument.php">\DOMDocument</a> {
+
     use <a href="../Node/index.html">Node</a>, <a href="../Walk/index.html">Walk</a>;
 
     /* Constants */
@@ -70,7 +73,7 @@ Represents an entire HTML document; serves as the root of the document tree. Unl
     public <a href="../Node/insertBefore.html">Node::insertBefore</a> ( <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a> $node , <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a>|null $child = null ) : <a href="https://www.php.net/manual/en/class.domnode.php">\DOMNode</a>|false
 
     /* Methods from <a href="../Walk/index.html">Walk</a> */
-    public <a href="../Walk/walk.html">walk</a> ( <a href="https://www.php.net/manual/en/class.closure.php">\Closure</a> $filter ) : <a href="https://www.php.net/manual/en/class.generator.php">\Generator</a>
+    public <a href="../Walk/walk.html">walk</a> ( ?<a href="https://www.php.net/manual/en/class.closure.php">\Closure</a> $filter = null ) : <a href="https://www.php.net/manual/en/class.generator.php">\Generator</a>
 
     /* Methods inherited from <a href="https://www.php.net/manual/en/class.domdocument.php">\DOMDocument</a> */
     public <a href="https://www.php.net/manual/en/domdocument.createattribute.php">createAttribute</a> ( string $localName ) : <a href="https://www.php.net/manual/en/class.domattr.php">\DOMAttr</a>|false
