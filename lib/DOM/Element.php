@@ -46,6 +46,14 @@ class Element extends \DOMElement {
         return ($tree->current() !== null);
     }
 
+    public function hasAttribute($name) {
+        $out = parent::hasAttribute($name);
+        if (!$out && strpos($name, "xmlns:") === 0 && $this->hasAttributeNS(Parser::XMLNS_NAMESPACE, substr($name, 6))) {
+            return true;
+        }
+        return $out;
+    }
+
     public function setAttribute($name, $value) {
         $this->setAttributeNS(null, $name, $value);
     }

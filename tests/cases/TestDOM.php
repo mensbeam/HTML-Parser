@@ -128,7 +128,9 @@ class TestDOM extends \PHPUnit\Framework\TestCase {
         $d = new Document;
         $e = $d->createElementNS($elementNS, "test");
         $e->setAttributeNS($attrNS, $nameIn, "test");
-        $this->assertTrue($e->hasAttributeNS($attrNS, $nameOut));
+        $this->assertSame(1, $e->attributes->length);
+        $this->assertTrue($e->hasAttribute($nameOut));
+        $this->assertSame($attrNS, $e->attributes[0]->namespaceURI);
     }
 
     public function provideNamespacedAttributeSettings(): iterable {
@@ -141,11 +143,11 @@ class TestDOM extends \PHPUnit\Framework\TestCase {
             [null,                                 null,                            "TEST:TEST",   "testU00003Atest"],
             ["http://www.w3.org/1999/xhtml",       null,                            "test:test",   "testU00003Atest"],
             ["http://www.w3.org/1999/xhtml",       null,                            "TEST:TEST",   "testU00003Atest"],
-            [null,                                 "http://www.w3.org/1999/xhtml",  "test:test",   "test"],
-            [null,                                 "http://www.w3.org/1999/xhtml",  "TEST:TEST",   "TEST"],
+            [null,                                 "http://www.w3.org/1999/xhtml",  "test:test",   "test:test"],
+            [null,                                 "http://www.w3.org/1999/xhtml",  "TEST:TEST",   "TEST:TEST"],
             ["http://www.w3.org/1998/Math/MathML", null,                            "test",        "test"],
             ["http://www.w3.org/1998/Math/MathML", null,                            "TEST",        "TEST"],
-            [null,                                 "http://www.w3.org/2000/xmlns/", "xmlns:xlink", "xlink"],
+            [null,                                 "http://www.w3.org/2000/xmlns/", "xmlns:xlink", "xmlns:xlink"],
         ];
     }
 }
