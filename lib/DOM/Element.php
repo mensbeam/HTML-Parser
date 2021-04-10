@@ -92,7 +92,11 @@ class Element extends \DOMElement {
                 // Replace any offending characters with "UHHHHHH" where H are the
                 //   uppercase hexadecimal digits of the character's code point
                 $this->ownerDocument->mangledAttributes = true;
-                $qualifiedName = $this->coerceName($qualifiedName);
+                if ($namespaceURI !== null) {
+                    $qualifiedName = implode(":", array_map([$this, "coerceName"], explode(":", $qualifiedName, 2)));
+                } else {
+                    $qualifiedName = $this->coerceName($qualifiedName);
+                }
                 parent::setAttributeNS($namespaceURI, $qualifiedName, $value);
             }
             if ($qualifiedName === "id" && $namespaceURI === null) {

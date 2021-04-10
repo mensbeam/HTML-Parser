@@ -49,8 +49,12 @@ class Document extends \DOMDocument {
             // Replace any offending characters with "UHHHHHH" where H are the
             //   uppercase hexadecimal digits of the character's code point
             $this->mangledAttributes = true;
-            $qualifiedName = $this->coerceName($qualifiedName);
-            return $this->createAttributeNS($namespaceURI, $qualifiedName);
+            if ($namespaceURI !== null) {
+                $qualifiedName = implode(":", array_map([$this, "coerceName"], explode(":", $qualifiedName, 2)));
+            } else {
+                $qualifiedName = $this->coerceName($qualifiedName);
+            }
+            return parent::createAttributeNS($namespaceURI, $qualifiedName);
         }
     }
 

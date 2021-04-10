@@ -9,16 +9,11 @@ namespace MensBeam\HTML\TestCase;
 use MensBeam\HTML\Document;
 use MensBeam\HTML\TemplateElement;
 
-/** 
- * @covers \MensBeam\HTML\Document
- * @covers \MensBeam\HTML\DocumentFragment
- * @covers \MensBeam\HTML\Element
- * @covers \MensBeam\HTML\TemplateElement
- * @covers \MensBeam\HTML\Comment
- * @covers \MensBeam\HTML\Text
- */
 class TestDOM extends \PHPUnit\Framework\TestCase {
-    /** @dataProvider provideNamespacedElements */
+    /**
+     * @dataProvider provideNamespacedElements
+     * @covers \MensBeam\HTML\Document::createElementNS
+     */
     public function testCreateNamespacedElements(?string $nsIn, string $nameIn, ?string $nsOut, string $local, string $prefix): void {
         $d = new Document;
         $e = $d->createElementNS($nsIn, $nameIn);
@@ -45,7 +40,10 @@ class TestDOM extends \PHPUnit\Framework\TestCase {
             ["http://www.w3.org/1998/Math/MathML", "TEST",           "http://www.w3.org/1998/Math/MathML", "TEST",            ""],
         ];
     }
-    /** @dataProvider provideBareElements */
+    /**
+     * @dataProvider provideBareElements
+     * @covers \MensBeam\HTML\Document::createElement
+     */
     public function testCreateBareElements(string $nameIn, $nameOut): void {
         $d = new Document;
         $e = $d->createElement($nameIn);
@@ -63,6 +61,7 @@ class TestDOM extends \PHPUnit\Framework\TestCase {
         ];
     }
 
+    /** @covers \MensBeam\HTML\Document::createElementNS */
     public function testCreateTemplateElements(): void {
         $d = new Document;
         $t = $d->createElement("template");
@@ -85,7 +84,10 @@ class TestDOM extends \PHPUnit\Framework\TestCase {
         $this->assertNotNull($t->ownerDocument);
     }
 
-    /** @dataProvider provideNamespacedAttributeCreations */
+    /**
+     * @dataProvider provideNamespacedAttributeCreations
+     * @covers \MensBeam\HTML\Document::createAttributeNS
+     */
     public function testCreateNamespacedAttributes(?string $nsIn, string $nameIn, string $local, string $prefix): void {
         $d = new Document;
         $d->appendChild($d->createElement("html"));
@@ -97,15 +99,22 @@ class TestDOM extends \PHPUnit\Framework\TestCase {
 
     public function provideNamespacedAttributeCreations(): iterable {
         return [
-            [null,      "test",      "test",            ""],
-            [null,      "test:test", "testU00003Atest", ""],
-            [null,      "test",      "test",            ""],
-            [null,      "TEST:TEST", "TESTU00003ATEST", ""],
-            ["fake_ns", "test",      "test",            ""],
+            [null,      "test",           "test",            ""],
+            [null,      "test:test",      "testU00003Atest", ""],
+            [null,      "test",           "test",            ""],
+            [null,      "TEST:TEST",      "TESTU00003ATEST", ""],
+            ["fake_ns", "test",           "test",            ""],
+            ["fake_ns", "test:test",      "test",            "test"],
+            ["fake_ns", "TEST:TEST",      "TEST",            "TEST"],
+            ["fake_ns", "test:test:test", "testU00003Atest", "test"],
+            ["fake_ns", "TEST:TEST:TEST", "TESTU00003ATEST", "TEST"],
         ];
     }
 
-    /** @dataProvider provideBareAttributeCreations */
+    /**
+     * @dataProvider provideBareAttributeCreations
+     * @covers \MensBeam\HTML\Document::createAttribute
+     */
     public function testCreateBareAttributes(string $nameIn, string $nameOut): void {
         $d = new Document;
         $d->appendChild($d->createElement("html"));
@@ -123,31 +132,38 @@ class TestDOM extends \PHPUnit\Framework\TestCase {
         ];
     }
 
-    /** @dataProvider provideNamespacedAttributeSettings */
+    /**
+     * @dataProvider provideNamespacedAttributeSettings
+     * @covers \MensBeam\HTML\Element::setAttributeNS
+     */
     public function testSetNamespoacedAttributes(?string $elementNS, ?string $attrNS, string $nameIn, string $nameOut): void {
         $d = new Document;
         $e = $d->createElementNS($elementNS, "test");
         $e->setAttributeNS($attrNS, $nameIn, "test");
         $this->assertSame(1, $e->attributes->length);
-        $this->assertTrue($e->hasAttribute($nameOut));
+        $a = $e->attributes[0];
+        $this->assertSame($nameOut, $a->nodeName);
         $this->assertSame($attrNS, $e->attributes[0]->namespaceURI);
     }
 
     public function provideNamespacedAttributeSettings(): iterable {
         return [
-            [null,                                 null,                            "test",        "test"],
-            [null,                                 null,                            "TEST",        "test"],
-            ["http://www.w3.org/1999/xhtml",       null,                            "test",        "test"],
-            ["http://www.w3.org/1999/xhtml",       null,                            "TEST",        "test"],
-            [null,                                 null,                            "test:test",   "testU00003Atest"],
-            [null,                                 null,                            "TEST:TEST",   "testU00003Atest"],
-            ["http://www.w3.org/1999/xhtml",       null,                            "test:test",   "testU00003Atest"],
-            ["http://www.w3.org/1999/xhtml",       null,                            "TEST:TEST",   "testU00003Atest"],
-            [null,                                 "http://www.w3.org/1999/xhtml",  "test:test",   "test:test"],
-            [null,                                 "http://www.w3.org/1999/xhtml",  "TEST:TEST",   "TEST:TEST"],
-            ["http://www.w3.org/1998/Math/MathML", null,                            "test",        "test"],
-            ["http://www.w3.org/1998/Math/MathML", null,                            "TEST",        "TEST"],
-            [null,                                 "http://www.w3.org/2000/xmlns/", "xmlns:xlink", "xmlns:xlink"],
+            [null,                                 null,                            "test",           "test"],
+            [null,                                 null,                            "TEST",           "test"],
+            ["http://www.w3.org/1999/xhtml",       null,                            "test",           "test"],
+            ["http://www.w3.org/1999/xhtml",       null,                            "TEST",           "test"],
+            [null,                                 null,                            "test:test",      "testU00003Atest"],
+            [null,                                 null,                            "TEST:TEST",      "testU00003Atest"],
+            ["http://www.w3.org/1999/xhtml",       null,                            "test:test",      "testU00003Atest"],
+            ["http://www.w3.org/1999/xhtml",       null,                            "TEST:TEST",      "testU00003Atest"],
+            [null,                                 "http://www.w3.org/1999/xhtml",  "test:test",      "test:test"],
+            [null,                                 "http://www.w3.org/1999/xhtml",  "TEST:TEST",      "TEST:TEST"],
+            ["http://www.w3.org/1998/Math/MathML", null,                            "test",           "test"],
+            ["http://www.w3.org/1998/Math/MathML", null,                            "TEST",           "TEST"],
+            [null,                                 "http://www.w3.org/2000/xmlns/", "xmlns:xlink",    "xmlns:xlink"],
+            [null,                                 "http://www.w3.org/2000/xmlns/", "xmlns:XLINK",    "xmlns:XLINK"],
+            [null,                                 "fake_ns",                       "test:test:test", "test:testU00003Atest"],
+            [null,                                 "fake_ns",                       "TEST:TEST:TEST", "TEST:TESTU00003ATEST"],
         ];
     }
 }
