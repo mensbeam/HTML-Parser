@@ -139,11 +139,12 @@ class TestDOM extends \PHPUnit\Framework\TestCase {
     public function testSetNamespoacedAttributes(?string $elementNS, ?string $attrNS, string $nameIn, string $nameOut): void {
         $d = new Document;
         $e = $d->createElementNS($elementNS, "test");
+        $this->assertSame(0, $e->attributes->length);
         $e->setAttributeNS($attrNS, $nameIn, "test");
         $this->assertSame(1, $e->attributes->length);
         $a = $e->attributes[0];
         $this->assertSame($nameOut, $a->nodeName);
-        $this->assertSame($attrNS, $e->attributes[0]->namespaceURI);
+        $this->assertSame($attrNS, $a->namespaceURI);
     }
 
     public function provideNamespacedAttributeSettings(): iterable {
@@ -164,6 +165,95 @@ class TestDOM extends \PHPUnit\Framework\TestCase {
             [null,                                 "http://www.w3.org/2000/xmlns/", "xmlns:XLINK",    "xmlns:XLINK"],
             [null,                                 "fake_ns",                       "test:test:test", "test:testU00003Atest"],
             [null,                                 "fake_ns",                       "TEST:TEST:TEST", "TEST:TESTU00003ATEST"],
+        ];
+    }
+
+    /**
+     * @dataProvider provideBareAttributeSettings
+     * @covers \MensBeam\HTML\Element::setAttribute
+     */
+    public function testSetBareAttributes(?string $elementNS, string $nameIn, string $nameOut): void {
+        $d = new Document;
+        $e = $d->createElementNS($elementNS, "test");
+        $this->assertSame(0, $e->attributes->length);
+        $e->setAttribute($nameIn, "test");
+        $this->assertSame(1, $e->attributes->length);
+        $a = $e->attributes[0];
+        $this->assertSame($nameOut, $a->nodeName);
+        $this->assertNull($a->namespaceURI);
+    }
+
+    public function provideBareAttributeSettings(): iterable {
+        return [
+            [null,                                 "test",           "test"],
+            [null,                                 "TEST",           "test"],
+            ["http://www.w3.org/1999/xhtml",       "test",           "test"],
+            ["http://www.w3.org/1999/xhtml",       "TEST",           "test"],
+            [null,                                 "test:test",      "testU00003Atest"],
+            [null,                                 "TEST:TEST",      "testU00003Atest"],
+            ["http://www.w3.org/1999/xhtml",       "test:test",      "testU00003Atest"],
+            ["http://www.w3.org/1999/xhtml",       "TEST:TEST",      "testU00003Atest"],
+            ["http://www.w3.org/1998/Math/MathML", "test",           "test"],
+            ["http://www.w3.org/1998/Math/MathML", "TEST",           "TEST"],
+        ];
+    }
+
+    /**
+     * @dataProvider provideAttributeNodeSettings
+     * @covers \MensBeam\HTML\Element::setAttributeNode
+     * @covers \MensBeam\HTML\Element::setAttributeNodeNS
+     */
+    public function testSetAttributeNodes(bool $ns, ?string $elementNS, ?string $attrNS, string $name): void {
+        $d = new Document;
+        $e = $d->createElementNS($elementNS, "test");
+        $d->appendChild($e);
+        $this->assertSame(0, $e->attributes->length);
+        $a = $d->createAttributeNS($attrNS, $name);
+        if ($ns) {
+            $e->setAttributeNodeNS($a);
+        } else {
+            $e->setAttributeNode($a);
+        }
+        $this->assertSame(1, $e->attributes->length);
+        $a = $e->attributes[0];
+        $this->assertSame($name, $a->nodeName);
+        $this->assertSame($attrNS, $a->namespaceURI);
+    }
+
+    public function provideAttributeNodeSettings(): iterable {
+        return [
+            [true,  null,                                 null,                            "test"],
+            [true,  null,                                 null,                            "TEST"],
+            [true,  "http://www.w3.org/1999/xhtml",       null,                            "test"],
+            [true,  "http://www.w3.org/1999/xhtml",       null,                            "TEST"],
+            [true,  null,                                 null,                            "testU00003Atest"],
+            [true,  null,                                 null,                            "TESTU00003ATEST"],
+            [true,  "http://www.w3.org/1999/xhtml",       null,                            "testU00003Atest"],
+            [true,  "http://www.w3.org/1999/xhtml",       null,                            "TESTU00003ATEST"],
+            [true,  null,                                 "http://www.w3.org/1999/xhtml",  "test:test"],
+            [true,  null,                                 "http://www.w3.org/1999/xhtml",  "TEST:TEST"],
+            [true,  "http://www.w3.org/1998/Math/MathML", null,                            "test"],
+            [true,  "http://www.w3.org/1998/Math/MathML", null,                            "TEST"],
+            [true,  null,                                 "http://www.w3.org/2000/xmlns/", "xmlns:xlink"],
+            [true,  null,                                 "http://www.w3.org/2000/xmlns/", "xmlns:XLINK"],
+            [true,  null,                                 "fake_ns",                       "test:testU00003Atest"],
+            [true,  null,                                 "fake_ns",                       "TEST:TESTU00003ATEST"],
+            [false, null,                                 null,                            "test"],
+            [false, null,                                 null,                            "TEST"],
+            [false, "http://www.w3.org/1999/xhtml",       null,                            "test"],
+            [false, "http://www.w3.org/1999/xhtml",       null,                            "TEST"],
+            [false, null,                                 null,                            "testU00003Atest"],
+            [false, null,                                 null,                            "TESTU00003ATEST"],
+            [false, "http://www.w3.org/1999/xhtml",       null,                            "testU00003Atest"],
+            [false, "http://www.w3.org/1999/xhtml",       null,                            "TESTU00003ATEST"],
+            [false, null,                                 "http://www.w3.org/1999/xhtml",  "test:test"],
+            [false, null,                                 "http://www.w3.org/1999/xhtml",  "TEST:TEST"],
+            [false, "http://www.w3.org/1998/Math/MathML", null,                            "test"],
+            [false, "http://www.w3.org/1998/Math/MathML", null,                            "TEST"],
+            [false, null,                                 "http://www.w3.org/2000/xmlns/", "xmlns:xlink"],
+            [false, null,                                 "http://www.w3.org/2000/xmlns/", "xmlns:XLINK"],
+            [false, null,                                 "fake_ns",                       "test:testU00003Atest"],
+            [false, null,                                 "fake_ns",                       "TEST:TESTU00003ATEST"],
         ];
     }
 }
