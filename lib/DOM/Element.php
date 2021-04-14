@@ -22,11 +22,11 @@ class Element extends \DOMElement {
         return $value;
     }
 
-    public function getAttributeNS($namespaceURI, $qualifiedName) {
+    public function getAttributeNS($namespaceURI, $localName) {
         // Newer versions of the DOM spec have getAttributeNS return an empty string
         // only when the attribute exists and is empty, otherwise null. This fixes that.
-        $value = parent::getAttributeNS($namespaceURI, $qualifiedName);
-        if ($value === '' && !$this->hasAttribute($qualifiedName)) {
+        $value = parent::getAttributeNS($namespaceURI, $localName);
+        if ($value === '' && !$this->hasAttributeNS($namespaceURI, $localName)) {
             return null;
         }
 
@@ -47,11 +47,15 @@ class Element extends \DOMElement {
     }
 
     public function hasAttribute($name) {
-        $out = parent::hasAttribute($name);
-        if (!$out && strpos($name, "xmlns:") === 0 && $this->hasAttributeNS(Parser::XMLNS_NAMESPACE, substr($name, 6))) {
-            return true;
+        if (!parent::hasAttribute($name)) {
+            foreach ($this->attributes as $a) {
+                if ($a->nodeName === $name) {
+                    return true;
+                }
+            }
+            return false;
         }
-        return $out;
+        return true;
     }
 
     public function setAttribute($name, $value) {

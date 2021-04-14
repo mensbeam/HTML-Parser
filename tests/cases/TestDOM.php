@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace MensBeam\HTML\TestCase;
 
 use MensBeam\HTML\Document;
+use MensBeam\HTML\Parser;
 use MensBeam\HTML\TemplateElement;
 
 class TestDOM extends \PHPUnit\Framework\TestCase {
@@ -255,5 +256,52 @@ class TestDOM extends \PHPUnit\Framework\TestCase {
             [false, null,                                 "fake_ns",                       "test:testU00003Atest"],
             [false, null,                                 "fake_ns",                       "TEST:TESTU00003ATEST"],
         ];
+    }
+
+    /**
+     * @covers \MensBeam\HTML\Element::hasAttribute
+     * @covers \MensBeam\HTML\Element::getAttribute
+     * @covers \MensBeam\HTML\Element::getAttributeNS
+     */
+    public function testCheckForAttribute(): void {
+        $d = new Document;
+        $d->appendChild($d->createElement("html"));
+        $e = $d->documentElement;
+        $e->setAttribute("ook", "eek");
+        $e->setAttributeNS(Parser::XML_NAMESPACE, "xml:base", "http://example.com/");
+        $e->setAttributeNS(Parser::XMLNS_NAMESPACE, "xmlns:xlink", Parser::XLINK_NAMESPACE);
+        $e->setAttributeNS("fake_ns", "ook:eek", "ack");
+        // perform boolean tests
+        $this->assertFalse($e->hasAttribute("blah"));
+        $this->assertFalse($e->hasAttribute("OOK"));;
+        $this->assertFalse($e->hasAttribute("eek"));
+        $this->assertFalse($e->hasAttribute("ack"));
+        $this->assertTrue($e->hasAttribute("ook"));
+        $this->assertTrue($e->hasAttribute("xml:base"));
+        $this->assertTrue($e->hasAttribute("xmlns:xlink"));
+        $this->assertTrue($e->hasAttribute("ook:eek"));
+        $this->assertFalse($e->hasAttributeNS(null, "blah"));
+        $this->assertFalse($e->hasAttributeNS(null, "OOK"));
+        $this->assertFalse($e->hasAttributeNS(null, "eek"));
+        $this->assertTrue($e->hasAttributeNS(null, "ook"));
+        $this->assertTrue($e->hasAttributeNS(Parser::XML_NAMESPACE, "base"));
+        $this->assertTrue($e->hasAttributeNS(Parser::XMLNS_NAMESPACE, "xlink"));
+        $this->assertTrue($e->hasAttributeNS("fake_ns", "eek"));
+        // perform retrival tests
+        //$this->assertNull($e->getAttribute("blah"));
+        //$this->assertNull($e->getAttribute("OOK"));
+        //$this->assertNull($e->getAttribute("eek"));
+        //$this->assertNull($e->getAttribute("ack"));
+        //$this->assertSame("eek", $e->getAttribute("ook"));
+        //$this->assertSame("http://example.com/", $e->getAttribute("xml:base"));
+        //$this->assertSame(Parser::XLINK_NAMESPACE, $e->getAttribute("xmlns:xlink"));
+        //$this->assertSame("ack", $e->getAttribute("ook:eek"));
+        //$this->assertNull($e->getAttributeNS(null, "blah"));
+        //$this->assertNull($e->getAttributeNS(null, "OOK"));
+        //$this->assertNull($e->getAttributeNS(null, "ack"));
+        //$this->assertSame("eek", $e->getAttributeNS(null, "ook"));
+        //$this->assertSame("http://example.com/", $e->getAttributeNS(Parser::XML_NAMESPACE, "base"));
+        //$this->assertSame(Parser::XLINK_NAMESPACE, $e->getAttributeNS(Parser::XMLNS_NAMESPACE, "xlink"));
+        //$this->assertSame("ack", $e->getAttributeNS("fake_ns", "eek"));
     }
 }
