@@ -6,9 +6,7 @@
 declare(strict_types=1);
 namespace MensBeam\HTML;
 
-class Document extends \DOMDocument {
-    use EscapeString, Node, Serialize, Walk;
-
+class Document extends AbstractDocument {
     // Quirks mode constants
     public const NO_QUIRKS_MODE = 0;
     public const QUIRKS_MODE = 1;
@@ -233,5 +231,91 @@ class Document extends \DOMDocument {
 
     public function __toString() {
         return $this->serialize();
+    }
+
+    protected function preInsertionValidity(\DOMNode $node, ?\DOMNode $child = null) {
+        parent::preInsertionValidity($node, $child);
+
+        # 6. If parent is a document, and any of the statements below, switched on node,
+        # are true, then throw a "HierarchyRequestError" DOMException.
+        #
+        # DocumentFragment node
+        #    If node has more than one element child or has a Text node child.
+        #    Otherwise, if node has one element child and either parent has an element
+        #    child, child is a doctype, or child is non-null and a doctype is following
+        #    child.
+        if ($node instanceof DocumentFragment) {
+            if ($node->childNodes->length > 1 || $node->firstChild instanceof Text) {
+                throw new DOMException(DOMException::HIERARCHY_REQUEST_ERROR);
+            } else {
+                if ($node->firstChild instanceof \DOMDocumentType) {
+                    throw new DOMException(DOMException::HIERARCHY_REQUEST_ERROR);
+                }
+
+                foreach ($this->childNodes as $c) {
+                    if ($c instanceof Element) {
+                        throw new DOMException(DOMException::HIERARCHY_REQUEST_ERROR);
+                    }
+                }
+
+                if ($child !== null) {
+                    $n = $child;
+                    while ($n = $n->nextSibling) {
+                        if ($n instanceof \DOMDocumentType) {
+                            throw new DOMException(DOMException::HIERARCHY_REQUEST_ERROR);
+                        }
+                    }
+                }
+            }
+        }
+        # element
+        #    parent has an element child, child is a doctype, or child is non-null and a
+        #    doctype is following child.
+        elseif ($node instanceof Element) {
+            if ($child instanceof \DOMDocumentType) {
+                throw new DOMException(DOMException::HIERARCHY_REQUEST_ERROR);
+            }
+
+            if ($child !== null) {
+                $n = $child;
+                while ($n = $n->nextSibling) {
+                    if ($n instanceof \DOMDocumentType) {
+                        throw new DOMException(DOMException::HIERARCHY_REQUEST_ERROR);
+                    }
+                }
+            }
+
+            foreach ($this->childNodes as $c) {
+                if ($c instanceof Element) {
+                    throw new DOMException(DOMException::HIERARCHY_REQUEST_ERROR);
+                }
+            }
+        }
+
+        # doctype
+        #    parent has a doctype child, child is non-null and an element is preceding
+        #    child, or child is null and parent has an element child.
+        elseif ($node instanceof \DOMDocumentType) {
+            foreach ($this->childNodes as $c) {
+                if ($c instanceof \DOMDocumentType) {
+                    throw new DOMException(DOMException::HIERARCHY_REQUEST_ERROR);
+                }
+            }
+
+            if ($child !== null) {
+                $n = $child;
+                while ($n = $n->prevSibling) {
+                    if ($n instanceof Element) {
+                        throw new DOMException(DOMException::HIERARCHY_REQUEST_ERROR);
+                    }
+                }
+            } else {
+                foreach ($this->childNodes as $c) {
+                    if ($c instanceof Element) {
+                        throw new DOMException(DOMException::HIERARCHY_REQUEST_ERROR);
+                    }
+                }
+            }
+        }
     }
 }

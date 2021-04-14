@@ -7,7 +7,7 @@ declare(strict_types=1);
 namespace MensBeam\HTML;
 
 class Comment extends \DOMComment {
-    use Moonwalk, Node;
+    use LeafNode, Moonwalk;
 
     public function __toString(): string {
         # Append the literal string "<!--" (U+003C LESS-THAN SIGN, U+0021 EXCLAMATION

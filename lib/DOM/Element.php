@@ -7,7 +7,7 @@ declare(strict_types=1);
 namespace MensBeam\HTML;
 
 class Element extends \DOMElement {
-    use EscapeString, Moonwalk, Node, Serialize, Walk;
+    use ContainerNode, EscapeString, Moonwalk, Serialize, Walk;
 
     protected $_classList;
 
