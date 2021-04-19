@@ -15,10 +15,15 @@ class Element extends \DOMElement {
         // Newer versions of the DOM spec have getAttribute return an empty string only
         // when the attribute exists and is empty, otherwise null. This fixes that.
         $value = parent::getAttribute($name);
-        if ($value === '' && !$this->hasAttribute($name)) {
+        if ($value === '' && !parent::hasAttribute($name)) {
+            // the PHP DOM does not acknowledge the presence of XMLNS-namespace attributes
+            foreach ($this->attributes as $a) {
+                if ($a->nodeName === $name) {
+                    return $a->value;
+                }
+            }
             return null;
         }
-
         return $value;
     }
 
@@ -29,7 +34,6 @@ class Element extends \DOMElement {
         if ($value === '' && !$this->hasAttributeNS($namespaceURI, $localName)) {
             return null;
         }
-
         return $value;
     }
 

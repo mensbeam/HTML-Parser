@@ -288,20 +288,20 @@ class TestDOM extends \PHPUnit\Framework\TestCase {
         $this->assertTrue($e->hasAttributeNS(Parser::XMLNS_NAMESPACE, "xlink"));
         $this->assertTrue($e->hasAttributeNS("fake_ns", "eek"));
         // perform retrival tests
-        //$this->assertNull($e->getAttribute("blah"));
-        //$this->assertNull($e->getAttribute("OOK"));
-        //$this->assertNull($e->getAttribute("eek"));
-        //$this->assertNull($e->getAttribute("ack"));
-        //$this->assertSame("eek", $e->getAttribute("ook"));
-        //$this->assertSame("http://example.com/", $e->getAttribute("xml:base"));
-        //$this->assertSame(Parser::XLINK_NAMESPACE, $e->getAttribute("xmlns:xlink"));
-        //$this->assertSame("ack", $e->getAttribute("ook:eek"));
-        //$this->assertNull($e->getAttributeNS(null, "blah"));
-        //$this->assertNull($e->getAttributeNS(null, "OOK"));
-        //$this->assertNull($e->getAttributeNS(null, "ack"));
-        //$this->assertSame("eek", $e->getAttributeNS(null, "ook"));
-        //$this->assertSame("http://example.com/", $e->getAttributeNS(Parser::XML_NAMESPACE, "base"));
-        //$this->assertSame(Parser::XLINK_NAMESPACE, $e->getAttributeNS(Parser::XMLNS_NAMESPACE, "xlink"));
-        //$this->assertSame("ack", $e->getAttributeNS("fake_ns", "eek"));
+        $this->assertNull($e->getAttribute("blah"));
+        $this->assertNull($e->getAttribute("OOK"));
+        $this->assertNull($e->getAttribute("eek"));
+        $this->assertNull($e->getAttribute("ack"));
+        $this->assertSame("eek", $e->getAttribute("ook"));
+        $this->assertSame("http://example.com/", $e->getAttribute("xml:base"));
+        $this->assertSame(Parser::XLINK_NAMESPACE, $e->getAttribute("xmlns:xlink"));
+        $this->assertSame("ack", $e->getAttribute("ook:eek"));
+        $this->assertNull($e->getAttributeNS(null, "blah"));
+        $this->assertNull($e->getAttributeNS(null, "OOK"));
+        $this->assertNull($e->getAttributeNS(null, "ack"));
+        $this->assertSame("eek", $e->getAttributeNS(null, "ook"));
+        $this->assertSame("http://example.com/", $e->getAttributeNS(Parser::XML_NAMESPACE, "base"));
+        $this->assertSame(Parser::XLINK_NAMESPACE, $e->getAttributeNS(Parser::XMLNS_NAMESPACE, "xlink"));
+        $this->assertSame("ack", $e->getAttributeNS("fake_ns", "eek"));
     }
 }
