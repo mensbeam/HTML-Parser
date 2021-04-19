@@ -135,13 +135,10 @@ class Element extends \DOMElement {
                 return $this->getAttributeNode('class');
             }
         }
-
         $result = parent::setAttributeNodeNS($attribute);
-
         if ($fixId) {
             $this->setIdAttribute($attribute->name, true);
         }
-
         return $result;
     }
 
@@ -155,12 +152,9 @@ class Element extends \DOMElement {
                     if ($this->_classList === null) {
                         $this->_classList = new TokenList($this, 'class');
                     }
-
                     return $this->_classList;
                 }
-
-                return null;
-            break;
+                return null; // @codeCoverageIgnore
             ### DOM Parsing Specification ###
             # 2.3 The InnerHTML mixin
             #
@@ -169,8 +163,8 @@ class Element extends \DOMElement {
             # might throw an exception instead of returning a string).
             // DEVIATION: Parsing of XML documents will not be handled by this
             // implementation, so there's no need for the well-formed flag.
-            case 'innerHTML': return $this->serialize($this);
-            break;
+            case 'innerHTML': 
+                return $this->serialize($this);
             ### DOM Parsing Specification ###
             # 2.4 Extensions to the Element interface
             # outerHTML
@@ -184,8 +178,10 @@ class Element extends \DOMElement {
             // OPTIMIZATION: When following the instructions above the fragment serializing
             // algorithm (Element::serialize) would invoke Element::__toString, so just
             // doing that instead of multiple function calls.
-            case 'outerHTML': return $this->__toString();
-            break;
+            case 'outerHTML': 
+                return $this->__toString();
+            default: 
+                return null;
         }
     }
 

@@ -304,4 +304,15 @@ class TestDOM extends \PHPUnit\Framework\TestCase {
         $this->assertSame(Parser::XLINK_NAMESPACE, $e->getAttributeNS(Parser::XMLNS_NAMESPACE, "xlink"));
         $this->assertSame("ack", $e->getAttributeNS("fake_ns", "eek"));
     }
+
+    /** @covers \MensBeam\HTML\Element::__get */
+    public function testGetInnerAndOuterHtml(): void {
+        $d = new Document;
+        $d->appendChild($d->createElement("html"));
+        $d->documentElement->appendChild($d->createTextNode("OOK"));
+        $this->assertSame("OOK", $d->documentElement->innerHTML);
+        $this->assertSame("<html>OOK</html>", $d->documentElement->outerHTML);
+        $this->assertNull($d->documentElement->innerHtml);
+        $this->assertNull($d->documentElement->outerHtml);
+    }
 }
