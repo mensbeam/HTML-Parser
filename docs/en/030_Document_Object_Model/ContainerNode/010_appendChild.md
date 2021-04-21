@@ -1,13 +1,13 @@
 ---
-title: Node::appendChild
+title: ContainerNode::appendChild
 ---
 
-Node::appendChild — Adds new child at the end of the children
+ContainerNode::appendChild — Adds new child at the end of the children
 
 ## Description ##
 
 ```php
-public Node::appendChild ( \DOMNode $node ) : \DOMNode|false
+public ContainerNode::appendChild ( \DOMNode $node ) : \DOMNode|false
 ```
 
 This function appends a child to an existing list of children or creates a new list of children. The child can be created with e.g. [`Document::createElement()`](https://www.php.net/manual/en/domdocument.createelement.php), [`Document::createTextNode()`](https://www.php.net/manual/en/domdocument.createtextnode.php) etc. or simply by using any other node.

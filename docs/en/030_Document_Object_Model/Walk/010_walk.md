@@ -6,9 +6,8 @@ Walk::walk — Output generator for walking down the DOM tree
 
 ## Description ##
 
-```php
-public Walk::walk ( <a href="https://www.php.net/manual/en/class.closure.php">\Closure</a> $filter ) : <a href="https://www.php.net/manual/en/class.generator.php">\Generator</a>
-```
+<pre><code class="php">public Walk::walk ( <a href="https://www.php.net/manual/en/class.closure.php">\Closure</a>|null $filter = null ) : <a href="https://www.php.net/manual/en/class.generator.php">\Generator</a>
+</code></pre>
 
 Non-standard. Creates a [`\Generator`](https://www.php.net/manual/en/class.generator.php) object for walking down the DOM tree. This is in lieu of recreating the awful [DOM TreeWalker API](https://developer.mozilla.org/en-US/docs/Web/API/Treewalker).
 

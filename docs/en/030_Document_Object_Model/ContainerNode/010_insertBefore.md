@@ -1,13 +1,13 @@
 ---
-title: Node::insertBefore
+title: ContainerNode::insertBefore
 ---
 
-Node::insertBefore — Adds a new child before a reference node
+ContainerNode::insertBefore — Adds a new child before a reference node
 
 ## Description ##
 
 ```php
-public Node::insertBefore ( \DOMNode $node , \DOMNode|null $child = null ) : \DOMNode|false
+public ContainerNode::insertBefore ( \DOMNode $node , \DOMNode|null $child = null ) : \DOMNode|false
 ```
 
 This function inserts a new node right before the reference node. If you plan to do further modifications on the appended child you must use the returned node.

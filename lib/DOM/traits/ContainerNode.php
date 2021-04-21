@@ -8,7 +8,7 @@ namespace MensBeam\HTML;
 
 // Node in the DOM spec is dirty. Many nodes which inherit from it inherit
 // methods it cannot use which all check for this and throw exceptions. This is
-// for nodes which do have node insertion methods.
+// for nodes which DO have child nodes.
 trait ContainerNode {
     use Node;
 
