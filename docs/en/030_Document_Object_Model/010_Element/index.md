@@ -12,7 +12,7 @@ title: Element
 
 <pre><code class="php">MensBeam\HTML\Element extends <a href="https://www.php.net/manual/en/class.domelement.php">\DOMElement</a> {
 
-    use <a href="../Moonwalk/index.html">Moonwalk</a>, <a href="../ContainerNode/index.html">ContainerNode</a>, <a href="../Walk/index.html">Walk</a>;
+    use <a href="../ContainerNode/index.html">ContainerNode</a>, <a href="../Moonwalk/index.html">Moonwalk</a>, <a href="../Walk/index.html">Walk</a>;
 
     /* Properties */
     public readonly NodeList|null <a href="#element-props-classlist">$classList</a> ;
