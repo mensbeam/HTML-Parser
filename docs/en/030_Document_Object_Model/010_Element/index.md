@@ -6,7 +6,7 @@ title: Element
 
 ## Introduction ##
 
-<div class="info"><p><strong>Info</strong> Only new methods and methods which make outward-facing changes from <a href="https://www.php.net/manual/en/class.domelement.php">\DOMElement</a> will be documented here, otherwise they will be linked back to PHP's documentation.</p></div>
+<div class="admonition info"><p><strong>Info</strong> Only new methods and methods which make outward-facing changes from <a href="https://www.php.net/manual/en/class.domelement.php">\DOMElement</a> will be documented here, otherwise they will be linked back to PHP's documentation.</p></div>
 
 ## Class Synopsis ##
 

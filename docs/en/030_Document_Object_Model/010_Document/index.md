@@ -8,7 +8,7 @@ title: Document
 
 Represents an entire HTML document; serves as the root of the document tree. Unlike the PHP [`\DOMDocument`](https://www.php.net/manual/en/class.domdocument.php) class in which it inherits from it cannot be used to represent an XML document. It is strictly used to represent HTML.
 
-<div class="info"><p><strong>Info</strong> Only new methods and methods which make outward-facing changes from <a href="https://www.php.net/manual/en/class.domdocument.php">\DOMDocument</a> will be documented here, otherwise they will be linked back to PHP's documentation.</p></div>
+<div class="admonition info"><p><strong>Info</strong> Only new methods and methods which make outward-facing changes from <a href="https://www.php.net/manual/en/class.domdocument.php">\DOMDocument</a> will be documented here, otherwise they will be linked back to PHP's documentation.</p></div>
 
 ## Class Synopsis ##
 
@@ -22,7 +22,7 @@ Represents an entire HTML document; serves as the root of the document tree. Unl
     public const LIMITED_QUIRKS_MODE = 2 ;
 
     /* Properties */
-    public Element|null <a href="#document-props-body">$body</a> = null ;
+    public <a href="../Element/index.html">Element</a>|null <a href="#document-props-body">$body</a> = null ;
     public string|null <a href="#document-props-documentencoding">$documentEncoding</a> = null ;
     public int <a href="#document-props-quirksmode">$quirksMode</a> = 0 ;
 

@@ -38,6 +38,30 @@ class RoboFile extends \Robo\Tasks {
         return $this->taskExec($execpath)->arg("serve")->args($args)->run();
     }
 
+    /** Rebuilds the entire manual theme
+     *
+     * This requires Node and Yarn to be installed, and only needs to be done when
+     * Daux's theme changes
+     */
+    public function manualTheme(array $args): Result {
+        $postcss = escapeshellarg(norm(BASE."node_modules/.bin/postcss"));
+        $themesrc = norm(BASE."docs/theme/src/").\DIRECTORY_SEPARATOR;
+        $themeout = norm(BASE."docs/theme/php/").\DIRECTORY_SEPARATOR;
+        $dauxjs = norm(BASE."vendor/daux/vendor/daux/daux.io/themes/daux/js/").\DIRECTORY_SEPARATOR;
+        // start a collection; this stops after the first failure
+        $t = $this->collectionBuilder();
+        // install dependencies via Yarn
+        $t->taskExec("yarn install");
+        // compile the stylesheet
+        $t->taskExec($postcss)->arg($themesrc."php.scss")->option("-o", $themeout."php.css");
+        // copy JavaScript files from the Daux theme
+        foreach (glob($dauxjs."daux*.js") as $file) {
+            $t->taskFilesystemStack()->copy($file, $themeout.basename($file), true);
+        }
+        // execute the collection
+        return $t->run();
+    }
+
     /** Runs the typical test suite
      *
      * Arguments passed to the task are passed on to PHPUnit. Thus one may, for
