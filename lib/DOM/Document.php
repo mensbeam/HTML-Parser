@@ -19,6 +19,7 @@ class Document extends AbstractDocument {
 
     protected $_body = null;
 
+
     public function __construct() {
         parent::__construct();
 
@@ -151,9 +152,6 @@ class Document extends AbstractDocument {
         return false;
     }
 
-    public function __destruct() {
-        ElementMap::destroy($this);
-    }
 
     public function __get(string $prop) {
         if ($prop === 'body') {
@@ -229,9 +227,6 @@ class Document extends AbstractDocument {
         }
     }
 
-    public function __toString() {
-        return $this->serialize();
-    }
 
     protected function preInsertionValidity(\DOMNode $node, ?\DOMNode $child = null) {
         parent::preInsertionValidity($node, $child);
@@ -317,5 +312,14 @@ class Document extends AbstractDocument {
                 }
             }
         }
+    }
+
+
+    public function __destruct() {
+        ElementMap::destroy($this);
+    }
+
+    public function __toString() {
+        return $this->serialize();
     }
 }

@@ -7,7 +7,14 @@ declare(strict_types=1);
 namespace MensBeam\HTML;
 
 trait Serialize {
+    // List of elements that are treated as block elements when pretty printing
+    protected static $blockElements = [ 'address', 'article', 'aside', 'blockquote', 'body', 'details', 'dialog', 'dd', 'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html', 'li', 'main', 'nav', 'ol', 'p', 'pre', 'section', 'script', 'source', 'style', 'table', 'template', 'td', 'tfoot', 'th', 'thead', 'tr', 'ul' ];
+    // List of elements where content is ignored when pretty printing
+    protected static $ignoredContentElements = [ 'pre', 'title' ];
+    // List of elements which are self-closing
     protected static $voidElements = [ 'area', 'base', 'basefont', 'bgsound', 'br', 'col', 'embed', 'frame', 'hr', 'img', 'input', 'keygen', 'link', 'meta', 'param', 'source', 'track', 'wbr' ];
+
+
 
     protected function serializesAsVoid(): bool {
         $name = $this->nodeName;
