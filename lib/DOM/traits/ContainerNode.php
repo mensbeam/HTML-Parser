@@ -100,4 +100,46 @@ trait ContainerNode {
         # are true, then throw a "HierarchyRequestError" DOMException.
         // Handled by the Document class.
     }
+
+
+    public function __get(string $prop) {
+        switch ($prop) {
+            case 'childElementCount':
+                # The childElementCount getter steps are to return the number of children of
+                # this that are elements.
+                $count = 0;
+                foreach ($this->childNodes as $child) {
+                    if ($child instanceof Element) {
+                        $count++;
+                    }
+                }
+
+                return $count;
+
+            case 'firstElementChild':
+                # The firstElementChild getter steps are to return the first child that is an
+                # element; otherwise null.
+                foreach ($this->childNodes as $child) {
+                    if ($child instanceof Element) {
+                        return $child;
+                    }
+                }
+                return null;
+
+            case 'lastElementChild':
+                # The lastElementChild getter steps are to return the last child that is an
+                # element; otherwise null.
+                for ($i = $this->childNodes->length - 1; $i >= 0; $i--) {
+                    $child = $this->childNodes->item($i);
+                    if ($child instanceof Element) {
+                        return $child;
+                    }
+                }
+
+                return null;
+
+            default:
+                return null;
+        }
+    }
 }

@@ -6,10 +6,9 @@
 declare(strict_types=1);
 namespace MensBeam\HTML;
 
-class Element extends \DOMElement {
-    use ContainerNode, EscapeString, Moonwalk, ToString, Walk;
-
+class Element extends AbstractElement {
     protected $_classList;
+
 
     public function getAttribute($name) {
         // Newer versions of the DOM spec have getAttribute return an empty string only
@@ -37,6 +36,7 @@ class Element extends \DOMElement {
         return $value;
     }
 
+    /** Nonstandard */
     public function isAncestorOf(\DOMNode $node): bool {
         # An object A is called an ancestor of an object B if and only if B is a
         # descendant of A.
@@ -60,6 +60,82 @@ class Element extends \DOMElement {
             return false;
         }
         return true;
+    }
+
+    /** Nonstandard */
+    public function hasDescendant(...$nodes): bool {
+        if ($this->childNodes->length === 0) {
+            return false;
+        }
+
+        $tree = $this->walk(function($descendant) use($nodes) {
+            foreach ($nodes as $n) {
+                if ($n->isSameNode($descendant)) {
+                    return true;
+                }
+            }
+        });
+
+        return ($tree->current() !== null);
+    }
+
+    /** Nonstandard */
+    public function hasDescendantElementWithName(...$nodeNames): bool {
+        if ($this->childNodes->length === 0) {
+            return false;
+        }
+
+        $tree = $this->walk(function($descendant) use($nodeNames) {
+            foreach ($nodeNames as $n) {
+                if ($n instanceof Element && $n->nodeName === $descendant->nodeName) {
+                    return true;
+                }
+            }
+        });
+
+        return ($tree->current() !== null);
+    }
+
+    /** Nonstandard */
+    public function hasSibling(\DOMNode ...$nodes): bool {
+        if ($this->parentNode === null) {
+            return false;
+        }
+
+        foreach ($this->parentNode->childNodes as $child) {
+            if ($child->isSameNode($this)) {
+                continue;
+            }
+
+            foreach ($nodes as $n) {
+                if ($n->isSameNode($child)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /** Nonstandard */
+    public function hasSiblingElementWithName(string ...$nodeNames): bool {
+        if ($this->parentNode === null) {
+            return false;
+        }
+
+        foreach ($this->parentNode->childNodes as $child) {
+            if ($child->isSameNode($this)) {
+                continue;
+            }
+
+            foreach ($nodeNames as $n) {
+                if ($n instanceof Element && $n->nodeName === $child->nodeName) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public function setAttribute($name, $value) {
@@ -148,6 +224,11 @@ class Element extends \DOMElement {
 
 
     public function __get(string $prop) {
+        $value = parent::__get($prop);
+        if ($value !== null) {
+            return $value;
+        }
+
         switch ($prop) {
             case 'classList':
                 // MensBeam\HTML\TokenList uses WeakReference to prevent a circular reference,
@@ -160,6 +241,7 @@ class Element extends \DOMElement {
                     return $this->_classList;
                 }
                 return null; // @codeCoverageIgnore
+
             ### DOM Parsing Specification ###
             # 2.3 The InnerHTML mixin
             #
@@ -170,6 +252,31 @@ class Element extends \DOMElement {
             // implementation, so there's no need for the well-formed flag.
             case 'innerHTML':
                 return $this->serialize($this);
+
+            case 'nextElementSibling':
+                # The nextElementSibling getter steps are to return the first following sibling
+                # that is an element; otherwise null.
+                if ($this->parentNode !== null) {
+                    $start = false;
+                    foreach ($this->parentNode->childNodes as $child) {
+                        if (!$start) {
+                            if ($child->isSameNode($this)) {
+                                $start = true;
+                            }
+
+                            continue;
+                        }
+
+                        if (!$child instanceof Element) {
+                            continue;
+                        }
+
+                        return $child;
+                    }
+                }
+
+                return null;
+
             ### DOM Parsing Specification ###
             # 2.4 Extensions to the Element interface
             # outerHTML
@@ -180,11 +287,28 @@ class Element extends \DOMElement {
             # returning a string).
             // DEVIATION: Parsing of XML documents will not be handled by this
             // implementation, so there's no need for the well-formed flag.
-            // OPTIMIZATION: When following the instructions above the fragment serializing
-            // algorithm (Element::serialize) would invoke Element::__toString, so just
-            // doing that instead of multiple function calls.
             case 'outerHTML':
                 return $this->__toString();
+
+            case 'previousElementSibling':
+                # The previousElementSibling getter steps are to return the first preceding
+                # sibling that is an element; otherwise null.
+                if ($this->parentNode !== null) {
+                    foreach ($this->parentNode->childNodes as $child) {
+                        if ($child->isSameNode($this)) {
+                            return null;
+                        }
+
+                        if (!$child instanceof Element) {
+                            continue;
+                        }
+
+                        return $child;
+                    }
+                }
+
+                return null;
+
             default:
                 return null;
         }

@@ -11,7 +11,7 @@ namespace MensBeam\HTML;
 // least one PHP reference is kept for the element somewhere in userspace. This
 // is that somewhere. It is at present only used for template elements.
 class ElementMap {
-    public static $_storage = [];
+    protected static $_storage = [];
 
     public static function delete(Element $element) {
         foreach (self::$_storage as $k => $v) {

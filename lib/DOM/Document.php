@@ -18,10 +18,12 @@ class Document extends AbstractDocument {
     public $quirksMode = self::NO_QUIRKS_MODE;
 
     protected $_body = null;
-    // List of elements that are treated as block elements when pretty printing
+    // List of elements that are treated as block elements for the purposes of output formatting
     protected static $blockElements = [ 'address', 'article', 'aside', 'blockquote', 'body', 'details', 'dialog', 'dd', 'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html', 'li', 'main', 'nav', 'ol', 'p', 'pre', 'section', 'script', 'source', 'style', 'table', 'template', 'td', 'tfoot', 'th', 'thead', 'tr', 'ul' ];
-    // List of elements where content is ignored when pretty printing
-    protected static $ignoredContentElements = [ 'pre', 'title' ];
+    // List of preformatted elements where content is ignored when output formatting
+    protected static $preformattedElements = [ 'iframe', 'listing', 'noembed', 'noframes', 'plaintext', 'pre', 'textarea', 'title', 'xmp' ];
+    // List of elements where content is ignored except to indent
+    protected static $scriptElements = [ 'script', 'style' ];
     // List of elements which are self-closing; used when serializing
     protected static $voidElements = [ 'area', 'base', 'basefont', 'bgsound', 'br', 'col', 'embed', 'frame', 'hr', 'img', 'input', 'keygen', 'link', 'meta', 'param', 'source', 'track', 'wbr' ];
 
@@ -147,24 +149,40 @@ class Document extends AbstractDocument {
 
     public function serialize(\DOMNode $node = null): string {
         $node = $node ?? $this;
+        $formatOutput = $this->formatOutput;
 
         if ($node !== $this) {
             if (!$node->ownerDocument->isSameNode($this)) {
                 throw new DOMException(DOMException::WRONG_DOCUMENT);
             }
 
-            // This implementation uses the specification's fragment serializing algorithm to
-            // serialize everything to eliminate duplicate code as the specification
-            // for innerHTML and outerHTML are nearly identical. If not a Document or a
-            // DocumentFragment clone the node in a fragment and serialize that.
-            if (!$node instanceof Document && !$node->instanceof DocumentFragment) {
-                $frag = $this->createDocumentFragment();
-                $frag->appendChild($node->cloneNode(true));
-                $node = $frag;
+            // This method is used to serialize any node. If not a Document or a
+            // DocumentFragment or a DocumentType clone the node in a fragment and serialize
+            // that. Otherwise, if a DocumentFragment create a new Document with a clone of
+            // the DocumentFragment as its doctype and then serialize the new document.
+            if (!$node instanceof Document && !$node instanceof DocumentFragment) {
+                // If the node isn't an element disable output formatting
+                if ($formatOutput && !$node instanceof Element) {
+                    $formatOutput = false;
+                }
+
+                if (!$node instanceof \DOMDocumentType) {
+                    $frag = $this->createDocumentFragment();
+                    $frag->appendChild($node->cloneNode(true));
+                    $node = $frag;
+                } else {
+                    $newDoc = new self();
+                    $newDoc->appendChild($newDoc->implementation->createDocumentType($node->name, $node->publicId, $node->systemId));
+                    $node = $newDoc;
+                }
             }
+        } elseif ($formatOutput && $node instanceof DocumentFragment) {
+            // If node is a document fragment disable output formatting if the
+            // DocumentFragment doesn't have any Element children.
+            $formatOutput = ($node->childElementCount > 0);
         }
 
-        return $this->serializeFragment($node);
+        return $this->serializeFragment($node, $formatOutput);
     }
 
     public function validate(): bool {
@@ -187,7 +205,7 @@ class Document extends AbstractDocument {
         #    Otherwise, if node has one element child and either parent has an element
         #    child, child is a doctype, or child is non-null and a doctype is following
         #    child.
-        if ($node instanceof DocumentFragment) {
+        if ($node instanceof \DOMDocumentType) {
             if ($node->childNodes->length > 1 || $node->firstChild instanceof Text) {
                 throw new DOMException(DOMException::HIERARCHY_REQUEST_ERROR);
             } else {
@@ -262,7 +280,21 @@ class Document extends AbstractDocument {
         }
     }
 
-    protected function serializeFragment(\DOMNode $node): string {
+    protected function serializeFragment(\DOMNode $node, bool $formatOutput = false): string {
+        if ($formatOutput) {
+            static $foreignAncestorWithBlockElementSiblings = false;
+            static $foreignElement = null;
+            static $indent = 0;
+            static $inlineWithBlockElementDescendants = false;
+            static $inlineWithBlockElementDescendantsNode = null;
+            static $inlineWithBlockElementSiblings = false;
+            static $inlineWithBlockElementSiblingsParent = null;
+            static $preformattedContent = false;
+            static $preformattedElement = null;
+            static $scriptContent = false;
+            static $scriptElement = null;
+        }
+
         # 13.3. Serializing HTML fragments
         #
         # 1. If the node serializes as void, then return the empty string.
@@ -280,14 +312,259 @@ class Document extends AbstractDocument {
         }
 
         $nodesLength = $node->childNodes->length;
-        if ($nodesLength > 0) {
-            // If the provided node is a document node and the first element in
-            // the tree is a document type then print the document type. There's
-            // no sense in checking for this on every single element in the tree.
-            // If the document type is present it will always be the first node
-            // because of how PHP's XML DOM works.
-            $start = 0;
-            if ($node instanceof Document && $node->childNodes->item(0)->nodeType === XML_DOCUMENT_TYPE_NODE) {
+        # 4. For each child node of the node, in tree order, run the following steps:
+        ## 1. Let current node be the child node being processed.
+        foreach ($node->childNodes as $currentNode) {
+            if ($this->formatOutput) {
+                $blockElement = false;
+                $foreign = ($currentNode->namespaceURI !== null);
+                $modify = true;
+            }
+
+            # 2. Append the appropriate string from the following list to s:
+            # If current node is an Element
+            if ($currentNode instanceof Element) {
+                # If current node is an element in the HTML namespace, the MathML namespace, or
+                # the SVG namespace, then let tagname be current node's local name. Otherwise,
+                # let tagname be current node's qualified name.
+                $tagName = ($currentNode->namespaceURI === null || $currentNode->namespaceURI === Parser::MATHML_NAMESPACE || $currentNode->namespaceURI === Parser::SVG_NAMESPACE) ? $currentNode->localName : $currentNode->nodeName;
+
+                // Since tag names can contain characters that are invalid in PHP's XML DOM
+                // uncoerce the name when printing if necessary.
+                if (strpos($tagName, 'U') !== false) {
+                    $tagName = $this->uncoerceName($tagName);
+                }
+
+                if ($formatOutput) {
+                    if ($foreign && $foreignElement === null) {
+                        $foreignElement = $currentNode;
+                    }
+
+                    if (!$preformattedContent) {
+                        if (in_array($tagName, self::$preformattedElements)) {
+                            $preformattedContent = true;
+                            $preformattedElement = $currentNode;
+                            // The element itself should be indented, but the content itself will be left
+                            // alone when it is serialized.
+                            $modify = true;
+                        } elseif ($scriptContent) {
+                            $modify = true;
+                        } elseif (in_array($tagName, self::$scriptElements)) {
+                            $scriptContent = true;
+                            $scriptElement = $currentNode;
+                            $modify = true;
+                        }
+
+                        if (!$foreignElement && !$blockElement && in_array($tagName, self::$blockElements)) {
+                            $blockElement = true;
+                            $modify = true;
+                        }
+
+                        if (!$blockElement) {
+                            if (!$inlineWithBlockElementSiblings) {
+                                if ($currentNode->hasSiblingElementWithName(...self::$blockElements)) {
+                                    $inlineWithBlockElementSiblings = true;
+                                    $inlineWithBlockElementSiblingsParent = $currentNode->parentNode;
+                                    $modify = true;
+                                }
+                            } else {
+                                if ($inlineWithBlockElementSiblingsParent !== null && $currentNode->parentNode->isSameNode($inlineWithBlockElementSiblingsParent)) {
+                                    $modify = true;
+                                } elseif ($currentNode->hasSiblingElementWithName(...self::$blockElements)) {
+                                    $inlineWithBlockElementSiblings = true;
+                                    $inlineWithBlockElementSiblingsParent = $currentNode->parentNode;
+                                    $modify = true;
+                                } else {
+                                    $inlineWithBlockElementSiblings = false;
+                                    $inlineWithBlockElementSiblingsParent = null;
+                                }
+
+                                if (!$inlineWithBlockElementDescendants && $currentNode->hasDescendantWithName(...self::$blockElements)) {
+                                    $inlineWithBlockElementDescendants = true;
+                                    $inlineWithBlockElementDescendantsNode = $currentNode;
+                                    $modify = true;
+                                }
+
+                                if ($foreignAncestorWithBlockElementSiblings) {
+                                    $modify = true;
+                                } elseif ($foreign && $currentNode->isSameNode($foreignElement)) {
+                                    if ($inlineWithBlockElementSiblings) {
+                                        $foreignAncestorWithBlockElementSiblings = true;
+                                        $modify = true;
+                                    } elseif (in_array($currentNode->parentNode->nodeName, static::$blockElements)) {
+                                        $firstNonWhitespaceNode = null;
+                                        foreach ($currentNode->parentNode->childNodes as $child) {
+                                            if (!$child instanceof Text || strspn($child->data, Data::WHITESPACE) !== strlen($child->data)) {
+                                                $firstNonWhitespaceNode = $child;
+                                                break;
+                                            }
+                                        }
+
+                                        $lastNonWhitespaceNode = null;
+                                        for ($i = $currentNode->parentNode->childNodes->length - 1; $i >= 0; $i--) {
+                                            $child = $currentNode->parentNode->childNodes[$i];
+                                            if (!$child instanceof Text || strspn($child->data, Data::WHITESPACE) !== strlen($child->data)) {
+                                                $lastNonWhitespaceNode = $child;
+                                            }
+                                        }
+
+                                        if ($currentNode->isSameNode($firstNonWhitespaceNode) && $currentNode->isSameNode->lastNonWhitespaceNode) {
+                                            $foreignAncestorWithBlockElementSiblings = true;
+                                            $modify = true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if ($modify) {
+                        $s .= "\n" . str_repeat(' ', $indent);
+                    }
+                }
+
+                # Append a U+003C LESS-THAN SIGN character (<), followed by tagname.
+                $s .= "<$tagName";
+
+                # If current node's is value is not null, and the element does not have an is
+                # attribute in its attribute list, then append the string " is="", followed by
+                # current node's is value escaped as described below in attribute mode, followed
+                # by a U+0022 QUOTATION MARK character (").
+                // DEVIATION: There is no scripting support in this implementation.
+
+                # For each attribute that the element has, append a U+0020 SPACE character,
+                # the attribute’s serialized name as described below, a U+003D EQUALS SIGN
+                # character (=), a U+0022 QUOTATION MARK character ("), the attribute’s value,
+                # escaped as described below in attribute mode, and a second U+0022 QUOTATION
+                # MARK character (").
+                foreach ($currentNode->attributes as $attr) {
+                    # An attribute’s serialized name for the purposes of the previous paragraph
+                    # must be determined as follows:
+                    switch ($attr->namespaceURI) {
+                        # If the attribute has no namespace
+                        case null:
+                            # The attribute’s serialized name is the attribute’s local name.
+                            $name = $attr->localName;
+                        break;
+                        # If the attribute is in the XML namespace
+                        case Parser::XML_NAMESPACE:
+                            # The attribute’s serialized name is the string "xml:" followed by the
+                            # attribute’s local name.
+                            $name = 'xml:' . $attr->localName;
+                        break;
+                        # If the attribute is in the XMLNS namespace...
+                        case Parser::XMLNS_NAMESPACE:
+                            # ...and the attribute’s local name is xmlns
+                            if ($attr->localName === 'xmlns') {
+                                # The attribute’s serialized name is the string "xmlns".
+                                $name = 'xmlns';
+                            }
+                            # ... and the attribute’s local name is not xmlns
+                            else {
+                                # The attribute’s serialized name is the string "xmlns:" followed by the
+                                # attribute’s local name.
+                                $name = 'xmlns:' . $attr->localName;
+                            }
+                        break;
+                        # If the attribute is in the XLink namespace
+                        case Parser::XLINK_NAMESPACE:
+                            # The attribute’s serialized name is the string "xlink:" followed by the
+                            # attribute’s local name.
+                            $name = 'xlink:' . $attr->localName;
+                        break;
+                        # If the attribute is in some other namespace
+                        default:
+                            # The attribute’s serialized name is the attribute’s qualified name.
+                            $name = $attr->nodeName;
+                    }
+                    // undo any name mangling
+                    if (strpos($name, 'U') !== false) {
+                        $name = $this->uncoerceName($name);
+                    }
+                    $value = $this->escapeString($attr->value, true);
+                    $s .= " $name=\"$value\"";
+                }
+
+                # While the exact order of attributes is UA-defined, and may depend on factors
+                # such as the order that the attributes were given in the original markup, the
+                # sort order must be stable, such that consecutive invocations of this
+                # algorithm serialize an element’s attributes in the same order.
+                // Okay.
+
+                # Append a U+003E GREATER-THAN SIGN character (>).
+                // DEVIATION: Printing XML-based content such as SVG as if it's HTML might be
+                // practical when a browser is serializing, but it's not in this library's
+                // usage. So, if the element is foreign and doesn't contain any children close
+                // the element instead and continue on to the next child node.
+                if ($currentNode->namespaceURI === null || !$currentNode->hasChildNodes()) {
+                    $s .= '>';
+                } else {
+                    $s .= '/>';
+                    continue;
+                }
+
+                # If current node serializes as void, then continue on to the next child node at
+                # this point.
+                if (in_array($currentNode->nodeName, self::$voidElements)) {
+                    continue;
+                }
+
+                # Append the value of running the HTML fragment serialization algorithm on the
+                # current node element (thus recursing into this algorithm for that element),
+                # followed by a U+003C LESS-THAN SIGN character (<), a U+002F SOLIDUS character (/),
+                # tagname again, and finally a U+003E GREATER-THAN SIGN character (>).
+                $s .= $this->serializeFragment($currentNode, $formatOutput);
+                $s .= "</$tagName>";
+            }
+            # If current node is a Text node
+            elseif ($currentNode instanceof Text) {
+                $text = $currentNode->data;
+
+                if ($formatOutput && $preformattedElement !== null && $scriptElement !== null) {
+                    if ($foreignElement !== null || (in_array($currentNode->parentNode->nodeName, self::$blockElements) && $currentNode->hasSiblingElementWithName(self::$blockElements) && strspn($text, Data::WHITESPACE) !== strlen($text))) {
+                        continue;
+                    }
+
+                    $normalized = preg_replace([ '/[\n\r]/', '/(){2,}/' ], [ '', '$1' ], str_replace("\t", '    ', $text));
+                    if ($text === '') {
+                        continue;
+                    }
+
+                    $text = ($normalized !== $text) ? $normalized : $text;
+                }
+
+                # If the parent of current node is a style, script, xmp, iframe, noembed,
+                # noframes, or plaintext element, or if the parent of current node is a noscript
+                # element and scripting is enabled for the node, then append the value of
+                # current node’s data IDL attribute literally.
+                // DEVIATION: No scripting, so <noscript> is not included
+                if ($currentNode->parentNode->namespaceURI === null && in_array($currentNode->parentNode->nodeName, [ 'style', 'script', 'xmp', 'iframe', 'noembed', 'noframes', 'plaintext' ])) {
+                    $s .= $text;
+                }
+                # Otherwise, append the value of current node’s data IDL attribute, escaped as
+                # described below.
+                else {
+                    $s .= $this->escapeString($text);
+                }
+            }
+            # If current node is a Comment
+            elseif ($currentNode instanceof Comment) {
+                # Append the literal string "<!--" (U+003C LESS-THAN SIGN, U+0021 EXCLAMATION
+                # MARK, U+002D HYPHEN-MINUS, U+002D HYPHEN-MINUS), followed by the value of
+                # current node’s data IDL attribute, followed by the literal string "-->"
+                # (U+002D HYPHEN-MINUS, U+002D HYPHEN-MINUS, U+003E GREATER-THAN SIGN).
+                $s .= "<!--{$currentNode->data}-->";
+            }
+            # If current node is a ProcessingInstruction
+            elseif ($currentNode instanceof ProcessingInstruction) {
+                # Append the literal string "<?" (U+003C LESS-THAN SIGN, U+003F QUESTION MARK),
+                # followed by the value of current node’s target IDL attribute, followed by a
+                # single U+0020 SPACE character, followed by the value of current node’s data
+                # IDL attribute, followed by a single U+003E GREATER-THAN SIGN character (>).
+                $s .= "<?{$currentNode->target} {$currentNode->data}>";
+            }
+            # If current node is a DocumentFragment
+            elseif ($currentNode instanceof \DOMDocumentType) {
                 # Append the literal string "<!DOCTYPE" (U+003C LESS-THAN SIGN, U+0021
                 # EXCLAMATION MARK, U+0044 LATIN CAPITAL LETTER D, U+004F LATIN CAPITAL LETTER
                 # O, U+0043 LATIN CAPITAL LETTER C, U+0054 LATIN CAPITAL LETTER T, U+0059
@@ -299,145 +576,6 @@ class Document extends AbstractDocument {
                 //   accept the empty string as a DOCTYPE name
                 $name = trim($node->childNodes->item(0)->name, ' ');
                 $s .= "<!DOCTYPE $name>";
-                $start++;
-            }
-
-            # 4. For each child node of the node, in tree order, run the following steps:
-            for ($i = $start; $i < $nodesLength; $i++) {
-                # 1. Let current node be the child node being processed.
-                $currentNode = $node->childNodes->item($i);
-                # 2. Append the appropriate string from the following list to s:
-                # If current node is an Element
-                if ($node instanceof Element) {
-                    # If current node is an element in the HTML namespace, the MathML namespace, or
-                    # the SVG namespace, then let tagname be current node's local name. Otherwise,
-                    # let tagname be current node's qualified name.
-                    $tagName = ($currentNode->namespaceURI === null || $currentNode->namespaceURI === Parser::MATHML_NAMESPACE || $currentNode->namespaceURI === Parser::SVG_NAMESPACE) ? $currentNode->localName : $currentNode->nodeName;
-
-                    // Since tag names can contain characters that are invalid in PHP's XML DOM
-                    // uncoerce the name when printing if necessary.
-                    if (strpos($tagName, 'U') !== false) {
-                        $tagName = $currentNode->uncoerceName($tagName);
-                    }
-
-                    # Append a U+003C LESS-THAN SIGN character (<), followed by tagname.
-                    $s = "<$tagName";
-
-                    # If current node's is value is not null, and the element does not have an is
-                    # attribute in its attribute list, then append the string " is="", followed by
-                    # current node's is value escaped as described below in attribute mode, followed
-                    # by a U+0022 QUOTATION MARK character (").
-                    // DEVIATION: There is no scripting support in this implementation.
-
-                    # For each attribute that the element has, append a U+0020 SPACE character,
-                    # the attribute’s serialized name as described below, a U+003D EQUALS SIGN
-                    # character (=), a U+0022 QUOTATION MARK character ("), the attribute’s value,
-                    # escaped as described below in attribute mode, and a second U+0022 QUOTATION
-                    # MARK character (").
-                    for ($j = 0; $j < $currentNode->attributes->length; $j++) {
-                        $attr = $currentNode->attributes->item($j);
-
-                        # An attribute’s serialized name for the purposes of the previous paragraph
-                        # must be determined as follows:
-                        switch ($attr->namespaceURI) {
-                            # If the attribute has no namespace
-                            case null:
-                                # The attribute’s serialized name is the attribute’s local name.
-                                $name = $attr->localName;
-                            break;
-                            # If the attribute is in the XML namespace
-                            case Parser::XML_NAMESPACE:
-                                # The attribute’s serialized name is the string "xml:" followed by the
-                                # attribute’s local name.
-                                $name = 'xml:' . $attr->localName;
-                            break;
-                            # If the attribute is in the XMLNS namespace...
-                            case Parser::XMLNS_NAMESPACE:
-                                # ...and the attribute’s local name is xmlns
-                                if ($attr->localName === 'xmlns') {
-                                    # The attribute’s serialized name is the string "xmlns".
-                                    $name = 'xmlns';
-                                }
-                                # ... and the attribute’s local name is not xmlns
-                                else {
-                                    # The attribute’s serialized name is the string "xmlns:" followed by the
-                                    # attribute’s local name.
-                                    $name = 'xmlns:' . $attr->localName;
-                                }
-                            break;
-                            # If the attribute is in the XLink namespace
-                            case Parser::XLINK_NAMESPACE:
-                                # The attribute’s serialized name is the string "xlink:" followed by the
-                                # attribute’s local name.
-                                $name = 'xlink:' . $attr->localName;
-                            break;
-                            # If the attribute is in some other namespace
-                            default:
-                                # The attribute’s serialized name is the attribute’s qualified name.
-                                $name = $attr->nodeName;
-                        }
-                        // undo any name mangling
-                        if (strpos($name, 'U') !== false) {
-                            $name = $currentNode->uncoerceName($name);
-                        }
-                        $value = $currentNode->escapeString($attr->value, true);
-                        $s .= " $name=\"$value\"";
-                    }
-
-                    # While the exact order of attributes is UA-defined, and may depend on factors
-                    # such as the order that the attributes were given in the original markup, the
-                    # sort order must be stable, such that consecutive invocations of this
-                    # algorithm serialize an element’s attributes in the same order.
-                    // Okay.
-
-                    # Append a U+003E GREATER-THAN SIGN character (>).
-                    $s .= '>';
-
-                    # If current node serializes as void, then continue on to the next child node at
-                    # this point.
-                    if (in_array($currentNode->nodeName, self::$voidElements)) {
-                        continue;
-                    }
-
-                    # Append the value of running the HTML fragment serialization algorithm on the
-                    # current node element (thus recursing into this algorithm for that element),
-                    # followed by a U+003C LESS-THAN SIGN character (<), a U+002F SOLIDUS character (/),
-                    # tagname again, and finally a U+003E GREATER-THAN SIGN character (>).
-                    $s .= $this->serializeFragment($currentNode);
-                    $s .= "</$tagName>";
-                }
-                # If current node is a Text node
-                elseif ($node instanceof Text) {
-                    # If the parent of current node is a style, script, xmp, iframe, noembed,
-                    # noframes, or plaintext element, or if the parent of current node is a noscript
-                    # element and scripting is enabled for the node, then append the value of
-                    # current node’s data IDL attribute literally.
-                    // DEVIATION: No scripting, so <noscript> is not included
-                    if ($this->parentNode->namespaceURI === null && in_array($this->parentNode->nodeName, [ 'style', 'script', 'xmp', 'iframe', 'noembed', 'noframes', 'plaintext' ])) {
-                        $s .= $this->data;
-                    }
-                    # Otherwise, append the value of current node’s data IDL attribute, escaped as
-                    # described below.
-                    else {
-                        $s .= $this->escapeString($this->data);
-                    }
-                }
-                # If current node is a Comment
-                elseif ($node instanceof Comment) {
-                    # Append the literal string "<!--" (U+003C LESS-THAN SIGN, U+0021 EXCLAMATION
-                    # MARK, U+002D HYPHEN-MINUS, U+002D HYPHEN-MINUS), followed by the value of
-                    # current node’s data IDL attribute, followed by the literal string "-->"
-                    # (U+002D HYPHEN-MINUS, U+002D HYPHEN-MINUS, U+003E GREATER-THAN SIGN).
-                    $s .= "<!--{$this->data}-->";
-                }
-                # If current node is a ProcessingInstruction
-                elseif ($node instanceof ProcessingInstruction) {
-                    # Append the literal string "<?" (U+003C LESS-THAN SIGN, U+003F QUESTION MARK),
-                    # followed by the value of current node’s target IDL attribute, followed by a
-                    # single U+0020 SPACE character, followed by the value of current node’s data
-                    # IDL attribute, followed by a single U+003E GREATER-THAN SIGN character (>).
-                    $s .= "<?{$this->target} {$this->data}>";
-                }
             }
         }
 
@@ -446,11 +584,12 @@ class Document extends AbstractDocument {
     }
 
 
-    public function __destruct() {
-        ElementMap::destroy($this);
-    }
-
     public function __get(string $prop) {
+        $value = parent::__get($prop);
+        if ($value !== null) {
+            return $value;
+        }
+
         if ($prop === 'body') {
             if ($this->documentElement === null || $this->documentElement->childNodes->length === 0) {
                 return null;

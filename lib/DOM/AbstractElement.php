@@ -6,7 +6,7 @@
 declare(strict_types=1);
 namespace MensBeam\HTML;
 
-// Exists so Document can extend methods from its traits.
-abstract class AbstractDocument extends \DOMDocument {
-    use ContainerNode, EscapeString, Walk;
+// Exists so Element can extend methods from its traits.
+abstract class AbstractElement extends \DOMElement {
+    use ContainerNode, EscapeString, Moonwalk, ToString, Walk;
 }
