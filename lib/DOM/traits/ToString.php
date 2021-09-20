@@ -6,6 +6,8 @@
 declare(strict_types=1);
 namespace MensBeam\HTML;
 
-class DocumentFragment extends \DOMDocumentFragment {
-    use ContainerNode, Moonwalk, ToString, Walk;
+trait ToString {
+    public function __toString(): string {
+        return $this->ownerDocument->serialize($this);
+    }
 }

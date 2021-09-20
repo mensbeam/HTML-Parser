@@ -7,7 +7,7 @@ declare(strict_types=1);
 namespace MensBeam\HTML;
 
 class Element extends \DOMElement {
-    use ContainerNode, EscapeString, Moonwalk, Serialize, Walk;
+    use ContainerNode, EscapeString, Moonwalk, ToString, Walk;
 
     protected $_classList;
 
@@ -142,6 +142,11 @@ class Element extends \DOMElement {
         return $result;
     }
 
+    public function serialize(): string {
+        return $this->ownerDocument->serialize($this);
+    }
+
+
     public function __get(string $prop) {
         switch ($prop) {
             case 'classList':
@@ -163,7 +168,7 @@ class Element extends \DOMElement {
             # might throw an exception instead of returning a string).
             // DEVIATION: Parsing of XML documents will not be handled by this
             // implementation, so there's no need for the well-formed flag.
-            case 'innerHTML': 
+            case 'innerHTML':
                 return $this->serialize($this);
             ### DOM Parsing Specification ###
             # 2.4 Extensions to the Element interface
@@ -178,9 +183,9 @@ class Element extends \DOMElement {
             // OPTIMIZATION: When following the instructions above the fragment serializing
             // algorithm (Element::serialize) would invoke Element::__toString, so just
             // doing that instead of multiple function calls.
-            case 'outerHTML': 
+            case 'outerHTML':
                 return $this->__toString();
-            default: 
+            default:
                 return null;
         }
     }
@@ -283,110 +288,5 @@ class Element extends \DOMElement {
                 $this->parentNode->replaceChild($fragment, $this);
             break;
         }
-    }
-
-    public function __toString(): string {
-        # If current node is an element in the HTML namespace, the MathML namespace,
-        # or the SVG namespace, then let tagname be current node’s local name.
-        # Otherwise, let tagname be current node’s qualified name.
-        if ($this->namespaceURI === null || $this->namespaceURI === Parser::MATHML_NAMESPACE || $this->namespaceURI === Parser::SVG_NAMESPACE) {
-            $tagName = $this->localName;
-        } else {
-            $tagName = $this->nodeName;
-        }
-
-        // Since tag names can contain characters that are invalid in PHP's XML DOM
-        // uncoerce the name when printing if necessary.
-        if (strpos($tagName, 'U') !== false) {
-            $tagName = $this->uncoerceName($tagName);
-        }
-
-        # Append a U+003C LESS-THAN SIGN character (<), followed by tagname.
-        $s = "<$tagName";
-
-        # If current node's is value is not null, and the element does not have an is
-        # attribute in its attribute list, then append the string " is="", followed by
-        # current node's is value escaped as described below in attribute mode, followed
-        # by a U+0022 QUOTATION MARK character (").
-        // DEVIATION: There is no scripting support in this implementation.
-
-        # For each attribute that the element has, append a U+0020 SPACE character,
-        # the attribute’s serialized name as described below, a U+003D EQUALS SIGN
-        # character (=), a U+0022 QUOTATION MARK character ("), the attribute’s value,
-        # escaped as described below in attribute mode, and a second U+0022 QUOTATION
-        # MARK character (").
-        for ($j = 0; $j < $this->attributes->length; $j++) {
-            $attr = $this->attributes->item($j);
-
-            # An attribute’s serialized name for the purposes of the previous paragraph
-            # must be determined as follows:
-            switch ($attr->namespaceURI) {
-                # If the attribute has no namespace
-                case null:
-                    # The attribute’s serialized name is the attribute’s local name.
-                    $name = $attr->localName;
-                break;
-                # If the attribute is in the XML namespace
-                case Parser::XML_NAMESPACE:
-                    # The attribute’s serialized name is the string "xml:" followed by the
-                    # attribute’s local name.
-                    $name = 'xml:' . $attr->localName;
-                break;
-                # If the attribute is in the XMLNS namespace...
-                case Parser::XMLNS_NAMESPACE:
-                    # ...and the attribute’s local name is xmlns
-                    if ($attr->localName === 'xmlns') {
-                        # The attribute’s serialized name is the string "xmlns".
-                        $name = 'xmlns';
-                    }
-                    # ... and the attribute’s local name is not xmlns
-                    else {
-                        # The attribute’s serialized name is the string "xmlns:" followed by the
-                        # attribute’s local name.
-                        $name = 'xmlns:' . $attr->localName;
-                    }
-                break;
-                # If the attribute is in the XLink namespace
-                case Parser::XLINK_NAMESPACE:
-                    # The attribute’s serialized name is the string "xlink:" followed by the
-                    # attribute’s local name.
-                    $name = 'xlink:' . $attr->localName;
-                break;
-                # If the attribute is in some other namespace
-                default:
-                    # The attribute’s serialized name is the attribute’s qualified name.
-                    $name = $attr->nodeName;
-            }
-            // undo any name mangling
-            if (strpos($name, 'U') !== false) {
-                $name = $this->uncoerceName($name);
-            }
-            $value = $this->escapeString($attr->value, true);
-            $s .= " $name=\"$value\"";
-        }
-
-        # While the exact order of attributes is UA-defined, and may depend on factors
-        # such as the order that the attributes were given in the original markup, the
-        # sort order must be stable, such that consecutive invocations of this
-        # algorithm serialize an element’s attributes in the same order.
-        // Okay.
-
-        # Append a U+003E GREATER-THAN SIGN character (>).
-        $s .= '>';
-
-        # If current node serializes as void, then continue on to the next child node at
-        # this point.
-        if ($this->serializesAsVoid()) {
-            return $s;
-        }
-
-        # Append the value of running the HTML fragment serialization algorithm on the
-        # current node element (thus recursing into this algorithm for that element),
-        # followed by a U+003C LESS-THAN SIGN character (<), a U+002F SOLIDUS character (/),
-        # tagname again, and finally a U+003E GREATER-THAN SIGN character (>).
-        $s .= $this->serialize($this);
-        $s .= "</$tagName>";
-
-        return $s;
     }
 }

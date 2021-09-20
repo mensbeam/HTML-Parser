@@ -8,5 +8,5 @@ namespace MensBeam\HTML;
 
 // Exists so Document can extend a method gained from the ContainerNode trait.
 abstract class AbstractDocument extends \DOMDocument {
-    use ContainerNode, EscapeString, Serialize, Walk;
+    use ContainerNode, EscapeString, Walk;
 }
