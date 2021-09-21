@@ -36,20 +36,6 @@ class Element extends AbstractElement {
         return $value;
     }
 
-    /** Nonstandard */
-    public function isAncestorOf(\DOMNode $node): bool {
-        # An object A is called an ancestor of an object B if and only if B is a
-        # descendant of A.
-        // object A is $this, object B is $node
-        $tree = $this->walk(function($n) use($node) {
-            if ($n->isSameNode($node)) {
-                return true;
-            }
-        });
-
-        return ($tree->current() !== null);
-    }
-
     public function hasAttribute($name) {
         if (!parent::hasAttribute($name)) {
             foreach ($this->attributes as $a) {
@@ -60,82 +46,6 @@ class Element extends AbstractElement {
             return false;
         }
         return true;
-    }
-
-    /** Nonstandard */
-    public function hasDescendant(...$nodes): bool {
-        if ($this->childNodes->length === 0) {
-            return false;
-        }
-
-        $tree = $this->walk(function($descendant) use($nodes) {
-            foreach ($nodes as $n) {
-                if ($n->isSameNode($descendant)) {
-                    return true;
-                }
-            }
-        });
-
-        return ($tree->current() !== null);
-    }
-
-    /** Nonstandard */
-    public function hasDescendantElementWithName(...$nodeNames): bool {
-        if ($this->childNodes->length === 0) {
-            return false;
-        }
-
-        $tree = $this->walk(function($descendant) use($nodeNames) {
-            foreach ($nodeNames as $n) {
-                if ($n instanceof Element && $n->nodeName === $descendant->nodeName) {
-                    return true;
-                }
-            }
-        });
-
-        return ($tree->current() !== null);
-    }
-
-    /** Nonstandard */
-    public function hasSibling(\DOMNode ...$nodes): bool {
-        if ($this->parentNode === null) {
-            return false;
-        }
-
-        foreach ($this->parentNode->childNodes as $child) {
-            if ($child->isSameNode($this)) {
-                continue;
-            }
-
-            foreach ($nodes as $n) {
-                if ($n->isSameNode($child)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    /** Nonstandard */
-    public function hasSiblingElementWithName(string ...$nodeNames): bool {
-        if ($this->parentNode === null) {
-            return false;
-        }
-
-        foreach ($this->parentNode->childNodes as $child) {
-            if ($child->isSameNode($this)) {
-                continue;
-            }
-
-            foreach ($nodeNames as $n) {
-                if ($n instanceof Element && $n->nodeName === $child->nodeName) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
     }
 
     public function setAttribute($name, $value) {

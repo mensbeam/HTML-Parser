@@ -7,5 +7,5 @@ declare(strict_types=1);
 namespace MensBeam\HTML;
 
 class DocumentFragment extends \DOMDocumentFragment {
-    use ContainerNode, Moonwalk, ToString, Walk;
+    use ContainerNode, MoonwalkShallow, ToString, Walk, WalkShallow;
 }

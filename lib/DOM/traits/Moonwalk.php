@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace MensBeam\HTML;
 
 trait Moonwalk {
+    /** Generator which walks up the DOM. Nonstandard. */
     public function moonwalk(?\Closure $filter = null): \Generator {
         return $this->moonwalkGenerator($this, $filter);
     }

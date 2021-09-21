@@ -19,13 +19,13 @@ class Document extends AbstractDocument {
 
     protected $_body = null;
     // List of elements that are treated as block elements for the purposes of output formatting
-    protected static $blockElements = [ 'address', 'article', 'aside', 'blockquote', 'body', 'details', 'dialog', 'dd', 'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html', 'li', 'main', 'nav', 'ol', 'p', 'pre', 'section', 'script', 'source', 'style', 'table', 'template', 'td', 'tfoot', 'th', 'thead', 'tr', 'ul' ];
+    protected const BLOCK_ELEMENTS = [ 'address', 'article', 'aside', 'blockquote', 'base', 'body', 'details', 'dialog', 'dd', 'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hr', 'html', 'isindex', 'li', 'link', 'main', 'meta', 'nav', 'ol', 'p', 'pre', 'section', 'script', 'source', 'style', 'table', 'template', 'td', 'tfoot', 'th', 'thead', 'title', 'tr', 'ul' ];
     // List of preformatted elements where content is ignored when output formatting
-    protected static $preformattedElements = [ 'iframe', 'listing', 'noembed', 'noframes', 'plaintext', 'pre', 'textarea', 'title', 'xmp' ];
+    protected const PREFORMATTED_ELEMENTS = [ 'iframe', 'listing', 'noembed', 'noframes', 'plaintext', 'pre', 'textarea', 'title', 'xmp' ];
     // List of elements where content is ignored except to indent
-    protected static $scriptElements = [ 'script', 'style' ];
+    protected const SCRIPT_ELEMENTS = [ 'script', 'style' ];
     // List of elements which are self-closing; used when serializing
-    protected static $voidElements = [ 'area', 'base', 'basefont', 'bgsound', 'br', 'col', 'embed', 'frame', 'hr', 'img', 'input', 'keygen', 'link', 'meta', 'param', 'source', 'track', 'wbr' ];
+    protected const VOID_ELEMENTS = [ 'area', 'base', 'basefont', 'bgsound', 'br', 'col', 'embed', 'frame', 'hr', 'img', 'input', 'keygen', 'link', 'meta', 'param', 'source', 'track', 'wbr' ];
 
 
     public function __construct() {
@@ -282,23 +282,13 @@ class Document extends AbstractDocument {
 
     protected function serializeFragment(\DOMNode $node, bool $formatOutput = false): string {
         if ($formatOutput) {
-            static $foreignAncestorWithBlockElementSiblings = false;
-            static $foreignElement = null;
             static $indent = 0;
-            static $inlineWithBlockElementDescendants = false;
-            static $inlineWithBlockElementDescendantsNode = null;
-            static $inlineWithBlockElementSiblings = false;
-            static $inlineWithBlockElementSiblingsParent = null;
-            static $preformattedContent = false;
-            static $preformattedElement = null;
-            static $scriptContent = false;
-            static $scriptElement = null;
         }
 
         # 13.3. Serializing HTML fragments
         #
         # 1. If the node serializes as void, then return the empty string.
-        if (in_array($node->nodeName, self::$voidElements)) {
+        if (in_array($node->nodeName, self::VOID_ELEMENTS)) {
             return '';
         }
 
@@ -316,9 +306,7 @@ class Document extends AbstractDocument {
         ## 1. Let current node be the child node being processed.
         foreach ($node->childNodes as $currentNode) {
             if ($this->formatOutput) {
-                $blockElement = false;
-                $foreign = ($currentNode->namespaceURI !== null);
-                $modify = true;
+                $modify = false;
             }
 
             # 2. Append the appropriate string from the following list to s:
@@ -336,92 +324,20 @@ class Document extends AbstractDocument {
                 }
 
                 if ($formatOutput) {
-                    if ($foreign && $foreignElement === null) {
-                        $foreignElement = $currentNode;
-                    }
-
-                    if (!$preformattedContent) {
-                        if (in_array($tagName, self::$preformattedElements)) {
-                            $preformattedContent = true;
-                            $preformattedElement = $currentNode;
-                            // The element itself should be indented, but the content itself will be left
-                            // alone when it is serialized.
-                            $modify = true;
-                        } elseif ($scriptContent) {
-                            $modify = true;
-                        } elseif (in_array($tagName, self::$scriptElements)) {
-                            $scriptContent = true;
-                            $scriptElement = $currentNode;
-                            $modify = true;
+                    if (in_array($tagName, self::BLOCK_ELEMENTS) && $currentNode->parentNode !== null && $currentNode->parentNode->walkShallow(function($n) use ($currentNode) {
+                        if ($n->isSameNode($currentNode)) {
+                            return false;
                         }
 
-                        if (!$foreignElement && !$blockElement && in_array($tagName, self::$blockElements)) {
-                            $blockElement = true;
-                            $modify = true;
+                        if ($n instanceof Element && !in_array($n->nodeName, self::BLOCK_ELEMENTS)) {
+                            return true;
                         }
-
-                        if (!$blockElement) {
-                            if (!$inlineWithBlockElementSiblings) {
-                                if ($currentNode->hasSiblingElementWithName(...self::$blockElements)) {
-                                    $inlineWithBlockElementSiblings = true;
-                                    $inlineWithBlockElementSiblingsParent = $currentNode->parentNode;
-                                    $modify = true;
-                                }
-                            } else {
-                                if ($inlineWithBlockElementSiblingsParent !== null && $currentNode->parentNode->isSameNode($inlineWithBlockElementSiblingsParent)) {
-                                    $modify = true;
-                                } elseif ($currentNode->hasSiblingElementWithName(...self::$blockElements)) {
-                                    $inlineWithBlockElementSiblings = true;
-                                    $inlineWithBlockElementSiblingsParent = $currentNode->parentNode;
-                                    $modify = true;
-                                } else {
-                                    $inlineWithBlockElementSiblings = false;
-                                    $inlineWithBlockElementSiblingsParent = null;
-                                }
-
-                                if (!$inlineWithBlockElementDescendants && $currentNode->hasDescendantWithName(...self::$blockElements)) {
-                                    $inlineWithBlockElementDescendants = true;
-                                    $inlineWithBlockElementDescendantsNode = $currentNode;
-                                    $modify = true;
-                                }
-
-                                if ($foreignAncestorWithBlockElementSiblings) {
-                                    $modify = true;
-                                } elseif ($foreign && $currentNode->isSameNode($foreignElement)) {
-                                    if ($inlineWithBlockElementSiblings) {
-                                        $foreignAncestorWithBlockElementSiblings = true;
-                                        $modify = true;
-                                    } elseif (in_array($currentNode->parentNode->nodeName, static::$blockElements)) {
-                                        $firstNonWhitespaceNode = null;
-                                        foreach ($currentNode->parentNode->childNodes as $child) {
-                                            if (!$child instanceof Text || strspn($child->data, Data::WHITESPACE) !== strlen($child->data)) {
-                                                $firstNonWhitespaceNode = $child;
-                                                break;
-                                            }
-                                        }
-
-                                        $lastNonWhitespaceNode = null;
-                                        for ($i = $currentNode->parentNode->childNodes->length - 1; $i >= 0; $i--) {
-                                            $child = $currentNode->parentNode->childNodes[$i];
-                                            if (!$child instanceof Text || strspn($child->data, Data::WHITESPACE) !== strlen($child->data)) {
-                                                $lastNonWhitespaceNode = $child;
-                                            }
-                                        }
-
-                                        if ($currentNode->isSameNode($firstNonWhitespaceNode) && $currentNode->isSameNode->lastNonWhitespaceNode) {
-                                            $foreignAncestorWithBlockElementSiblings = true;
-                                            $modify = true;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if ($modify) {
+                    })->current() === null) {
                         $s .= "\n" . str_repeat(' ', $indent);
+                        $modify = true;
                     }
                 }
+
 
                 # Append a U+003C LESS-THAN SIGN character (<), followed by tagname.
                 $s .= "<$tagName";
@@ -505,8 +421,14 @@ class Document extends AbstractDocument {
 
                 # If current node serializes as void, then continue on to the next child node at
                 # this point.
-                if (in_array($currentNode->nodeName, self::$voidElements)) {
+                if (in_array($currentNode->nodeName, self::VOID_ELEMENTS)) {
                     continue;
+                }
+
+                // If formatting output and the element has already been modified increment the
+                // indention level
+                if ($formatOutput && $modify) {
+                    $indent++;
                 }
 
                 # Append the value of running the HTML fragment serialization algorithm on the
@@ -514,24 +436,31 @@ class Document extends AbstractDocument {
                 # followed by a U+003C LESS-THAN SIGN character (<), a U+002F SOLIDUS character (/),
                 # tagname again, and finally a U+003E GREATER-THAN SIGN character (>).
                 $s .= $this->serializeFragment($currentNode, $formatOutput);
+
+                if ($formatOutput && $modify) {
+                    // Decrement the indention level.
+                    $indent--;
+
+                    // If the current node has any block element children append a newline followed
+                    // by a number of spaces equal to the indention level.
+                    if ($currentNode->walkShallow(function($n) use($currentNode) {
+                        if ($n->isSameNode($currentNode)) {
+                            return false;
+                        }
+
+                        if ($n instanceof Element && in_array($n->nodeName, self::BLOCK_ELEMENTS)) {
+                            return true;
+                        }
+                    })->current() !== null) {
+                        $s .= "\n" . str_repeat(' ', $indent);
+                    }
+                }
+
                 $s .= "</$tagName>";
             }
             # If current node is a Text node
             elseif ($currentNode instanceof Text) {
                 $text = $currentNode->data;
-
-                if ($formatOutput && $preformattedElement !== null && $scriptElement !== null) {
-                    if ($foreignElement !== null || (in_array($currentNode->parentNode->nodeName, self::$blockElements) && $currentNode->hasSiblingElementWithName(self::$blockElements) && strspn($text, Data::WHITESPACE) !== strlen($text))) {
-                        continue;
-                    }
-
-                    $normalized = preg_replace([ '/[\n\r]/', '/(){2,}/' ], [ '', '$1' ], str_replace("\t", '    ', $text));
-                    if ($text === '') {
-                        continue;
-                    }
-
-                    $text = ($normalized !== $text) ? $normalized : $text;
-                }
 
                 # If the parent of current node is a style, script, xmp, iframe, noembed,
                 # noframes, or plaintext element, or if the parent of current node is a noscript
@@ -544,6 +473,46 @@ class Document extends AbstractDocument {
                 # Otherwise, append the value of current node’s data IDL attribute, escaped as
                 # described below.
                 else {
+                    // If formatting the output and the text node has neither a preformatted element
+                    // ancestor nor a script element ancestor (both for the purposes of formatting
+                    // serialized output)
+                    if ($formatOutput && $currentNode->moonWalk(function($n) {
+                        if (in_array($n->nodeName, self::PREFORMATTED_ELEMENTS) || in_array($n->nodeName, self::SCRIPT_ELEMENTS)) {
+                            return true;
+                        }
+                    })->current() === null) {
+                        // If the text node has a foreign element ancestor or the text node's parent is
+                        // a block element (for the purposes of formatting serialized output), the text
+                        // node has only block element siblings, and the text node's data itself is
+                        // entirely made up of whitespace then move onto the next node.
+                        if ($currentNode->moonWalk(function($n) {
+                            if ($n->namespaceURI !== null) {
+                                return true;
+                            }
+                        })->current() !== null || ($currentNode->parentNode !== null && in_array($currentNode->parentNode->nodeName, self::BLOCK_ELEMENTS) && $currentNode->parentNode->walkShallow(function($n) use($currentNode) {
+                            if ($n->isSameNode($currentNode)) {
+                                return false;
+                            }
+
+                            if ($n instanceof Element && !in_array($n->nodeName, self::BLOCK_ELEMENTS)) {
+                                return true;
+                            }
+                        })->current() === null && strspn($text, Data::WHITESPACE) === strlen($text))) {
+                            continue;
+                        }
+
+                        // Otherwise, if the text node's data normalizes into an empty string move onto
+                        // the next node.
+                        // Normalization here means that newlines are removed and simple spaces and tabs
+                        // are condensed a single space.
+                        $normalized = preg_replace([ '/[\n\x0C\x0D]+/', '/[ \t]+/' ], [ '', ' ' ], $text);
+                        if ($text === '') {
+                            continue;
+                        }
+
+                        $text = $normalized;
+                    }
+
                     $s .= $this->escapeString($text);
                 }
             }

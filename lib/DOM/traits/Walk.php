@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace MensBeam\HTML;
 
 trait Walk {
+    /** Generator which walks down the DOM. Nonstandard. */
     public function walk(?\Closure $filter = null): \Generator {
         return $this->walkGenerator($this, $filter);
     }
