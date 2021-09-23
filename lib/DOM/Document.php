@@ -21,6 +21,9 @@ class Document extends AbstractDocument {
     // List of elements that are treated as block elements for the purposes of
     // output formatting when serializing
     protected const BLOCK_ELEMENTS = [ 'address', 'article', 'aside', 'blockquote', 'base', 'body', 'details', 'dialog', 'dd', 'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hr', 'html', 'isindex', 'li', 'link', 'main', 'meta', 'nav', 'ol', 'p', 'picture', 'pre', 'section', 'script', 'source', 'style', 'table', 'template', 'td', 'tfoot', 'th', 'thead', 'title', 'tr', 'ul' ];
+    // List of h-elements used when determining extra spacing for the purposes of
+    // output formatting when serializing
+    protected const H_ELEMENTS = [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ];
     // List of preformatted elements where content is ignored for the purposes of
     // output formatting when serializing
     protected const PREFORMATTED_ELEMENTS = [ 'iframe', 'listing', 'noembed', 'noframes', 'noscript', 'plaintext', 'pre', 'style', 'script', 'textarea', 'title', 'xmp' ];
@@ -282,10 +285,17 @@ class Document extends AbstractDocument {
 
     protected function serializeFragment(\DOMNode $node, bool $formatOutput = false): string {
         if ($formatOutput) {
+            // Stores the root foreign element when parsing its descendants
             static $foreignElement = null;
+            // Flag used if the root foreign element above has block element siblings
             static $foreignElementWithBlockElementSiblings = false;
+            // Stores the indention level
             static $indent = 0;
+            // Stores the root preformatted element when parsing its descendants
             static $preformattedElement = null;
+            // Stores the previous non text node name so it can be used to check for adding
+            // additional space.
+            static $previousNonTextNodeSiblingName = null;
         }
 
         # 13.3. Serializing HTML fragments
@@ -311,14 +321,17 @@ class Document extends AbstractDocument {
             $foreign = ($currentNode->namespaceURI !== null);
 
             if ($this->formatOutput) {
+                // Filter meant to be used with DOM walker generator methods which checks if
+                // elements are block or if elements are inline with block descendants
                 $blockElementFilter = function($n) use ($currentNode) {
-                    if (!$n->isSameNode($currentNode) && $n instanceof Element && ($n->namespaceURI === null && in_array($n->nodeName, self::BLOCK_ELEMENTS))) {
+                    if (!$n->isSameNode($currentNode) && $n instanceof Element && $n->namespaceURI === null && (in_array($n->nodeName, self::BLOCK_ELEMENTS) || $n->walk(function($nn) {
+                        if ($nn instanceof Element && $nn->namespaceURI === null && in_array($nn->nodeName, self::BLOCK_ELEMENTS)) {
+                            return true;
+                        }
+                    })->current() !== null)) {
                         return true;
                     }
                 };
-
-                $blockElementOrForeignSiblings = false;
-                $modify = false;
             }
 
             # 2. Append the appropriate string from the following list to s:
@@ -337,6 +350,7 @@ class Document extends AbstractDocument {
 
                 if ($formatOutput) {
                     $hasChildNodes = ($currentNode->hasChildNodes());
+                    $modify = false;
 
                     if (!$foreign) {
                         if ($hasChildNodes && $preformattedElement === null && in_array($tagName, self::PREFORMATTED_ELEMENTS)) {
@@ -365,6 +379,12 @@ class Document extends AbstractDocument {
                     }
 
                     if ($modify) {
+                        // If the previous non text node sibling doesn't have the same name as the
+                        // current node and neither are h1-h6 elements then add an additional newline.
+                        if ($previousNonTextNodeSiblingName !== null && $previousNonTextNodeSiblingName !== $tagName && !(in_array($previousNonTextNodeSiblingName, self::H_ELEMENTS) && in_array($tagName, self::H_ELEMENTS))) {
+                            $s .= "\n";
+                        }
+
                         $s .= "\n" . str_repeat(' ', $indent);
                     }
                 }
@@ -438,6 +458,13 @@ class Document extends AbstractDocument {
                 # algorithm serialize an element’s attributes in the same order.
                 // Okay.
 
+                // When formatting output set the previous non text node sibling name to the
+                // current node name so void elements and empty foreign elements will be
+                // recognized by their next sibling.
+                if ($formatOutput) {
+                    $previousNonTextNodeSiblingName = $tagName;
+                }
+
                 # Append a U+003E GREATER-THAN SIGN character (>).
                 // DEVIATION: Printing XML-based content such as SVG as if it's HTML might be
                 // practical when a browser is serializing, but it's not in this library's
@@ -457,10 +484,16 @@ class Document extends AbstractDocument {
                     continue;
                 }
 
-                // If formatting output and the element has already been modified increment the
-                // indention level
-                if ($formatOutput && $modify) {
-                    $indent++;
+                if ($formatOutput) {
+                    // If formatting output set the previous non text node sibling to null before
+                    // serializing children.
+                    $previousNonTextNodeSiblingName = null;
+
+                    // If formatting output and the element has already been modified increment the
+                    // indention level
+                    if ($modify) {
+                        $indent++;
+                    }
                 }
 
                 # Append the value of running the HTML fragment serialization algorithm on the
@@ -490,6 +523,10 @@ class Document extends AbstractDocument {
                     } elseif ($preformattedElement !== null && $currentNode->isSameNode($preformattedElement)) {
                         $preformattedElement = null;
                     }
+
+                    // Set the previous text node sibling name to the current node's name so it may
+                    // be recognized by the following sibling.
+                    $previousNonTextNodeSiblingName = $tagName;
                 }
 
                 $s .= "</$tagName>";
@@ -510,6 +547,7 @@ class Document extends AbstractDocument {
                 else {
                     if ($formatOutput) {
                         if ($preformattedElement === null) {
+                            // Condense spaces and tabs into a single space.
                             $text = preg_replace('/ +/', ' ', str_replace("\t", '    ', $text));
                             if ($foreignElementWithBlockElementSiblings || $currentNode->parentNode->walk($blockElementFilter)->current() !== null) {
                                 // If the text node's data is made up of only whitespace characters continue
@@ -518,10 +556,8 @@ class Document extends AbstractDocument {
                                     continue;
                                 }
 
-                                // Otherwise, if the text node's data normalizes into an empty string move onto
-                                // the next node.
-                                // Normalization here means that newlines are removed and simple spaces and tabs
-                                // are condensed a single space.
+                                // Otherwise, remove newlines from the text node's data; if that causes the data
+                                // to be empty then continue onto the next node.
                                 $text = preg_replace('/[\n\x0C\x0D]+/', '', $text);
                                 if ($text === '') {
                                     continue;
@@ -535,8 +571,16 @@ class Document extends AbstractDocument {
             }
             # If current node is a Comment
             elseif ($currentNode instanceof Comment) {
-                if ($formatOutput && $preformattedElement === null && $foreignElementWithBlockElementSiblings || $currentNode->parentNode->walk($blockElementFilter)->current() !== null) {
-                    $s .= "\n" . str_repeat(' ', $indent);
+                if ($formatOutput) {
+                    // Add an additional newline if the previous sibling wasn't a comment.
+                    if ($previousNonTextNodeSiblingName !== null && $previousNonTextNodeSiblingName !== $this->nodeName) {
+                        $s .= "\n";
+                    }
+                    $previousNonTextNodeSiblingName = $this->nodeName;
+
+                    if ($preformattedElement === null && $foreignElementWithBlockElementSiblings || $currentNode->parentNode->walk($blockElementFilter)->current() !== null) {
+                        $s .= "\n" . str_repeat(' ', $indent);
+                    }
                 }
 
                 # Append the literal string "<!--" (U+003C LESS-THAN SIGN, U+0021 EXCLAMATION
@@ -547,8 +591,17 @@ class Document extends AbstractDocument {
             }
             # If current node is a ProcessingInstruction
             elseif ($currentNode instanceof ProcessingInstruction) {
-                if ($formatOutput && $preformattedElement === null && $foreignElementWithBlockElementSiblings || $currentNode->parentNode->walk($blockElementFilter)->current() !== null) {
-                    $s .= "\n" . str_repeat(' ', $indent);
+                if ($formatOutput) {
+                    // Add an additional newline if the previous sibling wasn't a processing
+                    // instruction.
+                    if ($previousNonTextNodeSiblingName !== null && $previousNonTextNodeSiblingName !== $this->nodeName) {
+                        $s .= "\n";
+                    }
+                    $previousNonTextNodeSiblingName = $this->nodeName;
+
+                    if ($preformattedElement === null && $foreignElementWithBlockElementSiblings || $currentNode->parentNode->walk($blockElementFilter)->current() !== null) {
+                        $s .= "\n" . str_repeat(' ', $indent);
+                    }
                 }
 
                 # Append the literal string "<?" (U+003C LESS-THAN SIGN, U+003F QUESTION MARK),
