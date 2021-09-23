@@ -283,6 +283,20 @@ class Document extends AbstractDocument {
         }
     }
 
+    protected function serializeBlockElementFilter(\DOMNode $ignoredNode): \Closure {
+        $blockElementFilter = function($n) use ($ignoredNode) {
+            if (!$n->isSameNode($ignoredNode) && $n instanceof Element && $n->namespaceURI === null && (in_array($n->nodeName, self::BLOCK_ELEMENTS) || $n->walk(function($nn) {
+                if ($nn instanceof Element && $nn->namespaceURI === null && in_array($nn->nodeName, self::BLOCK_ELEMENTS)) {
+                    return true;
+                }
+            })->current() !== null)) {
+                return true;
+            }
+        };
+
+        return $blockElementFilter;
+    }
+
     protected function serializeFragment(\DOMNode $node, bool $formatOutput = false): string {
         if ($formatOutput) {
             // Stores the root foreign element when parsing its descendants
@@ -323,15 +337,7 @@ class Document extends AbstractDocument {
             if ($this->formatOutput) {
                 // Filter meant to be used with DOM walker generator methods which checks if
                 // elements are block or if elements are inline with block descendants
-                $blockElementFilter = function($n) use ($currentNode) {
-                    if (!$n->isSameNode($currentNode) && $n instanceof Element && $n->namespaceURI === null && (in_array($n->nodeName, self::BLOCK_ELEMENTS) || $n->walk(function($nn) {
-                        if ($nn instanceof Element && $nn->namespaceURI === null && in_array($nn->nodeName, self::BLOCK_ELEMENTS)) {
-                            return true;
-                        }
-                    })->current() !== null)) {
-                        return true;
-                    }
-                };
+                $blockElementFilter = self::serializeBlockElementFilter($currentNode->parentNode);
             }
 
             # 2. Append the appropriate string from the following list to s:
@@ -349,6 +355,7 @@ class Document extends AbstractDocument {
                 }
 
                 if ($formatOutput) {
+                    $blockElementFilter = self::serializeBlockElementFilter($currentNode);
                     $hasChildNodes = ($currentNode->hasChildNodes());
                     $modify = false;
 
@@ -572,15 +579,16 @@ class Document extends AbstractDocument {
             # If current node is a Comment
             elseif ($currentNode instanceof Comment) {
                 if ($formatOutput) {
-                    // Add an additional newline if the previous sibling wasn't a comment.
-                    if ($previousNonTextNodeSiblingName !== null && $previousNonTextNodeSiblingName !== $this->nodeName) {
-                        $s .= "\n";
-                    }
-                    $previousNonTextNodeSiblingName = $this->nodeName;
-
                     if ($preformattedElement === null && $foreignElementWithBlockElementSiblings || $currentNode->parentNode->walk($blockElementFilter)->current() !== null) {
+                        // Add an additional newline if the previous sibling wasn't a comment.
+                        if ($previousNonTextNodeSiblingName !== null && $previousNonTextNodeSiblingName !== $this->nodeName) {
+                            $s .= "\n";
+                        }
+
                         $s .= "\n" . str_repeat(' ', $indent);
                     }
+
+                    $previousNonTextNodeSiblingName = $this->nodeName;
                 }
 
                 # Append the literal string "<!--" (U+003C LESS-THAN SIGN, U+0021 EXCLAMATION
@@ -592,16 +600,17 @@ class Document extends AbstractDocument {
             # If current node is a ProcessingInstruction
             elseif ($currentNode instanceof ProcessingInstruction) {
                 if ($formatOutput) {
-                    // Add an additional newline if the previous sibling wasn't a processing
-                    // instruction.
-                    if ($previousNonTextNodeSiblingName !== null && $previousNonTextNodeSiblingName !== $this->nodeName) {
-                        $s .= "\n";
-                    }
-                    $previousNonTextNodeSiblingName = $this->nodeName;
-
                     if ($preformattedElement === null && $foreignElementWithBlockElementSiblings || $currentNode->parentNode->walk($blockElementFilter)->current() !== null) {
+                        // Add an additional newline if the previous sibling wasn't a processing
+                        // instruction.
+                        if ($previousNonTextNodeSiblingName !== null && $previousNonTextNodeSiblingName !== $this->nodeName) {
+                            $s .= "\n";
+                        }
+
                         $s .= "\n" . str_repeat(' ', $indent);
                     }
+
+                    $previousNonTextNodeSiblingName = $this->nodeName;
                 }
 
                 # Append the literal string "<?" (U+003C LESS-THAN SIGN, U+003F QUESTION MARK),
