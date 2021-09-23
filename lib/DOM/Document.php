@@ -20,7 +20,7 @@ class Document extends AbstractDocument {
     protected $_body = null;
     // List of elements that are treated as block elements for the purposes of
     // output formatting when serializing
-    protected const BLOCK_ELEMENTS = [ 'address', 'article', 'aside', 'blockquote', 'base', 'body', 'details', 'dialog', 'dd', 'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hr', 'html', 'isindex', 'li', 'link', 'main', 'meta', 'nav', 'ol', 'p', 'pre', 'section', 'script', 'source', 'style', 'table', 'template', 'td', 'tfoot', 'th', 'thead', 'title', 'tr', 'ul' ];
+    protected const BLOCK_ELEMENTS = [ 'address', 'article', 'aside', 'blockquote', 'base', 'body', 'details', 'dialog', 'dd', 'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hr', 'html', 'isindex', 'li', 'link', 'main', 'meta', 'nav', 'ol', 'p', 'picture', 'pre', 'section', 'script', 'source', 'style', 'table', 'template', 'td', 'tfoot', 'th', 'thead', 'title', 'tr', 'ul' ];
     // List of preformatted elements where content is ignored for the purposes of
     // output formatting when serializing
     protected const PREFORMATTED_ELEMENTS = [ 'iframe', 'listing', 'noembed', 'noframes', 'noscript', 'plaintext', 'pre', 'style', 'script', 'textarea', 'title', 'xmp' ];
@@ -317,12 +317,6 @@ class Document extends AbstractDocument {
                     }
                 };
 
-                $blockElementOrForeignFilter = function($n) use ($currentNode) {
-                    if (!$n->isSameNode($currentNode) && $n instanceof Element && ($n->namespaceURI !== null || in_array($n->nodeName, self::BLOCK_ELEMENTS))) {
-                        return true;
-                    }
-                };
-
                 $blockElementOrForeignSiblings = false;
                 $modify = false;
             }
@@ -369,36 +363,6 @@ class Document extends AbstractDocument {
                             $modify = true;
                         }
                     }
-
-                    /*if ($foreignElement === null && $foreign) {
-                        if ($hasChildNodes) {
-                            $foreignElement = $currentNode;
-
-                            $children = $currentNode->parentNode->walkShallow($blockElementOrForeignFilter);
-                            $blockChild = false;
-                            foreach ($children as $child) {
-                                if ($child->namespaceURI === null) {
-                                    $blockChild = true;
-                                    break;
-                                }
-                            }
-
-                            if ($blockChild) {
-                                $blockElementOrForeignSiblings = true;
-                                $foreignElementWithBlockElementSiblings = true;
-                                $modify = true;
-                            }
-                        }
-                    }
-
-                    elseif ($foreignElement !== null && $foreign && $foreignElementWithBlockElementSiblings) {
-                        $modify = true;
-                    }
-
-                    elseif ($currentNode->parentNode !== null && in_array($tagName, self::BLOCK_ELEMENTS) && (($currentNode->previousElementSibling === null && $currentNode->nextElementSibling === null) || $currentNode->parentNode->walkShallow($blockElementOrForeignFilter)->current() !== null)) {
-                        $blockElementOrForeignSiblings = true;
-                        $modify = true;
-                    }*/
 
                     if ($modify) {
                         $s .= "\n" . str_repeat(' ', $indent);
@@ -514,7 +478,7 @@ class Document extends AbstractDocument {
                             // If a foreign element with a foreign element ancestor with block element
                             // siblings and has at least one element child or any element with a block
                             // element descendant...
-                            if (($foreign && $foreignElementWithBlockElementSiblings && $currentNode->firstElementChild !== null) || ($hasChildNodes && $currentNode->walk($blockElementFilter)->current() !== null)) {
+                            if (($foreign && $foreignElementWithBlockElementSiblings && $currentNode->firstElementChild !== null) || ($currentNode->walk($blockElementFilter)->current() !== null)) {
                                 $s .= "\n" . str_repeat(' ', $indent);
                             }
                         }
@@ -538,7 +502,7 @@ class Document extends AbstractDocument {
                 # noframes, or plaintext element, or if the parent of current node is a noscript
                 # element and scripting is enabled for the node, then append the value of
                 # current node’s data IDL attribute literally.
-                if ($currentNode->parentNode->namespaceURI === null && in_array($currentNode->parentNode->nodeName, [ 'style', 'script', 'xmp', 'iframe', 'noembed', 'noframes', 'noscript', 'plaintext' ])) {
+                if ($currentNode->parentNode->namespaceURI === null && in_array($currentNode->parentNode->nodeName, [ 'style', 'script', 'xmp', 'iframe', 'noembed', 'noframes', 'plaintext' ])) {
                     $s .= $text;
                 }
                 # Otherwise, append the value of current node’s data IDL attribute, escaped as
@@ -546,24 +510,8 @@ class Document extends AbstractDocument {
                 else {
                     if ($formatOutput) {
                         if ($preformattedElement === null) {
-                            if ($foreignElement !== null) {
-                                $modify = true;
-                            } elseif ($currentNode->parentNode instanceof Element && in_array($currentNode->parentNode->nodeName, self::BLOCK_ELEMENTS)) {
-                                $children = $currentNode->parentNode->walkShallow($blockElementOrForeignFilter);
-                                $blockChild = false;
-                                foreach ($children as $child) {
-                                    if ($child->namespaceURI === null) {
-                                        $blockChild = true;
-                                        break;
-                                    }
-                                }
-
-                                if ($blockChild) {
-                                    $modify = true;
-                                }
-                            }
-
-                            if ($modify) {
+                            $text = preg_replace('/ +/', ' ', str_replace("\t", '    ', $text));
+                            if ($foreignElementWithBlockElementSiblings || $currentNode->parentNode->walk($blockElementFilter)->current() !== null) {
                                 // If the text node's data is made up of only whitespace characters continue
                                 // onto the next node
                                 if (strspn($text, Data::WHITESPACE) === strlen($text)) {
@@ -574,7 +522,7 @@ class Document extends AbstractDocument {
                                 // the next node.
                                 // Normalization here means that newlines are removed and simple spaces and tabs
                                 // are condensed a single space.
-                                $text = preg_replace([ '/[\n\x0C\x0D]+/', '/[ \t]+/' ], [ '', ' ' ], $text);
+                                $text = preg_replace('/[\n\x0C\x0D]+/', '', $text);
                                 if ($text === '') {
                                     continue;
                                 }
@@ -587,39 +535,22 @@ class Document extends AbstractDocument {
             }
             # If current node is a Comment
             elseif ($currentNode instanceof Comment) {
-                if ($formatOutput) {
-                    $children = $currentNode->parentNode->walkShallow($blockElementOrForeignFilter);
-                    $blockChild = false;
-                    foreach ($children as $child) {
-                        if ($child->namespaceURI === null) {
-                            $blockChild = true;
-                            break;
-                        }
-                    }
-
-                    $text = trim($currentNode->data);
-
-                    if ($blockChild) {
-                        $indention = str_repeat(' ', $indent);
-                        $s .= "\n$indention<!--";
-                        if (strpos($text, "\n") === false) {
-                            $s .= " $text -->";
-                        } else {
-                            $s .= "\n$indention " . str_replace("\n", "\n$indention ", $text) . "\n$indention-->";
-                        }
-                    } else {
-                        $s .= "<!-- $text -->";
-                    }
-                } else {
-                    # Append the literal string "<!--" (U+003C LESS-THAN SIGN, U+0021 EXCLAMATION
-                    # MARK, U+002D HYPHEN-MINUS, U+002D HYPHEN-MINUS), followed by the value of
-                    # current node’s data IDL attribute, followed by the literal string "-->"
-                    # (U+002D HYPHEN-MINUS, U+002D HYPHEN-MINUS, U+003E GREATER-THAN SIGN).
-                    $s .= "<!--{$currentNode->data}-->";
+                if ($formatOutput && $preformattedElement === null && $foreignElementWithBlockElementSiblings || $currentNode->parentNode->walk($blockElementFilter)->current() !== null) {
+                    $s .= "\n" . str_repeat(' ', $indent);
                 }
+
+                # Append the literal string "<!--" (U+003C LESS-THAN SIGN, U+0021 EXCLAMATION
+                # MARK, U+002D HYPHEN-MINUS, U+002D HYPHEN-MINUS), followed by the value of
+                # current node’s data IDL attribute, followed by the literal string "-->"
+                # (U+002D HYPHEN-MINUS, U+002D HYPHEN-MINUS, U+003E GREATER-THAN SIGN).
+                $s .= "<!--{$currentNode->data}-->";
             }
             # If current node is a ProcessingInstruction
             elseif ($currentNode instanceof ProcessingInstruction) {
+                if ($formatOutput && $preformattedElement === null && $foreignElementWithBlockElementSiblings || $currentNode->parentNode->walk($blockElementFilter)->current() !== null) {
+                    $s .= "\n" . str_repeat(' ', $indent);
+                }
+
                 # Append the literal string "<?" (U+003C LESS-THAN SIGN, U+003F QUESTION MARK),
                 # followed by the value of current node’s target IDL attribute, followed by a
                 # single U+0020 SPACE character, followed by the value of current node’s data

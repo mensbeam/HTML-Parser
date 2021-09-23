@@ -1,7 +1,8 @@
 <?php
 /** @license MIT
- * Copyright 2017 , Dustin Wilson, J. King et al.
- * See LICENSE and AUTHORS files for details */
+ * Copyright 2017 Dustin Wilson, J. King et al.
+ * See LICENSE and AUTHORS files for details
+ */
 
 declare(strict_types=1);
 namespace MensBeam\HTML;
@@ -40,6 +41,12 @@ class ElementMap {
         }
 
         return false;
+    }
+
+    public static function getIterator(): \Traversable {
+        foreach (self::$_storage as $v) {
+            yield $v;
+        }
     }
 
     public static function has(Element $element) {

@@ -14,13 +14,13 @@ trait MoonwalkShallow {
      * @param ?\Closure $filter - An optional closure to use to filter
      */
     public function moonwalkShallow(?\Closure $filter = null): \Generator {
-        if ($this->hasChildNodes()) {
-            $childNodesLength = $this->childNodes->length;
-            for ($childNodesLength = $this->childNodes->length, $i = $childNodesLength - 1; $i >= 0; $i--) {
-                $child = $this->childNodes[$i];
-                if ($filter === null || $filter($child)) {
-                    yield $child;
-                }
+        $node = (!$this instanceof TemplateElement) ? $this : $this->content;
+
+        $childNodesLength = $node->childNodes->length;
+        for ($childNodesLength = $node->childNodes->length, $i = $childNodesLength - 1; $i >= 0; $i--) {
+            $child = $node->childNodes[$i];
+            if ($filter === null || $filter($child)) {
+                yield $child;
             }
         }
     }

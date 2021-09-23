@@ -17,6 +17,10 @@ trait Walk {
             yield $node;
         }
 
+        if ($node instanceof TemplateElement) {
+            $node = $node->content;
+        }
+
         if ($node->hasChildNodes()) {
             $children = $node->childNodes;
             foreach ($children as $c) {

@@ -13,7 +13,9 @@ trait WalkShallow {
      * @param ?\Closure $filter - An optional closure to use to filter
      */
     public function walkShallow(?\Closure $filter = null): \Generator {
-        foreach ($this->childNodes as $child) {
+        $node = (!$this instanceof TemplateElement) ? $this : $this->content;
+
+        foreach ($node->childNodes as $child) {
             if ($filter === null || $filter($child)) {
                 yield $child;
             }
