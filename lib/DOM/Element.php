@@ -6,8 +6,191 @@
 declare(strict_types=1);
 namespace MensBeam\HTML;
 
-class Element extends AbstractElement {
+class Element extends \DOMElement {
+    use ContainerNode, DocumentOrElement, EscapeString, MagicProperties, Moonwalk, MoonwalkShallow, ToString, Walk, WalkShallow;
+
     protected $_classList;
+
+
+    public function __get_classList(): ?TokenList {
+        // MensBeam\HTML\TokenList uses WeakReference to prevent a circular reference,
+        // so it requires PHP 7.4 to work.
+        if (version_compare(\PHP_VERSION, '7.4.0', '>=')) {
+            // Only create the class list if it is actually used.
+            if ($this->_classList === null) {
+                $this->_classList = new TokenList($this, 'class');
+            }
+            return $this->_classList;
+        }
+        return null; // @codeCoverageIgnore
+    }
+
+    public function __get_innerHTML(): string {
+        ### DOM Parsing Specification ###
+        # 2.3 The InnerHTML mixin
+        #
+        # On getting, return the result of invoking the fragment serializing algorithm
+        # on the context object providing true for the require well-formed flag (this
+        # might throw an exception instead of returning a string).
+        // DEVIATION: Parsing of XML documents will not be handled by this
+        // implementation, so there's no need for the well-formed flag.
+        return $this->ownerDocument->serialize($this);
+    }
+
+    public function __set_innerHTML(string $value) {
+        ### DOM Parsing Specification ###
+        # 2.3 The InnerHTML mixin
+        #
+        # On setting, these steps must be run:
+        # 1. Let context element be the context object's host if the context object is a
+        # ShadowRoot object, or the context object otherwise.
+        // DEVIATION: There is no scripting in this implementation.
+
+        # 2. Let fragment be the result of invoking the fragment parsing algorithm with
+        # the new value as markup, and with context element.
+        $fragment = Parser::parseFragment($value, $this->ownerDocument, 'UTF-8', $this);
+
+        # 3. If the context object is a template element, then let context object be the
+        # template's template contents (a DocumentFragment).
+        if ($this->nodeName === 'template') {
+            $this->content = $fragment;
+        }
+        # 4. Replace all with fragment within the context object.
+        else {
+            # To replace all with a node within a parent, run these steps:
+            #
+            # 1. Let removedNodes be parent’s children.
+            // DEVIATION: removedNodes is used below for scripting. There is no scripting in
+            // this implementation.
+
+            # 2. Let addedNodes be parent’s children.
+            // DEVIATION: addedNodes is used below for scripting. There is no scripting in
+            // this implementation.
+
+            # 3. If node is a DocumentFragment node, then set addedNodes to node’s
+            # children.
+
+            // DEVIATION: Again, there is no scripting in this implementation.
+            # 4. Otherwise, if node is non-null, set addedNodes to « node ».
+            // DEVIATION: Yet again, there is no scripting in this implementation.
+
+            # 5. Remove all parent’s children, in tree order, with the suppress observers
+            # flag set.
+            // DEVIATION: There are no observers to suppress as there is no scripting in
+            // this implementation.
+            while ($this->hasChildNodes()) {
+                $this->removeChild($this->firstChild);
+            }
+
+            # 6. Otherwise, if node is non-null, set addedNodes to « node ».
+            # If node is non-null, then insert node into parent before null with the
+            # suppress observers flag set.
+            // DEVIATION: Yet again, there is no scripting in this implementation.
+
+            # 7. If either addedNodes or removedNodes is not empty, then queue a tree
+            # mutation record for parent with addedNodes, removedNodes, null, and null.
+            // DEVIATION: Normally the tree mutation record would do the actual replacement,
+            // but there is no scripting in this implementation. Going to simply append the
+            // fragment instead.
+            $this->appendChild($fragment);
+        }
+    }
+
+    public function __get_nextElementSibling(): Element {
+        # The nextElementSibling getter steps are to return the first following sibling
+        # that is an element; otherwise null.
+        if ($this->parentNode !== null) {
+            $start = false;
+            foreach ($this->parentNode->childNodes as $child) {
+                if (!$start) {
+                    if ($child->isSameNode($this)) {
+                        $start = true;
+                    }
+
+                    continue;
+                }
+
+                if (!$child instanceof Element) {
+                    continue;
+                }
+
+                return $child;
+            }
+        }
+
+        return null;
+    }
+
+    public function __get_outerHTML(): string {
+        ### DOM Parsing Specification ###
+        # 2.4 Extensions to the Element interface
+        # outerHTML
+        #
+        # On getting, return the result of invoking the fragment serializing algorithm
+        # on a fictional node whose only child is the context object providing true for
+        # the require well-formed flag (this might throw an exception instead of
+        # returning a string).
+        // DEVIATION: Parsing of XML documents will not be handled by this
+        // implementation, so there's no need for the well-formed flag.
+        return $this->__toString();
+    }
+
+    public function __set_outerHTML(string $value) {
+        ### DOM Parsing Specification ###
+        # 2.4 Extensions to the Element interface
+        # outerHTML
+        #
+        # On setting, the following steps must be run:
+        # 1. Let parent be the context object's parent.
+        $parent = $this->parentNode;
+
+        # 2. If parent is null, terminate these steps. There would be no way to obtain a
+        # reference to the nodes created even if the remaining steps were run.
+        // The spec is unclear here as to what to do. What do you return? Most browsers
+        // throw an exception here, so that's what we're going to do.
+        if ($parent === null) {
+            throw new DOMException(DOMException::OUTER_HTML_FAILED_NOPARENT);
+        }
+        # 3. If parent is a Document, throw a "NoModificationAllowedError" DOMException.
+        elseif ($parent instanceof Document) {
+            throw new DOMException(DOMException::NO_MODIFICATION_ALLOWED);
+        }
+        # 4. parent is a DocumentFragment, let parent be a new Element with:
+        # • body as its local name,
+        # • The HTML namespace as its namespace, and
+        # • The context object's node document as its node document.
+        elseif ($parent instanceof DocumentFragment) {
+            $parent = $this->ownerDocument->createElement('body');
+        }
+
+        # 5. Let fragment be the result of invoking the fragment parsing algorithm with
+        # the new value as markup, and parent as the context element.
+        $fragment = Parser::parseFragment($value, $this->ownerDocument, 'UTF-8', $parent);
+
+        # 6. Replace the context object with fragment within the context object's
+        # parent.
+        $this->parentNode->replaceChild($fragment, $this);
+    }
+
+    public function __get_previousElementSibling(): Element {
+        # The previousElementSibling getter steps are to return the first preceding
+        # sibling that is an element; otherwise null.
+        if ($this->parentNode !== null) {
+            foreach ($this->parentNode->childNodes as $child) {
+                if ($child->isSameNode($this)) {
+                    return null;
+                }
+
+                if (!$child instanceof Element) {
+                    continue;
+                }
+
+                return $child;
+            }
+        }
+
+        return null;
+    }
 
 
     public function getAttribute($name) {
@@ -126,201 +309,5 @@ class Element extends AbstractElement {
             $this->setIdAttribute($attribute->name, true);
         }
         return $result;
-    }
-
-    public function serialize(): string {
-        return $this->ownerDocument->serialize($this);
-    }
-
-
-    public function __get(string $prop) {
-        $value = parent::__get($prop);
-        if ($value !== null) {
-            return $value;
-        }
-
-        switch ($prop) {
-            case 'classList':
-                // MensBeam\HTML\TokenList uses WeakReference to prevent a circular reference,
-                // so it requires PHP 7.4 to work.
-                if (version_compare(\PHP_VERSION, '7.4.0', '>=')) {
-                    // Only create the class list if it is actually used.
-                    if ($this->_classList === null) {
-                        $this->_classList = new TokenList($this, 'class');
-                    }
-                    return $this->_classList;
-                }
-                return null; // @codeCoverageIgnore
-
-            ### DOM Parsing Specification ###
-            # 2.3 The InnerHTML mixin
-            #
-            # On getting, return the result of invoking the fragment serializing algorithm
-            # on the context object providing true for the require well-formed flag (this
-            # might throw an exception instead of returning a string).
-            // DEVIATION: Parsing of XML documents will not be handled by this
-            // implementation, so there's no need for the well-formed flag.
-            case 'innerHTML':
-                return $this->serialize($this);
-
-            case 'nextElementSibling':
-                # The nextElementSibling getter steps are to return the first following sibling
-                # that is an element; otherwise null.
-                if ($this->parentNode !== null) {
-                    $start = false;
-                    foreach ($this->parentNode->childNodes as $child) {
-                        if (!$start) {
-                            if ($child->isSameNode($this)) {
-                                $start = true;
-                            }
-
-                            continue;
-                        }
-
-                        if (!$child instanceof Element) {
-                            continue;
-                        }
-
-                        return $child;
-                    }
-                }
-
-                return null;
-
-            ### DOM Parsing Specification ###
-            # 2.4 Extensions to the Element interface
-            # outerHTML
-            #
-            # On getting, return the result of invoking the fragment serializing algorithm
-            # on a fictional node whose only child is the context object providing true for
-            # the require well-formed flag (this might throw an exception instead of
-            # returning a string).
-            // DEVIATION: Parsing of XML documents will not be handled by this
-            // implementation, so there's no need for the well-formed flag.
-            case 'outerHTML':
-                return $this->__toString();
-
-            case 'previousElementSibling':
-                # The previousElementSibling getter steps are to return the first preceding
-                # sibling that is an element; otherwise null.
-                if ($this->parentNode !== null) {
-                    foreach ($this->parentNode->childNodes as $child) {
-                        if ($child->isSameNode($this)) {
-                            return null;
-                        }
-
-                        if (!$child instanceof Element) {
-                            continue;
-                        }
-
-                        return $child;
-                    }
-                }
-
-                return null;
-
-            default:
-                return null;
-        }
-    }
-
-    public function __set(string $prop, $value) {
-        switch ($prop) {
-            case 'innerHTML':
-                ### DOM Parsing Specification ###
-                # 2.3 The InnerHTML mixin
-                #
-                # On setting, these steps must be run:
-                # 1. Let context element be the context object's host if the context object is a
-                # ShadowRoot object, or the context object otherwise.
-                // DEVIATION: There is no scripting in this implementation.
-
-                # 2. Let fragment be the result of invoking the fragment parsing algorithm with
-                # the new value as markup, and with context element.
-                $fragment = Parser::parseFragment($value, $this->ownerDocument, 'UTF-8', $this);
-
-                # 3. If the context object is a template element, then let context object be the
-                # template's template contents (a DocumentFragment).
-                if ($this->nodeName === 'template') {
-                    $this->content = $fragment;
-                }
-                # 4. Replace all with fragment within the context object.
-                else {
-                    # To replace all with a node within a parent, run these steps:
-                    #
-                    # 1. Let removedNodes be parent’s children.
-                    // DEVIATION: removedNodes is used below for scripting. There is no scripting in
-                    // this implementation.
-
-                    # 2. Let addedNodes be parent’s children.
-                    // DEVIATION: addedNodes is used below for scripting. There is no scripting in
-                    // this implementation.
-
-                    # 3. If node is a DocumentFragment node, then set addedNodes to node’s
-                    # children.
-
-                    // DEVIATION: Again, there is no scripting in this implementation.
-                    # 4. Otherwise, if node is non-null, set addedNodes to « node ».
-                    // DEVIATION: Yet again, there is no scripting in this implementation.
-
-                    # 5. Remove all parent’s children, in tree order, with the suppress observers
-                    # flag set.
-                    // DEVIATION: There are no observers to suppress as there is no scripting in
-                    // this implementation.
-                    while ($this->hasChildNodes()) {
-                        $this->removeChild($this->firstChild);
-                    }
-
-                    # 6. Otherwise, if node is non-null, set addedNodes to « node ».
-                    # If node is non-null, then insert node into parent before null with the
-                    # suppress observers flag set.
-                    // DEVIATION: Yet again, there is no scripting in this implementation.
-
-                    # 7. If either addedNodes or removedNodes is not empty, then queue a tree
-                    # mutation record for parent with addedNodes, removedNodes, null, and null.
-                    // DEVIATION: Normally the tree mutation record would do the actual replacement,
-                    // but there is no scripting in this implementation. Going to simply append the
-                    // fragment instead.
-                    $this->appendChild($fragment);
-                }
-            break;
-
-            case 'outerHTML':
-                ### DOM Parsing Specification ###
-                # 2.4 Extensions to the Element interface
-                # outerHTML
-                #
-                # On setting, the following steps must be run:
-                # 1. Let parent be the context object's parent.
-                $parent = $this->parentNode;
-
-                # 2. If parent is null, terminate these steps. There would be no way to obtain a
-                # reference to the nodes created even if the remaining steps were run.
-                // The spec is unclear here as to what to do. What do you return? Most browsers
-                // throw an exception here, so that's what we're going to do.
-                if ($parent === null) {
-                    throw new DOMException(DOMException::OUTER_HTML_FAILED_NOPARENT);
-                }
-                # 3. If parent is a Document, throw a "NoModificationAllowedError" DOMException.
-                elseif ($parent instanceof Document) {
-                    throw new DOMException(DOMException::NO_MODIFICATION_ALLOWED);
-                }
-                # 4. parent is a DocumentFragment, let parent be a new Element with:
-                # • body as its local name,
-                # • The HTML namespace as its namespace, and
-                # • The context object's node document as its node document.
-                elseif ($parent instanceof DocumentFragment) {
-                    $parent = $this->ownerDocument->createElement('body');
-                }
-
-                # 5. Let fragment be the result of invoking the fragment parsing algorithm with
-                # the new value as markup, and parent as the context element.
-                $fragment = Parser::parseFragment($value, $this->ownerDocument, 'UTF-8', $parent);
-
-                # 6. Replace the context object with fragment within the context object's
-                # parent.
-                $this->parentNode->replaceChild($fragment, $this);
-            break;
-        }
     }
 }

@@ -12,6 +12,45 @@ namespace MensBeam\HTML;
 trait ContainerNode {
     use Node;
 
+
+    public function __get_childElementCount(): int {
+        # The childElementCount getter steps are to return the number of children of
+        # this that are elements.
+        $count = 0;
+        foreach ($this->childNodes as $child) {
+            if ($child instanceof Element) {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
+    public function __get_firstElementChild(): Element {
+        # The firstElementChild getter steps are to return the first child that is an
+        # element; otherwise null.
+        foreach ($this->childNodes as $child) {
+            if ($child instanceof Element) {
+                return $child;
+            }
+        }
+        return null;
+    }
+
+    public function __get_lastElementChild(): Element {
+        # The lastElementChild getter steps are to return the last child that is an
+        # element; otherwise null.
+        for ($i = $this->childNodes->length - 1; $i >= 0; $i--) {
+            $child = $this->childNodes->item($i);
+            if ($child instanceof Element) {
+                return $child;
+            }
+        }
+
+        return null;
+    }
+
+
     public function appendChild($node) {
         $this->preInsertionValidity($node);
 
@@ -99,47 +138,5 @@ trait ContainerNode {
         # 6. If parent is a document, and any of the statements below, switched on node,
         # are true, then throw a "HierarchyRequestError" DOMException.
         // Handled by the Document class.
-    }
-
-
-    public function __get(string $prop) {
-        switch ($prop) {
-            case 'childElementCount':
-                # The childElementCount getter steps are to return the number of children of
-                # this that are elements.
-                $count = 0;
-                foreach ($this->childNodes as $child) {
-                    if ($child instanceof Element) {
-                        $count++;
-                    }
-                }
-
-                return $count;
-
-            case 'firstElementChild':
-                # The firstElementChild getter steps are to return the first child that is an
-                # element; otherwise null.
-                foreach ($this->childNodes as $child) {
-                    if ($child instanceof Element) {
-                        return $child;
-                    }
-                }
-                return null;
-
-            case 'lastElementChild':
-                # The lastElementChild getter steps are to return the last child that is an
-                # element; otherwise null.
-                for ($i = $this->childNodes->length - 1; $i >= 0; $i--) {
-                    $child = $this->childNodes->item($i);
-                    if ($child instanceof Element) {
-                        return $child;
-                    }
-                }
-
-                return null;
-
-            default:
-                return null;
-        }
     }
 }

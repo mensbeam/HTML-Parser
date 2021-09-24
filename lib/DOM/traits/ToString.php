@@ -8,6 +8,8 @@ namespace MensBeam\HTML;
 
 trait ToString {
     public function __toString(): string {
-        return $this->ownerDocument->serialize($this);
+        $frag = $this->createDocumentFragment();
+        $frag->appendChild($this->cloneNode(true));
+        return $this->ownerDocument->serialize($frag);
     }
 }

@@ -12,6 +12,7 @@ namespace MensBeam\HTML;
 trait LeafNode {
     use Node;
 
+
     public function appendChild($node) {
         throw new DOMException(DOMException::HIERARCHY_REQUEST_ERROR);
     }

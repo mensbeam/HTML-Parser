@@ -7,6 +7,8 @@ declare(strict_types=1);
 namespace MensBeam\HTML;
 
 class TokenList implements \ArrayAccess, \Countable, \Iterator {
+    use MagicProperties;
+
     protected $localName;
     protected $element;
 
@@ -17,6 +19,21 @@ class TokenList implements \ArrayAccess, \Countable, \Iterator {
     protected $tokenSet = [];
 
     private const ASCII_WHITESPACE_REGEX = '/[\t\n\x0c\r ]+/';
+
+
+    public function __get_length(): int {
+        return $this->_length;
+    }
+
+    public function __get_value(): string {
+        return $this->__toString();
+    }
+
+    public function __set_value(string $value) {
+        $this->tokenSet = $this->parseOrderedSet($value);
+        $this->_length = count($this->tokenSet);
+    }
+
 
     public function __construct(\DOMElement $element, string $attributeLocalName) {
         # A DOMTokenList object also has an associated element and an attribute’s local
@@ -232,6 +249,7 @@ class TokenList implements \ArrayAccess, \Countable, \Iterator {
         return array_key_exists($this->position, $this->tokenSet);
     }
 
+
     protected function attributeChange(string $localName, ?string $oldValue = null, ?string $value = null, ?string $namespace = null) {
         # A DOMTokenList object has these attribute change steps for its associated
         # element:
@@ -290,21 +308,6 @@ class TokenList implements \ArrayAccess, \Countable, \Iterator {
         $element->setAttributeNode($class);
     }
 
-    public function __get(string $prop) {
-        switch ($prop) {
-            case 'length': return $this->_length;
-            break;
-            case 'value': return $this->__toString();
-            break;
-        }
-    }
-
-    public function __set(string $prop, $value) {
-        if ($prop === 'value') {
-            $this->tokenSet = $this->parseOrderedSet($value);
-            $this->_length = count($this->tokenSet);
-        }
-    }
 
     public function __toString(): string {
         # The ordered set serializer takes a set and returns the concatenation of set
