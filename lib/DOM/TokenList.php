@@ -263,13 +263,13 @@ class TokenList implements \ArrayAccess, \Countable, \Iterator {
         # The ordered set parser takes a string input and then runs these steps:
         #
         # 1. Let inputTokens be the result of splitting input on ASCII whitespace.
-        // There isn't a Set in php, so make sure all the tokens are unique.
+        // There isn't a Set object in php, so make sure all the tokens are unique.
         $inputTokens = array_unique(preg_split(Data::WHITESPACE_REGEX, $input));
 
         # 2. Let tokens be a new ordered set.
         # 3. For each token in inputTokens, append token to tokens.
         # 4. Return tokens.
-        // There isn't a Set in php, so just return the uniqued input tokens.
+        // There isn't a Set object in php, so just return the uniqued input tokens.
         return $inputTokens;
     }
 

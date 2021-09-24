@@ -18,6 +18,8 @@ class Document extends AbstractDocument {
     public $quirksMode = self::NO_QUIRKS_MODE;
 
     protected $_body = null;
+    protected $_xpath;
+
     // List of elements that are treated as block elements for the purposes of
     // output formatting when serializing
     protected const BLOCK_ELEMENTS = [ 'address', 'article', 'aside', 'blockquote', 'base', 'body', 'details', 'dialog', 'dd', 'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hr', 'html', 'isindex', 'li', 'link', 'main', 'meta', 'nav', 'ol', 'p', 'picture', 'pre', 'section', 'script', 'source', 'style', 'table', 'template', 'td', 'tfoot', 'th', 'thead', 'title', 'tr', 'ul' ];
@@ -31,7 +33,7 @@ class Document extends AbstractDocument {
     protected const VOID_ELEMENTS = [ 'area', 'base', 'basefont', 'bgsound', 'br', 'col', 'embed', 'frame', 'hr', 'img', 'input', 'keygen', 'link', 'meta', 'param', 'source', 'track', 'wbr' ];
 
 
-    public function __construct() {
+    public function __construct(?string $source = null, ?string $encodingOrContentType = null) {
         parent::__construct();
 
         $this->registerNodeClass('DOMComment', '\MensBeam\HTML\Comment');
@@ -39,6 +41,12 @@ class Document extends AbstractDocument {
         $this->registerNodeClass('DOMElement', '\MensBeam\HTML\Element');
         $this->registerNodeClass('DOMProcessingInstruction', '\MensBeam\HTML\ProcessingInstruction');
         $this->registerNodeClass('DOMText', '\MensBeam\HTML\Text');
+
+        $this->_xpath = new \DOMXPath($this);
+
+        if ($source !== null) {
+            $this->loadHTML($source, null, $encodingOrContentType);
+        }
     }
 
 
@@ -677,6 +685,8 @@ class Document extends AbstractDocument {
 
             $this->_body = null;
             return null;
+        } elseif ($prop === 'xpath') {
+            return $this->_xpath;
         }
     }
 

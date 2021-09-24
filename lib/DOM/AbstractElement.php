@@ -8,5 +8,5 @@ namespace MensBeam\HTML;
 
 // Exists so Element can extend methods from its traits.
 abstract class AbstractElement extends \DOMElement {
-    use ContainerNode, EscapeString, Moonwalk, MoonwalkShallow, ToString, Walk, WalkShallow;
+    use ContainerNode, DocumentOrElement, EscapeString, Moonwalk, MoonwalkShallow, ToString, Walk, WalkShallow;
 }
