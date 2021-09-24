@@ -24,7 +24,7 @@ trait DocumentOrElement {
         $inputTokens = ($classNames !== '') ? array_unique(preg_split(Data::WHITESPACE_REGEX, $classNames)) : [];
 
         $isDocument = ($this instanceof Document);
-        $root = ($isDocument) ? $this : $this->ownerDocument;
+        $document = ($isDocument) ? $this : $this->ownerDocument;
 
         ## 2. Let tokens be a new ordered set.
         ## 3. For each token in inputTokens, append token to tokens.
@@ -34,8 +34,8 @@ trait DocumentOrElement {
         # 2. If classes is the empty set, return an empty HTMLCollection.
         // DEVIATION: We can't do that, so let's create a bogus Xpath query instead.
         if ($inputTokens === []) {
-            $ook = $root->createElement('ook');
-            $query = $root->xpath->query('//eek', $ook);
+            $ook = $document->createElement('ook');
+            $query = $document->xpath->query('//eek', $ook);
             unset($ook);
             return $query;
         }
@@ -52,6 +52,6 @@ trait DocumentOrElement {
             $query .= "[@class=\"$token\"]";
         }
 
-        return ($isDocument) ? $root->xpath->query($query) : $root->xpath->query($query, $this);
+        return ($isDocument) ? $document->xpath->query($query) : $document->xpath->query($query, $this);
     }
 }
