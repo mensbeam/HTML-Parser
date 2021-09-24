@@ -17,8 +17,8 @@ class Document extends AbstractDocument {
     public $mangledElements = false;
     public $quirksMode = self::NO_QUIRKS_MODE;
 
-    protected $_body = null;
-    protected $_xpath;
+    protected ?Element $_body = null;
+    protected ?\DOMXPath $_xpath = null;
 
     // List of elements that are treated as block elements for the purposes of
     // output formatting when serializing
@@ -41,8 +41,6 @@ class Document extends AbstractDocument {
         $this->registerNodeClass('DOMElement', '\MensBeam\HTML\Element');
         $this->registerNodeClass('DOMProcessingInstruction', '\MensBeam\HTML\ProcessingInstruction');
         $this->registerNodeClass('DOMText', '\MensBeam\HTML\Text');
-
-        $this->_xpath = new \DOMXPath($this);
 
         if ($source !== null) {
             $this->loadHTML($source, null, $encodingOrContentType);
@@ -686,6 +684,9 @@ class Document extends AbstractDocument {
             $this->_body = null;
             return null;
         } elseif ($prop === 'xpath') {
+            if ($this->_xpath === null) {
+                $this->_xpath = new \DOMXPath($this);
+            }
             return $this->_xpath;
         }
     }
