@@ -26,30 +26,6 @@ trait ContainerNode {
         return $count;
     }
 
-    public function __get_firstElementChild(): Element {
-        # The firstElementChild getter steps are to return the first child that is an
-        # element; otherwise null.
-        foreach ($this->childNodes as $child) {
-            if ($child instanceof Element) {
-                return $child;
-            }
-        }
-        return null;
-    }
-
-    public function __get_lastElementChild(): Element {
-        # The lastElementChild getter steps are to return the last child that is an
-        # element; otherwise null.
-        for ($i = $this->childNodes->length - 1; $i >= 0; $i--) {
-            $child = $this->childNodes->item($i);
-            if ($child instanceof Element) {
-                return $child;
-            }
-        }
-
-        return null;
-    }
-
 
     public function appendChild($node) {
         $this->preInsertionValidity($node);
