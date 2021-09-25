@@ -30,7 +30,7 @@ class Parser {
         self::XMLNS_NAMESPACE  => "xmlns",
     ];
 
-    public static function parse(string $data, ?\DOMDocument $document = null, ?string $encodingOrContentType = null, ?\DOMElement $fragmentContext = null, ?String $file = null): Document {
+    public static function parse(string $data, ?\DOMDocument $document = null, ?string $encodingOrContentType = null, ?\DOMElement $fragmentContext = null, ?String $file = null): \DOMDocument {
         // Initialize the various classes needed for parsing
         $document = $document ?? new \DOMDocument;
         if ((error_reporting() & \E_USER_WARNING)) {
