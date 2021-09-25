@@ -89,27 +89,22 @@ class OpenElementsStack extends Stack {
         ],
     ];
 
-    /** @var ?\MensBeam\HTML\Element */
+    /** @var ?\DOMElement */
     protected $fragmentContext = null;
-    /** @var ?\MensBeam\HTML\Element */
+    /** @var ?\DOMElement */
     public $currentNode = null;
     /** @var ?string */
     public $currentNodeName = null;
     /** @var ?string */
     public $currentNodeNamespace = null;
-    /** @var ?\MensBeam\HTML\Element */
+    /** @var ?\DOMElement */
     public $adjustedCurrentNode = null;
     /** @var ?string */
     public $adjustedCurrentNodeName = null;
     /** @var ?string */
     public $adjustedCurrentNodeNamespace = null;
 
-    public function __construct(?Element $fragmentContext = null) {
-        // If the fragment context is not null and is not a document fragment, document,
-        // or element then we have a problem. Additionally, if the parser is created for
-        // parsing a fragment and the fragment context is null then we have a problem,
-        // too.
-        assert($fragmentContext === null || $fragmentContext instanceof \DOMDocumentFragment || $fragmentContext instanceof \DOMDocument || $fragmentContext instanceof \DOMElement,new Exception(Exception::STACK_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED));
+    public function __construct(?\DOMElement $fragmentContext = null) {
         $this->fragmentContext = $fragmentContext;
     }
 
@@ -136,7 +131,7 @@ class OpenElementsStack extends Stack {
         $this->computeProperties();
     }
 
-    public function insert(Element $element, ?int $at = null): void  {
+    public function insert(\DOMElement $element, ?int $at = null): void  {
         assert($at === null || ($at >= 0 && $at <= count($this->_storage)), new Exception(Exception::STACK_INVALID_INDEX, $at));
         if ($at === null) {
             $this[] = $element; // @codeCoverageIgnore
@@ -154,7 +149,7 @@ class OpenElementsStack extends Stack {
         $this->computeProperties();
     }
 
-    public function popUntilSame(Element $target): void {
+    public function popUntilSame(\DOMElement $target): void {
         do {
             $node = array_pop($this->_storage);
         } while (!$node->isSameNode($target));
@@ -179,7 +174,7 @@ class OpenElementsStack extends Stack {
         return -1;
     }
 
-    public function findSame(Element $target): int {
+    public function findSame(\DOMElement $target): int {
         for ($k = (sizeof($this->_storage) - 1); $k > -1; $k--) {
             if ($this->_storage[$k]->isSameNode($target)) {
                 return $k;
@@ -188,7 +183,7 @@ class OpenElementsStack extends Stack {
         return -1;
     }
 
-    public function removeSame(Element $target): void {
+    public function removeSame(\DOMElement $target): void {
         $pos = $this->findSame($target);
         if ($pos > -1) {
             unset($this[$pos]);
@@ -313,7 +308,7 @@ class OpenElementsStack extends Stack {
         foreach ($this as $node) {
             # If node is the target node, terminate in a match state.
             foreach ($targets as $target) {
-                if ($target instanceof Element) {
+                if ($target instanceof \DOMElement) {
                     if ($node->isSameNode($target)) {
                         return true;
                     }

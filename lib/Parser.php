@@ -9,15 +9,19 @@ namespace MensBeam\HTML;
 class Parser {
     public static $fallbackEncoding = "windows-1252";
 
-    // Namespace constants
-    const HTML_NAMESPACE = 'http://www.w3.org/1999/xhtml';
-    const MATHML_NAMESPACE = 'http://www.w3.org/1998/Math/MathML';
-    const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
-    const XLINK_NAMESPACE = 'http://www.w3.org/1999/xlink';
-    const XML_NAMESPACE = 'http://www.w3.org/XML/1998/namespace';
-    const XMLNS_NAMESPACE = 'http://www.w3.org/2000/xmlns/';
+    public const NO_QUIRKS_MODE = 0;
+    public const QUIRKS_MODE = 1;
+    public const LIMITED_QUIRKS_MODE = 2;
 
-    const NAMESPACE_MAP = [
+    // Namespace constants
+    public const HTML_NAMESPACE = 'http://www.w3.org/1999/xhtml';
+    public const MATHML_NAMESPACE = 'http://www.w3.org/1998/Math/MathML';
+    public const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
+    public const XLINK_NAMESPACE = 'http://www.w3.org/1999/xlink';
+    public const XML_NAMESPACE = 'http://www.w3.org/XML/1998/namespace';
+    public const XMLNS_NAMESPACE = 'http://www.w3.org/2000/xmlns/';
+
+    public const NAMESPACE_MAP = [
         self::HTML_NAMESPACE   => "",
         self::MATHML_NAMESPACE => "math",
         self::SVG_NAMESPACE    => "svg",
@@ -26,9 +30,9 @@ class Parser {
         self::XMLNS_NAMESPACE  => "xmlns",
     ];
 
-    public static function parse(string $data, ?Document $document = null, ?string $encodingOrContentType = null, ?\DOMElement $fragmentContext = null, ?String $file = null): Document {
+    public static function parse(string $data, ?\DOMDocument $document = null, ?string $encodingOrContentType = null, ?\DOMElement $fragmentContext = null, ?String $file = null): Document {
         // Initialize the various classes needed for parsing
-        $document = $document ?? new Document;
+        $document = $document ?? new \DOMDocument;
         if ((error_reporting() & \E_USER_WARNING)) {
             $errorHandler = new ParseError;
         } else {
@@ -52,10 +56,10 @@ class Parser {
         return $document;
     }
 
-    public static function parseFragment(string $data, ?Document $document = null, ?string $encodingOrContentType = null, ?\DOMElement $fragmentContext = null, ?String $file = null): DocumentFragment {
+    public static function parseFragment(string $data, ?\DOMDocument $document = null, ?string $encodingOrContentType = null, ?\DOMElement $fragmentContext = null, ?String $file = null): DocumentFragment {
         // Create the requisite parsing context if none was supplied
-        $document = $document ?? new Document;
-        $tempDocument = new Document;
+        $document = $document ?? new \DOMDocument;
+        $tempDocument = new \DOMDocument;
         $fragmentContext = $fragmentContext ?? $document->createElement("div");
         // parse the fragment into the temporary document
         self::parse($data, $tempDocument, $encodingOrContentType, $fragmentContext, $file);

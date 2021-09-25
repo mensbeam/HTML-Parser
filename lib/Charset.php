@@ -10,7 +10,7 @@ use MensBeam\Intl\Encoding;
 use MensBeam\Mime\MimeType;
 
 abstract class Charset {
-    /** Finds a Unicode byte order mark by a byte stream 
+    /** Finds a Unicode byte order mark in a byte stream 
      * and returns the detected encoding, if any */
     public static function fromBOM(string $data): ?string {
         if (substr($data, 0, 3) === "\u{FEFF}") {

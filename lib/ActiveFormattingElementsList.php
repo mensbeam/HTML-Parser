@@ -30,7 +30,7 @@ class ActiveFormattingElementsList extends Stack {
             && isset($value['token'])
             && isset($value['element'])
             && $value['token'] instanceof StartTagToken
-            && $value['element'] instanceof Element
+            && $value['element'] instanceof \DOMElement
         ), new Exception(Exception::STACK_INVALID_VALUE));
         if ($value instanceof ActiveFormattingElementsMarker) {
             $this->_storage[$offset ?? $count] = $value;
@@ -69,7 +69,7 @@ class ActiveFormattingElementsList extends Stack {
         $this->count = count($this->_storage);
     }
 
-    protected function matchElement(Element $a, Element $b): bool {
+    protected function matchElement(\DOMElement $a, \DOMElement $b): bool {
         // Compare elements as part of pushing an element onto the stack
         # 1. If there are already three elements in the list of active formatting
         #   elements after the last marker, if any, or anywhere in the list if there are
@@ -96,7 +96,7 @@ class ActiveFormattingElementsList extends Stack {
         return true;
     }
 
-    public function insert(StartTagToken $token, Element $element, ?int $at = null): void  {
+    public function insert(StartTagToken $token, \DOMElement $element, ?int $at = null): void  {
         assert($at === null || ($at >= 0 && $at <= $this->count), new Exception(Exception::STACK_INVALID_INDEX, $at));
         if ($at === null) {
             $this[] = [
@@ -134,7 +134,7 @@ class ActiveFormattingElementsList extends Stack {
         $this->count = count($this->_storage);
     }
 
-    public function findSame(Element $target): int {
+    public function findSame(\DOMElement $target): int {
         foreach ($this as $k => $entry) {
             if (!$entry instanceof ActiveFormattingElementsMarker && $entry['element']->isSameNode($target)) {
                 return $k;
@@ -155,7 +155,7 @@ class ActiveFormattingElementsList extends Stack {
         return -1;
     }
 
-    public function removeSame(Element $target): void {
+    public function removeSame(\DOMElement $target): void {
         $pos = $this->findSame($target);
         if ($pos > -1) {
             unset($this[$pos]);
@@ -180,4 +180,5 @@ class ActiveFormattingElementsList extends Stack {
     }
 }
 
-class ActiveFormattingElementsMarker {}
+class ActiveFormattingElementsMarker {
+}

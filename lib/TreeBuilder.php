@@ -7,13 +7,13 @@ declare(strict_types=1);
 namespace MensBeam\HTML;
 
 class TreeBuilder {
-    use ParseErrorEmitter, EscapeString;
+    use ParseErrorEmitter, NameCoercion;
 
     public $debugLog = "";
 
     /** @var \MensBeam\HTML\ActiveFormattingElementsList The list of active formatting elements, used when elements are improperly nested */
     protected $activeFormattingElementsList;
-    /** @var \MensBeam\HTML\Document The DOMDocument that is assembled by this class */
+    /** @var \DOMDocument The DOMDocument that is assembled by this class */
     protected $DOM;
     /** @var ?\DOMElement The form element pointer points to the last form element that was opened and whose end tag has not yet been seen. It is used to make form controls associate with forms in the face of dramatically bad markup, for historical reasons. It is ignored inside template elements */
     protected $formElement;
@@ -39,6 +39,12 @@ class TreeBuilder {
     protected $templateInsertionModes;
     /** @var array An array holding character tokens which may need to be foster-parented during table parsing */
     protected $pendingTableCharacterTokens = [];
+    /** @var bool Flag used to track whether name mangling has been performed for elements; this is a minor optimization */
+    protected $mangledElements = false;
+    /** @var bool Flag used to track whether name mangling has been performed for attributes; this is a minor optimization */
+    protected $mangledAttributes = false;
+    /** @var int The quirks-mode setting of the document being parsed */
+    protected $quirksMode = Parser::NO_QUIRKS_MODE;
 
     // Constants used for insertion modes
     protected const INITIAL_MODE = 0;
@@ -244,8 +250,12 @@ class TreeBuilder {
         "frameset" => self::IN_FRAMESET_MODE,
     ];
 
-    public function __construct(Document $dom, Data $data, Tokenizer $tokenizer, \Generator $tokenList, ParseError $errorHandler, OpenElementsStack $stack, TemplateInsertionModesStack $templateInsertionModes, ?\DOMElement $fragmentContext = null) {
-        assert(!$dom->hasChildNodes() && !$dom->doctype, new Exception(Exception::TREEBUILDER_NON_EMPTY_TARGET_DOCUMENT));
+    public function __construct(\DOMDocument $dom, Data $data, Tokenizer $tokenizer, \Generator $tokenList, ParseError $errorHandler, OpenElementsStack $stack, TemplateInsertionModesStack $templateInsertionModes, ?\DOMElement $fragmentContext = null, ?bool $fragmentQuirks = null) {
+        if ($dom->hasChildNodes() || $dom->doctype) {
+            throw new Exception(Exception::TREEBUILDER_NON_EMPTY_TARGET_DOCUMENT);
+        } elseif (!in_array($fragmentQuirks ?? Parser::NO_QUIRKS_MODE, [Parser::NO_QUIRKS_MODE, Parser::LIMITED_QUIRKS_MODE, Parser::QUIRKS_MODE])) {
+            throw new Exception(Exception::INVALID_QUIRKS_MODE);
+        }
         $this->DOM = $dom;
         $this->fragmentContext = $fragmentContext;
         $this->stack = $stack;
@@ -264,7 +274,7 @@ class TreeBuilder {
             #   let the Document be in quirks mode. Otherwise, the node document of
             #   the context element is in limited-quirks mode, then let the Document
             #   be in limited-quirks mode. Otherwise, leave the Document in no-quirks mode.
-            $dom->quirksMode = $fragmentContext->ownerDocument->quirksMode;
+            $this->quirksMode = $fragmentQuirks ?? $this->quirksMode;
             # Create a new HTML parser, and associate it with the just created Document node.
             // Already done.
             # Set the state of the HTML parser's tokenization stage as follows, switching on the context element:
@@ -315,7 +325,7 @@ class TreeBuilder {
 
             // If element name coercison has occurred at some earlier point,
             //   we must coerce all end tag names to match mangled start tags
-            if ($token instanceof EndTagToken && $this->DOM->mangledElements) {
+            if ($token instanceof EndTagToken && $this->mangledElements) {
                 $token->name = $this->coerceName($token->name);
             }
 
@@ -381,8 +391,9 @@ class TreeBuilder {
                                     // If attribute name coercison has occurred at some earlier point,
                                     //   we must coerce all attributes on html and body start tags in
                                     //   case they are relocated to existing elements
-                                    if (!$top->hasAttributeNS(null, $this->DOM->mangledAttributes ? $this->coerceName($a->name) : $a->name)) {
-                                        $top->setAttributeNS(null, $a->name, $a->value);
+                                    $attrName = $this->mangledAttributes ? $this->coerceName($a->name) : $a->name;
+                                    if (!$top->hasAttributeNS(null, $attrName)) {
+                                        $this->elementSetAttribute($top, null, $attrName, $a->value);
                                     }
                                 }
                             }
@@ -412,8 +423,9 @@ class TreeBuilder {
                                     // If attribute name coercison has occurred at some earlier point,
                                     //   we must coerce all attributes on html and body start tags in
                                     //   case they are relocated to existing elements
-                                    if (!$body->hasAttributeNS(null, $this->DOM->mangledAttributes ? $this->coerceName($a->name) : $a->name)) {
-                                        $body->setAttributeNS(null, $a->name, $a->value);
+                                    $attrName = $this->mangledAttributes ? $this->coerceName($a->name) : $a->name;
+                                    if (!$body->hasAttributeNS(null, $attrName)) {
+                                        $this->elementSetAttribute($body, null, $attrName, $a->value);
                                     }
                                 }
                             }
@@ -706,7 +718,7 @@ class TreeBuilder {
                         # A start tag whose tag name is "table"
                         elseif ($token->name === "table") {
                             # If the Document is not set to quirks mode, and the stack of open elements has a p element in button scope, then close a p element.
-                            if ($this->DOM->quirksMode !== Document::QUIRKS_MODE && $this->stack->hasElementInButtonScope("p")) {
+                            if ($this->quirksMode !== Parser::QUIRKS_MODE && $this->stack->hasElementInButtonScope("p")) {
                                 $this->closePElement($token);
                             }
                             # Insert an HTML element for the token.
@@ -1386,7 +1398,7 @@ class TreeBuilder {
                             || ($token->system === null && strpos($public, '-//w3c//dtd html 4.01 frameset//') === 0)
                             || ($token->system === null && strpos($public, '-//w3c//dtd html 4.01 transitional//') === 0)
                         ) {
-                            $this->DOM->quirksMode = Document::QUIRKS_MODE;
+                            $this->quirksMode = Parser::QUIRKS_MODE;
                         }
                         # Otherwise, if the document is not an iframe srcdoc document, and the DOCTYPE
                         # token matches one of the conditions in the following list, then set the
@@ -1399,7 +1411,7 @@ class TreeBuilder {
                             || ($token->system !== null && strpos($public, '-//w3c//dtd html 4.01 frameset//') === 0)
                             || ($token->system !== null && strpos($public, '-//w3c//dtd html 4.01 transitional//') === 0)
                         ) {
-                            $this->DOM->quirksMode = Document::LIMITED_QUIRKS_MODE;
+                            $this->quirksMode = Parser::LIMITED_QUIRKS_MODE;
                         }
                         # The system identifier and public identifier strings must be compared to the
                         # values given in the lists above in an ASCII case-insensitive manner. A system
@@ -1426,7 +1438,7 @@ class TreeBuilder {
                             $this->error(ParseError::EXPECTED_DOCTYPE_BUT_GOT_EOF);
                         }
 
-                        $this->DOM->quirksMode = Document::QUIRKS_MODE;
+                        $this->quirksMode = Parser::QUIRKS_MODE;
 
                         # In any case, switch the insertion mode to "before html", then reprocess the
                         # token.
@@ -3832,7 +3844,8 @@ class TreeBuilder {
             # template’s template contents, after its last child (if any), and abort these
             # substeps.
             if ($lastTemplate && (!$lastTable || ($lastTemplateIndex > $lastTableIndex))) {
-                $insertionLocation = $lastTemplate->content;
+                // DEVIATION: We don't implement template contents in the parser itself
+                $insertionLocation = $lastTemplate;
                 // Abort!
             }
             # 4. If there is no last table, then let adjusted insertion location be inside
@@ -3868,7 +3881,8 @@ class TreeBuilder {
         # instead be inside the template element’s template contents, after its last
         # child (if any).
         if ($insertionLocation instanceof Element && $insertionLocation->nodeName === 'template' && $insertionLocation->namespaceURI === null) {
-            $insertionLocation = $insertionLocation->content;
+            // DEVIATION: We don't implement template contents in the parser itself
+            $insertionLocation = $insertionLocation;
         }
         # 4. Return the adjusted insertion location.
         return [
@@ -3936,7 +3950,7 @@ class TreeBuilder {
         $position->appendChild($this->DOM->createComment($token->data));
     }
 
-    public function insertStartTagToken(StartTagToken $token, \DOMNode $intendedParent = null, string $namespace = null): Element {
+    public function insertStartTagToken(StartTagToken $token, \DOMNode $intendedParent = null, string $namespace = null): \DOMElement {
         # When the steps below require the user agent to insert a foreign
         #   element for a token in a given namespace, the user agent must
         #   run these steps:
@@ -4135,19 +4149,32 @@ class TreeBuilder {
         return $this->insertionMode = self::IN_ROW_MODE;
     }
 
-    protected function isElementSpecial(Element $element): bool {
+    protected function isElementSpecial(\DOMElement $element): bool {
         $name = $element->nodeName;
         $ns = $element->namespaceURI ?? Parser::HTML_NAMESPACE;
         return in_array($name, self::SPECIAL_ELEMENTS[$ns] ?? []);
     }
 
-    protected function createElementForToken(TagToken $token, ?string $namespace = null, ?\DOMNode $intendedParent = null): Element {
+    protected function createElementForToken(TagToken $token, ?string $namespace = null, ?\DOMNode $intendedParent = null): \DOMElement {
         // DEVIATION: Steps related to scripting have been elided entirely
         # Let document be intended parent's node document.
         # Let local name be the tag name of the token.
         # Let element be the result of creating an element given document,
         #   localName, given namespace, null, and is.
-        $element = $this->DOM->createElementNS($namespace, $token->name);
+        try {
+            $element = $this->DOM->createElementNS($namespace, $token->name);
+        } catch (\DOMException $e) {
+            // The element name is invalid for XML
+            // Replace any offending characters with "UHHHHHH" where H are the
+            //   uppercase hexadecimal digits of the character's code point
+            if ($namespace !== null) {
+                $qualifiedName = implode(":", array_map([$this, "coerceName"], explode(":", $token->name, 2)));
+            } else {
+                $qualifiedName = $this->coerceName($token->name);
+            }
+            $element = $this->DOM->createElementNS($namespace, $qualifiedName);
+            $this->mangledElements = true;
+        }
         # Append each attribute in the given token to element.
         foreach ($token->attributes as $attr) {
             # If element has an xmlns attribute in the XMLNS namespace whose value
@@ -4163,18 +4190,54 @@ class TreeBuilder {
             } elseif ($attr->name === "xmlns:xlink" && $namespace !== null && $attr->value !== Parser::XLINK_NAMESPACE) {
                 $this->error(ParseError::INVALID_NAMESPACE_ATTRIBUTE_VALUE, "xmlns:xlink", Parser::XLINK_NAMESPACE);
             } else {
-                $element->setAttributeNS($attr->namespace, $attr->name, $attr->value);
+                $this->elementSetAttribute($element, $attr->namespace, $attr->name, $attr->value);
             }
         }
         # Return element.
         return $element;
     }
 
-    public function isMathMLTextIntegrationPoint(Element $e): bool {
+    public function elementSetAttribute(\DOMElement $element, ?string $namespaceURI, string $qualifiedName, string $value): void {
+        if ($namespaceURI === Parser::XMLNS_NAMESPACE) {
+            // NOTE: We create attribute nodes so that xmlns attributes
+            //   don't get lost; otherwise they cannot be serialized
+            $a = @$element->ownerDocument->createAttributeNS($namespaceURI, $qualifiedName);
+            if ($a === false) {
+                // The document element does not exist yet, so we need
+                //   to insert this element into the document
+                $element->ownerDocument->appendChild($element);
+                $a = $element->ownerDocument->createAttributeNS($namespaceURI, $qualifiedName);
+                $element->ownerDocument->removeChild($element);
+            }
+            $a->value = $this->escapeString($value, true);
+            $element->setAttributeNodeNS($a);
+        } else {
+            try {
+                $element->setAttributeNS($namespaceURI, $qualifiedName, $value);
+            } catch (\DOMException $e) {
+                // The attribute name is invalid for XML
+                // Replace any offending characters with "UHHHHHH" where H are the
+                //   uppercase hexadecimal digits of the character's code point
+                $element->ownerDocument->mangledAttributes = true;
+                if ($namespaceURI !== null) {
+                    $qualifiedName = implode(":", array_map([$element, "coerceName"], explode(":", $qualifiedName, 2)));
+                } else {
+                    $qualifiedName = $this->coerceName($qualifiedName);
+                }
+                $element->setAttributeNS($namespaceURI, $qualifiedName, $value);
+                $this->mangledAttributes = true;
+            }
+            if ($qualifiedName === "id" && $namespaceURI === null) {
+                $element->setIdAttribute($qualifiedName, true);
+            }
+        }
+    }
+
+    public function isMathMLTextIntegrationPoint(\DOMElement $e): bool {
         return ($e->namespaceURI === Parser::MATHML_NAMESPACE && (in_array($e->nodeName, ['mi', 'mo', 'mn', 'ms', 'mtext'])));
     }
 
-    public function isHTMLIntegrationPoint(Element $e): bool {
+    public function isHTMLIntegrationPoint(\DOMElement $e): bool {
         $encoding = strtolower((string)$e->getAttribute('encoding'));
         return ((
                 $e->namespaceURI === Parser::MATHML_NAMESPACE &&

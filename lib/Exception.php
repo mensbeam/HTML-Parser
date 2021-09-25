@@ -13,6 +13,7 @@ class Exception extends \Exception {
     const UNREACHABLE_CODE = 103;
 
     const PARSER_NONEMPTY_DOCUMENT = 201;
+    const INVALID_QUIRKS_MODE = 202;
 
     const STACK_INVALID_INDEX = 301;
     const STACK_ELEMENT_DOCUMENT_DOCUMENTFRAG_EXPECTED = 302;
@@ -45,6 +46,7 @@ class Exception extends \Exception {
         103 => 'Unreachable code',
 
         201 => 'Non-empty Document supplied as argument for Parser',
+        202 => 'Fragment\'s quirks mode must be one of Parser::NO_QUIRKS_MODE, Parser::LIMITED_QUIRKS_MODE, or Parser::QUIRKS_MODE',
 
         301 => 'Invalid Stack index at %s',
         302 => 'Element, Document, or DOMDocumentFragment expected for fragment context',

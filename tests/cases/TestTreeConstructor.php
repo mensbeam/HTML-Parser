@@ -7,7 +7,6 @@ declare(strict_types=1);
 namespace MensBeam\HTML\TestCase;
 
 use MensBeam\HTML\Data;
-use MensBeam\HTML\Document;
 use MensBeam\HTML\LoopException;
 use MensBeam\HTML\NotImplementedException;
 use MensBeam\HTML\OpenElementsStack;
@@ -57,7 +56,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             return true;
         });
         // initialize the output document
-        $doc = new Document;
+        $doc = new \DOMDocument;
         // prepare the fragment context, if any
         if ($fragment) {
             $fragment = explode(" ", $fragment);
@@ -298,7 +297,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         $this->out[] = "| ".str_repeat("  ", $this->depth).$data;
     }
 
-    protected function serializeTree(Document $d, bool $fragment): array {
+    protected function serializeTree(\DOMDocument $d, bool $fragment): array {
         $this->out = [];
         $this->depth = 0;
         if ($fragment){
@@ -351,13 +350,14 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         if ($e->localName === "template" && $e->namespaceURI === null) {
             $this->push("content");
             $this->depth++;
-            foreach ($e->content->childNodes as $n) {
+            foreach ($e->childNodes as $n) {
                 $this->serializeNode($n);
             }
             $this->depth--;
-        }
-        foreach ($e->childNodes as $n) {
-            $this->serializeNode($n);
+        } else {
+            foreach ($e->childNodes as $n) {
+                $this->serializeNode($n);
+            }
         }
         $this->depth--;
     }
