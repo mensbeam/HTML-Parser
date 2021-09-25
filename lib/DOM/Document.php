@@ -114,6 +114,7 @@ class Document extends AbstractDocument {
     public function __construct(?string $source = null, ?string $encodingOrContentType = null) {
         parent::__construct();
 
+        $this->registerNodeClass('DOMDocument', '\MensBeam\HTML\Document');
         $this->registerNodeClass('DOMComment', '\MensBeam\HTML\Comment');
         $this->registerNodeClass('DOMDocumentFragment', '\MensBeam\HTML\DocumentFragment');
         $this->registerNodeClass('DOMElement', '\MensBeam\HTML\Element');
