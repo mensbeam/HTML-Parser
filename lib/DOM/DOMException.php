@@ -15,9 +15,8 @@ class DOMException extends \Exception {
     const NOT_FOUND = 8;
     const SYNTAX_ERROR = 12;
 
-    const DOCUMENT_ELEMENT_DOCUMENTFRAG_EXPECTED = 100;
-    const STRING_EXPECTED = 101;
-    const OUTER_HTML_FAILED_NOPARENT = 102;
+    const ARGUMENT_TYPE_ERROR = 100;
+    const OUTER_HTML_FAILED_NOPARENT = 101;
 
     protected static $messages = [
           3 => 'Hierarchy request error; supplied node is not allowed here',
@@ -26,9 +25,8 @@ class DOMException extends \Exception {
           7 => 'Modification not allowed here',
           8 => 'Not found error',
          12 => 'Syntax error',
-        100 => 'Document, Element, or DocumentFragment expected; found %s',
-        101 => 'The "%s" argument should be a string; found %s',
-        102 => 'Failed to set the "outerHTML" property; the element does not have a parent node'
+        100 => 'Argument #%s (\$%s) must be of type %s, %s given',
+        101 => 'Failed to set the "outerHTML" property; the element does not have a parent node'
     ];
 
     public function __construct(int $code, ...$args) {

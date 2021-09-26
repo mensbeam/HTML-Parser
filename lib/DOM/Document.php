@@ -7,17 +7,8 @@ declare(strict_types=1);
 namespace MensBeam\HTML;
 
 class Document extends AbstractDocument {
-    // Quirks mode constants
-    public const NO_QUIRKS_MODE = 0;
-    public const QUIRKS_MODE = 1;
-    public const LIMITED_QUIRKS_MODE = 2;
-
-    public $documentEncoding = null;
-    public $mangledAttributes = false;
-    public $mangledElements = false;
-    public $quirksMode = self::NO_QUIRKS_MODE;
-
     protected ?Element $_body = null;
+    /** Nonstandard */
     protected ?\DOMXPath $_xpath = null;
 
     // List of elements that are treated as block elements for the purposes of
@@ -111,7 +102,14 @@ class Document extends AbstractDocument {
     }
 
 
-    public function __construct(?string $source = null, ?string $encodingOrContentType = null) {
+    public function __construct($source = null, ?string $encodingOrContentType = null) {
+        // Because we cannot have union types until php 8... :)
+        if ($source !== null && !$source instanceof \DOMDocument && !is_string($source)) {
+            throw new DOMException(DOMException::ARGUMENT_TYPE_ERROR, 1, 'source', 'string|\DOMDocument', gettype($source));
+        } elseif ($source instanceof self) {
+            return $source;
+        }
+
         parent::__construct();
 
         $this->registerNodeClass('DOMDocument', '\MensBeam\HTML\Document');
@@ -122,7 +120,17 @@ class Document extends AbstractDocument {
         $this->registerNodeClass('DOMText', '\MensBeam\HTML\Text');
 
         if ($source !== null) {
-            $this->loadHTML($source, null, $encodingOrContentType);
+            if (is_string($source)) {
+                $source = Parser::parse($source, null, $encodingOrContentType);
+            }
+
+            foreach ($source->childNodes as $child) {
+                if (!$child instanceof \DOMDocumentType) {
+                    $this->appendChild($this->importNode($child, true));
+                } else {
+                    $this->appendChild($this->implementation->createDocumentType($child->name ?? ' ', $child->public ?? '', $child->system ?? ''));
+                }
+            }
         }
     }
 
@@ -206,6 +214,22 @@ class Document extends AbstractDocument {
     }
 
     public function loadHTML($source, $options = null, ?string $encodingOrContentType = null): bool {
+        if (!is_string($source)) {
+            throw new DOMException(DOMException::ARGUMENT_TYPE_ERROR, 1, 'source', 'string', gettype($source));
+        }
+
+        if (is_string($source)) {
+            $source = Parser::parse($source, null, $encodingOrContentType);
+        }
+
+        foreach ($source->childNodes as $child) {
+            if (!$child instanceof \DOMDocumentType) {
+                $this->appendChild($this->importNode($child, true));
+            } else {
+                $this->appendChild($this->implementation->createDocumentType($child->name ?? ' ', $child->public ?? '', $child->system ?? ''));
+            }
+        }
+
         assert(is_string($source), new DOMException(DOMException::STRING_EXPECTED, 'source', gettype($source)));
         Parser::parse($source, $this, $encodingOrContentType);
         return true;

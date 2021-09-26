@@ -12,21 +12,6 @@ namespace MensBeam\HTML;
 trait ContainerNode {
     use Node;
 
-
-    public function __get_childElementCount(): int {
-        # The childElementCount getter steps are to return the number of children of
-        # this that are elements.
-        $count = 0;
-        foreach ($this->childNodes as $child) {
-            if ($child instanceof Element) {
-                $count++;
-            }
-        }
-
-        return $count;
-    }
-
-
     public function appendChild($node) {
         $this->preInsertionValidity($node);
 
@@ -74,6 +59,7 @@ trait ContainerNode {
         }
         return $result;
     }
+
 
     protected function preInsertionValidity(\DOMNode $node, ?\DOMNode $child = null) {
         // "parent" in the spec comments below is $this

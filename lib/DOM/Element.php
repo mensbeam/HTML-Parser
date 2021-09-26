@@ -7,7 +7,7 @@ declare(strict_types=1);
 namespace MensBeam\HTML;
 
 class Element extends \DOMElement {
-    use ContainerNode, DocumentOrElement, EscapeString, MagicProperties, Moonwalk, MoonwalkShallow, ToString, Walk, WalkShallow;
+    use ContainerNode, DocumentOrElement, EscapeString, MagicProperties, Moonwalk, MoonwalkShallow, ParentNode, ToString, Walk, WalkShallow;
 
     protected $_classList;
 
