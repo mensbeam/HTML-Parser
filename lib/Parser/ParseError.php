@@ -4,7 +4,7 @@
  * See LICENSE and AUTHORS files for details */
 
 declare(strict_types=1);
-namespace MensBeam\HTML;
+namespace MensBeam\HTML\Parser;
 
 class ParseError {
     // tokenization parse errors; these have been standardized

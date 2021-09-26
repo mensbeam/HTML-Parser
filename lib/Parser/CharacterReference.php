@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-namespace MensBeam\HTML;
+namespace MensBeam\HTML\Parser;
 
 // This file is machine-generated
 // DO NOT MODIFY

@@ -204,7 +204,7 @@ class RoboFile extends \Robo\Tasks {
         $template = <<<'FILE'
 <?php
 declare(strict_types=1);
-namespace MensBeam\HTML;
+namespace MensBeam\HTML\Parser;
 
 // This file is machine-generated
 // DO NOT MODIFY
@@ -301,6 +301,6 @@ FILE;
         $list = implode(",", $list);
         $template = str_replace('%C1_SUBSTITUTIONS%', $list, $template);
         // output the file itself
-        file_put_contents(BASE."lib/CharacterReference.php", $template);
+        file_put_contents(BASE."lib/Parser/CharacterReference.php", $template);
     }
 }

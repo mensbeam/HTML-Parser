@@ -1,9 +1,0 @@
-{
-    "favicon": "<theme_url>favicon.png",
-    "js": [
-        "<theme_url>daux.min.js"
-    ],
-    "css": [
-        "<theme_url>php.css"
-    ]
-}

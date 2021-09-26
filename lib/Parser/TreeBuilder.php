@@ -4,7 +4,9 @@
  * See LICENSE and AUTHORS files for details */
 
 declare(strict_types=1);
-namespace MensBeam\HTML;
+namespace MensBeam\HTML\Parser;
+
+use MensBeam\HTML\Parser;
 
 class TreeBuilder {
     use ParseErrorEmitter, NameCoercion;
@@ -43,8 +45,8 @@ class TreeBuilder {
     protected $mangledElements = false;
     /** @var bool Flag used to track whether name mangling has been performed for attributes; this is a minor optimization */
     protected $mangledAttributes = false;
-    /** @var int The quirks-mode setting of the document being parsed */
-    protected $quirksMode = Parser::NO_QUIRKS_MODE;
+    /** @var int The quirks-mode setting of the document being built */
+    public $quirksMode = Parser::NO_QUIRKS_MODE;
 
     // Constants used for insertion modes
     protected const INITIAL_MODE = 0;

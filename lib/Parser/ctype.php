@@ -3,7 +3,7 @@
  * Copyright 2017 , Dustin Wilson, J. King et al.
  * See LICENSE and AUTHORS files for details */
 
-namespace MensBeam\HTML;
+namespace MensBeam\HTML\Parser;
 
 // This file adds shims for matching single characters 
 //  using the same API as the ctype extension, if the

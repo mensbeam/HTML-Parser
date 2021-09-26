@@ -4,7 +4,9 @@
  * See LICENSE and AUTHORS files for details */
 
 declare(strict_types=1);
-namespace MensBeam\HTML;
+namespace MensBeam\HTML\Parser;
+
+use MensBeam\HTML\Parser;
 
 # 8.2.3.3. The list of active formatting elements
 # Initially, the list of active formatting elements is empty. It is used to

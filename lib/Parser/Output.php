@@ -4,8 +4,10 @@
  * See LICENSE and AUTHORS files for details */
 
 declare(strict_types=1);
-namespace MensBeam\HTML;
+namespace MensBeam\HTML\Parser;
 
-class Text extends \DOMText {
-    use LeafNode, Moonwalk, ToString;
+class Output {
+    public $document;
+    public $encoding;
+    public $quirksMode;
 }

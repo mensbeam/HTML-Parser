@@ -4,10 +4,10 @@
  * See LICENSE and AUTHORS files for details */
 
 declare(strict_types=1);
-namespace MensBeam\HTML;
+namespace MensBeam\HTML\Parser;
 
+use MensBeam\HTML\Parser;
 use MensBeam\Intl\Encoding;
-use MensBeam\Intl\Encoding\Encoding as EncodingEncoding;
 
 class Data {
     use ParseErrorEmitter;

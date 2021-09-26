@@ -6,29 +6,30 @@
 declare(strict_types=1);
 namespace MensBeam\HTML\TestCase;
 
-use MensBeam\HTML\Data;
-use MensBeam\HTML\EOFToken;
-use MensBeam\HTML\OpenElementsStack;
-use MensBeam\HTML\ParseError;
-use MensBeam\HTML\Tokenizer;
-use MensBeam\HTML\CharacterToken;
-use MensBeam\HTML\CommentToken;
-use MensBeam\HTML\DOCTYPEToken;
-use MensBeam\HTML\EndTagToken;
-use MensBeam\HTML\NullCharacterToken;
-use MensBeam\HTML\StartTagToken;
-use MensBeam\HTML\TokenAttr;
-use MensBeam\HTML\WhitespaceToken;
+use MensBeam\HTML\Parser\Data;
+use MensBeam\HTML\Parser\EOFToken;
+use MensBeam\HTML\Parser\OpenElementsStack;
+use MensBeam\HTML\Parser\ParseError;
+use MensBeam\HTML\Parser\Tokenizer;
+use MensBeam\HTML\Parser\CharacterToken;
+use MensBeam\HTML\Parser\CommentToken;
+use MensBeam\HTML\Parser\DOCTYPEToken;
+use MensBeam\HTML\Parser\EndTagToken;
+use MensBeam\HTML\Parser\NullCharacterToken;
+use MensBeam\HTML\Parser\StartTagToken;
+use MensBeam\HTML\Parser\TokenAttr;
+use MensBeam\HTML\Parser\WhitespaceToken;
+use MensBeam\Intl\Encoding\UTF8;
 
 /** 
- * @covers \MensBeam\HTML\Data
- * @covers \MensBeam\HTML\Tokenizer
- * @covers \MensBeam\HTML\CharacterToken
- * @covers \MensBeam\HTML\CommentToken
- * @covers \MensBeam\HTML\DataToken
- * @covers \MensBeam\HTML\TagToken
- * @covers \MensBeam\HTML\DOCTYPEToken
- * @covers \MensBeam\HTML\TokenAttr
+ * @covers \MensBeam\HTML\Parser\Data
+ * @covers \MensBeam\HTML\Parser\Tokenizer
+ * @covers \MensBeam\HTML\Parser\CharacterToken
+ * @covers \MensBeam\HTML\Parser\CommentToken
+ * @covers \MensBeam\HTML\Parser\DataToken
+ * @covers \MensBeam\HTML\Parser\TagToken
+ * @covers \MensBeam\HTML\Parser\DOCTYPEToken
+ * @covers \MensBeam\HTML\Parser\TokenAttr
  */
 class TestTokenizer extends \PHPUnit\Framework\TestCase {
     const STATE_MAP = [
@@ -87,8 +88,8 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
         $tests = [];
         $blacklist = ["xmlViolation.test"];
         $files = new \AppendIterator();
-        $files->append(new \GlobIterator(\MensBeam\HTML\BASE."tests/html5lib-tests/tokenizer/*.test", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
-        $files->append(new \GlobIterator(\MensBeam\HTML\BASE."tests/cases/tokenizer/*.test", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
+        $files->append(new \GlobIterator(\MensBeam\HTML\Parser\BASE."tests/html5lib-tests/tokenizer/*.test", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
+        $files->append(new \GlobIterator(\MensBeam\HTML\Parser\BASE."tests/cases/tokenizer/*.test", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
         foreach ($files as $file) {
             if (!in_array(basename($file), $blacklist)) {
                 $tests[] = $file;
@@ -101,7 +102,7 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
         if (preg_match_all("/\\\\u([0-9a-f]{4})/i", $str, $matches)) {
             for ($a = 0; $a < sizeof($matches[0]); $a++) {
                 $esc = $matches[0][$a];
-                $chr = \MensBeam\Intl\Encoding\UTF8::encode(hexdec($matches[1][$a]));
+                $chr = UTF8::encode(hexdec($matches[1][$a]));
                 $str = str_replace($esc, $chr, $str);
             }
         }

@@ -6,10 +6,10 @@
 declare(strict_types=1);
 namespace MensBeam\HTML\TestCase;
 
-use MensBeam\HTML\Charset;
+use MensBeam\HTML\Parser\Charset;
 
 /** 
- * @covers \MensBeam\HTML\Charset
+ * @covers \MensBeam\HTML\Parser\Charset
  */
 class TestCharset extends \PHPUnit\Framework\TestCase {
     /** @dataProvider provideCharsets */
@@ -73,8 +73,8 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
         $tests = [];
         $blacklist = [];
         $files = new \AppendIterator();
-        $files->append(new \GlobIterator(\MensBeam\HTML\BASE."tests/html5lib-tests/encoding/*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
-        $files->append(new \GlobIterator(\MensBeam\HTML\BASE."tests/cases/encoding/*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
+        $files->append(new \GlobIterator(\MensBeam\HTML\Parser\BASE."tests/html5lib-tests/encoding/*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
+        $files->append(new \GlobIterator(\MensBeam\HTML\Parser\BASE."tests/cases/encoding/*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
         foreach ($files as $file) {
             if (!in_array(basename($file), $blacklist)) {
                 $tests[] = $file;

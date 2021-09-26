@@ -6,6 +6,16 @@
 declare(strict_types=1);
 namespace MensBeam\HTML;
 
+use MensBeam\HTML\Parser\Charset;
+use MensBeam\HTML\Parser\Data;
+use MensBeam\HTML\Parser\ParseError;
+use MensBeam\HTML\Parser\ParseErrorDummy;
+use MensBeam\HTML\Parser\OpenElementsStack;
+use MensBeam\HTML\Parser\TemplateInsertionModesStack;
+use MensBeam\HTML\Parser\Tokenizer;
+use MensBeam\HTML\Parser\TreeBuilder;
+use MensBeam\HTML\Parser\Output;
+
 class Parser {
     public static $fallbackEncoding = "windows-1252";
 
@@ -30,7 +40,7 @@ class Parser {
         self::XMLNS_NAMESPACE  => "xmlns",
     ];
 
-    public static function parse(string $data, ?\DOMDocument $document = null, ?string $encodingOrContentType = null, ?\DOMElement $fragmentContext = null, ?String $file = null): \DOMDocument {
+    public static function parse(string $data, ?string $encodingOrContentType = null, ?\DOMDocument $document = null, ?\DOMElement $fragmentContext = null, ?int $fragmentQuirks = null, ?String $file = null): Output {
         // Initialize the various classes needed for parsing
         $document = $document ?? new \DOMDocument;
         if ((error_reporting() & \E_USER_WARNING)) {
@@ -43,7 +53,7 @@ class Parser {
         $stack = new OpenElementsStack($fragmentContext);
         $tokenizer = new Tokenizer($decoder, $stack, $errorHandler);
         $tokenList = $tokenizer->tokenize();
-        $treeBuilder = new TreeBuilder($document, $decoder, $tokenizer, $tokenList, $errorHandler, $stack, new TemplateInsertionModesStack, $fragmentContext);
+        $treeBuilder = new TreeBuilder($document, $decoder, $tokenizer, $tokenList, $errorHandler, $stack, new TemplateInsertionModesStack, $fragmentContext, $fragmentQuirks);
         // Override error handling
         $errorHandler->setHandler();
         try {
@@ -53,19 +63,22 @@ class Parser {
             // Restore error handling
             $errorHandler->clearHandler();
         }
-        return $document;
+        // prepare the output
+        $out = new Output;
+        $out->document = $document;
+        $out->encoding = $decoder->encoding;
+        $out->quirksMode = $treeBuilder->quirksMode;
+        return $out;
     }
 
-    public static function parseFragment(string $data, ?\DOMDocument $document = null, ?string $encodingOrContentType = null, ?\DOMElement $fragmentContext = null, ?String $file = null): DocumentFragment {
+    public static function parseFragment(\DOMElement $fragmentContext, ?int $fragmentQuirks, string $data, ?string $encodingOrContentType = null, ?\DOMDocument $document = null, ?String $file = null): \DOMDocumentFragment {
         // Create the requisite parsing context if none was supplied
         $document = $document ?? new \DOMDocument;
-        $tempDocument = new \DOMDocument;
-        $fragmentContext = $fragmentContext ?? $document->createElement("div");
         // parse the fragment into the temporary document
-        self::parse($data, $tempDocument, $encodingOrContentType, $fragmentContext, $file);
+        self::parse($data, $encodingOrContentType, $document, $fragmentContext, $fragmentQuirks, $file);
         // extract the nodes from the temp document into a fragment
-        $fragment = $document->createDocumentFragment();
-        foreach ($tempDocument->documentElement->childNodes as $node) {
+        $fragment = $fragmentContext->ownerDocument->createDocumentFragment();
+        foreach ($document->documentElement->childNodes as $node) {
             $node = $document->importNode($node, true);
             $fragment->appendChild($node);
         }

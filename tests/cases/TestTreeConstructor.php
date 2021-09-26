@@ -6,29 +6,27 @@
 declare(strict_types=1);
 namespace MensBeam\HTML\TestCase;
 
-use MensBeam\HTML\Data;
-use MensBeam\HTML\LoopException;
-use MensBeam\HTML\NotImplementedException;
-use MensBeam\HTML\OpenElementsStack;
-use MensBeam\HTML\ParseError;
 use MensBeam\HTML\Parser;
-use MensBeam\HTML\TemplateInsertionModesStack;
-use MensBeam\HTML\Tokenizer;
-use MensBeam\HTML\TreeBuilder;
+use MensBeam\HTML\Parser\Data;
+use MensBeam\HTML\Parser\LoopException;
+use MensBeam\HTML\Parser\NotImplementedException;
+use MensBeam\HTML\Parser\OpenElementsStack;
+use MensBeam\HTML\Parser\ParseError;
+use MensBeam\HTML\Parser\TemplateInsertionModesStack;
+use MensBeam\HTML\Parser\Tokenizer;
+use MensBeam\HTML\Parser\TreeBuilder;
 
 /** 
- * @covers \MensBeam\HTML\Document
- * @covers \MensBeam\HTML\Element
- * @covers \MensBeam\HTML\Tokenizer
- * @covers \MensBeam\HTML\TreeBuilder
- * @covers \MensBeam\HTML\ActiveFormattingElementsList
- * @covers \MensBeam\HTML\TemplateInsertionModesStack
- * @covers \MensBeam\HTML\OpenElementsStack
- * @covers \MensBeam\HTML\Stack
- * @covers \MensBeam\HTML\TagToken
+ * @covers \MensBeam\HTML\Parser\Tokenizer
+ * @covers \MensBeam\HTML\Parser\TreeBuilder
+ * @covers \MensBeam\HTML\Parser\ActiveFormattingElementsList
+ * @covers \MensBeam\HTML\Parser\TemplateInsertionModesStack
+ * @covers \MensBeam\HTML\Parser\OpenElementsStack
+ * @covers \MensBeam\HTML\Parser\Stack
+ * @covers \MensBeam\HTML\Parser\TagToken
  */
 class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
-    use \MensBeam\HTML\EscapeString;
+    use \MensBeam\HTML\Parser\NameCoercion;
 
     protected $out;
     protected $depth;
@@ -379,8 +377,8 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
     public function provideStandardTreeTests(): iterable {
         $blacklist = [];
         $files = new \AppendIterator();
-        $files->append(new \GlobIterator(\MensBeam\HTML\BASE."tests/html5lib-tests/tree-construction/*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
-        $files->append(new \GlobIterator(\MensBeam\HTML\BASE."tests/cases/tree-construction/*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
+        $files->append(new \GlobIterator(\MensBeam\HTML\Parser\BASE."tests/html5lib-tests/tree-construction/*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
+        $files->append(new \GlobIterator(\MensBeam\HTML\Parser\BASE."tests/cases/tree-construction/*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
         foreach ($files as $file) {
             $index = 0;
             $l = 0;

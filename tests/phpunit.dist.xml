@@ -16,9 +16,6 @@
 </filter>
 
 <testsuites>
-    <testsuite name="DOM">
-        <file>cases/TestDOM.php</file>
-    </testsuite>
     <testsuite name="Charset">
         <file>cases/TestCharset.php</file>
     </testsuite>
@@ -27,9 +24,6 @@
     </testsuite>
     <testsuite name="Tree">
         <file>cases/TestTreeConstructor.php</file>
-    </testsuite>
-    <testsuite name="Serializer">
-        <file>cases/TestSerializer.php</file>
     </testsuite>
 </testsuites>
 </phpunit>
