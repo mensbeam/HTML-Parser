@@ -4,18 +4,13 @@ Tools for parsing and printing HTML5 documents and fragments.
 
 ```php
 <?php
-$dom = MensBeam\HTML\Parser::parse('<!DOCTYPE html><html lang="en" charset="utf-8"><head><title>Ook!</title></head><body><h1>Ook!</h1><p>Ook-ook? Oooook. Ook ook oook ook oooooook ook ooook ook.</p><p>Eek!</p></body></html>');
-?>
+$out = MensBeam\HTML\Parser::parse('<!DOCTYPE html><html lang="en" charset="utf-8"><head><title>Ook!</title></head><body><h1>Ook!</h1><p>Ook-ook? Oooook. Ook ook oook ook oooooook ook ooook ook.</p><p>Eek!</p></body></html>');
+$document = $out->document; // the parsed document
+$encoding = $out->encoding; // the canonical name of the detected or supplied encoding
+$quirks = $out->quirksMode; // the quirks-mode setting of the document, needed for parsing fragments into the document later
 ```
 
-or:
-
-```php
-<?php
-$dom = new MensBeam\HTML\Document;
-$dom->loadHTML('<!DOCTYPE html><html lang="en" charset="utf-8"><head><title>Ook!</title></head><body><h1>Ook!</h1><p>Ook-ook? Oooook. Ook ook oook ook oooooook ook ooook ook.</p><p>Eek!</p></body></html>');
-?>
-```
+The API is still in flux, but should be finalized soon.
 
 ## Comparison with `masterminds/html5` ##
 

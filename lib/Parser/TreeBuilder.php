@@ -252,7 +252,7 @@ class TreeBuilder {
         "frameset" => self::IN_FRAMESET_MODE,
     ];
 
-    public function __construct(\DOMDocument $dom, Data $data, Tokenizer $tokenizer, \Generator $tokenList, ParseError $errorHandler, OpenElementsStack $stack, TemplateInsertionModesStack $templateInsertionModes, ?\DOMElement $fragmentContext = null, ?bool $fragmentQuirks = null) {
+    public function __construct(\DOMDocument $dom, Data $data, Tokenizer $tokenizer, \Generator $tokenList, ParseError $errorHandler, OpenElementsStack $stack, TemplateInsertionModesStack $templateInsertionModes, ?\DOMElement $fragmentContext = null, ?int $fragmentQuirks = null) {
         if ($dom->hasChildNodes() || $dom->doctype) {
             throw new Exception(Exception::TREEBUILDER_NON_EMPTY_TARGET_DOCUMENT);
         } elseif (!in_array($fragmentQuirks ?? Parser::NO_QUIRKS_MODE, [Parser::NO_QUIRKS_MODE, Parser::LIMITED_QUIRKS_MODE, Parser::QUIRKS_MODE])) {

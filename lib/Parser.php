@@ -79,7 +79,7 @@ class Parser {
         // extract the nodes from the temp document into a fragment
         $fragment = $fragmentContext->ownerDocument->createDocumentFragment();
         foreach ($document->documentElement->childNodes as $node) {
-            $node = $document->importNode($node, true);
+            $node = $fragment->ownerDocument->importNode($node, true);
             $fragment->appendChild($node);
         }
         return $fragment;
