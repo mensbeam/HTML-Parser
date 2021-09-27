@@ -19,6 +19,8 @@ class Data {
 
     // Internal storage for the Intl data object.
     protected $data;
+    // The string
+    protected $string;
     // Used for error reporting to display line number.
     protected $_line = 1;
     // Used for error reporting to display column number.
@@ -45,6 +47,7 @@ class Data {
 
 
     public function __construct(string $data, ?string $encodingOrContentType, ?ParseError $errorHandler,  ?string $fallbackEncoding) {
+        $this->string = $data;
         $this->errorHandler = $errorHandler;
         $encodingOrContentType = (string) $encodingOrContentType;
         $fallbackEncoding = (string) $fallbackEncoding;
@@ -282,6 +285,81 @@ class Data {
             case 'pointer': return $this->data->posChar();
             break;
             default: return null;
+        }
+    }
+
+    public function changeEncoding(string $encoding): void {
+        assert(!$this->encodingCertain, new \Exception("Encoding is already certain"));
+        assert(!!$this->encoding && $this->encoding === Encoding::matchLabel($this->encoding), new \Exception("Current encoding '{$this->encoding}' is invalid"));
+        assert($encoding === Encoding::matchLabel($encoding), new \Exception("Invalid encoding name '$encoding'"));
+        # When the parser requires the user agent to change the encoding, 
+        #   it must run the following steps. This might happen if the encoding
+        #   sniffing algorithm described above failed to find a character encoding,
+        #   or if it found a character encoding that was not the actual
+        #   encoding of the file.
+
+        # If the encoding that is already being used to interpret the input
+        #   stream is UTF-16BE/LE, then set the confidence to certain and
+        #   return. The new encoding is ignored; if it was anything but the
+        #   same encoding, then it would be clearly incorrect.
+        if (in_array($this->encoding, ["UTF16-LE", "UTF-16BE"])) {
+            $this->encodingCertain = true;
+            return;
+        }
+        # If the new encoding is UTF-16BE/LE, then change it to UTF-8.
+        if (in_array($encoding, ["UTF16-LE", "UTF-16BE"])) {
+            $encoding = "UTF-8";
+        }
+        # If the new encoding is x-user-defined, then change it to windows-1252.
+        if ($encoding === "x-user-defined") {
+            $encoding = "windows-1252";
+        }
+        # If the new encoding is identical or equivalent to the encoding
+        #   that is already being used to interpret the input stream, then
+        #   set the confidence to certain and return. This happens when the
+        #   encoding information found in the file matches what the encoding
+        #   sniffing algorithm determined to be the encoding, and in the second
+        #   pass through the parser if the first pass found that the encoding
+        #   sniffing algorithm described in the earlier section failed to find
+        #   the right encoding.
+        if ($encoding === $this->encoding) {
+            $this->encodingCertain = true;
+            return;
+        }
+        # If all the bytes up to the last byte converted by the current decoder
+        #   have the same Unicode interpretations in both the current encoding
+        #   and the new encoding, and if the user agent supports changing the
+        #   converter on the fly, then the user agent may change to the new
+        #   converter for the encoding on the fly. 
+        #   Set the document's character encoding and the encoding used to 
+        #   convert the input stream to the new encoding, set the confidence
+        #   to certain, and return.
+        // This implementation considers the bytes to have the same
+        //   interpretation if they are all ASCII. This does require special
+        //   handling for those encodings which are not quite ASCII-compatible 
+        //   (only ISO 2022-JP), but is relatively simple to confirm
+        $this->encoding = $encoding;
+        $this->encodingCertain = true;
+        $bytes = $this->data->posByte();
+        $chars = $this->data->posChar();
+        if ($bytes === $chars) {
+            if ($encoding === "ISO-2022-JP") {
+                // exclude 0x0E, 0x0F, and 0x1B from the ASCII range
+                $range = '[^\x{0E}\x{0F}\x{1B}\x{80}-\x{FF}]';
+            } else {
+                $range = '[\x{00}-\x{7F}]';
+            }
+            if (preg_match("/^$range{$bytes}/s", $this->string)) {
+                // The bytes are the same; change the encoding, seek to the same location, and continue parsing
+                $this->data = Encoding::createDecoder($encoding, $this->string, false, true);
+                $this->data->seek($chars);
+            } else {
+                // If the bytes are not the same we have to throw everything out and start over
+                // The simplest way, ugly though it is, is to throw an exceptionto unwind all
+                //   the way back to the invocation of the parser
+                $this->data = Encoding::createDecoder($encoding, $this->string, false, true);
+                throw new EncodingChangeException;
+            }
         }
     }
 }

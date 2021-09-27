@@ -1610,7 +1610,13 @@ class TreeBuilder {
                             #   encoding from a meta element to that attribute’s value returns an encoding,
                             #   and the confidence is currently tentative, then change the encoding to the
                             #   extracted encoding.
-                            // DEVIATION: FIXME: This implementation does not support changing the encoding mid-stream
+                            if (!$this->data->encodingCertain) {
+                                if ($enc = Charset::fromCharset((string) $token->getAttribute("charset"))) {
+                                    $this->data->changeEncoding($enc);
+                                } elseif (preg_match("/^Content-Type$/i", (string) $token->getAttribute("http-equiv")) && $enc = Charset::fromMeta((string) $token->getAttribute("content"))) {
+                                    $this->data->changeEncoding($enc);
+                                }
+                            }
                         }
                         # A start tag whose tag name is "title"
                         elseif ($token->name === 'title') {

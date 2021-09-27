@@ -52,6 +52,78 @@ abstract class Charset {
         return null;
     }
 
+    /** Interprets the value of an http-equiv Content-Type meta element. Despite the name this uses a different algorithm than that used for parsing HTTP Content-Types */
+    public static function fromMeta(string $s): ?string {
+        # The algorithm for extracting a character encoding from a meta element, 
+        #   given a string s, is as follows.
+        # It either returns a character encoding or nothing.
+
+        # Let position be a pointer into s, initially pointing at the start of the string.
+        $pos = 0;
+        $end = strlen($s);
+
+        # Loop:
+        while ($pos < $end) {
+            # Find the first seven characters in s after position 
+            #   that are an ASCII case-insensitive match for the word "charset".
+            # If no such match is found, return nothing.
+            $found = stripos($s, "charset", $pos);
+            if ($found === false) {
+                return null;
+            }
+            $pos = $found + 7;
+            # Skip any ASCII whitespace that immediately follow the word "charset" 
+            #   (there might not be any).
+            while (in_array(@$s[$pos], ["\x09", "\x0A", "\x0C", "\x0D", " "])) {
+                $pos++;
+            }
+            # If the next character is not a U+003D EQUALS SIGN (=), 
+            #   then move position to point just before that next 
+            #   character, and jump back to the step labeled loop.
+            if (@$s[$pos] !== "=") {
+                continue;
+            }
+            # Skip any ASCII whitespace that immediately follow the equals sign 
+            #   (there might not be any).
+            while (in_array(@$s[++$pos], ["\x09", "\x0A", "\x0C", "\x0D", " "]));
+
+            # Process the next character as follows:
+            $char = @$s[$pos];
+
+            # If it is a U+0022 QUOTATION MARK character (")...
+            # If it is a U+0027 APOSTROPHE character (')...
+            if ($char === '"' || $char === "'") {
+                # ... and there is a later U+0022 QUOTATION MARK character (") in s
+                # ... and there is a later U+0027 APOSTROPHE character (') in s
+                if (($end = strpos($s, $char, $pos + 1)) !== false) {
+                    $pos++;
+                    return self::fromCharset(substr($s, $pos, $end - $pos));
+                }
+                # If it is an unmatched U+0022 QUOTATION MARK character (")
+                # If it is an unmatched U+0027 APOSTROPHE character (')
+                else {
+                    # Return nothing
+                    return null;
+                }
+            }
+            # There is no next character
+            elseif ($char === "") {
+                # Return nothing
+                return null;
+            }
+            # Anything else
+            else {
+                # Return the result of getting an encoding from the substring 
+                #   that consists of this character up to but not including 
+                #   the first ASCII whitespace or U+003B SEMICOLON (;) 
+                #   character, or the end of s, whichever comes first.
+                $size = -1;
+                while (!in_array(@$s[$pos + (++$size)], ["\x09", "\x0A", "\x0C", "\x0D", " ", ";", ""]));
+                return self::fromCharset(substr($s, $pos, $size));
+            }
+        }
+    } // @codeCoverageIgnore
+
     /** Inspects the head of an HTML string to guess its encoding
      * 
      * @param string $data The HTML string to scan
@@ -357,76 +429,4 @@ abstract class Charset {
             return [];
         }
     }
-
-    /** Interprets a quasi-Content-Type value during the encoding detection pre-scan */
-    protected static function fromMeta(string $s): ?string {
-        # The algorithm for extracting a character encoding from a meta element, 
-        #   given a string s, is as follows.
-        # It either returns a character encoding or nothing.
-
-        # Let position be a pointer into s, initially pointing at the start of the string.
-        $pos = 0;
-        $end = strlen($s);
-
-        # Loop:
-        while ($pos < $end) {
-            # Find the first seven characters in s after position 
-            #   that are an ASCII case-insensitive match for the word "charset".
-            # If no such match is found, return nothing.
-            $found = stripos($s, "charset", $pos);
-            if ($found === false) {
-                return null;
-            }
-            $pos = $found + 7;
-            # Skip any ASCII whitespace that immediately follow the word "charset" 
-            #   (there might not be any).
-            while (in_array(@$s[$pos], ["\x09", "\x0A", "\x0C", "\x0D", " "])) {
-                $pos++;
-            }
-            # If the next character is not a U+003D EQUALS SIGN (=), 
-            #   then move position to point just before that next 
-            #   character, and jump back to the step labeled loop.
-            if (@$s[$pos] !== "=") {
-                continue;
-            }
-            # Skip any ASCII whitespace that immediately follow the equals sign 
-            #   (there might not be any).
-            while (in_array(@$s[++$pos], ["\x09", "\x0A", "\x0C", "\x0D", " "]));
-
-            # Process the next character as follows:
-            $char = @$s[$pos];
-
-            # If it is a U+0022 QUOTATION MARK character (")...
-            # If it is a U+0027 APOSTROPHE character (')...
-            if ($char === '"' || $char === "'") {
-                # ... and there is a later U+0022 QUOTATION MARK character (") in s
-                # ... and there is a later U+0027 APOSTROPHE character (') in s
-                if (($end = strpos($s, $char, $pos + 1)) !== false) {
-                    $pos++;
-                    return self::fromCharset(substr($s, $pos, $end - $pos));
-                }
-                # If it is an unmatched U+0022 QUOTATION MARK character (")
-                # If it is an unmatched U+0027 APOSTROPHE character (')
-                else {
-                    # Return nothing
-                    return null;
-                }
-            }
-            # There is no next character
-            elseif ($char === "") {
-                # Return nothing
-                return null;
-            }
-            # Anything else
-            else {
-                # Return the result of getting an encoding from the substring 
-                #   that consists of this character up to but not including 
-                #   the first ASCII whitespace or U+003B SEMICOLON (;) 
-                #   character, or the end of s, whichever comes first.
-                $size = -1;
-                while (!in_array(@$s[$pos + (++$size)], ["\x09", "\x0A", "\x0C", "\x0D", " ", ";", ""]));
-                return self::fromCharset(substr($s, $pos, $size));
-            }
-        }
-    } // @codeCoverageIgnore
 }

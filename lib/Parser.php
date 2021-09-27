@@ -10,6 +10,7 @@ use MensBeam\HTML\Parser\Charset;
 use MensBeam\HTML\Parser\Data;
 use MensBeam\HTML\Parser\ParseError;
 use MensBeam\HTML\Parser\Config;
+use MensBeam\HTML\Parser\EncodingChangeException;
 use MensBeam\HTML\Parser\OpenElementsStack;
 use MensBeam\HTML\Parser\TemplateInsertionModesStack;
 use MensBeam\HTML\Parser\Tokenizer;
@@ -50,7 +51,22 @@ class Parser {
         $tokenizer = new Tokenizer($decoder, $stack, $errorHandler);
         $tokenList = $tokenizer->tokenize();
         $treeBuilder = new TreeBuilder($document, $decoder, $tokenizer, $tokenList, $errorHandler, $stack, new TemplateInsertionModesStack, $fragmentContext, $fragmentQuirks);
-        $treeBuilder->constructTree();
+        try {
+            $treeBuilder->constructTree();
+        } catch (EncodingChangeException $e) {
+            // We are supposed to reparse with a new encoding
+            // Clear out the document
+            while ($document->hasChildNodes()) {
+                $document->removeChild($document->firstChild);
+            }
+            $document->removeChild($document->doctype);
+            // save the target encoding
+            $encoding = $decoder->encoding;
+            // Destroy our existing objects
+            unset($errorHandler, $decoder, $stack, $tokenizer, $tokenList, $treeBuilder);
+            // Parse a second time
+            return static::parse($data, $encoding, $document, $fragmentContext, $fragmentQuirks, $config);
+        }
         // prepare the output
         $out = new Output;
         $out->document = $document;
