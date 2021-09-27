@@ -40,19 +40,6 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         } elseif ($patched) {
             $this->markAsRisky();
         }
-        // convert parse error constants into standard symbols in specification
-        $errorMap = array_map(function($str) {
-            return strtolower(str_replace("_", "-", $str));
-        }, array_flip(array_filter((new \ReflectionClass(ParseError::class))->getConstants(), function($v) {
-            return is_int($v);
-        })));
-        // create a stub error handler which collects parse errors
-        $actualErrors = [];
-        $errorHandler = $this->createStub(ParseError::class);
-        $errorHandler->method("emit")->willReturnCallback(function($file, $line, $col, $code) use (&$actualErrors, $errorMap) {
-            $actualErrors[] = ['code' => $errorMap[$code], 'line' => $line, 'col' => $col];
-            return true;
-        });
         // initialize the output document
         $doc = new \DOMDocument;
         // prepare the fragment context, if any
@@ -70,6 +57,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             $fragmentContext = null;
         }
         // initialize the other classes we need
+        $errorHandler = new ParseError;
         $decoder = new Data($data, "STDIN", $errorHandler, "UTF-8");
         $stack = new OpenElementsStack($fragmentContext);
         $tokenizer = new Tokenizer($decoder, $stack, $errorHandler);
@@ -89,9 +77,23 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         $act = $this->balanceTree($this->serializeTree($doc, (bool) $fragmentContext), $exp);
         $this->assertEquals($exp, $act, $treeBuilder->debugLog);
         if ($errors !== false) {
+            $actualErrors = $this->formatErrors($errorHandler->errors);
             // If $errors is false, the test does not include errors when there are in fact errors
             $this->assertCount(sizeof($errors), $actualErrors, var_export($errors, true).var_export($actualErrors, true));
         }
+    }
+
+    protected function formatErrors(array $errors): array {
+        $errorMap = array_map(function($str) {
+            return strtolower(str_replace("_", "-", $str));
+        }, array_flip(array_filter((new \ReflectionClass(ParseError::class))->getConstants(), function($v) {
+            return is_int($v);
+        })));
+        $out = [];
+        foreach ($errors as list($line, $col, $code)) {
+            $out[] = ['code' => $errorMap[$code], 'line' => $line, 'col' => $col];
+        }
+        return $out;
     }
 
     protected function patchTest(string $data, $fragment, array $errors, array $exp): array {

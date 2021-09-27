@@ -40,7 +40,7 @@ class Exception extends \Exception {
     const TREEBUILDER_INVALID_INSERTION_LOCATION = 606;
 
     protected static $messages = [
-        100 => 'Invalid error code',
+        100 => 'Invalid error code %s',
         101 => 'Unknown error; escaping',
         102 => 'Incorrect number of parameters for Exception message; %s expected',
         103 => 'Unreachable code',

@@ -13,7 +13,7 @@ class TreeBuilder {
 
     public $debugLog = "";
 
-    /** @var \MensBeam\HTML\ActiveFormattingElementsList The list of active formatting elements, used when elements are improperly nested */
+    /** @var \MensBeam\HTML\Parser\ActiveFormattingElementsList The list of active formatting elements, used when elements are improperly nested */
     protected $activeFormattingElementsList;
     /** @var \DOMDocument The DOMDocument that is assembled by this class */
     protected $DOM;
@@ -31,13 +31,13 @@ class TreeBuilder {
     protected $insertionMode = self::INITIAL_MODE;
     /** @var int When the insertion mode is switched to "text" or "in table text", the original insertion mode is also set. This is the insertion mode to which the tree construction stage will return. */
     protected $originalInsertionMode;
-    /** @var \MensBeam\HTML\OpenElementsStack The stack of open elements, uses Stack */
+    /** @var \MensBeam\HTML\Parser\OpenElementsStack The stack of open elements, uses Stack */
     protected $stack;
-    /** @var \MensBeam\HTML\Data Instance of the Data class used for reading the input character-stream */
+    /** @var \MensBeam\HTML\Parser\Data Instance of the Data class used for reading the input character-stream */
     protected $data;
     /** @var \Generator Instance of the Tokenizer class used for creating tokens */
     protected $tokenizer;
-    /** @var \MensBeam\HTML\TemplateInsertionModesStack Used to store the template insertion modes */
+    /** @var \MensBeam\HTML\Parser\TemplateInsertionModesStack Used to store the template insertion modes */
     protected $templateInsertionModes;
     /** @var array An array holding character tokens which may need to be foster-parented during table parsing */
     protected $pendingTableCharacterTokens = [];
@@ -252,7 +252,7 @@ class TreeBuilder {
         "frameset" => self::IN_FRAMESET_MODE,
     ];
 
-    public function __construct(\DOMDocument $dom, Data $data, Tokenizer $tokenizer, \Generator $tokenList, ParseError $errorHandler, OpenElementsStack $stack, TemplateInsertionModesStack $templateInsertionModes, ?\DOMElement $fragmentContext = null, ?int $fragmentQuirks = null) {
+    public function __construct(\DOMDocument $dom, Data $data, Tokenizer $tokenizer, \Generator $tokenList, ?ParseError $errorHandler, OpenElementsStack $stack, TemplateInsertionModesStack $templateInsertionModes, ?\DOMElement $fragmentContext = null, ?int $fragmentQuirks = null) {
         if ($dom->hasChildNodes() || $dom->doctype) {
             throw new Exception(Exception::TREEBUILDER_NON_EMPTY_TARGET_DOCUMENT);
         } elseif (!in_array($fragmentQuirks ?? Parser::NO_QUIRKS_MODE, [Parser::NO_QUIRKS_MODE, Parser::LIMITED_QUIRKS_MODE, Parser::QUIRKS_MODE])) {

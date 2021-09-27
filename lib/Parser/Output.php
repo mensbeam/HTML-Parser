@@ -10,4 +10,5 @@ class Output {
     public $document;
     public $encoding;
     public $quirksMode;
+    public $errors = null;
 }

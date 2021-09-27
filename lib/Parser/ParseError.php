@@ -8,81 +8,82 @@ namespace MensBeam\HTML\Parser;
 
 class ParseError {
     // tokenization parse errors; these have been standardized
-    const ENCODING_ERROR                                                    = 100;
-    const UNEXPECTED_NULL_CHARACTER                                         = 101;
-    const UNEXPECTED_QUESTION_MARK_INSTEAD_OF_TAG_NAME                      = 102;
-    const EOF_BEFORE_TAG_NAME                                               = 103;
-    const INVALID_FIRST_CHARACTER_OF_TAG_NAME                               = 104;
-    const MISSING_END_TAG_NAME                                              = 105;
-    const EOF_IN_TAG                                                        = 106;
-    const EOF_IN_SCRIPT_HTML_COMMENT_LIKE_TEXT                              = 107;
-    const UNEXPECTED_EQUALS_SIGN_BEFORE_ATTRIBUTE_NAME                      = 108;
-    const DUPLICATE_ATTRIBUTE                                               = 109;
-    const UNEXPECTED_CHARACTER_IN_ATTRIBUTE_NAME                            = 110;
-    const MISSING_ATTRIBUTE_VALUE                                           = 111;
-    const UNEXPECTED_CHARACTER_IN_UNQUOTED_ATTRIBUTE_VALUE                  = 112;
-    const MISSING_WHITESPACE_BETWEEN_ATTRIBUTES                             = 113;
-    const UNEXPECTED_SOLIDUS_IN_TAG                                         = 114;
-    const CDATA_IN_HTML_CONTENT                                             = 115;
-    const INCORRECTLY_OPENED_COMMENT                                        = 116;
-    const ABRUPT_CLOSING_OF_EMPTY_COMMENT                                   = 117;
-    const EOF_IN_COMMENT                                                    = 118;
-    const NESTED_COMMENT                                                    = 119;
-    const INCORRECTLY_CLOSED_COMMENT                                        = 120;
-    const EOF_IN_DOCTYPE                                                    = 121;
-    const MISSING_WHITESPACE_BEFORE_DOCTYPE_NAME                            = 122;
-    const MISSING_DOCTYPE_NAME                                              = 123;
-    const INVALID_CHARACTER_SEQUENCE_AFTER_DOCTYPE_NAME                     = 124;
-    const MISSING_WHITESPACE_AFTER_DOCTYPE_PUBLIC_KEYWORD                   = 125;
-    const MISSING_DOCTYPE_PUBLIC_IDENTIFIER                                 = 126;
-    const MISSING_QUOTE_BEFORE_DOCTYPE_PUBLIC_IDENTIFIER                    = 127;
-    const ABRUPT_DOCTYPE_PUBLIC_IDENTIFIER                                  = 128;
-    const MISSING_WHITESPACE_BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS  = 129;
-    const MISSING_WHITESPACE_AFTER_DOCTYPE_SYSTEM_KEYWORD                   = 130;
-    const MISSING_DOCTYPE_SYSTEM_IDENTIFIER                                 = 131;
-    const MISSING_QUOTE_BEFORE_DOCTYPE_SYSTEM_IDENTIFIER                    = 132;
-    const ABRUPT_DOCTYPE_SYSTEM_IDENTIFIER                                  = 133;
-    const UNEXPECTED_CHARACTER_AFTER_DOCTYPE_SYSTEM_IDENTIFIER              = 134;
-    const EOF_IN_CDATA                                                      = 135;
-    const END_TAG_WITH_ATTRIBUTES                                           = 136;
-    const END_TAG_WITH_TRAILING_SOLIDUS                                     = 137;
-    const MISSING_SEMICOLON_AFTER_CHARACTER_REFERENCE                       = 138;
-    const UNKNOWN_NAMED_CHARACTER_REFERENCE                                 = 139;
-    const ABSENCE_OF_DIGITS_IN_NUMERIC_CHARACTER_REFERENCE                  = 140;
-    const NULL_CHARACTER_REFERENCE                                          = 141;
-    const CHARACTER_REFERENCE_OUTSIDE_UNICODE_RANGE                         = 142;
-    const SURROGATE_CHARACTER_REFERENCE                                     = 143;
-    const NONCHARACTER_CHARACTER_REFERENCE                                  = 144;
-    const CONTROL_CHARACTER_REFERENCE                                       = 145;
-    const SURROGATE_IN_INPUT_STREAM                                         = 146;
-    const NONCHARACTER_IN_INPUT_STREAM                                      = 147;
-    const CONTROL_CHARACTER_IN_INPUT_STREAM                                 = 148;
+    public const ENCODING_ERROR                                                    = 100;
+    public const UNEXPECTED_NULL_CHARACTER                                         = 101;
+    public const UNEXPECTED_QUESTION_MARK_INSTEAD_OF_TAG_NAME                      = 102;
+    public const EOF_BEFORE_TAG_NAME                                               = 103;
+    public const INVALID_FIRST_CHARACTER_OF_TAG_NAME                               = 104;
+    public const MISSING_END_TAG_NAME                                              = 105;
+    public const EOF_IN_TAG                                                        = 106;
+    public const EOF_IN_SCRIPT_HTML_COMMENT_LIKE_TEXT                              = 107;
+    public const UNEXPECTED_EQUALS_SIGN_BEFORE_ATTRIBUTE_NAME                      = 108;
+    public const DUPLICATE_ATTRIBUTE                                               = 109;
+    public const UNEXPECTED_CHARACTER_IN_ATTRIBUTE_NAME                            = 110;
+    public const MISSING_ATTRIBUTE_VALUE                                           = 111;
+    public const UNEXPECTED_CHARACTER_IN_UNQUOTED_ATTRIBUTE_VALUE                  = 112;
+    public const MISSING_WHITESPACE_BETWEEN_ATTRIBUTES                             = 113;
+    public const UNEXPECTED_SOLIDUS_IN_TAG                                         = 114;
+    public const CDATA_IN_HTML_CONTENT                                             = 115;
+    public const INCORRECTLY_OPENED_COMMENT                                        = 116;
+    public const ABRUPT_CLOSING_OF_EMPTY_COMMENT                                   = 117;
+    public const EOF_IN_COMMENT                                                    = 118;
+    public const NESTED_COMMENT                                                    = 119;
+    public const INCORRECTLY_CLOSED_COMMENT                                        = 120;
+    public const EOF_IN_DOCTYPE                                                    = 121;
+    public const MISSING_WHITESPACE_BEFORE_DOCTYPE_NAME                            = 122;
+    public const MISSING_DOCTYPE_NAME                                              = 123;
+    public const INVALID_CHARACTER_SEQUENCE_AFTER_DOCTYPE_NAME                     = 124;
+    public const MISSING_WHITESPACE_AFTER_DOCTYPE_PUBLIC_KEYWORD                   = 125;
+    public const MISSING_DOCTYPE_PUBLIC_IDENTIFIER                                 = 126;
+    public const MISSING_QUOTE_BEFORE_DOCTYPE_PUBLIC_IDENTIFIER                    = 127;
+    public const ABRUPT_DOCTYPE_PUBLIC_IDENTIFIER                                  = 128;
+    public const MISSING_WHITESPACE_BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS  = 129;
+    public const MISSING_WHITESPACE_AFTER_DOCTYPE_SYSTEM_KEYWORD                   = 130;
+    public const MISSING_DOCTYPE_SYSTEM_IDENTIFIER                                 = 131;
+    public const MISSING_QUOTE_BEFORE_DOCTYPE_SYSTEM_IDENTIFIER                    = 132;
+    public const ABRUPT_DOCTYPE_SYSTEM_IDENTIFIER                                  = 133;
+    public const UNEXPECTED_CHARACTER_AFTER_DOCTYPE_SYSTEM_IDENTIFIER              = 134;
+    public const EOF_IN_CDATA                                                      = 135;
+    public const END_TAG_WITH_ATTRIBUTES                                           = 136;
+    public const END_TAG_WITH_TRAILING_SOLIDUS                                     = 137;
+    public const MISSING_SEMICOLON_AFTER_CHARACTER_REFERENCE                       = 138;
+    public const UNKNOWN_NAMED_CHARACTER_REFERENCE                                 = 139;
+    public const ABSENCE_OF_DIGITS_IN_NUMERIC_CHARACTER_REFERENCE                  = 140;
+    public const NULL_CHARACTER_REFERENCE                                          = 141;
+    public const CHARACTER_REFERENCE_OUTSIDE_UNICODE_RANGE                         = 142;
+    public const SURROGATE_CHARACTER_REFERENCE                                     = 143;
+    public const NONCHARACTER_CHARACTER_REFERENCE                                  = 144;
+    public const CONTROL_CHARACTER_REFERENCE                                       = 145;
+    public const SURROGATE_IN_INPUT_STREAM                                         = 146;
+    public const NONCHARACTER_IN_INPUT_STREAM                                      = 147;
+    public const CONTROL_CHARACTER_IN_INPUT_STREAM                                 = 148;
     // tree construction parse errors; these have not been standardized, but html5lib's error names are likely to become standard in future
-    const EXPECTED_DOCTYPE_BUT_GOT_START_TAG                                = 200;
-    const EXPECTED_DOCTYPE_BUT_GOT_END_TAG                                  = 201;
-    const EXPECTED_DOCTYPE_BUT_GOT_CHARS                                    = 202;
-    const EXPECTED_DOCTYPE_BUT_GOT_EOF                                      = 203;
-    const UNKNOWN_DOCTYPE                                                   = 204;
-    const UNEXPECTED_DOCTYPE                                                = 205;
-    const UNEXPECTED_START_TAG                                              = 206;
-    const UNEXPECTED_END_TAG                                                = 207; // html5lib also uses 'adoption-agency-1.2' and 'adoption-agency-1.3' for this
-    const NON_VOID_HTML_ELEMENT_START_TAG_WITH_TRAILING_SOLIDUS             = 208;
-    const UNEXPECTED_START_TAG_IMPLIES_END_TAG                              = 209;
-    const UNEXPECTED_START_TAG_ALIAS                                        = 210; // html5lib uses 'unexpected-start-tag-treated-as'
-    const UNEXPECTED_CHAR                                                   = 211;
-    const UNEXPECTED_EOF                                                    = 212;
-    const UNEXPECTED_PARENT                                                 = 213;
-    const INVALID_NAMESPACE_ATTRIBUTE_VALUE                                 = 214;
-    const FOSTERED_START_TAG                                                = 215;
-    const FOSTERED_END_TAG                                                  = 216;
-    const FOSTERED_CHAR                                                     = 217;
+    public const EXPECTED_DOCTYPE_BUT_GOT_START_TAG                                = 200;
+    public const EXPECTED_DOCTYPE_BUT_GOT_END_TAG                                  = 201;
+    public const EXPECTED_DOCTYPE_BUT_GOT_CHARS                                    = 202;
+    public const EXPECTED_DOCTYPE_BUT_GOT_EOF                                      = 203;
+    public const UNKNOWN_DOCTYPE                                                   = 204;
+    public const UNEXPECTED_DOCTYPE                                                = 205;
+    public const UNEXPECTED_START_TAG                                              = 206;
+    public const UNEXPECTED_END_TAG                                                = 207; // html5lib also uses 'adoption-agency-1.2' and 'adoption-agency-1.3' for this
+    public const NON_VOID_HTML_ELEMENT_START_TAG_WITH_TRAILING_SOLIDUS             = 208;
+    public const UNEXPECTED_START_TAG_IMPLIES_END_TAG                              = 209;
+    public const UNEXPECTED_START_TAG_ALIAS                                        = 210; // html5lib uses 'unexpected-start-tag-treated-as'
+    public const UNEXPECTED_CHAR                                                   = 211;
+    public const UNEXPECTED_EOF                                                    = 212;
+    public const UNEXPECTED_PARENT                                                 = 213;
+    public const INVALID_NAMESPACE_ATTRIBUTE_VALUE                                 = 214;
+    public const FOSTERED_START_TAG                                                = 215;
+    public const FOSTERED_END_TAG                                                  = 216;
+    public const FOSTERED_CHAR                                                     = 217;
 
-    const MESSAGES = [
+    public const MESSAGES = [
         self::EXPECTED_DOCTYPE_BUT_GOT_START_TAG                                => 'Expected DOCTYPE but got start tag <%s>',
         self::EXPECTED_DOCTYPE_BUT_GOT_END_TAG                                  => 'Expected DOCTYPE but got end tag </%s>',
         self::EXPECTED_DOCTYPE_BUT_GOT_CHARS                                    => 'Expected DOCTYPE but got characters',
         self::EXPECTED_DOCTYPE_BUT_GOT_EOF                                      => 'Expected DOCTYPE but got end-of-file',
         self::UNKNOWN_DOCTYPE                                                   => 'Unknown DOCTYPE',
+        self::UNEXPECTED_DOCTYPE                                                => 'Unexpected DOCTYPE',
         self::UNEXPECTED_START_TAG                                              => 'Unexpected start tag <%s>',
         self::UNEXPECTED_END_TAG                                                => 'Unexpected end tag </%s>',
         self::NON_VOID_HTML_ELEMENT_START_TAG_WITH_TRAILING_SOLIDUS             => 'Trailing solidus in non-void HTML element start tag <%s>',
@@ -147,7 +148,7 @@ class ParseError {
         self::CONTROL_CHARACTER_IN_INPUT_STREAM                                 => 'Control character in input stream',
     ];
 
-    const REPORT_OFFSETS = [
+    public const REPORT_OFFSETS = [
         self::INCORRECTLY_OPENED_COMMENT                       => 1,
         self::SURROGATE_CHARACTER_REFERENCE                    => 1,
         self::CHARACTER_REFERENCE_OUTSIDE_UNICODE_RANGE        => 1,
@@ -159,57 +160,5 @@ class ParseError {
         self::UNKNOWN_NAMED_CHARACTER_REFERENCE                => 1,
     ];
 
-    public function setHandler() {
-        // Set the errror handler and honor already-set error reporting rules.
-        set_error_handler([$this, 'errorHandler'], \E_USER_WARNING);
-    }
-
-    public function clearHandler() {
-        restore_error_handler();
-    }
-
-    protected function prepareMessage(string $file, int $line, int $column, int $code, ...$arg): string {
-        assert(isset(self::MESSAGES[$code]), new Exception(Exception::INVALID_CODE));
-
-        $message = self::MESSAGES[$code];
-        // Count the number of replacements needed in the message.
-        $count = substr_count($message, '%s');
-        // If the number of replacements don't match the arguments then oops.
-        assert(count($arg) === $count, new Exception(Exception::INCORRECT_PARAMETERS_FOR_MESSAGE, $count));
-
-        if ($count > 0) {
-            // Convert newlines and tabs in the arguments to words to better
-            // express what they are.
-            $arg = array_map(function($value) {
-                if ($value === "\n") {
-                    return 'Newline';
-                } elseif ($value === "\t") {
-                    return 'Tab';
-                } elseif ($value === null) {
-                    return 'nothing';
-                } else {
-                    return $value;
-                }
-            }, $arg);
-
-            // Go through each of the arguments and run sprintf on the strings.
-            $message = sprintf($message, ...$arg);
-        }
-        // Wrap with preamble and location
-        // TODO: the file path should be middle-elided when necessary so that
-        // the message does not exceed 1024 bytes
-        $message = sprintf("HTML5 Parse Error: \"%s\" in %s", $message, $file);
-        if ($line) {
-            $message .= sprintf(" on line %s, column %s", $line, $column);
-        }
-        return $message;
-    }
-
-    public function emit(string $file, int $line, int $column, int $code, ...$arg): bool {
-        return trigger_error($this->prepareMessage($file, $line, $column, $code, ...$arg), \E_USER_WARNING);
-    }
-
-    public function errorHandler(int $code, string $message) {
-        echo "$message\n";
-    }
+    public $errors = [];
 }

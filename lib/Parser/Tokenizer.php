@@ -200,7 +200,7 @@ class Tokenizer {
     const CTYPE_ALNUM = self::CTYPE_ALPHA.self::CTYPE_NUM;
     const CTYPE_HEX   = self::CTYPE_NUM.'ABCDEFabcdef';
 
-    public function __construct(Data $data, OpenElementsStack $stack, ParseError $errorHandler) {
+    public function __construct(Data $data, OpenElementsStack $stack, ?ParseError $errorHandler) {
         $this->state = self::DATA_STATE;
         $this->data = $data;
         $this->stack = $stack;

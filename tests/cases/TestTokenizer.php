@@ -43,19 +43,7 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
 
     /** @dataProvider provideStandardTokenizerTests */
     public function testStandardTokenizerTests(string $input, array $expected, int $state, string $open = null, array $expErrors) {
-        // convert parse error constants into standard symbols in specification
-        $errorMap = array_map(function($str) {
-            return strtolower(str_replace("_", "-", $str));
-        }, array_flip(array_filter((new \ReflectionClass(ParseError::class))->getConstants(), function($v) {
-            return is_int($v);
-        })));
-        // create a stub error handler which collects parse errors
-        $errors = [];
-        $errorHandler = $this->createStub(ParseError::class);
-        $errorHandler->method("emit")->willReturnCallback(function($file, $line, $col, $code) use (&$errors, $errorMap) {
-            $errors[] = ['code' => $errorMap[$code], 'line' => $line, 'col' => $col];
-            return true;
-        });
+        $errorHandler = new ParseError;
         // initialize a stack of open elements, possibly with an open element
         $stack = new OpenElementsStack();
         if ($open) {
@@ -79,6 +67,7 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
             }
         } finally {
             $actual = $this->combineCharacterTokens($actual);
+            $errors = $this->formatErrors($errorHandler->errors);
             $this->assertEquals($expected, $actual, $tokenizer->debugLog);
             $this->assertEquals($expErrors, $errors, $tokenizer->debugLog);
         }
@@ -196,6 +185,19 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
                 }
             }
         }
+    }
+
+    protected function formatErrors(array $errors): array {
+        $errorMap = array_map(function($str) {
+            return strtolower(str_replace("_", "-", $str));
+        }, array_flip(array_filter((new \ReflectionClass(ParseError::class))->getConstants(), function($v) {
+            return is_int($v);
+        })));
+        $out = [];
+        foreach ($errors as list($line, $col, $code)) {
+            $out[] = ['code' => $errorMap[$code], 'line' => $line, 'col' => $col];
+        }
+        return $out;
     }
 
     protected function patchTest(&$test): void {

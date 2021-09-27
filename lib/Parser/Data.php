@@ -46,7 +46,7 @@ class Data {
     const WHITESPACE_SAFE = "\t\x0C ";
 
 
-    public function __construct(string $data, string $filePath = 'STDIN', ParseError $errorHandler = null, ?string $encodingOrContentType = '') {
+    public function __construct(string $data, string $filePath = 'STDIN', ?ParseError $errorHandler, ?string $encodingOrContentType = '') {
         $this->errorHandler = $errorHandler ?? new ParseError;
         $this->filePath = $filePath;
         $encodingOrContentType = (string) $encodingOrContentType;
