@@ -50,7 +50,7 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
             $stack[] = (new \DOMDocument)->createElement($open);
         }
         // initialize the data stream and tokenizer
-        $data = new Data($input, "STDIN", $errorHandler, "UTF-8");
+        $data = new Data($input, "UTF-8", $errorHandler, "UTF-8");
         $tokenizer = new Tokenizer($data, $stack, $errorHandler);
         $tokenizer->state = $state;
         // perform the test

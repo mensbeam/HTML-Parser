@@ -58,7 +58,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         }
         // initialize the other classes we need
         $errorHandler = new ParseError;
-        $decoder = new Data($data, "STDIN", $errorHandler, "UTF-8");
+        $decoder = new Data($data, "UTF-8", $errorHandler, "UTF-8");
         $stack = new OpenElementsStack($fragmentContext);
         $tokenizer = new Tokenizer($decoder, $stack, $errorHandler);
         $tokenList = $tokenizer->tokenize();

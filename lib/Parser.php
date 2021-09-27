@@ -45,7 +45,7 @@ class Parser {
         $document = $document ?? new \DOMDocument;
         $config = $config ?? new Config;
         $errorHandler = $config->errorCollection ? new ParseError : null;
-        $decoder = new Data($data, $file ?? "STDIN", $errorHandler, $encodingOrContentType);
+        $decoder = new Data($data, $encodingOrContentType, $errorHandler, $config->encodingFallback);
         $stack = new OpenElementsStack($fragmentContext);
         $tokenizer = new Tokenizer($decoder, $stack, $errorHandler);
         $tokenList = $tokenizer->tokenize();

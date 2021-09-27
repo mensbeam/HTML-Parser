@@ -43,4 +43,13 @@ class TestParser extends \PHPUnit\Framework\TestCase {
         $this->assertSame(Parser::QUIRKS_MODE, $out->quirksMode);
         $this->assertIsArray($out->errors);
     }
+
+    public function testParseADocumentWithFallbackEncoding(): void {
+        $in = "hello world!";
+        $conf = new Config;
+        $conf->encodingFallback = "iso-2022-jp";
+        $out = Parser::parse($in, "", null, null, null, $conf);
+        $this->assertInstanceOf(Output::class, $out);
+        $this->assertSame("ISO-2022-JP", $out->encoding);
+    }
 }

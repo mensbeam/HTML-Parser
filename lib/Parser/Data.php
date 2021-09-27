@@ -12,8 +12,6 @@ use MensBeam\Intl\Encoding;
 class Data {
     use ParseErrorEmitter;
 
-    // Used to get the file path for error reporting.
-    public $filePath;
     // Whether the encoding is certain or tentative; this is a feature of the specification, but not relevant for this implementation
     public $encodingCertain = false;
     // The canonical name of the encoding
@@ -46,12 +44,12 @@ class Data {
     const WHITESPACE_SAFE = "\t\x0C ";
 
 
-    public function __construct(string $data, string $filePath = 'STDIN', ?ParseError $errorHandler, ?string $encodingOrContentType = '') {
-        $this->errorHandler = $errorHandler ?? new ParseError;
-        $this->filePath = $filePath;
+    public function __construct(string $data, ?string $encodingOrContentType, ?ParseError $errorHandler,  ?string $fallbackEncoding) {
+        $this->errorHandler = $errorHandler;
         $encodingOrContentType = (string) $encodingOrContentType;
-        // don't track the current line/column position if erroro reporting has been suppressed
-        $this->track = (bool) (error_reporting() & \E_USER_WARNING);
+        $fallbackEncoding = (string) $fallbackEncoding;
+        // don't track the current line/column position if error reporting has been suppressed
+        $this->track = (bool) $this->errorHandler;
 
         # 13.2.3.2 Determining the character encoding
         # User agents must use the following algorithm, called the encoding
@@ -85,7 +83,7 @@ class Data {
         } else {
             # Otherwise, return an implementation-defined or user-specified
             #   default character encoding, with the confidence tentative.
-            $encoding = Charset::fromCharset(Parser::$fallbackEncoding) ?? "windows-1252";
+            $encoding = Charset::fromCharset($fallbackEncoding) ?? "windows-1252";
             $this->encodingCertain = false;
         }
         $this->encoding = $encoding;
