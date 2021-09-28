@@ -20,9 +20,10 @@ The primary aim of this library is accuracy. If the document object differs from
 
 - Due to PHP's DOM being designed for XML, element and attribute names which are illegal in XML are mangled as recommended by the specification
 - PHP's DOM does not allow comments to be inserted outside the root element. The parser will perform the insertions, but the comment nodes are then silently dropped
-- PHP has no special understanding of the HTML `<template>` element. Consequently template contents is treated no differently from the children of other elements
-- PHP treats `xmlns` attributes specially. Attributes which would change the namespace URI of an element or prefix to inconsistent values are thus dropped
-- Due to a PHP bug which severely degrades performance with large documents and in consideration of existing PHP software, HTML elements are placed in the null namespace rather than in the HTML namespace.
+- PHP's DOM has no special understanding of the HTML `<template>` element. Consequently template contents is treated no differently from the children of other elements
+- PHP's DOM treats `xmlns` attributes specially. Attributes which would change the namespace URI of an element or prefix to inconsistent values are thus dropped
+- Due to a PHP bug which severely degrades performance with large documents and in consideration of existing PHP software, HTML elements are placed in the null namespace rather than in the HTML namespace
+- PHP's DOM does not allow DOCTYPEs with no name (i.e. `<!DOCTYPE>` rather than `<!DOCTYPE html>`); in such cases the parser will create a DOCTYPE using a single `U+0020 SPACE` character as its name
 
 ## Comparison with `masterminds/html5`
 
