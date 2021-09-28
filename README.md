@@ -1,6 +1,8 @@
-# HTML #
+# HTML-Parser
 
-Tools for parsing and printing HTML5 documents and fragments.
+A modern, accurate HTML parser for PHP.
+
+## Usage
 
 ```php
 <?php
@@ -12,7 +14,17 @@ $quirks = $out->quirksMode; // the quirks-mode setting of the document, needed f
 
 The API is still in flux, but should be finalized soon.
 
-## Comparison with `masterminds/html5` ##
+## Limitations
+
+The primary aim of this library is accuracy. If the document object differs from what the specification mandates, this is probably a bug. However, we are also constrained by PHP, which imposes various limtations. These are as follows:
+
+- Due to PHP's DOM being designed for XML, element and attribute names which are illegal in XML are mangled as recommended by the specification
+- PHP's DOM does not allow comments to be inserted outside the root element. The parser will perform the insertions, but the comment nodes are then silently dropped
+- PHP has no special understanding of the HTML `<template>` element. Consequently template contents is treated no differently from the children of other elements
+- PHP treats `xmlns` attributes specially. Attributes which would change the namespace URI of an element or prefix to inconsistent values are thus dropped
+- Due to a PHP bug which severely degrades performance with large documents and in consideration of existing PHP software, HTML elements are placed in the null namespace rather than in the HTML namespace.
+
+## Comparison with `masterminds/html5`
 
 This library and [masterminds/html5](https://packagist.org/packages/masterminds/html5) serve similar purposes. Generally, we are more accurate, but they are much faster. The following table summarizes the main functional differences.
 
