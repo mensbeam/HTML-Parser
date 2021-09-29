@@ -304,7 +304,7 @@ class Data {
         #   stream is UTF-16BE/LE, then set the confidence to certain and
         #   return. The new encoding is ignored; if it was anything but the
         #   same encoding, then it would be clearly incorrect.
-        if (in_array($oldEncoding, ["UTF16-LE", "UTF-16BE"])) {
+        if (in_array($oldEncoding, ["UTF-16LE", "UTF-16BE"])) {
             $this->encodingCertain = true;
             return;
         }
@@ -345,8 +345,8 @@ class Data {
         $bytes = $this->data->posByte();
         $chars = $this->data->posChar();
         if ($bytes === $chars) {
-            if ($encoding === "ISO-2022-JP") {
-                // exclude 0x0E, 0x0F, and 0x1B from the ASCII range
+            if ($newEncoding === "ISO-2022-JP") {
+                // exclude 0x0E, 0x0F, and 0x1B from the ASCII range as these have different interpretation in ISO-2022-JP encoding
                 $range = '[^\x{0E}\x{0F}\x{1B}\x{80}-\x{FF}]';
             } else {
                 $range = '[\x{00}-\x{7F}]';
@@ -355,13 +355,13 @@ class Data {
                 // The bytes are the same; change the encoding, seek to the same location, and continue parsing
                 $this->data = Encoding::createDecoder($newEncoding, $this->string, false, true);
                 $this->data->seek($chars);
-            } else {
-                // If the bytes are not the same we have to throw everything out and start over
-                // The simplest way, ugly though it is, is to throw an exceptionto unwind all
-                //   the way back to the invocation of the parser
-                $this->data = Encoding::createDecoder($newEncoding, $this->string, false, true);
-                throw new EncodingChangeException;
+                return;
             }
         }
+        // If the bytes are not the same we have to throw everything out and start over
+        // The simplest way, ugly though it is, is to throw an exceptionto unwind all
+        //   the way back to the invocation of the parser
+        $this->data = Encoding::createDecoder($newEncoding, $this->string, false, true);
+        throw new EncodingChangeException;
     }
 }
