@@ -78,12 +78,20 @@ abstract class TagToken extends Token {
         return ($this->_getAttributeKey($name) !== null);
     }
 
-    public function getAttribute(string $name) {
+    public function getAttribute(string $name): ?TokenAttr {
         $key = $this->_getAttributeKey($name);
         return (isset($this->attributes[$key])) ? $this->attributes[$key] : null;
     }
 
-    private function _getAttributeKey(string $name) {
+    public function getAttributeValue(string $name): ?string {
+        $attr = $this->getAttribute($name);
+        if ($attr) {
+            return $attr->value;
+        }
+        return null;
+    }
+
+    private function _getAttributeKey(string $name): ?int {
         foreach ($this->attributes as $key => $a) {
             if ($a->name === $name) {
                 return $key;

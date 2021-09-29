@@ -1611,9 +1611,9 @@ class TreeBuilder {
                             #   and the confidence is currently tentative, then change the encoding to the
                             #   extracted encoding.
                             if (!$this->data->encodingCertain) {
-                                if ($enc = Charset::fromCharset((string) $token->getAttribute("charset"))) {
+                                if ($enc = Charset::fromCharset((string) $token->getAttributeValue("charset"))) {
                                     $this->data->changeEncoding($enc);
-                                } elseif (preg_match("/^Content-Type$/i", (string) $token->getAttribute("http-equiv")) && $enc = Charset::fromMeta((string) $token->getAttribute("content"))) {
+                                } elseif (preg_match("/^Content-Type$/i", (string) $token->getAttributeValue("http-equiv")) && $enc = Charset::fromMeta((string) $token->getAttributeValue("content"))) {
                                     $this->data->changeEncoding($enc);
                                 }
                             }

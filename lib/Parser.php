@@ -56,10 +56,12 @@ class Parser {
         } catch (EncodingChangeException $e) {
             // We are supposed to reparse with a new encoding
             // Clear out the document
+            if ($document->doctype) {
+                $document->removeChild($document->doctype);
+            }
             while ($document->hasChildNodes()) {
                 $document->removeChild($document->firstChild);
             }
-            $document->removeChild($document->doctype);
             // save the target encoding
             $encoding = $decoder->encoding;
             // Destroy our existing objects
