@@ -506,7 +506,7 @@ class Tokenizer {
                     # Create a comment token whose data is the empty string.
                     # Reconsume in the bogus comment state.
                     $this->error(ParseError::UNEXPECTED_QUESTION_MARK_INSTEAD_OF_TAG_NAME);
-                    $token = new CommentToken('');
+                    $token = new ProcessingInstructionToken('');
                     $this->state = self::BOGUS_COMMENT_STATE;
                     goto Reconsume;
                 }

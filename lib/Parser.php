@@ -50,7 +50,7 @@ class Parser {
         $stack = new OpenElementsStack($fragmentContext);
         $tokenizer = new Tokenizer($decoder, $stack, $errorHandler);
         $tokenList = $tokenizer->tokenize();
-        $treeBuilder = new TreeBuilder($document, $decoder, $tokenizer, $tokenList, $errorHandler, $stack, new TemplateInsertionModesStack, $fragmentContext, $fragmentQuirks);
+        $treeBuilder = new TreeBuilder($document, $decoder, $tokenizer, $tokenList, $errorHandler, $stack, new TemplateInsertionModesStack, $fragmentContext, $fragmentQuirks, $config);
         try {
             $treeBuilder->constructTree();
         } catch (EncodingChangeException $e) {

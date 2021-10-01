@@ -1,0 +1,21 @@
+#data
+<!DOCTYPE html><html><?test moop>
+#errors
+(1,23): unexpected-question-mark-instead-of-tag-name
+#document
+| <!DOCTYPE html>
+| <html>
+|   <?test moop>
+|   <head>
+|   <body>
+
+#data
+<!DOCTYPE html><html><?xml oops>
+#errors
+(1,23): unexpected-question-mark-instead-of-tag-name
+#document
+| <!DOCTYPE html>
+| <html>
+|   <!-- ?xml oops -->
+|   <head>
+|   <body>

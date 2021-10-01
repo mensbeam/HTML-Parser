@@ -55,6 +55,12 @@ class CommentToken extends DataToken {
     }
 }
 
+class ProcessingInstructionToken extends CommentToken {
+    public function __construct(string $data = '') {
+        parent::__construct($data);
+    }
+}
+
 abstract class TagToken extends Token {
     # Start and end tag tokens have a tag name,
     #   a self-closing flag, and a list of attributes,

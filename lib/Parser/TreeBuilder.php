@@ -45,6 +45,9 @@ class TreeBuilder {
     protected $mangledElements = false;
     /** @var bool Flag used to track whether name mangling has been performed for attributes; this is a minor optimization */
     protected $mangledAttributes = false;
+    /** @var bool Whether processing instructions should be retained rather than transformed into comments as the specification requires */
+    protected $processingInstructions = false;
+
     /** @var int The quirks-mode setting of the document being built */
     public $quirksMode = Parser::NO_QUIRKS_MODE;
 
@@ -252,12 +255,14 @@ class TreeBuilder {
         "frameset" => self::IN_FRAMESET_MODE,
     ];
 
-    public function __construct(\DOMDocument $dom, Data $data, Tokenizer $tokenizer, \Generator $tokenList, ?ParseError $errorHandler, OpenElementsStack $stack, TemplateInsertionModesStack $templateInsertionModes, ?\DOMElement $fragmentContext = null, ?int $fragmentQuirks = null) {
+    public function __construct(\DOMDocument $dom, Data $data, Tokenizer $tokenizer, \Generator $tokenList, ?ParseError $errorHandler, OpenElementsStack $stack, TemplateInsertionModesStack $templateInsertionModes, ?\DOMElement $fragmentContext, ?int $fragmentQuirks, ?Config $config) {
         if ($dom->hasChildNodes() || $dom->doctype) {
             throw new Exception(Exception::TREEBUILDER_NON_EMPTY_TARGET_DOCUMENT);
         } elseif (!in_array($fragmentQuirks ?? Parser::NO_QUIRKS_MODE, [Parser::NO_QUIRKS_MODE, Parser::LIMITED_QUIRKS_MODE, Parser::QUIRKS_MODE])) {
             throw new Exception(Exception::INVALID_QUIRKS_MODE);
         }
+        $config = $config ?? new Config;
+
         $this->DOM = $dom;
         $this->fragmentContext = $fragmentContext;
         $this->stack = $stack;
@@ -267,6 +272,7 @@ class TreeBuilder {
         $this->errorHandler = $errorHandler;
         $this->activeFormattingElementsList = new ActiveFormattingElementsList;
         $this->tokenList = $tokenList;
+        $this->processingInstructions = $config->processingInstructions ?? false;
 
         # Parsing HTML fragments
         if ($this->fragmentContext) {
@@ -3954,8 +3960,19 @@ class TreeBuilder {
         # 3. Create a Comment node whose data attribute is set to data and whose node
         # document is the same as that of the node in which the adjusted insertion
         # location finds itself.
+        // DEVIATION: This can optionally be a processing instruction
+        if (
+            $token instanceof ProcessingInstructionToken 
+            && $this->processingInstructions
+            // see https://www.w3.org/TR/xml/#d0e1188
+            && preg_match('/^\?(?![Xx][Mm][Ll](?:[ \x{9}\x{D}\x{A}]|$))([:A-Z_a-z\x{C0}-\x{D6}\x{D8}-\x{F6}\x{F8}-\x{2FF}\x{370}-\x{37D}\x{37F}-\x{1FFF}\x{200C}-\x{200D}\x{2070}-\x{218F}\x{2C00}-\x{2FEF}\x{3001}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFFD}\x{10000}-\x{EFFFF}][:A-Z_a-z\x{C0}-\x{D6}\x{D8}-\x{F6}\x{F8}-\x{2FF}\x{370}-\x{37D}\x{37F}-\x{1FFF}\x{200C}-\x{200D}\x{2070}-\x{218F}\x{2C00}-\x{2FEF}\x{3001}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFFD}\x{10000}-\x{EFFFF}-\.0-9\x{B7}\x{0300}-\x{036F}\x{203F}-\x{2040}]*)(?:[ \x{9}\x{D}\x{A}](.*))?/suD', $token->data, $m)
+        ) {
+            $node = $this->DOM->createProcessingInstruction($m[1], $m[2]);
+        } else {
+            $node = $this->DOM->createComment($token->data);
+        }
         # 4. Insert the newly created node at the adjusted insertion location.
-        $position->appendChild($this->DOM->createComment($token->data));
+        $position->appendChild($node);
     }
 
     public function insertStartTagToken(StartTagToken $token, \DOMNode $intendedParent = null, string $namespace = null): \DOMElement {

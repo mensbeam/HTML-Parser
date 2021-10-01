@@ -16,6 +16,7 @@ use MensBeam\HTML\Parser\CommentToken;
 use MensBeam\HTML\Parser\DOCTYPEToken;
 use MensBeam\HTML\Parser\EndTagToken;
 use MensBeam\HTML\Parser\NullCharacterToken;
+use MensBeam\HTML\Parser\ProcessingInstructionToken;
 use MensBeam\HTML\Parser\StartTagToken;
 use MensBeam\HTML\Parser\TokenAttr;
 use MensBeam\HTML\Parser\WhitespaceToken;
@@ -66,7 +67,7 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
                 $actual[] = $t;
             }
         } finally {
-            $actual = $this->combineCharacterTokens($actual);
+            $actual = $this->normalizeTokens($actual);
             $errors = $this->formatErrors($errorHandler->errors);
             $this->assertEquals($expected, $actual, $tokenizer->debugLog);
             $this->assertEquals($expErrors, $errors, $tokenizer->debugLog);
@@ -98,7 +99,8 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
         return $str;
     }
 
-    protected function combineCharacterTokens(array $tokens) : array {
+    /** Combines character tokens and converts processing instruction tokens to comment tokens */
+    protected function normalizeTokens(array $tokens) : array {
         $out = [];
         $pending = null;
         foreach ($tokens as $t) {
@@ -115,6 +117,10 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
                 if ($pending) {
                     $out[] = $pending;
                     $pending = null;
+                }
+                if ($t instanceof ProcessingInstructionToken) {
+                    // We optionally support retaining processing instructions, but the standard tokenizer tests make no distinction
+                    $t = new CommentToken($t->data);
                 }
                 $out[] = $t;
             }

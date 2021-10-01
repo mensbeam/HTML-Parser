@@ -11,4 +11,6 @@ class Config {
     public $encodingFallback = null;
     /** @var ?bool Whether parse errors should be recorded. Recording parse errors incurs a performance penalty. */
     public $errorCollection = null;
+    /** @var ?bool Whether to retain processing instructions rather than parsing them into comments as the HTML specification requires. Setting this true will yield non-standard documents */
+    public $processingInstructions = null;
 }

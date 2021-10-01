@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace MensBeam\HTML\TestCase;
 
 use MensBeam\HTML\Parser;
+use MensBeam\HTML\Parser\Config;
 use MensBeam\HTML\Parser\Data;
 use MensBeam\HTML\Parser\LoopException;
 use MensBeam\HTML\Parser\NotImplementedException;
@@ -33,6 +34,29 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
 
     /** @dataProvider provideStandardTreeTests */
     public function testStandardTreeTests(string $data, array $exp, array $errors, $fragment): void {
+        $this->runTreeTest($data, $exp, $errors, $fragment, null);
+    }
+
+    public function provideStandardTreeTests(): iterable {
+        $files = new \AppendIterator();
+        $files->append(new \GlobIterator(\MensBeam\HTML\Parser\BASE."tests/html5lib-tests/tree-construction/*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
+        $files->append(new \GlobIterator(\MensBeam\HTML\Parser\BASE."tests/cases/tree-construction/mensbeam*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
+        return $this->parseTreeTest($files);
+    }
+
+    /** @dataProvider provideProcessingInstructionTreeTests */
+    public function testProcessingInstructionTreeTests(string $data, array $exp, array $errors, $fragment): void {
+        $config = new Config;
+        $config->processingInstructions = true;
+        $this->runTreeTest($data, $exp, $errors, $fragment, $config);
+    }
+
+    public function provideProcessingInstructionTreeTests(): iterable {
+        $files = new \GlobIterator(\MensBeam\HTML\Parser\BASE."tests/cases/tree-construction/pi*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME);
+        return $this->parseTreeTest($files);
+    }
+
+    protected function runTreeTest(string $data, array $exp, array $errors, ?string $fragment, ?Config $config): void {
         // certain tests need to be patched to ignore unavoidable limitations of PHP's DOM
         [$exp, $errors, $patched,  $skip] = $this->patchTest($data, $fragment, $errors, $exp);
         if (strlen($skip)) {
@@ -62,7 +86,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         $stack = new OpenElementsStack($fragmentContext);
         $tokenizer = new Tokenizer($decoder, $stack, $errorHandler);
         $tokenList = $tokenizer->tokenize();
-        $treeBuilder = new TreeBuilder($doc, $decoder, $tokenizer, $tokenList, $errorHandler, $stack, new TemplateInsertionModesStack, $fragmentContext);
+        $treeBuilder = new TreeBuilder($doc, $decoder, $tokenizer, $tokenList, $errorHandler, $stack, new TemplateInsertionModesStack, $fragmentContext, 0, $config);
         // run the tree builder
         try {
             $treeBuilder->constructTree();
@@ -376,11 +400,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         }
     }
 
-    public function provideStandardTreeTests(): iterable {
-        $blacklist = [];
-        $files = new \AppendIterator();
-        $files->append(new \GlobIterator(\MensBeam\HTML\Parser\BASE."tests/html5lib-tests/tree-construction/*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
-        $files->append(new \GlobIterator(\MensBeam\HTML\Parser\BASE."tests/cases/tree-construction/*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
+    protected function parseTreeTest(iterable $files, array $blacklist = []): iterable {
         foreach ($files as $file) {
             $index = 0;
             $l = 0;
