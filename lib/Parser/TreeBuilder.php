@@ -3894,7 +3894,7 @@ class TreeBuilder {
         # 3. If the adjusted insertion location is inside a template element, let it
         # instead be inside the template element’s template contents, after its last
         # child (if any).
-        if ($insertionLocation instanceof Element && $insertionLocation->nodeName === 'template' && $insertionLocation->namespaceURI === null) {
+        if ($insertionLocation instanceof \DOMElement && $insertionLocation->nodeName === 'template' && $insertionLocation->namespaceURI === null) {
             // DEVIATION: We don't implement template contents in the parser itself
             $insertionLocation = $insertionLocation;
         }
@@ -3967,7 +3967,12 @@ class TreeBuilder {
             // see https://www.w3.org/TR/xml/#d0e1188
             && preg_match('/^\?(?![Xx][Mm][Ll](?:[ \x{9}\x{D}\x{A}]|$))([:A-Z_a-z\x{C0}-\x{D6}\x{D8}-\x{F6}\x{F8}-\x{2FF}\x{370}-\x{37D}\x{37F}-\x{1FFF}\x{200C}-\x{200D}\x{2070}-\x{218F}\x{2C00}-\x{2FEF}\x{3001}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFFD}\x{10000}-\x{EFFFF}][:A-Z_a-z\x{C0}-\x{D6}\x{D8}-\x{F6}\x{F8}-\x{2FF}\x{370}-\x{37D}\x{37F}-\x{1FFF}\x{200C}-\x{200D}\x{2070}-\x{218F}\x{2C00}-\x{2FEF}\x{3001}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFFD}\x{10000}-\x{EFFFF}-\.0-9\x{B7}\x{0300}-\x{036F}\x{203F}-\x{2040}]*)(?:[ \x{9}\x{D}\x{A}](.*))?/suD', $token->data, $m)
         ) {
-            $node = $this->DOM->createProcessingInstruction($m[1], $m[2]);
+            try {
+                $node = $this->DOM->createProcessingInstruction($m[1], $m[2]);
+            } catch (\DOMException $e) {
+                // PHP's DOM does not implement the laxer Name production of the fifth edition of XML; if an otherwise valid PI target cannot be used, create a comment instead
+                $node = $this->DOM->createComment($token->data);
+            }
         } else {
             $node = $this->DOM->createComment($token->data);
         }
@@ -4243,9 +4248,8 @@ class TreeBuilder {
                 // The attribute name is invalid for XML
                 // Replace any offending characters with "UHHHHHH" where H are the
                 //   uppercase hexadecimal digits of the character's code point
-                $element->ownerDocument->mangledAttributes = true;
                 if ($namespaceURI !== null) {
-                    $qualifiedName = implode(":", array_map([$element, "coerceName"], explode(":", $qualifiedName, 2)));
+                    $qualifiedName = implode(":", array_map([$this, "coerceName"], explode(":", $qualifiedName, 2)));
                 } else {
                     $qualifiedName = $this->coerceName($qualifiedName);
                 }

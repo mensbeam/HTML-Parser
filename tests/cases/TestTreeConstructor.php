@@ -25,6 +25,7 @@ use MensBeam\HTML\Parser\TreeBuilder;
  * @covers \MensBeam\HTML\Parser\OpenElementsStack
  * @covers \MensBeam\HTML\Parser\Stack
  * @covers \MensBeam\HTML\Parser\TagToken
+ * @covers \MensBeam\HTML\Parser\ProcessingInstructionToken
  */
 class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
     use \MensBeam\HTML\Parser\NameCoercion;

@@ -19,3 +19,48 @@
 |   <!-- ?xml oops -->
 |   <head>
 |   <body>
+
+#data
+<!DOCTYPE html><html><?xml-stylesheet blah>
+#errors
+(1,23): unexpected-question-mark-instead-of-tag-name
+#document
+| <!DOCTYPE html>
+| <html>
+|   <?xml-stylesheet blah>
+|   <head>
+|   <body>
+
+#data
+<!DOCTYPE html><html><?xml-stylesheet blah ?>
+#errors
+(1,23): unexpected-question-mark-instead-of-tag-name
+#document
+| <!DOCTYPE html>
+| <html>
+|   <?xml-stylesheet blah ?>
+|   <head>
+|   <body>
+
+#data
+<!DOCTYPE html><html><?test
+moop>
+#errors
+(1,23): unexpected-question-mark-instead-of-tag-name
+#document
+| <!DOCTYPE html>
+| <html>
+|   <?test moop>
+|   <head>
+|   <body>
+
+#data
+<!DOCTYPE html><html><?💩 This PI target should be valid, but PHP does not accept it>
+#errors
+(1,23): unexpected-question-mark-instead-of-tag-name
+#document
+| <!DOCTYPE html>
+| <html>
+|   <!-- ?💩 This PI target should be valid, but PHP does not accept it -->
+|   <head>
+|   <body>
