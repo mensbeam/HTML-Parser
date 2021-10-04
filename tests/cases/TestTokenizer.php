@@ -46,7 +46,7 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
     public function testStandardTokenizerTests(string $input, array $expected, int $state, string $open = null, array $expErrors) {
         $errorHandler = new ParseError;
         // initialize a stack of open elements, possibly with an open element
-        $stack = new OpenElementsStack();
+        $stack = new OpenElementsStack(null);
         if ($open) {
             $stack[] = (new \DOMDocument)->createElement($open);
         }

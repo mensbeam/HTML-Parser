@@ -11,6 +11,8 @@ class Config {
     public $encodingFallback = null;
     /** @var ?bool Whether parse errors should be recorded. Recording parse errors incurs a performance penalty. */
     public $errorCollection = null;
+    /** @var ?bool Whether to use the HTML namespace rather than the null namespace for HTML elements. Using the HTML namespace is the correct behaviour, but this has performance and compatibility implications for PHP */
+    public $htmlNamespace = null;
     /** @var ?bool Whether to retain processing instructions rather than parsing them into comments as the HTML specification requires. Setting this true will yield non-standard documents */
     public $processingInstructions = null;
 }

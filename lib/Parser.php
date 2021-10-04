@@ -33,7 +33,7 @@ class Parser {
     public const XMLNS_NAMESPACE = 'http://www.w3.org/2000/xmlns/';
 
     public const NAMESPACE_MAP = [
-        self::HTML_NAMESPACE   => "",
+        self::HTML_NAMESPACE   => "html",
         self::MATHML_NAMESPACE => "math",
         self::SVG_NAMESPACE    => "svg",
         self::XLINK_NAMESPACE  => "xlink",
@@ -42,12 +42,14 @@ class Parser {
     ];
 
     public static function parse(string $data, ?string $encodingOrContentType = null, ?\DOMDocument $document = null, ?\DOMElement $fragmentContext = null, ?int $fragmentQuirks = null, ?Config $config = null): Output {
+        // sort out needed configuration
+        $config = $config ?? new Config;
+        $htmlNamespace = ($config->htmlNamespace) ? self::HTML_NAMESPACE : null;
         // Initialize the various classes needed for parsing
         $document = $document ?? new \DOMDocument;
-        $config = $config ?? new Config;
         $errorHandler = $config->errorCollection ? new ParseError : null;
         $decoder = new Data($data, $encodingOrContentType, $errorHandler, $config->encodingFallback);
-        $stack = new OpenElementsStack($fragmentContext);
+        $stack = new OpenElementsStack($htmlNamespace, $fragmentContext);
         $tokenizer = new Tokenizer($decoder, $stack, $errorHandler);
         $tokenList = $tokenizer->tokenize();
         $treeBuilder = new TreeBuilder($document, $decoder, $tokenizer, $tokenList, $errorHandler, $stack, new TemplateInsertionModesStack, $fragmentContext, $fragmentQuirks, $config);

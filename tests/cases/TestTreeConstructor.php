@@ -32,10 +32,18 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
 
     protected $out;
     protected $depth;
+    protected $ns;
 
     /** @dataProvider provideStandardTreeTests */
-    public function testStandardTreeTests(string $data, array $exp, array $errors, $fragment): void {
+    public function xtestStandardTreeTests(string $data, array $exp, array $errors, $fragment): void {
         $this->runTreeTest($data, $exp, $errors, $fragment, null);
+    }
+
+    /** @dataProvider provideStandardTreeTests */
+    public function testStandardTreeTestsWithHtmlNamespace(string $data, array $exp, array $errors, $fragment): void {
+        $config = new Config;
+        $config->htmlNamespace = true;
+        $this->runTreeTest($data, $exp, $errors, $fragment, $config);
     }
 
     public function provideStandardTreeTests(): iterable {
@@ -58,6 +66,8 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
     }
 
     protected function runTreeTest(string $data, array $exp, array $errors, ?string $fragment, ?Config $config): void {
+        $this->ns = ($config && $config->htmlNamespace);
+        $htmlNamespace = ($this->ns) ? Parser::HTML_NAMESPACE : null;
         // certain tests need to be patched to ignore unavoidable limitations of PHP's DOM
         [$exp, $errors, $patched,  $skip] = $this->patchTest($data, $fragment, $errors, $exp);
         if (strlen($skip)) {
@@ -84,7 +94,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         // initialize the other classes we need
         $errorHandler = new ParseError;
         $decoder = new Data($data, "UTF-8", $errorHandler, "UTF-8");
-        $stack = new OpenElementsStack($fragmentContext);
+        $stack = new OpenElementsStack($htmlNamespace, $fragmentContext);
         $tokenizer = new Tokenizer($decoder, $stack, $errorHandler);
         $tokenList = $tokenizer->tokenize();
         $treeBuilder = new TreeBuilder($doc, $decoder, $tokenizer, $tokenList, $errorHandler, $stack, new TemplateInsertionModesStack, $fragmentContext, 0, $config);
@@ -352,8 +362,16 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             $prefix = Parser::NAMESPACE_MAP[$e->namespaceURI];
             assert((bool) $prefix, new \Exception("Prefix for namespace {$e->namespaceURI} is not defined"));
             $prefix .= " ";
+            if ($this->ns) {
+                // if the parser is using the HTML namespace on purpose, the prefix should be omitted
+                $prefix = "";
+            }
         } else {
             $prefix = "";
+            if ($this->ns) {
+                // if the parser is using the HTML namespace, elements with the null namespace should be prefixed
+                $prefix = "null ";
+            }
         }
         $localName = $this->uncoerceName($e->localName);
         $this->push("<".$prefix.$localName.">");

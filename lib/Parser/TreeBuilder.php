@@ -47,6 +47,8 @@ class TreeBuilder {
     protected $mangledAttributes = false;
     /** @var bool Whether processing instructions should be retained rather than transformed into comments as the specification requires */
     protected $processingInstructions = false;
+    /** @var ?string The namespace URI to use for HTML elements */
+    protected $htmlNamespace = null;
 
     /** @var int The quirks-mode setting of the document being built */
     public $quirksMode = Parser::NO_QUIRKS_MODE;
@@ -273,6 +275,7 @@ class TreeBuilder {
         $this->activeFormattingElementsList = new ActiveFormattingElementsList;
         $this->tokenList = $tokenList;
         $this->processingInstructions = $config->processingInstructions ?? false;
+        $this->htmlNamespace = $config->htmlNamespace ? Parser::HTML_NAMESPACE : null;
 
         # Parsing HTML fragments
         if ($this->fragmentContext) {
@@ -289,12 +292,13 @@ class TreeBuilder {
             $this->tokenizer->state = (self::FRAGMENT_CONTEXT_TOKENIZER_STATES[$fragmentContext->namespaceURI ?? Parser::HTML_NAMESPACE] ?? [])[$fragmentContext->nodeName] ?? Tokenizer::DATA_STATE;
             # Let root be a new html element with no attributes.
             # Append the element root to the Document node created above.
-            $dom->appendChild($dom->createElement("html"));
+            $dom->appendChild($dom->createElementNS($this->htmlNamespace, "html"));
             # Set up the parser's stack of open elements so that it contains just the single element root.
             $this->stack[] = $dom->documentElement;
+            assert((bool) $this->stack->currentNode, new Exception(Exception::STACK_INCORRECTLY_EMPTY));
             # If the context element is a template element, push "in template" onto the stack of
             #   template insertion modes so that it is the new current template insertion mode.
-            if ($fragmentContext->nodeName === "template" && $fragmentContext->namespaceURI === null) {
+            if ($fragmentContext->nodeName === "template" && $fragmentContext->namespaceURI === $this->htmlNamespace) {
                 $this->templateInsertionModes[] = self::IN_TEMPLATE_MODE;
             }
             # Create a start tag token whose name is the local name of context and whose attributes are the attributes of context.
@@ -308,7 +312,7 @@ class TreeBuilder {
             #   the form element pointer keeps its initial value, null.)
             $node = $fragmentContext;
             do {
-                if ($node->nodeName === "form" && $fragmentContext->namespaceURI === null) {
+                if ($node->nodeName === "form" && $fragmentContext->namespaceURI === $this->htmlNamespace) {
                     $this->formElement = $node;
                     break;
                 }
@@ -345,9 +349,7 @@ class TreeBuilder {
                 # If the stack of open elements is empty
                 !$this->stack->currentNode
                 # If the adjusted current node is an element in the HTML namespace
-                // DEVIATION: For the purposes of this implementation the HTML namespace is null
-                //   rather than the XHTML namespace
-                || $this->stack->adjustedCurrentNodeNamespace === null
+                || $this->stack->adjustedCurrentNodeNamespace === $this->htmlNamespace
                 # If the adjusted current node is a MathML text integration
                 #   point and the token is a start tag whose tag name is
                 #   neither "mglyph" nor "malignmark"
@@ -490,7 +492,7 @@ class TreeBuilder {
                             # If the current node is an HTML element whose tag name is one of "h1", "h2",
                             # "h3", "h4", "h5", or "h6", then this is a parse error; pop the current node
                             # off the stack of open elements.
-                            if ($this->stack->currentNodeNamespace === null && (in_array($this->stack->currentNodeName, ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']))) {
+                            if ($this->stack->currentNodeNamespace === $this->htmlNamespace && (in_array($this->stack->currentNodeName, ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']))) {
                                 $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                                 $this->stack->pop();
                             }
@@ -1101,7 +1103,7 @@ class TreeBuilder {
                                 # Generate implied end tags, except for li elements.
                                 $this->stack->generateImpliedEndTags("li");
                                 # If the current node is not an li element, then this is a parse error.
-                                if ($this->stack->currentNodeName !== "li" || $this->stack->currentNodeNamespace !== null) {
+                                if ($this->stack->currentNodeName !== "li" || $this->stack->currentNodeNamespace !== $this->htmlNamespace) {
                                     $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                                 }
                                 # Pop elements from the stack of open elements until an li element has been popped from the stack.
@@ -1123,7 +1125,7 @@ class TreeBuilder {
                                 $this->stack->generateImpliedEndTags($token->name);
                                 # If the current node is not an HTML element with the same
                                 #   tag name as that of the token, then this is a parse error.
-                                if ($this->stack->currentNodeName !== $token->name || $this->stack->currentNodeNamespace !== null) {
+                                if ($this->stack->currentNodeName !== $token->name || $this->stack->currentNodeNamespace !== $this->htmlNamespace) {
                                     $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                                 }
                                 # Pop elements from the stack of open elements until an HTML
@@ -1146,7 +1148,7 @@ class TreeBuilder {
                                 $this->stack->generateImpliedEndTags();
                                 # If the current node is not an HTML element with the same tag name
                                 #   as that of the token, then this is a parse error.
-                                if ($this->stack->currentNodeName !== $token->name || $this->stack->currentNodeNamespace !== null) {
+                                if ($this->stack->currentNodeName !== $token->name || $this->stack->currentNodeNamespace !== $this->htmlNamespace) {
                                     $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                                 }
                                 # Pop elements from the stack of open elements until an HTML
@@ -1166,7 +1168,7 @@ class TreeBuilder {
                             // OPTIMIZATION: Only run the adoption agency if it's necessary
                             if (
                                 $token->name == $this->stack->currentNodeName
-                                && $this->stack->currentNodeNamespace == null
+                                && $this->stack->currentNodeNamespace == $this->htmlNamespace
                                 && count($this->activeFormattingElementsList)
                                 && $this->activeFormattingElementsList->top()['element']->isSameNode($this->stack->currentNode)
                             ) {
@@ -1190,7 +1192,7 @@ class TreeBuilder {
                                 $this->stack->generateImpliedEndTags();
                                 # If the current node is not an HTML element with the same tag
                                 #   name as that of the token, then this is a parse error.
-                                if ($this->stack->currentNodeName !== $token->name || $this->stack->currentNodeNamespace !== null) {
+                                if ($this->stack->currentNodeName !== $token->name || $this->stack->currentNodeNamespace !== $this->htmlNamespace) {
                                     $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                                 }
                                 # Pop elements from the stack of open elements until an HTML
@@ -1218,7 +1220,7 @@ class TreeBuilder {
                             # Initialize node to be the current node (the bottommost node of the stack).
                             foreach ($this->stack as $node) {
                                 # Loop: If node is an HTML element with the same tag name as the token, then:
-                                if ($node->nodeName === $token->name && $node->namespaceURI === null) {
+                                if ($node->nodeName === $token->name && $node->namespaceURI === $this->htmlNamespace) {
                                     # Generate implied end tags, except for HTML elements with the same tag name as the token.
                                     $this->stack->generateImpliedEndTags($token->name);
                                     # If node is not the current node, then this is a parse error.
@@ -1494,9 +1496,10 @@ class TreeBuilder {
                     else {
                         # Create an html element whose node document is the Document object. Append it
                         # to the Document object. Put this element in the stack of open elements.
-                        $element = $this->DOM->createElement('html');
+                        $element = $this->DOM->createElementNS($this->htmlNamespace, 'html');
                         $this->DOM->appendChild($element);
                         $this->stack[] = $element;
+                        assert((bool) $this->stack->currentNode, new Exception(Exception::STACK_INCORRECTLY_EMPTY));
 
                         # Switch the insertion mode to "before head", then reprocess the token.
                         $insertionMode = $this->insertionMode = self::BEFORE_HEAD_MODE;
@@ -2692,7 +2695,7 @@ class TreeBuilder {
                             # Now, if the current node is not an HTML element with
                             #   the same tag name as the token, then this is
                             #   a parse error.
-                            if ($this->stack->currentNodeName !== $token->name || $this->stack->currentNodeNamespace !== null) {
+                            if ($this->stack->currentNodeName !== $token->name || $this->stack->currentNodeNamespace !== $this->htmlNamespace) {
                                 $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                             }
                             # Pop elements from the stack of open elements stack
@@ -3491,7 +3494,7 @@ class TreeBuilder {
                         #   point, an HTML integration point, or an element in the
                         #   HTML namespace, pop elements from the stack of
                         #   open elements.
-                        while (($node = $this->stack->currentNode) && !($node->namespaceURI === null || $this->isMathMLTextIntegrationPoint($node) || $this->isHTMLIntegrationPoint($node))) {
+                        while (($node = $this->stack->currentNode) && !($node->namespaceURI === $this->htmlNamespace || $this->isMathMLTextIntegrationPoint($node) || $this->isHTMLIntegrationPoint($node))) {
                             $this->stack->pop();
                         }
                         # Process the token using the rules for the
@@ -3596,7 +3599,7 @@ class TreeBuilder {
                         $node = $this->stack[--$pos];
                         # If node is not an element in the HTML namespace, return to the step labeled
                         #   loop.
-                    } while ($node->namespaceURI !== null);
+                    } while ($node->namespaceURI !== $this->htmlNamespace);
                     # Otherwise, process the token according to the rules given in the section
                     #   corresponding to the current insertion mode in HTML content.
                     goto ProcessToken;
@@ -3626,7 +3629,7 @@ class TreeBuilder {
         #   and the current node is not in the list of active formatting elements,
         #   then pop the current node off the stack of open elements, and return.
         if (
-            $this->stack->currentNodeNamespace === null
+            $this->stack->currentNodeNamespace === $this->htmlNamespace
             && $this->stack->currentNodeName === $token->name
             && $this->activeFormattingElementsList->findSame($this->stack->currentNode) === -1
         ) {
@@ -3661,7 +3664,7 @@ class TreeBuilder {
             // NOTE: The "entry above" refers to the "in body" insertion mode
             //   Changes here should be mirrored there
             foreach ($this->stack as $node) {
-                if ($node->nodeName === $token->name && $node->namespaceURI === null) {
+                if ($node->nodeName === $token->name && $node->namespaceURI === $this->htmlNamespace) {
                     $this->stack->generateImpliedEndTags($token->name);
                     if (!$node->isSameNode($this->stack->currentNode)) {
                         $this->error($errorCode, $token->name);
@@ -3766,7 +3769,7 @@ class TreeBuilder {
         #   replace the entry for node in the stack of open elements with
         #   an entry for the new element, and let node be the new element.
         $nodeToken = $this->activeFormattingElementsList[$nodeListPos]['token'];
-        $element = $this->createElementForToken($nodeToken, null, $commonAncestor);
+        $element = $this->createElementForToken($nodeToken, $this->htmlNamespace, $commonAncestor);
         $this->activeFormattingElementsList[$nodeListPos] = ['token' => $nodeToken, 'element' => $element];
         $this->stack[$nodeIndex] = $element;
         $node = $element;
@@ -3799,7 +3802,7 @@ class TreeBuilder {
         # Create an element for the token for which formatting element was
         #   created, in the HTML namespace, with furthest block as the
         #   intended parent.
-        $element = $this->createElementForToken($formattingToken, null, $furthestBlock);
+        $element = $this->createElementForToken($formattingToken, $this->htmlNamespace, $furthestBlock);
         # Take all of the child nodes of furthest block and append them to
         #   the element created in the last step.
         while ($furthestBlock->hasChildNodes()) {
@@ -3894,7 +3897,7 @@ class TreeBuilder {
         # 3. If the adjusted insertion location is inside a template element, let it
         # instead be inside the template element’s template contents, after its last
         # child (if any).
-        if ($insertionLocation instanceof \DOMElement && $insertionLocation->nodeName === 'template' && $insertionLocation->namespaceURI === null) {
+        if ($insertionLocation instanceof \DOMElement && $insertionLocation->nodeName === 'template' && $insertionLocation->namespaceURI === $this->htmlNamespace) {
             // DEVIATION: We don't implement template contents in the parser itself
             $insertionLocation = $insertionLocation;
         }
@@ -3987,13 +3990,14 @@ class TreeBuilder {
         // Doing both foreign and HTML elements here because the only
         //   difference between the two is that foreign elements are inserted
         //   with a namespace and HTML elements are not.
+        $namespace = $namespace ?? $this->htmlNamespace;
         # Let the adjusted insertion location be the appropriate place for inserting
         # a node.
         $location = $this->appropriatePlaceForInsertingNode($intendedParent);
         # Let element be the result of creating an element for the token in the given
         # namespace, with the intended parent being the element in which the adjusted
         # insertion location finds itself.
-        $element = $this->createElementForToken($token, $namespace ?? $token->namespace, $intendedParent);
+        $element = $this->createElementForToken($token, $namespace, $intendedParent);
         # 3. If it is possible to insert element at the adjusted insertion location,
         # then:
         # - 1. Push a new element queue onto the custom element reactions stack.
@@ -4191,6 +4195,10 @@ class TreeBuilder {
         # Let local name be the tag name of the token.
         # Let element be the result of creating an element given document,
         #   localName, given namespace, null, and is.
+        if ($token->name === "svg" && $namespace !== Parser::SVG_NAMESPACE) {
+            //var_export($namespace);
+            //exit;
+        }
         try {
             $element = $this->DOM->createElementNS($namespace, $token->name);
         } catch (\DOMException $e) {

@@ -93,6 +93,8 @@ class OpenElementsStack extends Stack {
 
     /** @var ?\DOMElement */
     protected $fragmentContext = null;
+    /** @var ?string */
+    protected $htmlNamespace;
     /** @var ?\DOMElement */
     public $currentNode = null;
     /** @var ?string */
@@ -106,8 +108,9 @@ class OpenElementsStack extends Stack {
     /** @var ?string */
     public $adjustedCurrentNodeNamespace = null;
 
-    public function __construct(?\DOMElement $fragmentContext = null) {
+    public function __construct(?string $htmlNamespace, ?\DOMElement $fragmentContext = null) {
         $this->fragmentContext = $fragmentContext;
+        $this->htmlNamespace = $htmlNamespace;
     }
 
     public function pop() {
@@ -147,7 +150,7 @@ class OpenElementsStack extends Stack {
         do {
             $node = array_pop($this->_storage);
             assert(isset($node), new Exception(Exception::STACK_INCORRECTLY_EMPTY));
-        } while ($node->namespaceURI !== null || !in_array($node->nodeName, $target));
+        } while ($node->namespaceURI !== $this->htmlNamespace || !in_array($node->nodeName, $target));
         $this->computeProperties();
     }
 
@@ -160,7 +163,7 @@ class OpenElementsStack extends Stack {
 
     public function find(string ...$name): int {
         foreach ($this as $k => $node) {
-            if ($node->namespaceURI === null && in_array($node->nodeName, $name)) {
+            if ($node->namespaceURI === $this->htmlNamespace && in_array($node->nodeName, $name)) {
                 return $k;
             }
         }
@@ -169,7 +172,7 @@ class OpenElementsStack extends Stack {
 
     public function findNot(string ...$name): int {
         foreach ($this as $k => $node) {
-            if ($node->namespaceURI !== null || !in_array($node->nodeName, $name)) {
+            if ($node->namespaceURI !== $this->htmlNamespace || !in_array($node->nodeName, $name)) {
                 return $k;
             }
         }
@@ -204,7 +207,7 @@ class OpenElementsStack extends Stack {
         foreach($exclude as $name) {
             $map[$name] = false;
         }
-        while (!$this->isEmpty() && $this->top()->namespaceURI === null && ($map[$this->top()->nodeName] ?? false)) {
+        while (!$this->isEmpty() && $this->top()->namespaceURI === $this->htmlNamespace && ($map[$this->top()->nodeName] ?? false)) {
             array_pop($this->_storage);
             $this->count--;
         }
@@ -215,7 +218,7 @@ class OpenElementsStack extends Stack {
         # When the steps below require the UA to generate all implied end tags
         #   thoroughly, then, while the current node is {elided list of element names},
         #   the UA must pop the current node off the stack of open elements.
-        while (!$this->isEmpty() && $this->top()->namespaceURI === null && (self::IMPLIED_END_TAGS_THOROUGH[$this->top()->nodeName] ?? false)) {
+        while (!$this->isEmpty() && $this->top()->namespaceURI === $this->htmlNamespace && (self::IMPLIED_END_TAGS_THOROUGH[$this->top()->nodeName] ?? false)) {
             array_pop($this->_storage);
             $this->count--;
         }
@@ -315,7 +318,7 @@ class OpenElementsStack extends Stack {
                         return true;
                     }
                 } else {
-                    if ($node->namespaceURI === null && $node->nodeName === $target) {
+                    if ($node->namespaceURI === $this->htmlNamespace && $node->nodeName === $target) {
                         return true;
                     }
                 }
