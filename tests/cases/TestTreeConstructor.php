@@ -35,7 +35,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
     protected $ns;
 
     /** @dataProvider provideStandardTreeTests */
-    public function xtestStandardTreeTests(string $data, array $exp, array $errors, $fragment): void {
+    public function testStandardTreeTests(string $data, array $exp, array $errors, $fragment): void {
         $this->runTreeTest($data, $exp, $errors, $fragment, null);
     }
 
@@ -82,7 +82,8 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             $fragment = explode(" ", $fragment);
             assert(sizeof($fragment) < 3);
             if (sizeof($fragment) === 1) {
-                $fragmentContext = $doc->createElement($fragment[0]);
+                // an HTML element
+                $fragmentContext = $doc->createElementNS($htmlNamespace, $fragment[0]);
             } else {
                 $ns = array_flip(Parser::NAMESPACE_MAP)[$fragment[0]] ?? null;
                 assert(isset($ns));
@@ -362,7 +363,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             $prefix = Parser::NAMESPACE_MAP[$e->namespaceURI];
             assert((bool) $prefix, new \Exception("Prefix for namespace {$e->namespaceURI} is not defined"));
             $prefix .= " ";
-            if ($this->ns) {
+            if ($this->ns && $prefix === "html ") {
                 // if the parser is using the HTML namespace on purpose, the prefix should be omitted
                 $prefix = "";
             }

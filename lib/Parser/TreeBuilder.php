@@ -4195,17 +4195,13 @@ class TreeBuilder {
         # Let local name be the tag name of the token.
         # Let element be the result of creating an element given document,
         #   localName, given namespace, null, and is.
-        if ($token->name === "svg" && $namespace !== Parser::SVG_NAMESPACE) {
-            //var_export($namespace);
-            //exit;
-        }
         try {
             $element = $this->DOM->createElementNS($namespace, $token->name);
         } catch (\DOMException $e) {
             // The element name is invalid for XML
             // Replace any offending characters with "UHHHHHH" where H are the
             //   uppercase hexadecimal digits of the character's code point
-            if ($namespace !== null) {
+            if ($namespace !== $this->htmlNamespace) {
                 $qualifiedName = implode(":", array_map([$this, "coerceName"], explode(":", $token->name, 2)));
             } else {
                 $qualifiedName = $this->coerceName($token->name);
