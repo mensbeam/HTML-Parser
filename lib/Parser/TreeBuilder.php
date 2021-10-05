@@ -3497,10 +3497,9 @@ class TreeBuilder {
                         while (($node = $this->stack->currentNode) && !($node->namespaceURI === $this->htmlNamespace || $this->isMathMLTextIntegrationPoint($node) || $this->isHTMLIntegrationPoint($node))) {
                             $this->stack->pop();
                         }
-                        # Process the token using the rules for the
-                        #   "in body" insertion mode.
-                        // DEVIATION: Spec bug
-                        // See https://github.com/whatwg/html/issues/6439
+                        # Reprocess the token according to the rules given in the 
+                        #   section corresponding to the current insertion mode 
+                        #   in HTML content.
                         goto ProcessToken;
                     }
                     # Any other start tag
@@ -3564,45 +3563,64 @@ class TreeBuilder {
                 # in the SVG namespace
                 // DEVIATION: This implementation does not support scripting, so script elements
                 //   aren't processed differently.
-                # Any other end tag
+                # An end tag...
                 elseif ($token instanceof EndTagToken) {
-                    # Run these steps:
-                    #
-                    # Initialize node to be the current node (the bottommost node of the stack).
-                    // We do this below before the loop
-                    # If node's tag name, converted to ASCII lowercase, is not the
-                    #   same as the tag name of the token, then this is a parse error.
-                    // DEVIATION: We only generate the parse error if we don't reach
-                    //   "Otherwise" below, to avoid reporting the parse error a second
-                    //   time in HTML content parsing
-                    $pos = count($this->stack) - 1;
-                    $node = $this->stack[$pos];
-                    do {
-                        # Loop: If node is the topmost element in the stack of open elements, then return. (fragment case)
-                        if ($pos === 0) {
-                            if (strtolower($this->stack->currentNodeName) !== $token->name) {
-                                $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
-                            }
-                            continue 2;
+                    # An end tag whose tag name is "br", "p"
+                    if ($token->name === "br" || $token->name === "p") {
+                        # Parse error.
+                        $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                        # While the current node is not a MathML text integration
+                        #   point, an HTML integration point, or an element in the
+                        #   HTML namespace, pop elements from the stack of
+                        #   open elements.
+                        while (($node = $this->stack->currentNode) && !($node->namespaceURI === $this->htmlNamespace || $this->isMathMLTextIntegrationPoint($node) || $this->isHTMLIntegrationPoint($node))) {
+                            $this->stack->pop();
                         }
-                        # If node's tag name, converted to ASCII lowercase, is the same as the
-                        #   tag name of the token, pop elements from the stack of open elements until node
-                        #   has been popped from the stack, and then abort these steps.
-                        if (strtolower($node->nodeName) === $token->name) {
-                            if (strtolower($this->stack->currentNodeName) !== $token->name) {
-                                $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                        # Reprocess the token according to the rules given in the 
+                        #   section corresponding to the current insertion mode 
+                        #   in HTML content.
+                        goto ProcessToken;
+                    }
+                # Any other end tag
+                    elseif ($token instanceof EndTagToken) {
+                        # Run these steps:
+                        #
+                        # Initialize node to be the current node (the bottommost node of the stack).
+                        // We do this below before the loop
+                        # If node's tag name, converted to ASCII lowercase, is not the
+                        #   same as the tag name of the token, then this is a parse error.
+                        // DEVIATION: We only generate the parse error if we don't reach
+                        //   "Otherwise" below, to avoid reporting the parse error a second
+                        //   time in HTML content parsing
+                        $pos = count($this->stack) - 1;
+                        $node = $this->stack[$pos];
+                        do {
+                            # Loop: If node is the topmost element in the stack of open elements, then return. (fragment case)
+                            if ($pos === 0) {
+                                if (strtolower($this->stack->currentNodeName) !== $token->name) {
+                                    $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                                }
+                                continue 2;
                             }
-                            $this->stack->popUntilSame($node);
-                            continue 2;
-                        }
-                        # Set node to the previous entry in the stack of open elements.
-                        $node = $this->stack[--$pos];
-                        # If node is not an element in the HTML namespace, return to the step labeled
-                        #   loop.
-                    } while ($node->namespaceURI !== $this->htmlNamespace);
-                    # Otherwise, process the token according to the rules given in the section
-                    #   corresponding to the current insertion mode in HTML content.
-                    goto ProcessToken;
+                            # If node's tag name, converted to ASCII lowercase, is the same as the
+                            #   tag name of the token, pop elements from the stack of open elements until node
+                            #   has been popped from the stack, and then abort these steps.
+                            if (strtolower($node->nodeName) === $token->name) {
+                                if (strtolower($this->stack->currentNodeName) !== $token->name) {
+                                    $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                                }
+                                $this->stack->popUntilSame($node);
+                                continue 2;
+                            }
+                            # Set node to the previous entry in the stack of open elements.
+                            $node = $this->stack[--$pos];
+                            # If node is not an element in the HTML namespace, return to the step labeled
+                            #   loop.
+                        } while ($node->namespaceURI !== $this->htmlNamespace);
+                        # Otherwise, process the token according to the rules given in the section
+                        #   corresponding to the current insertion mode in HTML content.
+                        goto ProcessToken;
+                    }
                 }
             }
             # When a start tag token is emitted with its self-closing flag set, if the flag
