@@ -211,6 +211,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             $errors = false;
         }        
         if ($errors) {
+            $counts = array_count_values($errors);
             // some "old" errors are made redundant by "new" errors
             $obsoleteSymbolList = implode("|", [
                 "illegal-codepoint-for-numeric-entity",
@@ -253,10 +254,21 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                 "unexpected-dash-after-double-dash-in-comment",
                 "unexpected-bang-after-double-dash-in-comment",
             ]);
+            // some others are consistently duplicated and just need to be pruned to one
+            $duplicateSymbolList = implode("|", [
+                "eof-in-comment",
+                "unexpected-null-character",
+            ]);
             for ($a = 0, $stop = sizeof($errors); $a < $stop; $a++) {
                 if (preg_match("/^\(\d+,\d+\):? ($obsoleteSymbolList)$/", $errors[$a])) {
                     // these errors are redundant with "new" errors
                     unset($errors[$a]);
+                } elseif (preg_match("/ ($duplicateSymbolList)$/", $errors[$a])) {
+                    // if there's more than one of the same error at the same position, just keep one
+                    if ($counts[$errors[$a]] > 1) {
+                        $counts[$errors[$a]]--;
+                        unset($errors[$a]);
+                    }
                 }
             }
             $errors = array_values($errors);
@@ -391,7 +403,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         foreach ($attr as $k => $v) {
             $this->push($k.'="'.$v.'"');
         }
-        if ($e->localName === "template" && $e->namespaceURI === null) {
+        if ($e->localName === "template" && $e->namespaceURI === ($this->ns ? Parser::HTML_NAMESPACE : null)) {
             $this->push("content");
             $this->depth++;
             foreach ($e->childNodes as $n) {
