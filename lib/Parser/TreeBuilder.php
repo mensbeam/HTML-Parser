@@ -4214,6 +4214,12 @@ class TreeBuilder {
         # Let element be the result of creating an element given document,
         #   localName, given namespace, null, and is.
         try {
+            if ($namespace === Parser::HTML_NAMESPACE) {
+                if (strpos($token->name, ":") !== false) {
+                    $token->name = str_replace(":", "U00003A", $token->name);
+                    $this->mangledElements = true;
+                }
+            }
             $element = $this->DOM->createElementNS($namespace, $token->name);
         } catch (\DOMException $e) {
             // The element name is invalid for XML
@@ -4253,7 +4259,13 @@ class TreeBuilder {
         if ($namespaceURI === Parser::XMLNS_NAMESPACE) {
             // NOTE: We create attribute nodes so that xmlns attributes
             //   don't get lost; otherwise they cannot be serialized
-            $a = @$element->ownerDocument->createAttributeNS($namespaceURI, $qualifiedName);
+            try {
+                $a = @$element->ownerDocument->createAttributeNS($namespaceURI, $qualifiedName);
+            } catch (\DOMException $e) {
+                // FIXME: PHP has a fit here if the document element has a namespace and no prefix
+                // A workaround does not seem to exist
+                return;
+            }
             if ($a === false) {
                 // The document element does not exist yet, so we need
                 //   to insert this element into the document
