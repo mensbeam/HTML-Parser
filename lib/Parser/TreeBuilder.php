@@ -1255,9 +1255,7 @@ class TreeBuilder {
                     # A character token that is U+0000 NULL
                     elseif ($token instanceof NullCharacterToken) {
                         # Parse error. Ignore the token
-                        // DEVIATION: the parse error is already reported by the tokenizer;
-                        // this is probably an oversight in the specification, so we don't
-                        // report it a second time
+                        $this->error(ParseError::UNEXPECTED_NULL_CHARACTER_OMIT);
                     }
                     # Any other character token
                     elseif ($token instanceof CharacterToken) {
@@ -2258,7 +2256,7 @@ class TreeBuilder {
                     # A character token that is U+0000 NULL
                     if ($token instanceof NullCharacterToken) {
                         # Parse error. Ignore the token.
-                        $this->error(ParseError::UNEXPECTED_NULL_CHARACTER);
+                        $this->error(ParseError::UNEXPECTED_NULL_CHARACTER_OMIT);
                     }
                     # Any other character token
                     elseif ($token instanceof CharacterToken) {
@@ -3450,7 +3448,7 @@ class TreeBuilder {
                 # A character token that is U+0000 NULL
                 if ($token instanceof NullCharacterToken) {
                     # Parse error. Insert a U+FFFD REPLACEMENT CHARACTER character.
-                    // DEVIATION: Parse errors for null characters are already emitted by the tokenizer
+                    $this->error(ParseError::UNEXPECTED_NULL_CHARACTER_REPLACE);
                     $this->insertCharacterToken(new CharacterToken("\u{FFFD}"));
                 }
                 # A character token that is one of U+0009 CHARACTER TABULATION, "LF" (U+000A),

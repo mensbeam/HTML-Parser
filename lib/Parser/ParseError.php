@@ -76,6 +76,8 @@ class ParseError {
     public const FOSTERED_START_TAG                                                = 215;
     public const FOSTERED_END_TAG                                                  = 216;
     public const FOSTERED_CHAR                                                     = 217;
+    public const UNEXPECTED_NULL_CHARACTER_OMIT                                    = 218;
+    public const UNEXPECTED_NULL_CHARACTER_REPLACE                                 = 219;
 
     public const MESSAGES = [
         self::EXPECTED_DOCTYPE_BUT_GOT_START_TAG                                => 'Expected DOCTYPE but got start tag <%s>',
@@ -96,6 +98,8 @@ class ParseError {
         self::FOSTERED_START_TAG                                                => 'Start tag <%s> moved to before table',
         self::FOSTERED_END_TAG                                                  => 'End tag </%s> moved to before table',
         self::FOSTERED_CHAR                                                     => 'Character moved to before table',
+        self::UNEXPECTED_NULL_CHARACTER_OMIT                                    => 'Unexpected null character; omitted from document',
+        self::UNEXPECTED_NULL_CHARACTER_REPLACE                                 => 'Unexpected null character; replacement character substituted',
 
         self::ENCODING_ERROR                                                    => 'Corrupt encoding near byte position %s',
         self::UNEXPECTED_NULL_CHARACTER                                         => 'Unexpected null character',

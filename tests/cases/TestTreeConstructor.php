@@ -115,7 +115,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         if ($errors !== false) {
             $actualErrors = $this->formatErrors($errorHandler->errors);
             // If $errors is false, the test does not include errors when there are in fact errors
-            $this->assertCount(sizeof($errors), $actualErrors, var_export($errors, true).var_export($actualErrors, true));
+            $this->assertCount(sizeof($errors), $actualErrors, $treeBuilder->debugLog."\n".var_export($errors, true).var_export($actualErrors, true));
         }
     }
 
@@ -135,15 +135,6 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
     protected function patchTest(string $data, $fragment, array $errors, array $exp): array {
         $patched = false;
         $skip = "";
-        // comments outside the root element are silently dropped by the PHP DOM
-        if (!$fragment) {
-            for ($a = 0; $a < sizeof($exp); $a++) {
-                if (strpos($exp[$a], "| <!--") === 0) {
-                    array_splice($exp, $a--, 1);
-                    $patched = true;
-                }
-            }
-        }
         // some tests don't document errors when they should
         if (!$errors && in_array($data, [
             // math.dat
@@ -306,20 +297,9 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                 }
             }
             $errors = array_values($errors);
-            // other errors are spurious, or are for runs of character tokens
+            // other errors are spurious
             for ($a = 0, $stop = sizeof($errors); $a < $stop; $a++) {
-                if (preg_match("/^\((\d+),(\d+)\):? (foster-parenting-character(?:-in-table)?|unexpected-character-in-colgroup|unexpected-char-after-frameset|unexpected-char-in-frameset|expected-eof-but-got-char)$/", $errors[$a], $m1) && preg_match("/^\((\d+),(\d+)\):? $m1[3]$/", $errors[$a + 1] ?? "", $m2)) {
-                    // if the next error is also a character error at the next or same character position, this implies a run of characters where we only have one token
-                    // technically we should be reporting each one, so this is properly a FIXME
-                    if ($m1[1] == $m2[1] && ($m1[2] + 1 == $m2[2] || $m1[2] == $m2[2])) {
-                        unset($errors[$a]);
-                        $patched = true;
-                    }
-                } elseif (preg_match("/^foster-parenting text /", $errors[$a]) && preg_match("/^foster-parenting text /", $errors[$a + 1] ?? "")) {
-                    // template tests have a different format of error message
-                    unset($errors[$a]);
-                    $patched = true;
-                } elseif (preg_match("/^\((\d+,\d+)\):? unexpected-end-tag$/", $errors[$a], $m) && preg_match("/^\($m[1]\):? (unexpected-end-tag|end-tag-too-early|expected-one-end-tag-but-got-another|adoption-agency-1.3)$/", $errors[$a + 1] ?? "")) {
+                if (preg_match("/^\((\d+,\d+)\):? unexpected-end-tag$/", $errors[$a], $m) && preg_match("/^\($m[1]\):? (unexpected-end-tag|end-tag-too-early|expected-one-end-tag-but-got-another|adoption-agency-1.3)$/", $errors[$a + 1] ?? "")) {
                     // unexpected-end-tag errors should only be reported once for a given tag
                     unset($errors[$a]);
                 }
@@ -353,18 +333,8 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                 $this->serializeNode($n);
             }
         } else {
-            if ($d->doctype) {
-                $dt = "<!DOCTYPE ";
-                $dt .= ($d->doctype->name !== " ") ? $d->doctype->name : "";
-                if (strlen($d->doctype->publicId) || strlen($d->doctype->systemId)) {
-                    $dt .= ' "'.$d->doctype->publicId.'"';
-                    $dt .= ' "'.$d->doctype->systemId.'"';
-                }
-                $dt .= ">";
-                $this->push($dt);
-            }
-            if ($d->documentElement) {
-                $this->serializeElement($d->documentElement);
+            foreach ($d->childNodes as $n) {
+                $this->serializeNode($n);
             }
         }
         return $this->out;
@@ -427,6 +397,15 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             $this->push("<!-- ".$n->data." -->");
         } elseif ($n instanceof \DOMCharacterData) {
             $this->push('"'.$n->data.'"');
+        } elseif ($n instanceof \DOMDocumentType) {
+            $dt = "<!DOCTYPE ";
+            $dt .= ($n->name !== " ") ? $n->name : "";
+            if (strlen($n->publicId) || strlen($n->systemId)) {
+                $dt .= ' "'.$n->publicId.'"';
+                $dt .= ' "'.$n->systemId.'"';
+            }
+            $dt .= ">";
+            $this->push($dt);
         } else {
             throw new \Exception("Node type ".get_class($n)." not handled");
         }

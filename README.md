@@ -19,11 +19,10 @@ The API is still in flux, but should be finalized soon.
 The primary aim of this library is accuracy. If the document object differs from what the specification mandates, this is probably a bug. However, we are also constrained by PHP, which imposes various limtations. These are as follows:
 
 - Due to PHP's DOM being designed for XML, element and attribute names which are illegal in XML are mangled as recommended by the specification
-- PHP's DOM does not allow comments to be inserted outside the root element. The parser will perform the insertions, but the comment nodes are then silently dropped
 - PHP's DOM has no special understanding of the HTML `<template>` element. Consequently template contents is treated no differently from the children of other elements
 - PHP's DOM treats `xmlns` attributes specially. Attributes which would change the namespace URI of an element or prefix to inconsistent values are thus dropped
-- Due to a PHP bug which severely degrades performance with large documents and in consideration of existing PHP software, HTML elements are placed in the null namespace rather than in the HTML namespace
-- PHP's DOM does not allow DOCTYPEs with no name (i.e. `<!DOCTYPE>` rather than `<!DOCTYPE html>`); in such cases the parser will create a DOCTYPE using a single `U+0020 SPACE` character as its name
+- Due to a PHP bug which severely degrades performance with large documents and in consideration of existing PHP software, HTML elements are placed in the null namespace by default rather than in the HTML namespace
+- PHP's DOM does not allow DOCTYPEs with no name (i.e. `<!DOCTYPE >` rather than `<!DOCTYPE html>`); in such cases the parser will create a DOCTYPE using a single `U+0020 SPACE` character as its name
 
 ## Comparison with `masterminds/html5`
 
@@ -45,7 +44,7 @@ This library and [masterminds/html5](https://packagist.org/packages/masterminds/
 | Handling of omitted start tags                      | Elements are not inserted             | Elements are not inserted                                | Per specification                      |
 | Handling of processing instructions                 | Retained                              | Retained                                                 | Per specification, configurable        |
 | Handling of bogus XLink namespace\*                 | Foreign content not supported         | XLink attributes are lost if preceded by bogus namespace | Bogus namespace is ignored             |
-| Namespace for HTML elements                         | Null                                  | Per specification, configurable                          | Null                                   |
+| Namespace for HTML elements                         | Null                                  | Per specification, configurable                          | Null, configurable                                   |
 | Time needed to parse single-page HTML specification | 0.5 seconds                           | 2.7 seconds†                                             | 6.0 seconds‡                           |
 | Peak memory needed for same                         | 11.6 MB                               | 38 MB                                                    | 13.9 MB                                |
 
