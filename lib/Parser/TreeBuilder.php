@@ -41,6 +41,8 @@ class TreeBuilder {
     protected $templateInsertionModes;
     /** @var array An array holding character tokens which may need to be foster-parented during table parsing */
     protected $pendingTableCharacterTokens = [];
+    /** @var int The character position of the last pended table character token */
+    protected $pendingTableCharacterTokenPosition = 0;
     /** @var bool Flag used to track whether name mangling has been performed for elements; this is a minor optimization */
     protected $mangledElements = false;
     /** @var bool Flag used to track whether name mangling has been performed for attributes; this is a minor optimization */
@@ -1848,7 +1850,7 @@ class TreeBuilder {
                         if ($token instanceof EndTagToken) {
                             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                         } elseif ($token instanceof CharacterToken) {
-                            $this->error(ParseError::UNEXPECTED_CHAR);
+                            $this->error(ParseError::UNEXPECTED_CHAR, $token->data);
                         } elseif ($token instanceof EOFToken) {
                             $this->error(ParseError::UNEXPECTED_EOF);
                         }
@@ -2239,7 +2241,7 @@ class TreeBuilder {
                         #   using the rules for the "in body" insertion mode, and
                         #   then disable foster parenting.
                         if ($token instanceof CharacterToken) {
-                            $this->error(ParseError::FOSTERED_CHAR);
+                            $this->error(ParseError::FOSTERED_CHAR, $token->data);
                         } elseif ($token instanceof StartTagToken) {
                             $this->error(ParseError::FOSTERED_START_TAG, $token->name);
                         } elseif ($token instanceof EndTagToken) {
@@ -2263,6 +2265,7 @@ class TreeBuilder {
                         # Append the character token to the pending table character
                         #   tokens list.
                         $this->pendingTableCharacterTokens[] = $token;
+                        $this->pendingTableCharacterTokenPosition = $this->data->pointer;
                     }
                     # Anything else
                     else {
@@ -2282,7 +2285,7 @@ class TreeBuilder {
                         // NOTE: This is efectively the same as reprocessing in the
                         //   "in body" mode
                         if (!$ws) {
-                            $this->error(ParseError::UNEXPECTED_CHAR);
+                            $this->error(ParseError::FOSTERED_CHAR, $this->pendingTableCharacterTokens, $this->pendingTableCharacterTokenPosition);
                             $this->fosterParenting = true;
                             foreach ($this->pendingTableCharacterTokens as $pending) {
                                 // The relevant parts of the "in body" mode are reproduced here
@@ -2464,7 +2467,7 @@ class TreeBuilder {
                         #   is a parse error; ignore the token.
                         if ($this->stack->currentNodeName !== "colgroup") {
                             if ($token instanceof CharacterToken) {
-                                $this->error(ParseError::UNEXPECTED_CHAR);
+                                $this->error(ParseError::UNEXPECTED_CHAR, $token->data);
                             } elseif ($token instanceof StartTagToken) {
                                 $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                             } elseif ($token instanceof EndTagToken) {
@@ -3167,7 +3170,7 @@ class TreeBuilder {
                         } elseif ($token instanceof EndTagToken) {
                             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                         } elseif ($token instanceof CharacterToken) {
-                            $this->error(ParseError::UNEXPECTED_CHAR);
+                            $this->error(ParseError::UNEXPECTED_CHAR, $token->data);
                         }
                         # Switch the insertion mode to "in body"
                         #   and reprocess the token.
@@ -3269,7 +3272,7 @@ class TreeBuilder {
                         } elseif ($token instanceof EndTagToken) {
                             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                         } elseif ($token instanceof CharacterToken) {
-                            $this->error(ParseError::UNEXPECTED_CHAR);
+                            $this->error(ParseError::UNEXPECTED_CHAR, $token->data);
                             // Extract any whitespace characters from the token and insert them
                             $ws = preg_replace('/[^\x09\x0a\x0c\x0d ]+/', "", $token->data);
                             if (strlen($ws)) {
@@ -3330,7 +3333,7 @@ class TreeBuilder {
                         } elseif ($token instanceof EndTagToken) {
                             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                         } elseif ($token instanceof CharacterToken) {
-                            $this->error(ParseError::UNEXPECTED_CHAR);
+                            $this->error(ParseError::UNEXPECTED_CHAR, $token->data);
                             // Extract any whitespace characters from the token and insert them
                             $ws = preg_replace('/[^\x09\x0a\x0c\x0d ]+/', "", $token->data);
                             if (strlen($ws)) {
@@ -3371,7 +3374,7 @@ class TreeBuilder {
                         } elseif ($token instanceof EndTagToken) {
                             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                         } elseif ($token instanceof CharacterToken) {
-                            $this->error(ParseError::UNEXPECTED_CHAR);
+                            $this->error(ParseError::UNEXPECTED_CHAR, $token->data);
                         }
                         # Switch the insertion mode to "in body" and reprocess the token.
                         $insertionMode = $this->insertionMode = self::IN_BODY_MODE;
@@ -3417,7 +3420,7 @@ class TreeBuilder {
                         } elseif ($token instanceof EndTagToken) {
                             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                         } elseif ($token instanceof CharacterToken) {
-                            $this->error(ParseError::UNEXPECTED_CHAR);
+                            $this->error(ParseError::UNEXPECTED_CHAR, $token->data);
                         }
                     }
                 }
@@ -3439,8 +3442,6 @@ class TreeBuilder {
                 #
                 # When the user agent is to apply the rules for parsing tokens in foreign
                 # content, the user agent must handle the token as follows:
-
-
 
                 // NOTE: Foster parenting is turned off when evaluating this
                 //   mode as it may have been turned on in a previous evluation
@@ -3559,12 +3560,12 @@ class TreeBuilder {
                         }
                     }
                 }
-                # An end tag whose tag name is "script", if the current node is a script element
-                # in the SVG namespace
-                // DEVIATION: This implementation does not support scripting, so script elements
-                //   aren't processed differently.
                 # An end tag...
                 elseif ($token instanceof EndTagToken) {
+                    # An end tag whose tag name is "script", if the current node is a script element
+                    # in the SVG namespace
+                    // DEVIATION: This implementation does not support scripting, so script elements
+                    //   aren't processed differently.
                     # An end tag whose tag name is "br", "p"
                     if ($token->name === "br" || $token->name === "p") {
                         # Parse error.
@@ -3581,7 +3582,7 @@ class TreeBuilder {
                         #   in HTML content.
                         goto ProcessToken;
                     }
-                # Any other end tag
+                    # Any other end tag
                     elseif ($token instanceof EndTagToken) {
                         # Run these steps:
                         #
