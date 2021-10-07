@@ -69,12 +69,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         $this->ns = ($config && $config->htmlNamespace);
         $htmlNamespace = ($this->ns) ? Parser::HTML_NAMESPACE : null;
         // certain tests need to be patched to ignore unavoidable limitations of PHP's DOM
-        [$exp, $errors, $patched,  $skip] = $this->patchTest($data, $fragment, $errors, $exp);
-        if (strlen($skip)) {
-            $this->markTestSkipped($skip);
-        } elseif ($patched) {
-            $this->markAsRisky();
-        }
+        [$exp, $errors] = $this->patchTest($data, $fragment, $errors, $exp);
         // initialize the output document
         $doc = new \DOMDocument;
         // prepare the fragment context, if any
@@ -151,11 +146,8 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
     }
 
     protected function patchTest(string $data, $fragment, array $errors, array $exp): array {
-        $patched = false;
-        $skip = "";
-        return [$exp, $errors, $patched, $skip];
-        if ($errors) {
-            // some "old" errors are made redundant by "new" errors
+        // some "old" errors are made redundant by "new" errors
+        if ($errors['new']) {
             $obsoleteSymbolList = implode("|", [
                 "unexpected-bang-after-double-dash-in-comment",
                 "eof-in-comment",
@@ -173,7 +165,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                 "numeric-entity-without-semicolon",
                 "illegal-codepoint-for-numeric-entity",
                 "eof-in-numeric-entity",
-                "Self-closing syntax (“/>”) used on a non-void HTML element. Ignoring the slash and treating as a start tag.",
+                "Self-closing syntax (“\/>”) used on a non-void HTML element. Ignoring the slash and treating as a start tag.",
                 "equals-in-unquoted-attribute-value",
                 "unexpected-character-in-unquoted-attribute-value",
                 "expected-dashes-or-doctype",
@@ -197,13 +189,14 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                 "non-void-element-with-trailing-solidus",
                 "eof-in-attribute-value-double-quote",
             ]);
-            for ($a = 0, $stop = sizeof($errors); $a < $stop; $a++) {
-                if (preg_match("/^\(\d+,\d+\):? ($obsoleteSymbolList)$/", $errors[$a])) {
-                    // these errors are redundant with "new" errors
-                    unset($errors[$a]);
+            for ($a = 0, $stop = sizeof($errors['old']); $a < $stop; $a++) {
+                if (preg_match("/^\(\d+,\d+\):? ($obsoleteSymbolList)$/", $errors['old'][$a])) {
+                    unset($errors['old'][$a]);
                 }
             }
         }
+        $errors = [...array_values($errors['old']), ...$errors['new']];
+        return [$exp, $errors];
     }
 
     protected function balanceTree(array $act, array $exp): array {
@@ -332,15 +325,24 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                     $errors = [];
                     assert(($lines[$l] ?? "") === "#errors", new \Exception("Test $file #$index does not list errors at line ".($l + 1)));
                     for (++$l; $l < sizeof($lines); $l++) {
-                        if ($lines[$l] === "#new-errors") {
-                            continue;
-                        } elseif (preg_match('/^#(document(-fragment)?|script-(on|off)|)$/', $lines[$l])) {
+                        if (preg_match('/^#(document(-fragment)?|script-(on|off)|new-errors|)$/', $lines[$l])) {
                             break;
                         }
                         $errors[] = $lines[$l];
                     }
+                    // collect new errors, if present
+                    assert(preg_match('/^#(new-errors|script-(on|off)|document(-fragment)?)$/', $lines[$l]) === 1, new \Exception("Test $file #$index follows errors with something other than new errors, script flag, document fragment, or document at line ".($l + 1)));
+                    $newErrors = [];
+                    if ($lines[$l] === "#new-errors") {
+                        for (++$l; $l < sizeof($lines); $l++) {
+                            if (preg_match('/^#(document(-fragment)?|script-(on|off)|)$/', $lines[$l])) {
+                                break;
+                            }
+                            $newErrors[] = $lines[$l];
+                        }
+                    }
                     // set the script mode, if present
-                    assert(preg_match('/^#(script-(on|off)|document(-fragment)?)$/', $lines[$l]) === 1, new \Exception("Test $file #$index follows errors with something other than script flag, document fragment, or document at line ".($l + 1)));
+                    assert(preg_match('/^#(script-(on|off)|document(-fragment)?)$/', $lines[$l] ?? "") === 1, new \Exception("Test $file #$index follows new errors with something other than script flag, document fragment, or document at line ".($l + 1)));
                     $script = null;
                     if ($lines[$l] === "#script-off") {
                         $script = false;
@@ -372,6 +374,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                     }
                     if (!$script) {
                         // scripting-dependent tests are skipped entirely since we will not support scripting
+                        $errors = ['old' => $errors, 'new' => $newErrors];
                         yield basename($file)." #$index (line $pos)" => [$data, $exp, $errors, $fragment];
                     }
                     $l++;
