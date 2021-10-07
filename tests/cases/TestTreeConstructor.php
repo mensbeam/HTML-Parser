@@ -40,7 +40,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
     }
 
     /** @dataProvider provideStandardTreeTests */
-    public function xtestStandardTreeTestsWithHtmlNamespace(string $data, array $exp, array $errors, $fragment): void {
+    public function testStandardTreeTestsWithHtmlNamespace(string $data, array $exp, array $errors, $fragment): void {
         $config = new Config;
         $config->htmlNamespace = true;
         $this->runTreeTest($data, $exp, $errors, $fragment, $config);
@@ -198,6 +198,14 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             $errors['old'] = array_values($errors['old']);
         }
         $errors = [...$errors['old'], ...$errors['new']];
+        // When using the HTML namespace, xmlns attribute cannot be inserted due to a PHP limitation
+        if ($this->ns) {
+            for ($a = 0; $a < sizeof($exp); $a++) {
+                if (preg_match('/^\|\s+xmlns xmlns=/', $exp[$a])) {
+                    array_splice($exp, $a--, 1);
+                }
+            }
+        }
         return [$exp, $errors];
     }
 
