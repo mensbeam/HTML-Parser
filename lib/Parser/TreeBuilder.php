@@ -3608,7 +3608,8 @@ class TreeBuilder {
                             $node = $this->stack[--$pos];
                             # If node is not an element in the HTML namespace, return to the step labeled
                             #   loop.
-                        } while ($node->namespaceURI !== $this->htmlNamespace);
+                            // DEVIATION: Also loop if at the top of the stack; this avoid reprocessing, as the test suite seems to expect (fragment case)
+                        } while ($node->namespaceURI !== $this->htmlNamespace || $pos === 0);
                         # Otherwise, process the token according to the rules given in the section
                         #   corresponding to the current insertion mode in HTML content.
                         goto ProcessToken;
