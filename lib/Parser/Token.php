@@ -11,7 +11,7 @@ abstract class Token {}
 abstract class DataToken extends Token {
     public $data;
 
-    public function __construct(string $data) {
+    public function __construct(string $data = "") {
         $this->data = $data;
     }
 }
@@ -49,16 +49,9 @@ class NullCharacterToken extends CharacterToken {}
 
 class CommentToken extends DataToken {
     public const NAME = "Comment token";
-
-    public function __construct(string $data = '') {
-        parent::__construct($data);
-    }
 }
 
 class ProcessingInstructionToken extends CommentToken {
-    public function __construct(string $data = '') {
-        parent::__construct($data);
-    }
 }
 
 abstract class TagToken extends Token {

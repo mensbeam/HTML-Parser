@@ -15,13 +15,17 @@ trait ParseErrorEmitter {
             $data = ($this instanceof Data) ? $this : ($this->data ?? null);
             assert($data instanceof Data);
             assert($this->errorHandler instanceof ParseError);
+            $chars = "";
+            $offset = 0;
+            $skip = [];
             if (in_array($code, [ParseError::UNEXPECTED_CHAR, ParseError::FOSTERED_CHAR])) {
                 // character-related errors must have an error generated for each character
                 assert(
                     (sizeof($arg) === 1 && is_string($arg[0]))
                     || (sizeof($arg) === 2 && is_array($arg[0]) && is_int($arg[1]))
+                    || (sizeof($arg) === 2 && is_string($arg[0]) && $arg[1] === "exclude whitespace")
                 );
-                if (sizeof($arg) === 2) {
+                if (is_array($arg[0])) {
                     // pended characters come as a sequence of character tokens with an offset back into the data stream
                     $offset = $data->pointer - $arg[1];
                     $chars = "";
@@ -30,10 +34,26 @@ trait ParseErrorEmitter {
                     }
                     $chars = sizeof(preg_split("//u", $chars)) - 3;
                 } else {
-                    $offset = 0;
-                    $chars = sizeof(preg_split("//u", $arg[0])) - 3;
+                    $chars = preg_split("//u", $arg[0]);
+                    // remove the two empty entries around the characters
+                    array_shift($chars);
+                    array_pop($chars);
+                    // if we need to exclude whitespace, iterate through the array with keys in reverse and mark character offsets to be skipped
+                    if (($arg[1] ?? "") === "exclude whitespace") {
+                        foreach (array_reverse(array_reverse($chars), true) as $k => $v) {
+                            if (strpos(Data::WHITESPACE, $v) !== false) {
+                                $skip[] = $k;
+                            }
+                        }
+                    }
+                    $chars = sizeof($chars) - 1;
                 }
                 while ($chars >= 0) {
+                    if (in_array($chars, $skip)) {
+                        // skip the character if appropriate
+                        $chars--;
+                        continue;
+                    }
                     list($line, $column) = $data->whereIs(-(($chars--) + $offset));
                     $message = $this->errorMessage($code);
                     $this->errorHandler->errors[] = [$line, $column, $code, [], $message];

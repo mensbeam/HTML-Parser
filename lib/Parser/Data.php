@@ -38,12 +38,12 @@ class Data {
     // Whether to track positions for reporting parse errors
     protected $track = true;
 
-    const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-    const DIGIT = '0123456789';
-    const HEX = '0123456789ABCDEFabcdef';
-    const WHITESPACE = "\t\n\x0C\x0D ";
-    const WHITESPACE_REGEX = '/[\t\n\x0c\x0D ]+/';
-    const WHITESPACE_SAFE = "\t\x0C ";
+    public const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+    public const DIGIT = '0123456789';
+    public const HEX = '0123456789ABCDEFabcdef';
+    public const WHITESPACE = "\t\n\x0C\x0D ";
+    public const WHITESPACE_REGEX = '/[\t\n\x0c\x0D ]+/';
+    public const WHITESPACE_SAFE = "\t\x0C "; // "safe" excludes line breaks, as those require extra processing
 
 
     public function __construct(string $data, ?string $encodingOrContentType, ?ParseError $errorHandler,  ?string $fallbackEncoding) {

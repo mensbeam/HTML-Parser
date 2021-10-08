@@ -109,30 +109,8 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         $this->assertEquals($exp, $act, $treeBuilder->debugLog);
         // skip checking errors in some tests for now
         if (in_array($data, [
-            // foreign-to-HTML duplication
-                //"<a><svg><tr><input></a>",
-                //"<!DOCTYPE html><table><caption><svg>foo</table>bar",
-                //"<!DOCTYPE html><body><table><caption><svg><g>foo</g><g>bar</g>baz</table><p>quux",
-                //"<svg></path>",
-                //"<div><svg></div>a",
-                //"<div><svg><path></div>a",
-                //"<div><svg><path><foreignObject><math></div>a",
-                //"<!doctype html><math></html>",
-                //"<math><annotation-xml></svg>x",
-                //"<svg><![CDATA[<svg>]]></path>",
-                //"<!DOCTYPE html><body><table><caption><math><mi>foo</mi><mi>bar</mi>baz</table><p>quux",
-                //"<svg><tfoot></mi><td>",
             "<!doctype html><math></html>", // emits an error I cannot account for
-            "<svg><tbody><title></table>", // emits only one error for an unexoected end tag in foreign content
-            "<svg><thead><title></table>", // emits only one error for an unexoected end tag in foreign content
-            "<svg><tfoot><title></table>", // emits only one error for an unexoected end tag in foreign content
-            "<math><tbody><mo></table>", // emits only one error for an unexoected end tag in foreign content
-            "<math><thead><mo></table>", // emits only one error for an unexoected end tag in foreign content
-            //"<math><tfoot><mo></table>", // emits only one error for an unexoected end tag in foreign content
-            // character-base error count mismatch
-            "<!DOCTYPE html><frameset> te st",
-            "<!DOCTYPE html><frameset></frameset> te st",
-            "<head><noscript>XXX<!--foo--></noscript></head>",
+            "<head><noscript>XXX<!--foo--></noscript></head>", // number of character-related parse errors is wrong
         ])) {
             $this->markTestSkipped();
         }

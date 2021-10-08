@@ -3168,7 +3168,7 @@ class TreeBuilder {
                         } elseif ($token instanceof EndTagToken) {
                             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                         } elseif ($token instanceof CharacterToken) {
-                            $this->error(ParseError::UNEXPECTED_CHAR, $token->data);
+                            $this->error(ParseError::UNEXPECTED_CHAR, $token->data, "exclude whitespace");
                         }
                         # Switch the insertion mode to "in body"
                         #   and reprocess the token.
@@ -3270,7 +3270,7 @@ class TreeBuilder {
                         } elseif ($token instanceof EndTagToken) {
                             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                         } elseif ($token instanceof CharacterToken) {
-                            $this->error(ParseError::UNEXPECTED_CHAR, $token->data);
+                            $this->error(ParseError::UNEXPECTED_CHAR, $token->data, "exclude whitespace");
                             // Extract any whitespace characters from the token and insert them
                             $ws = preg_replace('/[^\x09\x0a\x0c\x0d ]+/', "", $token->data);
                             if (strlen($ws)) {
@@ -3331,7 +3331,7 @@ class TreeBuilder {
                         } elseif ($token instanceof EndTagToken) {
                             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                         } elseif ($token instanceof CharacterToken) {
-                            $this->error(ParseError::UNEXPECTED_CHAR, $token->data);
+                            $this->error(ParseError::UNEXPECTED_CHAR, $token->data, "exclude whitespace");
                             // Extract any whitespace characters from the token and insert them
                             $ws = preg_replace('/[^\x09\x0a\x0c\x0d ]+/', "", $token->data);
                             if (strlen($ws)) {
@@ -3372,7 +3372,7 @@ class TreeBuilder {
                         } elseif ($token instanceof EndTagToken) {
                             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                         } elseif ($token instanceof CharacterToken) {
-                            $this->error(ParseError::UNEXPECTED_CHAR, $token->data);
+                            $this->error(ParseError::UNEXPECTED_CHAR, $token->data, "exclude whitespace");
                         }
                         # Switch the insertion mode to "in body" and reprocess the token.
                         $insertionMode = $this->insertionMode = self::IN_BODY_MODE;
@@ -3418,7 +3418,7 @@ class TreeBuilder {
                         } elseif ($token instanceof EndTagToken) {
                             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                         } elseif ($token instanceof CharacterToken) {
-                            $this->error(ParseError::UNEXPECTED_CHAR, $token->data);
+                            $this->error(ParseError::UNEXPECTED_CHAR, $token->data, "exclude whitespace");
                         }
                     }
                 }
