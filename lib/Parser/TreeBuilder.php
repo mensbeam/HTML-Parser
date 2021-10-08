@@ -3585,29 +3585,22 @@ class TreeBuilder {
                         # Run these steps:
                         #
                         # Initialize node to be the current node (the bottommost node of the stack).
-                        // We do this below before the loop
-                        # If node's tag name, converted to ASCII lowercase, is not the
-                        #   same as the tag name of the token, then this is a parse error.
-                        // DEVIATION: We only generate the parse error if we don't reach
-                        //   "Otherwise" below, to avoid reporting the parse error a second
-                        //   time in HTML content parsing
                         $pos = count($this->stack) - 1;
                         $node = $this->stack[$pos];
+                        # If node's tag name, converted to ASCII lowercase, is not the
+                        #   same as the tag name of the token, then this is a parse error.
+                        if (strtolower($node->nodeName) !== $token->name) {
+                            $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
+                        }
                         do {
                             # Loop: If node is the topmost element in the stack of open elements, then return. (fragment case)
                             if ($pos === 0) {
-                                if (strtolower($this->stack->currentNodeName) !== $token->name) {
-                                    $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
-                                }
                                 continue 2;
                             }
                             # If node's tag name, converted to ASCII lowercase, is the same as the
                             #   tag name of the token, pop elements from the stack of open elements until node
                             #   has been popped from the stack, and then abort these steps.
                             if (strtolower($node->nodeName) === $token->name) {
-                                if (strtolower($this->stack->currentNodeName) !== $token->name) {
-                                    $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
-                                }
                                 $this->stack->popUntilSame($node);
                                 continue 2;
                             }
