@@ -40,7 +40,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
     }
 
     /** @dataProvider provideStandardTreeTests */
-    public function xtestStandardTreeTestsWithHtmlNamespace(string $data, array $exp, array $errors, $fragment): void {
+    public function testStandardTreeTestsWithHtmlNamespace(string $data, array $exp, array $errors, $fragment): void {
         $config = new Config;
         $config->htmlNamespace = true;
         $this->runTreeTest($data, $exp, $errors, $fragment, $config);

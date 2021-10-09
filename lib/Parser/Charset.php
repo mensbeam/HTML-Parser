@@ -130,24 +130,40 @@ abstract class Charset {
      * @param int $endAfter The number of bytes of the string to stop after 
      */
     public static function fromPrescan(string $data, int $endAfter = 1024): ?string {
-        # When an algorithm requires a user agent to prescan a byte stream to 
-        #   determine its encoding, given some defined end condition, then it 
-        #   must run the following steps. 
-        # These steps either abort unsuccessfully or return a character 
-        #   encoding. If at any point during these steps (including during 
-        #   instances of the get an attribute algorithm invoked by this one) 
-        #   the user agent either runs out of bytes (meaning the position 
-        #   pointer created in the first step below goes beyond the end of the 
-        #   byte stream obtained so far) or reaches its end condition, then 
-        #   abort the prescan a byte stream to determine its encoding 
-        #   algorithm unsuccessfully.
+        # When an algorithm requires a user agent to prescan a byte stream
+        #   to determine its encoding, given some defined end condition,
+        #   then it must run the following steps.
+        # If at any point during these steps (including during instances
+        #   of the get an attribute algorithm invoked by this one) the
+        #   user agent either runs out of bytes (meaning the position
+        #   pointer created in the first step below goes beyond the end
+        #   of the byte stream obtained so far) or reaches its end condition,
+        #   then abort the prescan a byte stream to determine its encoding
+        #   algorithm and return the result get an XML encoding applied to
+        #   the same bytes that the prescan a byte stream to determine its
+        #   encoding algorithm was applied to. Otherwise, these steps will
+        #   return a character encoding.
         $s = substr($data, 0, $endAfter);
         $endAfter = strlen($s);
 
+        # Let fallback encoding be null.
+        // NOTE: This is never used
         # Let position be a pointer to a byte in the input byte stream, 
         #   initially pointing at the first byte.
         $pos = 0;
-        
+
+        # Prescan for UTF-16 XML declarations: If position points to:
+        # A sequence of bytes starting with: 0x3C, 0x0, 0x3F, 0x0, 0x78, 0x0 (case-sensitive UTF-16 little-endian '<?x')
+        if (substr($s, 0, 6) === "\x3C\x00\x3F\x00\x78\x00") {
+            # Return UTF-16LE.
+            return "UTF-16LE";
+        }
+        # A sequence of bytes starting with: 0x0, 0x3C, 0x0, 0x3F, 0x0, 0x78 (case-sensitive UTF-16 big-endian '<?x')
+        if (substr($s, 0, 6) === "\x00\x3C\x00\x3F\x00\x78") {
+            # Return UTF-16BE.
+            return "UTF-16BE";
+        }
+
         # Loop: If position points to:
         while ($pos < $endAfter) {
             // OPTIMIZATION: Start my skipping anything not a less-than sign
@@ -273,7 +289,90 @@ abstract class Charset {
                 $pos++;
             }
         }
-        return null;
+        return static::fromXMLDeclaration($data, $endAfter);
+    }
+
+    protected static function fromXMLDeclaration(string $data, int $endAfter): ?string {
+        # When the prescan a byte stream to determine its encoding algorithm
+        #   is aborted without returning an encoding, get an XML encoding
+        #   means doing this.
+        $s = substr($data, 0, $endAfter);
+        $endAfter = strlen($s);
+
+        # Let encodingPosition be a pointer to the start of the stream.
+        $pos = 0;
+        # If encodingPosition does not point to the start of a byte sequence
+        #   0x3C, 0x3F, 0x78, 0x6D, 0x6C (`<?xml`), then return failure.
+        if (substr($s, $pos, 5) !== "<?xml") {
+            return null;
+        }
+        # Let xmlDeclarationEnd be a pointer to the next byte in the input
+        #   byte stream which is 0x3E (>). If there is no such byte,
+        #   then return failure.
+        $xmlDeclarationEnd = strpos($s, ">");
+        if (!$xmlDeclarationEnd) {
+            return null;
+        }
+        # Set encodingPosition to the position of the first occurrence of the
+        #   subsequence of bytes 0x65, 0x6E, 0x63, 0x6F, 0x64, 0x69, 0x6E,
+        #   0x67 (`encoding`) at or after the current encodingPosition. If
+        #   there is no such sequence, then return failure.
+        // NOTE: This is buggy; see https://github.com/whatwg/html/issues/6939
+        $pos = strpos($s, "encoding");
+        if ($pos === false || $pos > $xmlDeclarationEnd) {
+            return null;
+        }
+        # Advance encodingPosition past the 0x67 (g) byte.
+        $pos = $pos + strlen("encoding");
+        # While the byte at encodingPosition is less than or equal to 0x20
+        #   (i.e., it is either an ASCII space or control character), 
+        #   advance encodingPosition to the next byte.
+        while (ord($s[$pos]) <= 0x20) {
+            $pos++;
+        }
+        # If the byte at encodingPosition is not 0x3D (=), then return failure.
+        if ($s[$pos] !== "=") {
+            return null;
+        }
+        # While the byte at encodingPosition is less than or equal to 0x20
+        #   (i.e., it is either an ASCII space or control character), 
+        #   advance encodingPosition to the next byte.
+        while (ord($s[$pos]) <= 0x20) {
+            $pos++;
+        }
+        # Let quoteMark be the byte at encodingPosition.
+        $quoteMark = $s[$pos];
+        # If quoteMark is not either 0x22 (") or 0x27 ('), then return failure.
+        if ($quoteMark !== "'" && $quoteMark !== '"') {
+            return null;
+        }
+        # Advance encodingPosition to the next byte.
+        $pos++;
+        # Let encodingEndPosition be the position of the next occurence of
+        #   quoteMark at or after encodingPosition. If quoteMark does not
+        #   occur again, then return failure.
+        $encodingEndPosition = strpos($s, $quoteMark, $pos);
+        if ($encodingEndPosition === false) {
+            return null;
+        }
+        # Let potentialEncoding be the sequence of the bytes between
+        #   encodingPosition (inclusive) and encodingEndPosition (exlusive).
+        $potentialEncoding = substr($s, $pos, $encodingEndPosition - $pos);
+        # If potentialEncoding contains one or more bytes whose byte value
+        #   is 0x20 or below, then return failure.
+        if (preg_match('/[\x{00}-\x{20}]/', $potentialEncoding)) {
+            return null;
+        }
+        # Let encoding be the result of getting an encoding given
+        #   potentialEncoding isomorphic decoded.
+        // NOTE: Isomorphic decoding is not necessary since all encoding labels are ASCII
+        $encoding = static::fromCharset($potentialEncoding);
+        # If the encoding is UTF-16BE/LE, then change it to UTF-8.
+        if ($encoding === "UTF-16LE" || $encoding === "UTF-16BE") {
+            $encoding = "UTF-8";
+        }
+        # Return encoding.
+        return $encoding;
     }
 
     /** Scans an attribute during the encoding detection pre-scan */
