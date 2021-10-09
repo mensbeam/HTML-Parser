@@ -24,6 +24,7 @@ trait ParseErrorEmitter {
                     (sizeof($arg) === 1 && is_string($arg[0]))
                     || (sizeof($arg) === 2 && is_array($arg[0]) && is_int($arg[1]))
                     || (sizeof($arg) === 2 && is_string($arg[0]) && $arg[1] === "exclude whitespace")
+                    || (sizeof($arg) === 2 && is_string($arg[0]) && $arg[1] === "first only")
                 );
                 if (is_array($arg[0])) {
                     // pended characters come as a sequence of character tokens with an offset back into the data stream
@@ -38,13 +39,17 @@ trait ParseErrorEmitter {
                     // remove the two empty entries around the characters
                     array_shift($chars);
                     array_pop($chars);
-                    // if we need to exclude whitespace, iterate through the array with keys in reverse and mark character offsets to be skipped
                     if (($arg[1] ?? "") === "exclude whitespace") {
+                        // if we need to exclude whitespace, iterate through the array with keys in reverse and mark character offsets to be skipped
                         foreach (array_reverse(array_reverse($chars), true) as $k => $v) {
                             if (strpos(Data::WHITESPACE, $v) !== false) {
                                 $skip[] = $k;
                             }
                         }
+                    } elseif (($arg[1] ?? "") === "first only") {
+                        // if only the first character is supposed to emit a parse error, just use an offset
+                        $offset = sizeof($chars) - 1;
+                        $chars = [$chars[0]];
                     }
                     $chars = sizeof($chars) - 1;
                 }

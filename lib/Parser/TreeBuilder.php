@@ -3168,7 +3168,7 @@ class TreeBuilder {
                         } elseif ($token instanceof EndTagToken) {
                             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                         } elseif ($token instanceof CharacterToken) {
-                            $this->error(ParseError::UNEXPECTED_CHAR, $token->data, "exclude whitespace");
+                            $this->error(ParseError::UNEXPECTED_CHAR, $token->data, "first only");
                         }
                         # Switch the insertion mode to "in body"
                         #   and reprocess the token.

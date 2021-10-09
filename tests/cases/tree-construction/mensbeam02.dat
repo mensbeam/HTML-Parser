@@ -1,0 +1,21 @@
+#data
+<!DOCTYPE html><poop💩>PHP does not support Fifth Edition XML, hence name coercion</poop💩>
+#errors
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <poop💩>
+|       "PHP does not support Fifth Edition XML, hence name coercion"
+
+#data
+<!DOCTYPE html><a poop💩="PHP does not support Fifth Edition XML, hence name coercion"></a>
+#errors
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <a>
+|       poop💩="PHP does not support Fifth Edition XML, hence name coercion"

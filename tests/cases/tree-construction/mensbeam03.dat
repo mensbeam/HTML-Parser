@@ -1,0 +1,10 @@
+#data
+<!DOCTYPE html><body></body> te st
+#errors
+(1,30): unexpected-char-after-body
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     " te st"
