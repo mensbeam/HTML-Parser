@@ -13,6 +13,7 @@ use MensBeam\HTML\Parser\ParseError;
 use MensBeam\HTML\Parser\Tokenizer;
 use MensBeam\HTML\Parser\CharacterToken;
 use MensBeam\HTML\Parser\CommentToken;
+use MensBeam\HTML\Parser\Config;
 use MensBeam\HTML\Parser\DOCTYPEToken;
 use MensBeam\HTML\Parser\EndTagToken;
 use MensBeam\HTML\Parser\NullCharacterToken;
@@ -44,6 +45,8 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
 
     /** @dataProvider provideStandardTokenizerTests */
     public function testStandardTokenizerTests(string $input, array $expected, int $state, string $open = null, array $expErrors) {
+        $config = new Config;
+        $config->encodingFallback = "UTF-8";
         $errorHandler = new ParseError;
         // initialize a stack of open elements, possibly with an open element
         $stack = new OpenElementsStack(null);
@@ -51,7 +54,7 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
             $stack[] = (new \DOMDocument)->createElement($open);
         }
         // initialize the data stream and tokenizer
-        $data = new Data($input, "UTF-8", $errorHandler, "UTF-8");
+        $data = new Data($input, "UTF-8", $errorHandler, $config);
         $tokenizer = new Tokenizer($data, $stack, $errorHandler);
         $tokenizer->state = $state;
         // perform the test

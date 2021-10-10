@@ -6,7 +6,9 @@
 declare(strict_types=1);
 namespace MensBeam\HTML\TestCase;
 
+use MensBeam\HTML\Parser;
 use MensBeam\HTML\Parser\Charset;
+use MensBeam\HTML\Parser\Config;
 
 /** 
  * @covers \MensBeam\HTML\Parser\Charset
@@ -101,6 +103,52 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
                     return;
                 }
                 yield $testId => [trim($data, "\r\n"), trim($test[$l++])];
+            }
+        }
+    }
+
+    /** @dataProvider provideStandardDeclarationTests */
+    public function testStandardDeclarationTests(string $file, ?string $charset, string $exp): void {
+        $config = new Config;
+        $config->encodingPrescanBytes = 2048;
+        $file = \MensBeam\HTML\Parser\BASE."tests/platform-tests/html/syntax/xmldecl/support/".$file;
+        $data = file_get_contents($file);
+        $act = Parser::parse($data, $charset, null, null, null, $config);
+        $this->assertSame($exp, $act->encoding);
+    }
+
+    public function provideStandardDeclarationTests() {
+        $tests = [];
+        $blacklist = ["xmldecl-3.html"];
+        $files = new \AppendIterator();
+        $files->append(new \GlobIterator(\MensBeam\HTML\Parser\BASE."tests/platform-tests/html/syntax/xmldecl/*.htm*", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
+        foreach ($files as $file) {
+            if (!in_array(basename($file), $blacklist)) {
+                $tests[] = $file;
+            }
+        }
+        return $this->makeDeclarationTests(...$tests);
+    }
+
+    protected function makeDeclarationTests(string ...$file): iterable {
+        foreach ($file as $f) {
+            $d = new \DOMDocument;
+            @$d->loadHTMLFile($f);
+            foreach ($d->getElementsByTagName("div") as $div) {
+                $exp = $div->getAttribute("class");
+                foreach ($div->getElementsByTagName("iframe") as $frame) {
+                    $test = \MensBeam\HTML\Parser\BASE."tests/platform-tests/html/syntax/xmldecl/".$frame->getAttribute("src");
+                    if (file_exists($test.".headers")) {
+                        $h = file_get_contents($test.".headers");
+                        if (preg_match('/^Content-Type:\s*text\/html;\s*charset=(\S+)\s*$/Dis', $h, $m)) {
+                            $charset = $m[1];
+                        }
+                        assert(isset($charset), new \Exception("Header file associated with $test has no charset"));
+                    } else {
+                        $charset = null;
+                    }
+                    yield [basename($test), $charset, $exp];
+                }
             }
         }
     }

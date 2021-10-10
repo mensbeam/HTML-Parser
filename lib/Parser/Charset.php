@@ -331,7 +331,8 @@ abstract class Charset {
             $pos++;
         }
         # If the byte at encodingPosition is not 0x3D (=), then return failure.
-        if ($s[$pos] !== "=") {
+        // NOTE: This is also buggy: see https://github.com/whatwg/html/issues/7193
+        if ($s[$pos++] !== "=") {
             return null;
         }
         # While the byte at encodingPosition is less than or equal to 0x20

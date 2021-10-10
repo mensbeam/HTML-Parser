@@ -48,7 +48,7 @@ class Parser {
         // Initialize the various classes needed for parsing
         $document = $document ?? new \DOMDocument;
         $errorHandler = $config->errorCollection ? new ParseError : null;
-        $decoder = new Data($data, $encodingOrContentType, $errorHandler, $config->encodingFallback);
+        $decoder = new Data($data, $encodingOrContentType, $errorHandler, $config);
         $stack = new OpenElementsStack($htmlNamespace, $fragmentContext);
         $tokenizer = new Tokenizer($decoder, $stack, $errorHandler);
         $tokenList = $tokenizer->tokenize();

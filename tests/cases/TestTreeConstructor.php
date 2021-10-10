@@ -66,6 +66,8 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
     }
 
     protected function runTreeTest(string $data, array $exp, array $errors, ?string $fragment, ?Config $config): void {
+        $config = $config ?? new Config;
+        $config->encodingFallback = "UTF-8";
         $this->ns = ($config && $config->htmlNamespace);
         $htmlNamespace = ($this->ns) ? Parser::HTML_NAMESPACE : null;
         // certain tests need to be patched to ignore unavoidable limitations of PHP's DOM
@@ -89,7 +91,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         }
         // initialize the other classes we need
         $errorHandler = new ParseError;
-        $decoder = new Data($data, "UTF-8", $errorHandler, "UTF-8");
+        $decoder = new Data($data, "UTF-8", $errorHandler, $config);
         $stack = new OpenElementsStack($htmlNamespace, $fragmentContext);
         $tokenizer = new Tokenizer($decoder, $stack, $errorHandler);
         $tokenList = $tokenizer->tokenize();

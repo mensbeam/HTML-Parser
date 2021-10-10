@@ -46,11 +46,13 @@ class Data {
     public const WHITESPACE_SAFE = "\t\x0C "; // "safe" excludes line breaks, as those require extra processing
 
 
-    public function __construct(string $data, ?string $encodingOrContentType, ?ParseError $errorHandler,  ?string $fallbackEncoding) {
+    public function __construct(string $data, ?string $encodingOrContentType, ?ParseError $errorHandler, ?Config $config) {
         $this->string = $data;
         $this->errorHandler = $errorHandler;
+        $config = $config ?? new Config;
         $encodingOrContentType = (string) $encodingOrContentType;
-        $fallbackEncoding = (string) $fallbackEncoding;
+        $prescanBytes = (int) ($config->encodingPrescanBytes ?? 1024);
+        $fallbackEncoding = (string) $config->encodingFallback;
         // don't track the current line/column position if error reporting has been suppressed
         $this->track = (bool) $this->errorHandler;
 
@@ -76,7 +78,7 @@ class Data {
             # If the transport layer specifies a character encoding, and it is
             #   supported, return that encoding with the confidence certain.
             $this->encodingCertain = true;
-        } elseif ($encoding = Charset::fromPrescan($data)) {
+        } elseif ($encoding = Charset::fromPrescan($data, $prescanBytes)) {
             # Optionally prescan the byte stream to determine its encoding.
             # The aforementioned algorithm either aborts unsuccessfully or
             #   returns a character encoding. If it returns a character

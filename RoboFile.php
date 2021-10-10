@@ -54,12 +54,20 @@ class RoboFile extends \Robo\Tasks {
 
     /** Manually updates the imported html5lib test suite */
     public function testUpdate(): Result {
-        $dir = BASE_TEST."html5lib-tests";
-        if (is_dir($dir)) {
-            return $this->taskGitStack()->dir($dir)->pull()->run();
-        } else {
-            return $this->taskGitStack()->cloneRepo("https://github.com/html5lib/html5lib-tests", $dir)->run();
+        $repos = [
+            'html5lib-tests' => "https://github.com/html5lib/html5lib-tests",
+            'platform-tests' => "https://github.com/web-platform-tests/wpt",
+        ];
+        $c = $this->collectionBuilder();
+        foreach ($repos as $dir => $url) {
+            $dir = BASE_TEST.$dir;
+            if (is_dir($dir)) {
+                $c->addTask($this->taskGitStack()->dir($dir)->pull());
+            } else {
+                $c->addTask($this->taskGitStack()->cloneRepo($url, $dir));
+            }
         }
+        return $c->run();
     }
 
     /** Produces a code coverage report
