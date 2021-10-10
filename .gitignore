@@ -4,6 +4,15 @@ node_modules
 test*.html
 test*.php
 
+/vendor/
+/vendor-bin/*/vendor
+/tests/html5lib-tests
+/tests/platform-tests
+/tests/.phpunit.result.cache
+/tests/coverage
+cachegrind.out.*
+
+
 # General
 *.DS_Store
 .AppleDouble
@@ -68,10 +77,3 @@ $RECYCLE.BIN/
 
 # .nfs files are created when an open file is removed but is still being accessed
 .nfs*
-
-/vendor/
-/vendor-bin/*/vendor
-/tests/html5lib-tests
-/tests/.phpunit.result.cache
-/tests/coverage
-cachegrind.out.*
