@@ -120,7 +120,7 @@ class OpenElementsStack extends Stack {
     }
 
     public function offsetSet($offset, $value) {
-        assert($offset >= 0, new Exception(Exception::STACK_INVALID_INDEX, $offset));
+        assert($offset >= 0, new \Exception("Invalid stack index $offset"));
 
         if ($offset === null) {
             $this->_storage[] = $value;
@@ -131,13 +131,13 @@ class OpenElementsStack extends Stack {
     }
 
     public function offsetUnset($offset) {
-        assert($offset >= 0 && $offset < count($this->_storage), new Exception(Exception::STACK_INVALID_INDEX, $offset));
+        assert($offset >= 0 && $offset < count($this->_storage), new \Exception("Invalid stack index $offset"));
         array_splice($this->_storage, $offset, 1, []);
         $this->computeProperties();
     }
 
     public function insert(\DOMElement $element, ?int $at = null): void  {
-        assert($at === null || ($at >= 0 && $at <= count($this->_storage)), new Exception(Exception::STACK_INVALID_INDEX, $at));
+        assert($at === null || ($at >= 0 && $at <= count($this->_storage)), new \Exception("Invalid stack index ".var_export($at, true)));
         if ($at === null) {
             $this[] = $element; // @codeCoverageIgnore
         } else {
@@ -149,7 +149,7 @@ class OpenElementsStack extends Stack {
     public function popUntil(string ...$target): void {
         do {
             $node = array_pop($this->_storage);
-            assert(isset($node), new Exception(Exception::STACK_INCORRECTLY_EMPTY));
+            assert(isset($node), new \Exception("Stack is incorrectly empty"));
         } while ($node->namespaceURI !== $this->htmlNamespace || !in_array($node->nodeName, $target));
         $this->computeProperties();
     }
@@ -230,9 +230,9 @@ class OpenElementsStack extends Stack {
         #   table context, it means that the UA must, while the current node
         #   is not a table, template, or html element, pop elements from the
         #   stack of open elements.
-        assert(count($this->_storage) > 0, new Exception(Exception::STACK_INCORRECTLY_EMPTY));
+        assert(count($this->_storage) > 0, new \Exception("Stack is incorrectly empty"));
         $pos = $this->find("table", "template", "html");
-        assert($pos > -1, new Exception(Exception::STACK_NO_CONTEXT_EXISTS, 'table'));
+        assert($pos > -1, new \Exception("Expected table context is missing"));
         $stop = $pos + 1;
         while (count($this->_storage) > $stop) {
             array_pop($this->_storage);
@@ -245,9 +245,9 @@ class OpenElementsStack extends Stack {
         #   table body context, it means that the UA must, while the current
         #   node is not a tbody, tfoot, thead, template, or html element,
         #   pop elements from the stack of open elements.
-        assert(count($this->_storage) > 0, new Exception(Exception::STACK_INCORRECTLY_EMPTY));
+        assert(count($this->_storage) > 0, new \Exception("Stack is incorrectly empty"));
         $pos = $this->find("tbody", "tfoot", "thead", "template", "html");
-        assert($pos > -1, new Exception(Exception::STACK_NO_CONTEXT_EXISTS, 'table body'));
+        assert($pos > -1, new \Exception("Expected table body context is missing"));
         $stop = $pos + 1;
         while (count($this->_storage) > $stop) {
             array_pop($this->_storage);
@@ -260,9 +260,9 @@ class OpenElementsStack extends Stack {
         #   table row context, it means that the UA must, while the current
         #   node is not a tr, template, or html element, pop elements from
         #   the stack of open elements.
-        assert(count($this->_storage) > 0, new Exception(Exception::STACK_INCORRECTLY_EMPTY));
+        assert(count($this->_storage) > 0, new \Exception("Stack is incorrectly empty"));
         $pos = $this->find("tr", "template", "html");
-        assert($pos > -1, new Exception(Exception::STACK_NO_CONTEXT_EXISTS, 'table row'));
+        assert($pos > -1, new \Exception("Expected table row context is missing"));
         $stop = $pos + 1;
         while (count($this->_storage) > $stop) {
             array_pop($this->_storage);
@@ -333,7 +333,7 @@ class OpenElementsStack extends Stack {
             #   since the loop will always terminate in the previous step
             #   if the top of the stack — an html element — is reached.)
         }
-        assert(false, new Exception(Exception::STACK_INVALID_STATE, (string)$this)); // @codeCoverageIgnore
+        assert(false, new \Exception("Scope handler left stack in invalid state:".(string)$this)); // @codeCoverageIgnore
     } // @codeCoverageIgnore
 
     protected function computeProperties(): void {

@@ -97,16 +97,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         $tokenList = $tokenizer->tokenize();
         $treeConstructor = new TreeConstructor($doc, $decoder, $tokenizer, $tokenList, $errorHandler, $stack, new TemplateInsertionModesStack, $fragmentContext, 0, $config);
         // run the tree constructor
-        try {
-            $treeConstructor->constructTree();
-        } catch (LoopException $e) {
-            $act = $this->balanceTree($this->serializeTree($doc, (bool) $fragmentContext), $exp);
-            $this->assertEquals($exp, $act, $e->getMessage()."\n".$treeConstructor->debugLog);
-            throw $e;
-        } catch (NotImplementedException $e) {
-            $this->markTestSkipped($e->getMessage());
-            return;
-        }
+        $treeConstructor->constructTree();
         $act = $this->balanceTree($this->serializeTree($doc, (bool) $fragmentContext), $exp);
         $this->assertEquals($exp, $act, $treeConstructor->debugLog);
         // skip checking errors in some tests for now

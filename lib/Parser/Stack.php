@@ -11,7 +11,7 @@ abstract class Stack implements \ArrayAccess, \Countable, \IteratorAggregate {
     protected $count = 0;
 
     public function offsetSet($offset, $value) {
-        assert($offset >= 0, new Exception(Exception::STACK_INVALID_INDEX, $offset));
+        assert($offset >= 0, new \Exception("Invalid stack index $offset"));
 
         if ($offset === null) {
             $this->_storage[] = $value;
@@ -26,13 +26,13 @@ abstract class Stack implements \ArrayAccess, \Countable, \IteratorAggregate {
     }
 
     public function offsetUnset($offset) {
-        assert($offset >= 0 && $offset < count($this->_storage), new Exception(Exception::STACK_INVALID_INDEX, $offset));
+        assert($offset >= 0 && $offset < count($this->_storage), new \Exception("Invalid stack index $offset"));
         array_splice($this->_storage, $offset, 1, []);
         $this->count = count($this->_storage);
     }
 
     public function offsetGet($offset) {
-        assert($offset >= 0 && $offset < count($this->_storage), new Exception(Exception::STACK_INVALID_INDEX, $offset));
+        assert($offset >= 0 && $offset < count($this->_storage), new \Exception("Invalid stack index $offset"));
         return $this->_storage[$offset];
     }
 
@@ -56,7 +56,7 @@ abstract class Stack implements \ArrayAccess, \Countable, \IteratorAggregate {
     }
 
     public function top(int $offset = 0) {
-        assert($offset >= 0, new Exception(Exception::STACK_INVALID_OFFSET, '<= 0'));
+        assert($offset >= 0, new \Exception("Invalid stack index $offset"));
         return ($c = $this->count) > $offset ? $this->_storage[$c - ($offset + 1)] : null;
     }
 }

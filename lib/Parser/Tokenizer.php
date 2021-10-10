@@ -3348,7 +3348,7 @@ class Tokenizer {
 
             # Not a valid state, unimplemented, or implemented elsewhere
             else {
-                throw new Exception(Exception::TOKENIZER_INVALID_STATE, (self::STATE_NAMES[$this->state] ?? $this->state)); // @codeCoverageIgnore
+                throw new \Exception("Invalid tokenizer state: ".(self::STATE_NAMES[$this->state] ?? $this->state)); // @codeCoverageIgnore
             }
         }
     } // @codeCoverageIgnore
@@ -3693,7 +3693,7 @@ class Tokenizer {
 
             # Not a valid state, unimplemented, or implemented elsewhere
             else {
-                throw new Exception(Exception::TOKENIZER_INVALID_CHARACTER_REFERENCE_STATE, (self::STATE_NAMES[$this->state] ?? $this->state)); // @codeCoverageIgnore
+                throw new \Exception("Invalid character reference state: ".(self::STATE_NAMES[$this->state] ?? $this->state)); // @codeCoverageIgnore
             }
         }
     } // @codeCoverageIgnore

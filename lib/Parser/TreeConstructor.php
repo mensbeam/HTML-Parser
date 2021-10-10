@@ -297,7 +297,7 @@ class TreeConstructor {
             $dom->appendChild($dom->createElementNS($this->htmlNamespace, "html"));
             # Set up the parser's stack of open elements so that it contains just the single element root.
             $this->stack[] = $dom->documentElement;
-            assert((bool) $this->stack->currentNode, new Exception(Exception::STACK_INCORRECTLY_EMPTY));
+            assert((bool) $this->stack->currentNode, new \Exception("Stack is incorrectly empty"));
             # If the context element is a template element, push "in template" onto the stack of
             #   template insertion modes so that it is the new current template insertion mode.
             if ($fragmentContext->nodeName === "template" && $fragmentContext->namespaceURI === $this->htmlNamespace) {
@@ -333,7 +333,7 @@ class TreeConstructor {
                 $this->debugLog .= "EMITTED: ".constant(get_class($token)."::NAME")."\n";
                 return true;
             })());
-            assert($token instanceof CharacterToken || $token instanceof CommentToken || $token instanceof TagToken || $token instanceof DOCTYPEToken || $token instanceof EOFToken, new Exception(Exception::TREECONSTRUCTOR_INVALID_TOKEN_CLASS, get_class($token)));
+            assert($token instanceof CharacterToken || $token instanceof CommentToken || $token instanceof TagToken || $token instanceof DOCTYPEToken || $token instanceof EOFToken, new \Exception("Invalid token class: ".get_class($token)));
             $iterations = 0;
             $insertionMode = $this->insertionMode;
 
@@ -1437,7 +1437,7 @@ class TreeConstructor {
                         # set the Document to quirks mode.
                         // DEVIATION: There is no iframe srcdoc document because there are no nested
                         // browsing contexts in this implementation.
-                        assert($token instanceof CharacterToken || $token instanceof TagToken || $token instanceof EOFToken, new Exception(Exception::TREECONSTRUCTOR_INVALID_TOKEN_CLASS, get_class($token)));
+                        assert($token instanceof CharacterToken || $token instanceof TagToken || $token instanceof EOFToken, new \Exception("Invalid token class: ".get_class($token)));
                         if ($token instanceof StartTagToken) {
                             $this->error(ParseError::EXPECTED_DOCTYPE_BUT_GOT_START_TAG, $token->name);
                         } elseif ($token instanceof EndTagToken) {
@@ -1499,7 +1499,7 @@ class TreeConstructor {
                         $element = $this->DOM->createElementNS($this->htmlNamespace, 'html');
                         $this->DOM->appendChild($element);
                         $this->stack[] = $element;
-                        assert((bool) $this->stack->currentNode, new Exception(Exception::STACK_INCORRECTLY_EMPTY));
+                        assert((bool) $this->stack->currentNode, new \Exception("Stack is incorrectly empty"));
 
                         # Switch the insertion mode to "before head", then reprocess the token.
                         $insertionMode = $this->insertionMode = self::BEFORE_HEAD_MODE;
@@ -2029,7 +2029,7 @@ class TreeConstructor {
                     // Anything else
                     else {
                         // No other cases are possible
-                        throw new Exception(Exception::UNREACHABLE_CODE); // @codeCoverageIgnore
+                        throw new \Exception("Unreachable code"); // @codeCoverageIgnore
                     }
                 }
                 # 13.2.6.4.9 The "in table" insertion mode
@@ -2932,7 +2932,7 @@ class TreeConstructor {
                     else {
                         # Parse error. Ignore the token.
                         // NOTE: All other cases are start or end tags handled above
-                        throw new Exception(Exception::UNREACHABLE_CODE); // @codeCoverageIgnore
+                        throw new \Exception("Unreachable code"); // @codeCoverageIgnore
                     }
                 }
                 # 13.2.6.4.17 The "in select in table" insertion mode
@@ -3162,7 +3162,7 @@ class TreeConstructor {
                     # Anything else
                     else {
                         # Parse error.
-                        assert($token instanceof CharacterToken || $token instanceof TagToken, new Exception(Exception::TREECONSTRUCTOR_INVALID_TOKEN_CLASS, get_class($token)));
+                        assert($token instanceof CharacterToken || $token instanceof TagToken, new \Exception("Invalid token class: ".get_class($token)));
                         if ($token instanceof StartTagToken) {
                             $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                         } elseif ($token instanceof EndTagToken) {
@@ -3264,7 +3264,7 @@ class TreeConstructor {
                     # Anything else
                     else {
                         # Parse error. Ignore the token.
-                        assert($token instanceof CharacterToken || $token instanceof TagToken, new Exception(Exception::TREECONSTRUCTOR_INVALID_TOKEN_CLASS, get_class($token)));
+                        assert($token instanceof CharacterToken || $token instanceof TagToken, new \Exception("Invalid token class: ".get_class($token)));
                         if ($token instanceof StartTagToken) {
                             $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                         } elseif ($token instanceof EndTagToken) {
@@ -3325,7 +3325,7 @@ class TreeConstructor {
                     # Anything else
                     else {
                         # Parse error. Ignore the token.
-                        assert($token instanceof CharacterToken || $token instanceof TagToken, new Exception(Exception::TREECONSTRUCTOR_INVALID_TOKEN_CLASS, get_class($token)));
+                        assert($token instanceof CharacterToken || $token instanceof TagToken, new \Exception("Invalid token class: ".get_class($token)));
                         if ($token instanceof StartTagToken) {
                             $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                         } elseif ($token instanceof EndTagToken) {
@@ -3366,7 +3366,7 @@ class TreeConstructor {
                     # Anything else
                     else {
                         # Parse error.
-                        assert($token instanceof CharacterToken || $token instanceof TagToken, new Exception(Exception::TREECONSTRUCTOR_INVALID_TOKEN_CLASS, get_class($token)));
+                        assert($token instanceof CharacterToken || $token instanceof TagToken, new \Exception("Invalid token class: ".get_class($token)));
                         if ($token instanceof StartTagToken) {
                             $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                         } elseif ($token instanceof EndTagToken) {
@@ -3412,7 +3412,7 @@ class TreeConstructor {
                     # Anything else
                     else {
                         # Parse error. Ignore the token.
-                        assert($token instanceof CharacterToken || $token instanceof TagToken, new Exception(Exception::TREECONSTRUCTOR_INVALID_TOKEN_CLASS, get_class($token)));
+                        assert($token instanceof CharacterToken || $token instanceof TagToken, new \Exception("Invalid token class: ".get_class($token)));
                         if ($token instanceof StartTagToken) {
                             $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                         } elseif ($token instanceof EndTagToken) {
@@ -3423,7 +3423,7 @@ class TreeConstructor {
                     }
                 }
                 else {
-                    throw new Exception(Exception::UNREACHABLE_CODE); // @codeCoverageIgnore
+                    throw new \Exception("Unreachable code"); // @codeCoverageIgnore
                 }
             }
             # Otherwise
@@ -3829,7 +3829,7 @@ class TreeConstructor {
         # Remove formatting element from the stack of open elements, and
         #   insert the new element into the stack of open elements
         #   immediately below the position of furthest block in that stack.
-        assert($stackIndex > 0, new Exception(Exception::STACK_ROOT_ELEMENT_DELETE));
+        assert($stackIndex > 0, new \Exception("Tried to delete root element from stack"));
         $this->stack->removeSame($formattingElement);
         $this->stack->insert($element, $this->stack->findSame($furthestBlock) + 1);
         # Jump back to the step labeled outer loop.
@@ -3850,7 +3850,7 @@ class TreeConstructor {
         # If there was an override target specified, then let target
         #   be the override target. Otherwise, let target be the current node.
         $target = $overrideTarget ?? $this->stack->currentNode;
-        assert(isset($target), new Exception(Exception::STACK_INCORRECTLY_EMPTY));
+        assert(isset($target), new \Exception("Stack is incorrectly empty"));
         # Determine the adjusted insertion location using the first matching steps
         # from the following list:
         $targetNodeName = $target->nodeName;
@@ -3930,7 +3930,7 @@ class TreeConstructor {
         $location = $this->appropriatePlaceForInsertingNode();
         $adjustedInsertionLocation = $location['node'];
         $insertBefore = $location['insert before'];
-        assert($adjustedInsertionLocation instanceof \DOMNode, new Exception(Exception::TREECONSTRUCTOR_INVALID_INSERTION_LOCATION));
+        assert($adjustedInsertionLocation instanceof \DOMNode, new \Exception("Tried to insert character tokens outside root element"));
         # 3. If the adjusted insertion location is in a Document node, then abort these
         # steps.
         // NOTE: The parser never inserts character nodes directly into the document; this branch is unreachable

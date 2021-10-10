@@ -7,6 +7,8 @@ declare(strict_types=1);
 namespace MensBeam\HTML\Parser;
 
 class Config {
+    /** @var ?string The class to use for the resultant document object. This class must derive from \DOMDocument and may not require any constructor parameters */
+    public $documentClass = null;
     /** @var ?string The fallback encoding used when no encoding is provided or can be detected for the document. See https://html.spec.whatwg.org/multipage/parsing.html#determining-the-character-encoding:implementation-defined for guidance */
     public $encodingFallback = null;
     /** @var ?int The number of bytes to examine during encoding pre-scan. 1024 is the default and recommended value */

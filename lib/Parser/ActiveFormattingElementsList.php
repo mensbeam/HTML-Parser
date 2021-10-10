@@ -25,7 +25,7 @@ class ActiveFormattingElementsList extends Stack {
 
     public function offsetSet($offset, $value) {
         $count = $this->count;
-        assert($offset >= 0 && $offset <= $count, new Exception(Exception::STACK_INVALID_INDEX, $offset));
+        assert($offset >= 0 && $offset <= $count, new \Exception("Invalid stack index $offset"));
         assert($value instanceof ActiveFormattingElementsMarker || (
             is_array($value)
             && count($value) === 2
@@ -33,7 +33,7 @@ class ActiveFormattingElementsList extends Stack {
             && isset($value['element'])
             && $value['token'] instanceof StartTagToken
             && $value['element'] instanceof \DOMElement
-        ), new Exception(Exception::STACK_INVALID_VALUE));
+        ), new \Exception("Invalid value for stack:".var_export($value, true)));
         if ($value instanceof ActiveFormattingElementsMarker) {
             $this->_storage[$offset ?? $count] = $value;
         } elseif ($count && ($offset ?? $count) === $count) {
@@ -99,7 +99,7 @@ class ActiveFormattingElementsList extends Stack {
     }
 
     public function insert(StartTagToken $token, \DOMElement $element, ?int $at = null): void  {
-        assert($at === null || ($at >= 0 && $at <= $this->count), new Exception(Exception::STACK_INVALID_INDEX, $at));
+        assert($at === null || ($at >= 0 && $at <= $this->count), new \Exception("Invalid stack index ".var_export($at, true)));
         if ($at === null) {
             $this[] = [
                 'token' => $token,

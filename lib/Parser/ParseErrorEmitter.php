@@ -72,13 +72,13 @@ trait ParseErrorEmitter {
     }
 
     protected function errorMessage(int $code, ...$arg): string {
-        assert(isset(ParseError::MESSAGES[$code]), new Exception(Exception::INVALID_CODE, $code));
+        assert(isset(ParseError::MESSAGES[$code]), new \Exception("Parse error code $code is not defined"));
 
         $message = ParseError::MESSAGES[$code];
         // Count the number of replacements needed in the message.
         $count = substr_count($message, '%s');
         // If the number of replacements don't match the arguments then oops.
-        assert(count($arg) === $count, new Exception(Exception::INCORRECT_PARAMETERS_FOR_MESSAGE, $count));
+        assert(count($arg) === $count, new \Exception("Parse error message expects $count parameters"));
 
         if ($count > 0) {
             // Convert newlines and tabs in the arguments to words to better

@@ -174,7 +174,7 @@ class Data {
     }
 
     public function unconsume(int $length = 1, bool $retreatPointer = true): void {
-        assert($length > 0, new Exception(Exception::DATA_INVALID_DATA_CONSUMPTION_LENGTH, $length));
+        assert($length > 0, new \Exception("Value must be non-negative"));
 
         if ($this->eof) {
             $length--;
@@ -226,7 +226,7 @@ class Data {
     }
 
     public function peek(int $length = 1): string {
-        assert($length > 0, new Exception(Exception::DATA_INVALID_DATA_CONSUMPTION_LENGTH, $length));
+        assert($length > 0, new \Exception("Value must be non-negative"));
         return $this->data->peekChar($length);
     }
 
