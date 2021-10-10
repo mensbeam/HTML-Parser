@@ -9,7 +9,7 @@ namespace MensBeam\HTML\Parser;
 use MensBeam\Intl\Encoding\UTF8;
 
 trait NameCoercion {
-
+    /** @codeCoverageIgnore */
     protected function coerceNameFifthEdition(string $name): string {
         // This matches the inverse of the production of NameChar in XML 1.0 Fifth Edition,
         //   with the added exclusion of ":" from allowed characters

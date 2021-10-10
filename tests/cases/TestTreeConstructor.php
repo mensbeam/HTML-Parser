@@ -112,9 +112,8 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         // skip checking errors in some tests for now
         if (in_array($data, [
             "<!doctype html><math></html>", // emits an error I cannot account for
-            "<head><noscript>XXX<!--foo--></noscript></head>", // number of character-related parse errors is wrong
         ])) {
-            $this->markTestSkipped();
+            $this->markTestSkipped("Test's parse errors are seemingly incorrect (tree has already been tested)");
         }
         $actualErrors = $this->formatErrors($errorHandler->errors);
         $this->assertCount(sizeof($errors['old']), $actualErrors, $treeBuilder->debugLog."\n".var_export($errors['old'], true).var_export($actualErrors, true));
@@ -143,57 +142,6 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             }
         }
         return [$exp, $errors];
-        // some "old" errors are made redundant by "new" errors
-        $symbolMap = [
-            'incorrectly-closed-comment'                                       => ["unexpected-bang-after-double-dash-in-comment"],
-            'abrupt-closing-of-empty-comment'                                  => ["incorrect-comment"],
-            'unexpected-question-mark-instead-of-tag-name'                     => ["expected-tag-name-but-got-question-mark"],
-            'missing-whitespace-before-doctype-name'                           => ["need-space-after-doctype"],
-            'missing-doctype-name'                                             => ["expected-doctype-name-but-got-right-bracket"],
-            'invalid-character-sequence-after-doctype-name'                    => ["expected-space-or-right-bracket-in-doctype"],
-            'missing-doctype-system-identifier'                                => ["unexpected-char-in-doctype"],
-            'missing-quote-before-doctype-system-identifier'                   => ["unexpected-char-in-doctype"],
-            'missing-doctype-public-identifier'                                => ["unexpected-end-of-doctype"],
-            'missing-quote-before-doctype-public-identifier'                   => ["unexpected-char-in-doctype"],
-            'missing-whitespace-between-doctype-public-and-system-identifiers' => ["unexpected-char-in-doctype"],
-            'unexpected-null-character'                                        => ["invalid-codepoint"],
-            'eof-in-script-html-comment-like-text'                             => ["expected-script-data-but-got-eof", "unexpected-eof-in-text-mode", "eof-in-script-in-script", "unexpected-EOF-in-text-mode"],
-            'missing-semicolon-after-character-reference'                      => ["named-entity-without-semicolon", "expected-numeric-entity", "numeric-entity-without-semicolon", "eof-in-numeric-entity"],
-            'absence-of-digits-in-numeric-character-reference'                 => ["expected-numeric-entity"],
-            'null-character-reference'                                         => ["illegal-codepoint-for-numeric-entity"],
-            'control-character-reference'                                      => ["illegal-codepoint-for-numeric-entity"],
-            'surrogate-character-reference'                                    => ["illegal-codepoint-for-numeric-entity"],
-            'noncharacter-character-reference'                                 => ["illegal-codepoint-for-numeric-entity"],
-            'character-reference-outside-unicode-range'                        => ["illegal-codepoint-for-numeric-entity"],
-            'non-void-html-element-start-tag-with-trailing-solidus'            => ["Ignoring the slash and treating as a start tag."],
-            'unexpected-character-in-attribute-name'                           => ["invalid-character-in-attribute-name"],
-            'unexpected-character-in-unquoted-attribute-value'                 => ["equals-in-unquoted-attribute-value"],
-            'cdata-in-html-content'                                            => ["expected-dashes-or-doctype"],
-            'incorrectly-opened-comment'                                       => ["expected-dashes-or-doctype"],
-            'end-tag-with-trailing-solidus'                                    => ["self-closing-flag-on-end-tag"],
-            'unexpected-solidus-in-tag'                                        => ["unexpected-character-after-solidus-in-tag"],
-            'end-tag-with-attributes'                                          => ["attributes-in-end-tag"],
-            'eof-before-tag-name'                                              => ["expected-tag-name", "expected-closing-tag-but-got-eof"],
-            'invalid-first-character-of-tag-name'                              => ["expected-tag-name", "expected-closing-tag-but-got-char"],
-            'eof-in-tag'                                                       => ["expected-attribute-name-but-got-eof", "unexpected-EOF-after-solidus-in-tag", "eof-in-attribute-name", "eof-in-tag-name", "eof-in-attribute-value-double-quote"],
-            'unknown-named-character-reference'                                => ["expected-named-entity"],
-            'eof-in-comment'                                                   => ["eof-in-comment-double-dash"],
-            'nested-comment'                                                   => ["unexpected-char-in-comment"],
-            'non-void-html-element-start-tag-with-trailing-solidus'            => ["non-void-element-with-trailing-solidus", "Ignoring the slash and treating as a start tag."],
-        ];
-        foreach ($errors['new'] as $new) {
-            preg_match("/\s(\S+)$/", $new, $m);
-            assert(is_array($m) && sizeof($m) === 2);
-            $new = $m[1];
-            $old = implode("|", [$new, ...$symbolMap[$new] ?? []]);
-            for ($a = 0, $stop = sizeof($errors['old']); $a < $stop; $a++) {
-                if (preg_match("/ ($old)$/", $errors['old'][$a])) {
-                    unset($errors['old'][$a]);
-                }
-            }
-            $errors['old'] = array_values($errors['old']);
-        }
-        $errors = [...$errors['old'], ...$errors['new']];
     }
 
     protected function balanceTree(array $act, array $exp): array {

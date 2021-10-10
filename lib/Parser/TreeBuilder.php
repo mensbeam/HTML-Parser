@@ -1848,7 +1848,7 @@ class TreeBuilder {
                         if ($token instanceof EndTagToken) {
                             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                         } elseif ($token instanceof CharacterToken) {
-                            $this->error(ParseError::UNEXPECTED_CHAR, $token->data);
+                            $this->error(ParseError::UNEXPECTED_CHAR, $token->data, "first only");
                         } elseif ($token instanceof EOFToken) {
                             $this->error(ParseError::UNEXPECTED_EOF);
                         }
@@ -3933,9 +3933,9 @@ class TreeBuilder {
         assert($adjustedInsertionLocation instanceof \DOMNode, new Exception(Exception::TREEBUILDER_INVALID_INSERTION_LOCATION));
         # 3. If the adjusted insertion location is in a Document node, then abort these
         # steps.
-        // NOTE: foster parenting will never point to before the root element
+        // NOTE: The parser never inserts character nodes directly into the document; this branch is unreachable
         if ($adjustedInsertionLocation instanceof \DOMDocument) {
-            return;
+            return; // @codeCoverageIgnore
         }
 
         # 4. If there is a Text node immediately before the adjusted insertion location,
