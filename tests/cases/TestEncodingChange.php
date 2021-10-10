@@ -12,7 +12,7 @@ use MensBeam\HTML\Parser\Config;
 
 /**
  * @covers \MensBeam\HTML\Parser
- * @covers \MensBeam\HTML\Parser\TreeBuilder
+ * @covers \MensBeam\HTML\Parser\TreeConstructor
  * @covers \MensBeam\HTML\Parser\TagToken
  * @covers \MensBeam\HTML\Parser\Data::changeEncoding
  */

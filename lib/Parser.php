@@ -14,7 +14,7 @@ use MensBeam\HTML\Parser\EncodingChangeException;
 use MensBeam\HTML\Parser\OpenElementsStack;
 use MensBeam\HTML\Parser\TemplateInsertionModesStack;
 use MensBeam\HTML\Parser\Tokenizer;
-use MensBeam\HTML\Parser\TreeBuilder;
+use MensBeam\HTML\Parser\TreeConstructor;
 use MensBeam\HTML\Parser\Output;
 
 class Parser {
@@ -52,9 +52,9 @@ class Parser {
         $stack = new OpenElementsStack($htmlNamespace, $fragmentContext);
         $tokenizer = new Tokenizer($decoder, $stack, $errorHandler);
         $tokenList = $tokenizer->tokenize();
-        $treeBuilder = new TreeBuilder($document, $decoder, $tokenizer, $tokenList, $errorHandler, $stack, new TemplateInsertionModesStack, $fragmentContext, $fragmentQuirks, $config);
+        $treeConstructor = new TreeConstructor($document, $decoder, $tokenizer, $tokenList, $errorHandler, $stack, new TemplateInsertionModesStack, $fragmentContext, $fragmentQuirks, $config);
         try {
-            $treeBuilder->constructTree();
+            $treeConstructor->constructTree();
         } catch (EncodingChangeException $e) {
             // We are supposed to reparse with a new encoding
             // Clear out the document
@@ -67,7 +67,7 @@ class Parser {
             // save the target encoding
             $encoding = $decoder->encoding;
             // Destroy our existing objects
-            unset($errorHandler, $decoder, $stack, $tokenizer, $tokenList, $treeBuilder);
+            unset($errorHandler, $decoder, $stack, $tokenizer, $tokenList, $treeConstructor);
             // Parse a second time
             return static::parse($data, $encoding, $document, $fragmentContext, $fragmentQuirks, $config);
         }
@@ -75,7 +75,7 @@ class Parser {
         $out = new Output;
         $out->document = $document;
         $out->encoding = $decoder->encoding;
-        $out->quirksMode = $treeBuilder->quirksMode;
+        $out->quirksMode = $treeConstructor->quirksMode;
         if ($errorHandler) {
             $out->errors = $errorHandler->errors;
         }

@@ -15,11 +15,11 @@ use MensBeam\HTML\Parser\OpenElementsStack;
 use MensBeam\HTML\Parser\ParseError;
 use MensBeam\HTML\Parser\TemplateInsertionModesStack;
 use MensBeam\HTML\Parser\Tokenizer;
-use MensBeam\HTML\Parser\TreeBuilder;
+use MensBeam\HTML\Parser\TreeConstructor;
 
 /** 
  * @covers \MensBeam\HTML\Parser\Tokenizer
- * @covers \MensBeam\HTML\Parser\TreeBuilder
+ * @covers \MensBeam\HTML\Parser\TreeConstructor
  * @covers \MensBeam\HTML\Parser\ActiveFormattingElementsList
  * @covers \MensBeam\HTML\Parser\TemplateInsertionModesStack
  * @covers \MensBeam\HTML\Parser\OpenElementsStack
@@ -95,20 +95,20 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         $stack = new OpenElementsStack($htmlNamespace, $fragmentContext);
         $tokenizer = new Tokenizer($decoder, $stack, $errorHandler);
         $tokenList = $tokenizer->tokenize();
-        $treeBuilder = new TreeBuilder($doc, $decoder, $tokenizer, $tokenList, $errorHandler, $stack, new TemplateInsertionModesStack, $fragmentContext, 0, $config);
-        // run the tree builder
+        $treeConstructor = new TreeConstructor($doc, $decoder, $tokenizer, $tokenList, $errorHandler, $stack, new TemplateInsertionModesStack, $fragmentContext, 0, $config);
+        // run the tree constructor
         try {
-            $treeBuilder->constructTree();
+            $treeConstructor->constructTree();
         } catch (LoopException $e) {
             $act = $this->balanceTree($this->serializeTree($doc, (bool) $fragmentContext), $exp);
-            $this->assertEquals($exp, $act, $e->getMessage()."\n".$treeBuilder->debugLog);
+            $this->assertEquals($exp, $act, $e->getMessage()."\n".$treeConstructor->debugLog);
             throw $e;
         } catch (NotImplementedException $e) {
             $this->markTestSkipped($e->getMessage());
             return;
         }
         $act = $this->balanceTree($this->serializeTree($doc, (bool) $fragmentContext), $exp);
-        $this->assertEquals($exp, $act, $treeBuilder->debugLog);
+        $this->assertEquals($exp, $act, $treeConstructor->debugLog);
         // skip checking errors in some tests for now
         if (in_array($data, [
             "<!doctype html><math></html>", // emits an error I cannot account for
@@ -116,7 +116,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             $this->markTestSkipped("Test's parse errors are seemingly incorrect (tree has already been tested)");
         }
         $actualErrors = $this->formatErrors($errorHandler->errors);
-        $this->assertCount(sizeof($errors['old']), $actualErrors, $treeBuilder->debugLog."\n".var_export($errors['old'], true).var_export($actualErrors, true));
+        $this->assertCount(sizeof($errors['old']), $actualErrors, $treeConstructor->debugLog."\n".var_export($errors['old'], true).var_export($actualErrors, true));
     }
 
     protected function formatErrors(array $errors): array {

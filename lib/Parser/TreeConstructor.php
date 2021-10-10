@@ -8,7 +8,7 @@ namespace MensBeam\HTML\Parser;
 
 use MensBeam\HTML\Parser;
 
-class TreeBuilder {
+class TreeConstructor {
     use ParseErrorEmitter, NameCoercion;
 
     public $debugLog = "";
@@ -261,7 +261,7 @@ class TreeBuilder {
 
     public function __construct(\DOMDocument $dom, Data $data, Tokenizer $tokenizer, \Generator $tokenList, ?ParseError $errorHandler, OpenElementsStack $stack, TemplateInsertionModesStack $templateInsertionModes, ?\DOMElement $fragmentContext, ?int $fragmentQuirks, ?Config $config) {
         if ($dom->hasChildNodes() || $dom->doctype) {
-            throw new Exception(Exception::TREEBUILDER_NON_EMPTY_TARGET_DOCUMENT);
+            throw new Exception(Exception::TREECONSTRUCTOR_NON_EMPTY_TARGET_DOCUMENT);
         } elseif (!in_array($fragmentQuirks ?? Parser::NO_QUIRKS_MODE, [Parser::NO_QUIRKS_MODE, Parser::LIMITED_QUIRKS_MODE, Parser::QUIRKS_MODE])) {
             throw new Exception(Exception::INVALID_QUIRKS_MODE);
         }
@@ -333,7 +333,7 @@ class TreeBuilder {
                 $this->debugLog .= "EMITTED: ".constant(get_class($token)."::NAME")."\n";
                 return true;
             })());
-            assert($token instanceof CharacterToken || $token instanceof CommentToken || $token instanceof TagToken || $token instanceof DOCTYPEToken || $token instanceof EOFToken, new Exception(Exception::TREEBUILDER_INVALID_TOKEN_CLASS, get_class($token)));
+            assert($token instanceof CharacterToken || $token instanceof CommentToken || $token instanceof TagToken || $token instanceof DOCTYPEToken || $token instanceof EOFToken, new Exception(Exception::TREECONSTRUCTOR_INVALID_TOKEN_CLASS, get_class($token)));
             $iterations = 0;
             $insertionMode = $this->insertionMode;
 
@@ -1437,7 +1437,7 @@ class TreeBuilder {
                         # set the Document to quirks mode.
                         // DEVIATION: There is no iframe srcdoc document because there are no nested
                         // browsing contexts in this implementation.
-                        assert($token instanceof CharacterToken || $token instanceof TagToken || $token instanceof EOFToken, new Exception(Exception::TREEBUILDER_INVALID_TOKEN_CLASS, get_class($token)));
+                        assert($token instanceof CharacterToken || $token instanceof TagToken || $token instanceof EOFToken, new Exception(Exception::TREECONSTRUCTOR_INVALID_TOKEN_CLASS, get_class($token)));
                         if ($token instanceof StartTagToken) {
                             $this->error(ParseError::EXPECTED_DOCTYPE_BUT_GOT_START_TAG, $token->name);
                         } elseif ($token instanceof EndTagToken) {
@@ -3162,7 +3162,7 @@ class TreeBuilder {
                     # Anything else
                     else {
                         # Parse error.
-                        assert($token instanceof CharacterToken || $token instanceof TagToken, new Exception(Exception::TREEBUILDER_INVALID_TOKEN_CLASS, get_class($token)));
+                        assert($token instanceof CharacterToken || $token instanceof TagToken, new Exception(Exception::TREECONSTRUCTOR_INVALID_TOKEN_CLASS, get_class($token)));
                         if ($token instanceof StartTagToken) {
                             $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                         } elseif ($token instanceof EndTagToken) {
@@ -3264,7 +3264,7 @@ class TreeBuilder {
                     # Anything else
                     else {
                         # Parse error. Ignore the token.
-                        assert($token instanceof CharacterToken || $token instanceof TagToken, new Exception(Exception::TREEBUILDER_INVALID_TOKEN_CLASS, get_class($token)));
+                        assert($token instanceof CharacterToken || $token instanceof TagToken, new Exception(Exception::TREECONSTRUCTOR_INVALID_TOKEN_CLASS, get_class($token)));
                         if ($token instanceof StartTagToken) {
                             $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                         } elseif ($token instanceof EndTagToken) {
@@ -3325,7 +3325,7 @@ class TreeBuilder {
                     # Anything else
                     else {
                         # Parse error. Ignore the token.
-                        assert($token instanceof CharacterToken || $token instanceof TagToken, new Exception(Exception::TREEBUILDER_INVALID_TOKEN_CLASS, get_class($token)));
+                        assert($token instanceof CharacterToken || $token instanceof TagToken, new Exception(Exception::TREECONSTRUCTOR_INVALID_TOKEN_CLASS, get_class($token)));
                         if ($token instanceof StartTagToken) {
                             $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                         } elseif ($token instanceof EndTagToken) {
@@ -3366,7 +3366,7 @@ class TreeBuilder {
                     # Anything else
                     else {
                         # Parse error.
-                        assert($token instanceof CharacterToken || $token instanceof TagToken, new Exception(Exception::TREEBUILDER_INVALID_TOKEN_CLASS, get_class($token)));
+                        assert($token instanceof CharacterToken || $token instanceof TagToken, new Exception(Exception::TREECONSTRUCTOR_INVALID_TOKEN_CLASS, get_class($token)));
                         if ($token instanceof StartTagToken) {
                             $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                         } elseif ($token instanceof EndTagToken) {
@@ -3412,7 +3412,7 @@ class TreeBuilder {
                     # Anything else
                     else {
                         # Parse error. Ignore the token.
-                        assert($token instanceof CharacterToken || $token instanceof TagToken, new Exception(Exception::TREEBUILDER_INVALID_TOKEN_CLASS, get_class($token)));
+                        assert($token instanceof CharacterToken || $token instanceof TagToken, new Exception(Exception::TREECONSTRUCTOR_INVALID_TOKEN_CLASS, get_class($token)));
                         if ($token instanceof StartTagToken) {
                             $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                         } elseif ($token instanceof EndTagToken) {
@@ -3930,7 +3930,7 @@ class TreeBuilder {
         $location = $this->appropriatePlaceForInsertingNode();
         $adjustedInsertionLocation = $location['node'];
         $insertBefore = $location['insert before'];
-        assert($adjustedInsertionLocation instanceof \DOMNode, new Exception(Exception::TREEBUILDER_INVALID_INSERTION_LOCATION));
+        assert($adjustedInsertionLocation instanceof \DOMNode, new Exception(Exception::TREECONSTRUCTOR_INVALID_INSERTION_LOCATION));
         # 3. If the adjusted insertion location is in a Document node, then abort these
         # steps.
         // NOTE: The parser never inserts character nodes directly into the document; this branch is unreachable
