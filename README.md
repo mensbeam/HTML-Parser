@@ -4,21 +4,57 @@ A modern, accurate HTML parser for PHP.
 
 ## Usage
 
+### Parsing documents
+
 ```php
-<?php
-$out = MensBeam\HTML\Parser::parse('<!DOCTYPE html><html lang="en" charset="utf-8"><head><title>Ook!</title></head><body><h1>Ook!</h1><p>Ook-ook? Oooook. Ook ook oook ook oooooook ook ooook ook.</p><p>Eek!</p></body></html>');
-$document = $out->document; // the parsed document
-$encoding = $out->encoding; // the canonical name of the detected or supplied encoding
-$quirks = $out->quirksMode; // the quirks-mode setting of the document, needed for parsing fragments into the document later
+public MensBeam\HTML\Parser::parse(
+    string $data, 
+    ?string $encodingOrContentType = null. 
+    ?MensBeam\HTML\Parser\Config $config = null
+): MensBeam\HTML\Parser\Output
 ```
 
-The API is still in flux, but should be finalized soon.
+The `MensBeam\HTML\Parser::parse` static method is used to parse document. An arbitrary string (and optional encoding) are taken as input, and a `MensBeam\HTML\Parser\Output` object is returned as output. The `Output` object has the following properties:
+
+- `document`: A `DOMDocument` object representing the parsed document
+- `encoding`: The original character encoding of the document, as supplied by the user or otherwise detected during parsing
+- `quirksMode`: The detected "quirks mode" property of the document. This will be one of `Parser::NO_QURIKS_MODE` (`0`), `Parser::QUIRKS_MODE` (`1`), or `Parser::LIMITED_QUIRKS_MODE` (`2`)
+- `errors`: An array containing the list of parse errors emitted during processing if parse error reporting was turned on (see [Configuration](#configuration) below), or `null` otherwise
+
+Extra configuration parameters may be given to the parser by passing a `MensBeam\HTML\Parser\Config` object as the final `$config` argument. See the [Configuration](#configuration) section below for more details.
+
+### Parsing fragments
+
+```php
+public MensBeam\HTML\Parser::parse(
+    DOMElement $contextElement,
+    int $quirksMode,
+    string $data, 
+    ?string $encodingOrContentType = null. 
+    ?MensBeam\HTML\Parser\Config $config = null
+): DOMDocumentFragment
+```
+
+The `MensBeam\HTML\Parser::parseFragment` static method is used to parse document fragments. The primary use case for this method is in the implementation of the `innerHTML` setter of HTML elements. Consequently a context element is required, as well as the "quirks mode" property of the context element's document (which must be one of `Parser::NO_QURIKS_MODE` (`0`), `Parser::QUIRKS_MODE` (`1`), or `Parser::LIMITED_QUIRKS_MODE` (`2`)). The further arguments are identical to those used when [parsing documents](#parsing-documents).
+
+Unlike the `parse` method, the `parseFragment` method returns a `DOMDocumentFragment` object belonging to `$contextElement`'s owner document.
+
+## Configuration
+
+The `MensBeam\HTML\Parser\Config` class is used as a container for configuration parameters for the parser. We have tried to use rational defaults, but some parameters are nevertheless configurable:
+
+- `documentClass`: The PHP class to use when constructing the document object. This class must be a subclass of `DOMDocument`. By default `DOMDocument` is used. Using another class may affect performance, especially with large documents; users are advised to conduct their own benchmarks
+- `encodingFallback`: The default encoding to use when none is provided to the parser and none can be detected. The `windows-1252` encoding is used by default, but depending on locale or environment another encoding may be appropriate. See [the Encoding specification](https://encoding.spec.whatwg.org/#names-and-labels) for possible values
+- `encodingPrescanBytes`: The number of bytes (by default `1024`) to examine prior to parsing to determine the document character encoding when none is provided. Normally this should not need to be changed. Using `0` will disable the encoding pre-scan
+- `errorCollection`: A boolean value indicating whether parse errors should be collected into the `Output` object's `errors` array. This should usually be left at the default `false` for performance reasons. The content of the `errors` array is currently considered an implemenmtation detail subject to change without notice
+- `htmlNamespace`: A boolean value indicating whether to create HTML elements within the HTML namespace i.e. `http://www.w3.org/1999/xhtml` rather than the `null` namespace. Though using the HTML namespace is the correct behaviour, the `null` namespace is used by default for performance and compatibility reasons
+- `processingInstructions`: A boolean value indicating whether to preserve processing instructions in the parsed document. By default processing instructions are parsed as comments, per the specification. Note that if set to `true` the parser will insert _HTML processing sinstructions_ which are terminated by the first `>` character, not XML processing instructions terminated by `?>`
 
 ## Limitations
 
 The primary aim of this library is accuracy. If the document object differs from what the specification mandates, this is probably a bug. However, we are also constrained by PHP, which imposes various limtations. These are as follows:
 
-- Due to PHP's DOM being designed for XML, element and attribute names which are illegal in XML are mangled as recommended by the specification
+- Due to PHP's DOM being designed for XML 1.0 Second Edition, element and attribute names which are illegal in XML 1.0 Second Edition are mangled as recommended by the specification
 - PHP's DOM has no special understanding of the HTML `<template>` element. Consequently template contents is treated no differently from the children of other elements
 - PHP's DOM treats `xmlns` attributes specially. Attributes which would change the namespace URI of an element or prefix to inconsistent values are thus dropped
 - Due to a PHP bug which severely degrades performance with large documents and in consideration of existing PHP software, HTML elements are placed in the null namespace by default rather than in the HTML namespace
@@ -44,12 +80,10 @@ This library and [masterminds/html5](https://packagist.org/packages/masterminds/
 | Handling of omitted start tags                      | Elements are not inserted             | Elements are not inserted                                | Per specification                      |
 | Handling of processing instructions                 | Retained                              | Retained                                                 | Per specification, configurable        |
 | Handling of bogus XLink namespace\*                 | Foreign content not supported         | XLink attributes are lost if preceded by bogus namespace | Bogus namespace is ignored             |
-| Namespace for HTML elements                         | Null                                  | Per specification, configurable                          | Null, configurable                                   |
-| Time needed to parse single-page HTML specification | 0.5 seconds                           | 2.7 seconds†                                             | 6.0 seconds‡                           |
+| Namespace for HTML elements                         | Null                                  | Per specification, configurable                          | Null, configurable                     |
+| Time needed to parse single-page HTML specification | 0.5 seconds                           | 2.7 seconds†                                             | 6.0 seconds                            |
 | Peak memory needed for same                         | 11.6 MB                               | 38 MB                                                    | 13.9 MB                                |
 
 \* For example: `<svg xmlns:xlink='http://www.w3.org/1999/xhtml' xlink:href='http://example.com/'/>`. It is unclear what correct behaviour is, but we believe our behaviour to be more consistent with the intent of the specification.
 
 † With HTML namespace disabled. With HTML namespace enabled it does not finish in a reasonable time due to a PHP bug.
-
-‡ With parse errors suppressed. Reporting parse errors adds approximately 10% overhead.

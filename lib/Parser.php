@@ -53,12 +53,12 @@ class Parser {
         return static::parseDocumentOrFragment($data, $encodingOrContentType, null, null, $config ?? new Config);
     }
 
-    public static function parseFragment(\DOMElement $fragmentContext, ?int $fragmentQuirks, string $data, ?string $encodingOrContentType = null, ?Config $config = null): \DOMDocumentFragment {
+    public static function parseFragment(\DOMElement $contextElement, ?int $quirksMode, string $data, ?string $encodingOrContentType = null, ?Config $config = null): \DOMDocumentFragment {
         // parse the fragment into a temporary document
-        $out = self::parseDocumentOrFragment($data, $encodingOrContentType, $fragmentContext, $fragmentQuirks, $config ?? new Config);
+        $out = self::parseDocumentOrFragment($data, $encodingOrContentType, $contextElement, $quirksMode, $config ?? new Config);
         $document = $out->document;
         // extract the nodes from the temporary document into a fragment belonging to the context element's document
-        $fragment = $fragmentContext->ownerDocument->createDocumentFragment();
+        $fragment = $contextElement->ownerDocument->createDocumentFragment();
         foreach ($document->documentElement->childNodes as $node) {
             $node = $fragment->ownerDocument->importNode($node, true);
             $fragment->appendChild($node);
@@ -116,31 +116,5 @@ class Parser {
             $out->errors = $errorHandler->errors;
         }
         return $out;
-    }
-
-    public static function fetchFile(string $file, ?string $encodingOrContentType = null): ?array {
-        $f = fopen($file, "r");
-        if (!$f) {
-            return null;
-        }
-        $data = stream_get_contents($f);
-        $encoding = Charset::fromCharset((string) $encodingOrContentType) ?? Charset::fromTransport((string) $encodingOrContentType);
-        if (!$encoding) {
-            $meta = stream_get_meta_data($f);
-            if ($meta['wrapper_type'] === "http") {
-                // Try to find a Content-Type header-field
-                foreach ($meta['wrapper_data'] as $h) {
-                    $h = explode(":", $h, 2);
-                    if (count($h) === 2) {
-                        if (preg_match("/^\s*Content-Type\s*$/i", $h[0])) {
-                            // Try to get an encoding from it
-                            $encoding = Charset::fromTransport($h[1]);
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-        return [$data, $encoding];
     }
 }
