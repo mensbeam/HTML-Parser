@@ -3088,7 +3088,7 @@ class TreeConstructor {
                     elseif ($token instanceof EOFToken) {
                         # If there is no template element on the stack of open
                         #   elements, then stop parsing. (fragment case)
-                        if (!$this->stack->find("template") === -1) {
+                        if ($this->stack->find("template") === -1) {
                             // Stop parsing
                         }
                         else {

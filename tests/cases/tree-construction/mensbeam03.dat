@@ -8,3 +8,11 @@
 |   <head>
 |   <body>
 |     " te st"
+
+#data
+X
+#errors
+#document-fragment
+template
+#document
+| "X"
