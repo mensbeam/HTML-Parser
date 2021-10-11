@@ -14,7 +14,7 @@ public MensBeam\HTML\Parser::parse(
 ): MensBeam\HTML\Parser\Output
 ```
 
-The `MensBeam\HTML\Parser::parse` static method is used to parse document. An arbitrary string (and optional encoding) are taken as input, and a `MensBeam\HTML\Parser\Output` object is returned as output. The `Output` object has the following properties:
+The `MensBeam\HTML\Parser::parse` static method is used to parse documents. An arbitrary string (and optional encoding) are taken as input, and a `MensBeam\HTML\Parser\Output` object is returned as output. The `Output` object has the following properties:
 
 - `document`: A `DOMDocument` object representing the parsed document
 - `encoding`: The original character encoding of the document, as supplied by the user or otherwise detected during parsing
