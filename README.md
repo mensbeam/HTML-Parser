@@ -19,9 +19,9 @@ The `MensBeam\HTML\Parser::parse` static method is used to parse document. An ar
 - `document`: A `DOMDocument` object representing the parsed document
 - `encoding`: The original character encoding of the document, as supplied by the user or otherwise detected during parsing
 - `quirksMode`: The detected "quirks mode" property of the document. This will be one of `Parser::NO_QURIKS_MODE` (`0`), `Parser::QUIRKS_MODE` (`1`), or `Parser::LIMITED_QUIRKS_MODE` (`2`)
-- `errors`: An array containing the list of parse errors emitted during processing if parse error reporting was turned on (see [Configuration](#configuration) below), or `null` otherwise
+- `errors`: An array containing the list of parse errors emitted during processing if parse error reporting was turned on (see **Configuration** below), or `null` otherwise
 
-Extra configuration parameters may be given to the parser by passing a `MensBeam\HTML\Parser\Config` object as the final `$config` argument. See the [Configuration](#configuration) section below for more details.
+Extra configuration parameters may be given to the parser by passing a `MensBeam\HTML\Parser\Config` object as the final `$config` argument. See the **Configuration** section below for more details.
 
 ### Parsing fragments
 
@@ -35,7 +35,7 @@ public MensBeam\HTML\Parser::parse(
 ): DOMDocumentFragment
 ```
 
-The `MensBeam\HTML\Parser::parseFragment` static method is used to parse document fragments. The primary use case for this method is in the implementation of the `innerHTML` setter of HTML elements. Consequently a context element is required, as well as the "quirks mode" property of the context element's document (which must be one of `Parser::NO_QURIKS_MODE` (`0`), `Parser::QUIRKS_MODE` (`1`), or `Parser::LIMITED_QUIRKS_MODE` (`2`)). The further arguments are identical to those used when [parsing documents](#parsing-documents).
+The `MensBeam\HTML\Parser::parseFragment` static method is used to parse document fragments. The primary use case for this method is in the implementation of the `innerHTML` setter of HTML elements. Consequently a context element is required, as well as the "quirks mode" property of the context element's document (which must be one of `Parser::NO_QURIKS_MODE` (`0`), `Parser::QUIRKS_MODE` (`1`), or `Parser::LIMITED_QUIRKS_MODE` (`2`)). The further arguments are identical to those used when parsing documents.
 
 Unlike the `parse` method, the `parseFragment` method returns a `DOMDocumentFragment` object belonging to `$contextElement`'s owner document.
 
