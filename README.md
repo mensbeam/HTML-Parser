@@ -37,7 +37,78 @@ public MensBeam\HTML\Parser::parse(
 
 The `MensBeam\HTML\Parser::parseFragment` static method is used to parse document fragments. The primary use case for this method is in the implementation of the `innerHTML` setter of HTML elements. Consequently a context element is required, as well as the "quirks mode" property of the context element's document (which must be one of `Parser::NO_QURIKS_MODE` (`0`), `Parser::QUIRKS_MODE` (`1`), or `Parser::LIMITED_QUIRKS_MODE` (`2`)). The further arguments are identical to those used when parsing documents.
 
-Unlike the `parse` method, the `parseFragment` method returns a `DOMDocumentFragment` object belonging to `$contextElement`'s owner document.
+If the "quirks mode" property of the document is not know, using `Parser::NO_QUIRKS_MODE` (`0`) is usually the best choice.
+
+Unlike the `parse()` method, the `parseFragment()` method returns a `DOMDocumentFragment` object belonging to `$contextElement`'s owner document.
+
+### Examples
+
+- Parsing a document with unknown encoding:
+
+  ```php
+  use MensBeam\HTML\Parser;
+
+  echo Parser::parse('<!DOCTYPE html><b>Hello world!</b>')->encoding;
+  // prints "windows-1252"
+  echo Parser::parse('<!DOCTYPE html><meta charset="UTF-8"><b>Hello world!</b>')->encoding;
+  // prints "UTF-8"
+  ```
+
+- Parsing a document with a known encoding:
+
+  ```php
+  use MensBeam\HTML\Parser;
+
+  echo Parser::parse("<!DOCTYPE html>\u{3088}", "UTF-8")
+    ->document
+    ->getElementsByTagName("body")[0]
+    ->textContent;
+  // prints "よ"
+  echo Parser::parse("<!DOCTYPE html>\u{3088}", "text/html; charset=utf-8")
+    ->document
+    ->getElementsByTagName("body")[0]
+    ->textContent;
+  // also prints "よ"
+  ```
+
+- Parsing a document with a different default encoding:
+
+  ```php
+  use MensBeam\HTML\Parser;
+  use MensBeam\HTML\Parser\Config;
+
+  $config = new Config;
+  $config->encodingFallback = "Shift_JIS";
+
+  echo Parser::parse("<!DOCTYPE html>\x82\xE6", null, $config)
+    ->document
+    ->getElementsByTagName("body")[0]
+    ->textContent;
+  // also also prints "よ"
+  ```
+
+- Parsing document fragments:
+
+  ```php
+  use MensBeam\HTML\Parser;
+  use MensBeam\HTML\Parser\Config;
+
+  $config = new Config;
+  $config->htmlNamespace = true;
+
+  // set up two context nodes
+  $document = Parser::parse("<!DOCTYPE html><math></math>", "UTF-8", $config)->document;
+  $body = $document->getElementsByTagName("body")[0];
+  $math = $document->getElementsByTagName("math")[0];
+  echo $body->namespaceURI; // prints "http://www.w3.org/1999/xhtml"
+  echo $math->namespaceURI; // prints "http://www.w3.org/1998/Math/MathML"
+
+  // parse two identical fragments using different context elements
+  $htmlFragment = Parser::parseFragment($body, 0, "<mi>&pi;</mi>", "UTF-8", $config);
+  $mathFragment = Parser::parseFragment($math, 0, "<mi>&pi;</mi>", "UTF-8", $config);
+  echo $htmlFragment->firstChild->namespaceURI; // prints "http://www.w3.org/1999/xhtml"
+  echo $mathFragment->firstChild->namespaceURI; // prints "http://www.w3.org/1998/Math/MathML"
+  ```
 
 ## Configuration
 
