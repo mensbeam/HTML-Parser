@@ -29,7 +29,7 @@ class TestEncodingChange extends \PHPUnit\Framework\TestCase {
         // set up the test
         $conf = new Config;
         $conf->encodingFallback = $assumedEncoding;
-        $out = Parser::parse($in, "", null, null, null, $conf);
+        $out = Parser::parse($in, "", $conf);
         $this->assertInstanceOf(Output::class, $out);
         // check the output
         $this->assertSame($actualEncoding, $out->encoding);
@@ -48,7 +48,7 @@ class TestEncodingChange extends \PHPUnit\Framework\TestCase {
         // set up the test
         $conf = new Config;
         $conf->encodingFallback = $assumedEncoding;
-        $out = Parser::parse($in, "", null, null, null, $conf);
+        $out = Parser::parse($in, "", $conf);
         $this->assertInstanceOf(Output::class, $out);
         // check the output
         $this->assertSame($actualEncoding, $out->encoding);

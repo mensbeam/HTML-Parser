@@ -260,9 +260,7 @@ class TreeConstructor {
     ];
 
     public function __construct(\DOMDocument $dom, Data $data, Tokenizer $tokenizer, \Generator $tokenList, ?ParseError $errorHandler, OpenElementsStack $stack, TemplateInsertionModesStack $templateInsertionModes, ?\DOMElement $fragmentContext, ?int $fragmentQuirks, ?Config $config) {
-        if ($dom->hasChildNodes() || $dom->doctype) {
-            throw new Exception(Exception::TREECONSTRUCTOR_NON_EMPTY_TARGET_DOCUMENT);
-        } elseif (!in_array($fragmentQuirks ?? Parser::NO_QUIRKS_MODE, [Parser::NO_QUIRKS_MODE, Parser::LIMITED_QUIRKS_MODE, Parser::QUIRKS_MODE])) {
+        if (!in_array($fragmentQuirks ?? Parser::NO_QUIRKS_MODE, [Parser::NO_QUIRKS_MODE, Parser::LIMITED_QUIRKS_MODE, Parser::QUIRKS_MODE])) {
             throw new Exception(Exception::INVALID_QUIRKS_MODE);
         }
         $config = $config ?? new Config;
@@ -373,7 +371,7 @@ class TreeConstructor {
                 # Process the token according to the rules given in the section
                 #   corresponding to the current insertion mode in HTML content.
                 ProcessToken:
-                assert($iterations++ < 50, new LoopException("Probable infinite loop detected in HTML content handling (inner reprocessing)"));
+                assert($iterations++ < 50, new \Exception("Probable infinite loop detected in HTML content handling (inner reprocessing)"));
 
                 assert((function() use ($insertionMode) {
                     $mode = self::INSERTION_MODE_NAMES[$insertionMode] ?? $insertionMode;

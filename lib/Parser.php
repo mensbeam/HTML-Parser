@@ -11,6 +11,7 @@ use MensBeam\HTML\Parser\Data;
 use MensBeam\HTML\Parser\ParseError;
 use MensBeam\HTML\Parser\Config;
 use MensBeam\HTML\Parser\EncodingChangeException;
+use MensBeam\HTML\Parser\Exception;
 use MensBeam\HTML\Parser\OpenElementsStack;
 use MensBeam\HTML\Parser\TemplateInsertionModesStack;
 use MensBeam\HTML\Parser\Tokenizer;
@@ -41,12 +42,47 @@ class Parser {
         self::XMLNS_NAMESPACE  => "xmlns",
     ];
 
-    public static function parse(string $data, ?string $encodingOrContentType = null, ?\DOMDocument $document = null, ?\DOMElement $fragmentContext = null, ?int $fragmentQuirks = null, ?Config $config = null): Output {
-        // sort out needed configuration
-        $config = $config ?? new Config;
+    /** Parses a string to produce a document object
+     * 
+     * @param string $data The string to parse. This may be in any valid encoding
+     * @param string|null $encodingOrContentType The document encoding, or HTTP Content-Type header value, if known. If no provided encoding detection will be attempted
+     * @param \MensBeam\HTML\Parser\Config|null $config The configuration parameters to use, if any
+     */
+    public static function parse(string $data, ?string $encodingOrContentType = null, ?Config $config = null): Output {
+        // parse the document
+        return static::parseDocumentOrFragment($data, $encodingOrContentType, null, null, $config ?? new Config);
+    }
+
+    public static function parseFragment(\DOMElement $fragmentContext, ?int $fragmentQuirks, string $data, ?string $encodingOrContentType = null, ?Config $config = null): \DOMDocumentFragment {
+        // parse the fragment into a temporary document
+        $out = self::parseDocumentOrFragment($data, $encodingOrContentType, $fragmentContext, $fragmentQuirks, $config ?? new Config);
+        $document = $out->document;
+        // extract the nodes from the temporary document into a fragment belonging to the context element's document
+        $fragment = $fragmentContext->ownerDocument->createDocumentFragment();
+        foreach ($document->documentElement->childNodes as $node) {
+            $node = $fragment->ownerDocument->importNode($node, true);
+            $fragment->appendChild($node);
+        }
+        return $fragment;
+    }
+
+    protected static function parseDocumentOrFragment(string $data, ?string $encodingOrContentType, ?\DOMElement $fragmentContext, ?int $fragmentQuirks, Config $config): Output {
+        // check the document class
+        if (isset($config->documentClass)) {
+            try {
+                $document = new $config->documentClass;
+            } catch (\Throwable $e) {
+                throw new Exception(Exception::FAILED_CREATING_DOCUMENT, [$config->documentClass], $e);
+            }
+            if (!$document instanceof \DOMDocument) {
+                throw new Exception(Exception::INVALID_DOCUMENT_CLASS, [get_class($document)]);
+            }
+        } else {
+            $document = new \DOMDocument();
+        }
+        // sort out other needed configuration
         $htmlNamespace = ($config->htmlNamespace) ? self::HTML_NAMESPACE : null;
         // Initialize the various classes needed for parsing
-        $document = $document ?? new \DOMDocument;
         $errorHandler = $config->errorCollection ? new ParseError : null;
         $decoder = new Data($data, $encodingOrContentType, $errorHandler, $config);
         $stack = new OpenElementsStack($htmlNamespace, $fragmentContext);
@@ -69,7 +105,7 @@ class Parser {
             // Destroy our existing objects
             unset($errorHandler, $decoder, $stack, $tokenizer, $tokenList, $treeConstructor);
             // Parse a second time
-            return static::parse($data, $encoding, $document, $fragmentContext, $fragmentQuirks, $config);
+            return static::parseDocumentOrFragment($data, $encoding, $fragmentContext, $fragmentQuirks, $config);
         }
         // prepare the output
         $out = new Output;
@@ -80,20 +116,6 @@ class Parser {
             $out->errors = $errorHandler->errors;
         }
         return $out;
-    }
-
-    public static function parseFragment(\DOMElement $fragmentContext, ?int $fragmentQuirks, string $data, ?string $encodingOrContentType = null, ?\DOMDocument $document = null, ?Config $config = null): \DOMDocumentFragment {
-        // Create the requisite parsing context if none was supplied
-        $document = $document ?? new \DOMDocument;
-        // parse the fragment into the temporary document
-        self::parse($data, $encodingOrContentType, $document, $fragmentContext, $fragmentQuirks, $config);
-        // extract the nodes from the temp document into a fragment
-        $fragment = $fragmentContext->ownerDocument->createDocumentFragment();
-        foreach ($document->documentElement->childNodes as $node) {
-            $node = $fragment->ownerDocument->importNode($node, true);
-            $fragment->appendChild($node);
-        }
-        return $fragment;
     }
 
     public static function fetchFile(string $file, ?string $encodingOrContentType = null): ?array {

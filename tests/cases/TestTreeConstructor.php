@@ -9,8 +9,6 @@ namespace MensBeam\HTML\TestCase;
 use MensBeam\HTML\Parser;
 use MensBeam\HTML\Parser\Config;
 use MensBeam\HTML\Parser\Data;
-use MensBeam\HTML\Parser\LoopException;
-use MensBeam\HTML\Parser\NotImplementedException;
 use MensBeam\HTML\Parser\OpenElementsStack;
 use MensBeam\HTML\Parser\ParseError;
 use MensBeam\HTML\Parser\TemplateInsertionModesStack;

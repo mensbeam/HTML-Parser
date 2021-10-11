@@ -113,7 +113,7 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
         $config->encodingPrescanBytes = 2048;
         $file = \MensBeam\HTML\Parser\BASE."tests/platform-tests/html/syntax/xmldecl/support/".$file;
         $data = file_get_contents($file);
-        $act = Parser::parse($data, $charset, null, null, null, $config);
+        $act = Parser::parse($data, $charset, $config);
         $this->assertSame($exp, $act->encoding);
     }
 
