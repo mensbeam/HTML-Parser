@@ -1,6 +1,7 @@
 {
     "name": "mensbeam/html-parser",
     "description": "Parses modern HTML text into a PHP DOMDocument",
+    "keywords": ["whatwg", "html", "html5", "parser", "parsing", "dom"],
     "type": "library",
     "require": {
         "php": ">=7.1",
