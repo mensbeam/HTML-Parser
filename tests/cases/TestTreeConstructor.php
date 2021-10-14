@@ -180,7 +180,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                 $prefix = "null ";
             }
         }
-        $localName = $this->uncoerceName($e->localName);
+        $localName = self::uncoerceName($e->localName);
         $this->push("<".$prefix.$localName.">");
         $this->depth++;
         $attr = [];
@@ -191,7 +191,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                 assert((bool) $prefix, new \Exception("Prefix for namespace {$a->namespaceURI} is not defined"));
                 $prefix .= " ";
             }
-            $attr[$prefix.$this->uncoerceName($a->name)] = $a->value;
+            $attr[$prefix.self::uncoerceName($a->name)] = $a->value;
         }
         ksort($attr, \SORT_STRING);
         foreach ($attr as $k => $v) {

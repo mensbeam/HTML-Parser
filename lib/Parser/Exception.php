@@ -11,10 +11,13 @@ class Exception extends \Exception {
     public const FAILED_CREATING_DOCUMENT = 102;
     public const INVALID_DOCUMENT_CLASS = 103;
 
+    public const UNSUPPORTED_NODE_TYPE = 201;
+
     protected static $messages = [
         101 => 'Fragment\'s quirks mode must be one of Parser::NO_QUIRKS_MODE, Parser::LIMITED_QUIRKS_MODE, or Parser::QUIRKS_MODE',
         102 => 'Unable to create instance of configured document class "%s"',
         103 => 'Configured document class "%s" must be a subclass of \DOMDocument',
+        201 => 'Unable to serialize unsupported node type %s',
     ];
 
     public function __construct(int $code, array $args = [], \Throwable $previous = null) {

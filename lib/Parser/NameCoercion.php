@@ -10,7 +10,7 @@ use MensBeam\Intl\Encoding\UTF8;
 
 trait NameCoercion {
     /** @codeCoverageIgnore */
-    protected function coerceNameFifthEdition(string $name): string {
+    protected static function coerceNameFifthEdition(string $name): string {
         // This matches the inverse of the production of NameChar in XML 1.0 Fifth Edition,
         //   with the added exclusion of ":" from allowed characters
         // See https://www.w3.org/TR/REC-xml/#NT-NameStartChar
@@ -30,7 +30,7 @@ trait NameCoercion {
         return $name;
     }
 
-    protected function coerceName(string $name): string {
+    protected static function coerceName(string $name): string {
         // This matches the inverse of the production of Name in XML 1.0 Fourth Edition,
         //   with the added exclusion of ":" from allowed characters
         // See https://www.w3.org/TR/2006/REC-xml-20060816/#NT-NameChar
@@ -50,7 +50,7 @@ trait NameCoercion {
         return $name;
     }
 
-    protected function uncoerceName(string $name): string {
+    protected static function uncoerceName(string $name): string {
         preg_match_all('/U[0-9A-F]{6}/', $name, $m);
         foreach (array_unique($m[0], \SORT_STRING) as $o) {
             $c = UTF8::encode(hexdec(substr($o, 1)));
@@ -59,7 +59,7 @@ trait NameCoercion {
         return $name;
     }
 
-    protected function escapeString(string $string, bool $attribute = false): string {
+    protected static function escapeString(string $string, bool $attribute = false): string {
         # Escaping a string (for the purposes of the algorithm above) consists of
         # running the following steps:
 

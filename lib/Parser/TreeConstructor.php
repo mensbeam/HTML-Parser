@@ -338,7 +338,7 @@ class TreeConstructor {
             // If element name coercison has occurred at some earlier point,
             //   we must coerce all end tag names to match mangled start tags
             if ($token instanceof EndTagToken && $this->mangledElements) {
-                $token->name = $this->coerceName($token->name);
+                $token->name = self::coerceName($token->name);
             }
 
             # 13.2.6 Tree construction
@@ -401,7 +401,7 @@ class TreeConstructor {
                                     // If attribute name coercison has occurred at some earlier point,
                                     //   we must coerce all attributes on html and body start tags in
                                     //   case they are relocated to existing elements
-                                    $attrName = $this->mangledAttributes ? $this->coerceName($a->name) : $a->name;
+                                    $attrName = $this->mangledAttributes ? self::coerceName($a->name) : $a->name;
                                     if (!$top->hasAttributeNS(null, $attrName)) {
                                         $this->elementSetAttribute($top, null, $attrName, $a->value);
                                     }
@@ -433,7 +433,7 @@ class TreeConstructor {
                                     // If attribute name coercison has occurred at some earlier point,
                                     //   we must coerce all attributes on html and body start tags in
                                     //   case they are relocated to existing elements
-                                    $attrName = $this->mangledAttributes ? $this->coerceName($a->name) : $a->name;
+                                    $attrName = $this->mangledAttributes ? self::coerceName($a->name) : $a->name;
                                     if (!$body->hasAttributeNS(null, $attrName)) {
                                         $this->elementSetAttribute($body, null, $attrName, $a->value);
                                     }
@@ -4219,7 +4219,7 @@ class TreeConstructor {
             if ($namespace !== $this->htmlNamespace) {
                 $qualifiedName = implode(":", array_map([$this, "coerceName"], explode(":", $token->name, 2)));
             } else {
-                $qualifiedName = $this->coerceName($token->name);
+                $qualifiedName = self::coerceName($token->name);
             }
             $element = $this->DOM->createElementNS($namespace, $qualifiedName);
             $this->mangledElements = true;
@@ -4264,7 +4264,7 @@ class TreeConstructor {
                 $a = $element->ownerDocument->createAttributeNS($namespaceURI, $qualifiedName);
                 $element->ownerDocument->removeChild($element);
             }
-            $a->value = $this->escapeString($value, true);
+            $a->value = self::escapeString($value, true);
             $element->setAttributeNodeNS($a);
         } else {
             try {
@@ -4276,7 +4276,7 @@ class TreeConstructor {
                 if ($namespaceURI !== null) {
                     $qualifiedName = implode(":", array_map([$this, "coerceName"], explode(":", $qualifiedName, 2)));
                 } else {
-                    $qualifiedName = $this->coerceName($qualifiedName);
+                    $qualifiedName = self::coerceName($qualifiedName);
                 }
                 $element->setAttributeNS($namespaceURI, $qualifiedName, $value);
                 $this->mangledAttributes = true;
