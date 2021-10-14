@@ -14,7 +14,7 @@ abstract class Serializer {
     protected const VOID_ELEMENTS = ["basefont", "bgsound", "frame", "keygen", "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"];
     protected const RAWTEXT_ELEMENTS = ["style", "script", "xmp", "iframe", "noembed", "noframes", "plaintext"];
 
-    public function seerializeOuter(\DOMNode $node): string {
+    public static function serializeOuter(\DOMNode $node): string {
         $s = "";
         $stack = [];
         $n = $node;
@@ -45,7 +45,47 @@ abstract class Serializer {
                 #   value, escaped as described below in attribute mode, and
                 #   a second U+0022 QUOTATION MARK character (").
                 foreach ($n->attributes as $a) {
-                    $s .= " ".self::serializeAttribute($a);
+                    # An attribute's serialized name for the purposes of the previous
+                    #   paragraph must be determined as follows:
+
+                    # If the attribute has no namespace
+                    if ($a->namespaceURI === null) {
+                        # The attribute's serialized name is the attribute's local name.
+                        $name = self::uncoerceName($a->localName);
+                    }
+                    # If the attribute is in the XML namespace
+                    elseif ($a->namespaceURI === Parser::XML_NAMESPACE) {
+                        # The attribute's serialized name is the string "xml:" followed
+                        #   by the attribute's local name.
+                        $name = "xml:".self::uncoerceName($a->localName); 
+                    }
+                    # If the attribute is in the XMLNS namespace...
+                    elseif ($a->namespaceURI === Parser::XMLNS_NAMESPACE) {
+                        #  ... and the attribute's local name is xmlns
+                        if ($a->localName === "xmlns") {
+                            # The attribute's serialized name is the string "xmlns".
+                            $a = "xmlns";
+                        }
+                        # ... and the attribute's local name is not xmlns
+                        else {
+                            # The attribute's serialized name is the string "xmlns:"
+                            #   followed by the attribute's local name.
+                            $name = "xmlns:".self::uncoerceName($a->localName);
+                        }
+                    }
+                    # If the attribute is in the XLink namespace
+                    elseif ($a->namespaceURI === Parser::XLINK_NAMESPACE) {
+                        # The attribute's serialized name is the string "xlink:"
+                        #   followed by the attribute's local name.
+                        $name = "xlink:".self::uncoerceName($a->localName);
+                    }
+                    # If the attribute is in some other namespace
+                    else {
+                        # The attribute's serialized name is the attribute's qualified name.
+                        $name = $a->name;
+                    }
+                    $value = self::escapeString($a->value);
+                    $s .= " $name=\"$value\"";
                 }
                 # Append a U+003E GREATER-THAN SIGN character (>).
                 $s .= ">";
@@ -58,7 +98,19 @@ abstract class Serializer {
                 #   character (/), tagname again, and finally a
                 #   U+003E GREATER-THAN SIGN character (>).
                 if (($n->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE && !in_array($tagName, self::VOID_ELEMENTS)) {
-                    if ($n->hasChildNodes()) {
+                    # If the node is a template element, then let the node instead
+                    #   be the template element's template contents
+                    #   (a DocumentFragment node).
+                    if (
+                        $n instanceof \DOMElement
+                        && ($n->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE
+                        && $n->tagName === "template"
+                        && property_exists($n, "content")
+                        && $n->content instanceof \DOMDocumentFragment
+                    ) {
+                        // NOTE: Treat template contents as any other document fragment and just invoke the inner serializer
+                        $s .= self::serializeInner($n->content)."</$tagName>";
+                    } elseif ($n->hasChildNodes()) {
                         $stack[] = $tagName;
                         $n = $n->firstChild;
                         continue;
@@ -74,7 +126,8 @@ abstract class Serializer {
                 #   if the parent of current node is a noscript element
                 #   and scripting is enabled for the node, then append
                 #   the value of current node's data IDL attribute literally.
-                if (($n->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE && in_array($n->parentNode->tagName, self::RAWTEXT_ELEMENTS)) {
+                $p = $n->parentNode;
+                if ($p instanceof \DOMElement && ($p->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE && in_array($p->tagName, self::RAWTEXT_ELEMENTS)) {
                     // NOTE: scripting is assumed not to be enabled
                     $s .= $n->data;
                 }
@@ -135,56 +188,31 @@ abstract class Serializer {
         return $s;
     }
 
-    protected static function serializeAttribute(\DOMAttr $a): string {
-        # For each attribute that the element has, append a 
-        #   U+0020 SPACE character, the attribute's serialized name as
-        #   described below, a U+003D EQUALS SIGN character (=), a
-        #   U+0022 QUOTATION MARK character ("), the attribute's
-        #   value, escaped as described below in attribute mode, and
-        #   a second U+0022 QUOTATION MARK character (").
-        // NOTE: We won't add the space here; it's only appropriate
-        //   if serializing an element.
-        
-        # An attribute's serialized name for the purposes of the previous
-        #   paragraph must be determined as follows:
-
-        # If the attribute has no namespace
-        if ($a->namespaceURI === null) {
-            # The attribute's serialized name is the attribute's local name.
-            $name = self::uncoerceName($a->localName);
-        }
-        # If the attribute is in the XML namespace
-        elseif ($a->namespaceURI === Parser::XML_NAMESPACE) {
-            # The attribute's serialized name is the string "xml:" followed
-            #   by the attribute's local name.
-            $name = "xml:".self::uncoerceName($a->localName); 
-        }
-        # If the attribute is in the XMLNS namespace...
-        elseif ($a->namespaceURI === Parser::XMLNS_NAMESPACE) {
-            #  ... and the attribute's local name is xmlns
-            if ($a->localName === "xmlns") {
-                # The attribute's serialized name is the string "xmlns".
-                $a = "xmlns";
-            }
-            # ... and the attribute's local name is not xmlns
-            else {
-                # The attribute's serialized name is the string "xmlns:"
-                #   followed by the attribute's local name.
-                $name = "xmlns:".self::uncoerceName($a->localName);
+    public static function serializeInner(\DOMNode $node): string {
+        # Let s be a string, and initialize it to the empty string.
+        $s = "";
+        # If the node serializes as void, then return the empty string.
+        # If the node is a template element, then let the node instead
+        #   be the template element's template contents
+        #   (a DocumentFragment node).
+        if ($node instanceof \DOMElement && ($node->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
+            if (!in_array($node->tagName, self::VOID_ELEMENTS)) {
+                return "";
+            } elseif ($node->tagName === "template" && property_exists($node, "content") && $node->content instanceof \DOMDocumentFragment) {
+                // NOTE: template elements won't necessarily have a content
+                //   property because PHP's DOM does not support this natively
+                $node = $node->content;
             }
         }
-        # If the attribute is in the XLink namespace
-        elseif ($a->namespaceURI === Parser::XLINK_NAMESPACE) {
-            # The attribute's serialized name is the string "xlink:"
-            #   followed by the attribute's local name.
-            $name = "xlink:".self::uncoerceName($a->localName);
+        if ($node instanceof \DOMElement || $node instanceof \DOMDocument || $node instanceof \DOMDocumentFragment) {
+            # For each child node of the node, in tree order, run the following steps:
+            // NOTE: the steps in question are implemented in the "serializeOuter" routine
+            foreach ($node->childNodes as $n) {
+                $s .= self::serializeOuter($n);
+            }
+        } else {
+            throw new Exception(Exception::UNSUPPORTED_NODE_TYPE, [get_class($node)]);
         }
-        # If the attribute is in some other namespace
-        else {
-            # The attribute's serialized name is the attribute's qualified name.
-            $name = $a->name;
-        }
-        $value = self::escapeString($a->value);
-        return "$name=\"$value\"';"
+        return $s;
     }
 }
