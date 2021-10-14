@@ -1,0 +1,33 @@
+#fragment
+| <fake_ns test:test>
+#output
+<test:test></test:test>
+
+#fragment
+| <span>
+|   test💩test="test"
+#output
+<span test💩test="test"></span>
+
+#fragment
+| <wbr>
+|   "You should not see this text."
+#output
+<wbr>
+
+#fragment
+| <wbr>
+|   class="test"
+#output
+<wbr class="test">
+
+#fragment
+| <poop💩>
+#output
+<poop💩></poop💩>
+
+#fragment
+| <test>
+|   poop💩="soccer"
+#output
+<test poop💩="soccer"></test>

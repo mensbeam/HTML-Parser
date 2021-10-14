@@ -28,6 +28,9 @@
     <testsuite name="Parser">
         <file>cases/TestParser.php</file>
     </testsuite>
+    <testsuite name="Serializer">
+        <file>cases/TestSerializer.php</file>
+    </testsuite>
     <testsuite name="Encoding change">
         <file>cases/TestEncodingChange.php</file>
     </testsuite>
