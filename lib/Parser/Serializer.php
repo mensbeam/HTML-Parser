@@ -97,24 +97,28 @@ abstract class Serializer {
                 #   U+003C LESS-THAN SIGN character (<), a U+002F SOLIDUS
                 #   character (/), tagname again, and finally a
                 #   U+003E GREATER-THAN SIGN character (>).
-                if (($n->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE && !in_array($tagName, self::VOID_ELEMENTS)) {
+                if (($n->namespaceURI ?? Parser::HTML_NAMESPACE) !== Parser::HTML_NAMESPACE || !in_array($tagName, self::VOID_ELEMENTS)) {
                     # If the node is a template element, then let the node instead
                     #   be the template element's template contents
                     #   (a DocumentFragment node).
                     if (
-                        $n instanceof \DOMElement
-                        && ($n->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE
+                        ($n->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE
                         && $n->tagName === "template"
                         && property_exists($n, "content")
                         && $n->content instanceof \DOMDocumentFragment
                     ) {
-                        // NOTE: Treat template contents as any other document fragment and just invoke the inner serializer
+                        // NOTE: Treat template content as any other document
+                        //   fragment and just invoke the inner serializer
                         $s .= self::serializeInner($n->content)."</$tagName>";
                     } elseif ($n->hasChildNodes()) {
+                        // If the element has children, store its tag name and
+                        //   continue the loop with its first child; its end
+                        //   tag will be written out further down
                         $stack[] = $tagName;
                         $n = $n->firstChild;
                         continue;
                     } else {
+                        // Otherwise just append the end tag now
                         $s .= "</$tagName>";
                     }
                 }
@@ -175,30 +179,32 @@ abstract class Serializer {
             } else {
                 throw new Exception(Exception::UNSUPPORTED_NODE_TYPE, [get_class($n)]);
             }
+            // If the current node has no more siblings, go up the tree till a
+            //   sibling is found or we've reached the original node
             while (!$n->nextSibling && $stack) {
+                // Write out the stored end tag each time we go up the tree
                 $tagName = array_pop($stack);
                 $s .= "</$tagName>";
                 $n = $n->parentNode;
             }
-            if (!$stack && $n->isSameNode($node)) {
-                break;
-            }
             $n = $n->nextSibling;
-        } while (true);
+        } while ($stack);  // Loop until we have traversed the subtree of the target node in full
         return $s;
     }
 
     public static function serializeInner(\DOMNode $node): string {
         # Let s be a string, and initialize it to the empty string.
         $s = "";
-        # If the node serializes as void, then return the empty string.
-        # If the node is a template element, then let the node instead
-        #   be the template element's template contents
-        #   (a DocumentFragment node).
+
         if ($node instanceof \DOMElement && ($node->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
+            # If the node serializes as void, then return the empty string.
             if (!in_array($node->tagName, self::VOID_ELEMENTS)) {
                 return "";
-            } elseif ($node->tagName === "template" && property_exists($node, "content") && $node->content instanceof \DOMDocumentFragment) {
+            }
+            # If the node is a template element, then let the node instead
+            #   be the template element's template contents
+            #   (a DocumentFragment node).
+            elseif ($node->tagName === "template" && property_exists($node, "content") && $node->content instanceof \DOMDocumentFragment) {
                 // NOTE: template elements won't necessarily have a content
                 //   property because PHP's DOM does not support this natively
                 $node = $node->content;
