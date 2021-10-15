@@ -9,7 +9,7 @@ namespace MensBeam\HTML\Parser;
 use MensBeam\HTML\Parser;
 
 class TreeConstructor {
-    use ParseErrorEmitter, NameCoercion;
+    use ParseErrorEmitter, NameCoercion, AttributeSetter;
 
     public $debugLog = "";
 
@@ -4244,47 +4244,6 @@ class TreeConstructor {
         }
         # Return element.
         return $element;
-    }
-
-    public function elementSetAttribute(\DOMElement $element, ?string $namespaceURI, string $qualifiedName, string $value): void {
-        if ($namespaceURI === Parser::XMLNS_NAMESPACE) {
-            // NOTE: We create attribute nodes so that xmlns attributes
-            //   don't get lost; otherwise they cannot be serialized
-            try {
-                $a = @$element->ownerDocument->createAttributeNS($namespaceURI, $qualifiedName);
-            } catch (\DOMException $e) {
-                // FIXME: PHP has a fit here if the document element has a namespace and no prefix
-                // A workaround does not seem to exist
-                return;
-            }
-            if ($a === false) {
-                // The document element does not exist yet, so we need
-                //   to insert this element into the document
-                $element->ownerDocument->appendChild($element);
-                $a = $element->ownerDocument->createAttributeNS($namespaceURI, $qualifiedName);
-                $element->ownerDocument->removeChild($element);
-            }
-            $a->value = self::escapeString($value, true);
-            $element->setAttributeNodeNS($a);
-        } else {
-            try {
-                $element->setAttributeNS($namespaceURI, $qualifiedName, $value);
-            } catch (\DOMException $e) {
-                // The attribute name is invalid for XML
-                // Replace any offending characters with "UHHHHHH" where H are the
-                //   uppercase hexadecimal digits of the character's code point
-                if ($namespaceURI !== null) {
-                    $qualifiedName = implode(":", array_map([$this, "coerceName"], explode(":", $qualifiedName, 2)));
-                } else {
-                    $qualifiedName = self::coerceName($qualifiedName);
-                }
-                $element->setAttributeNS($namespaceURI, $qualifiedName, $value);
-                $this->mangledAttributes = true;
-            }
-            if ($qualifiedName === "id" && $namespaceURI === null) {
-                $element->setIdAttribute($qualifiedName, true);
-            }
-        }
     }
 
     public function isMathMLTextIntegrationPoint(\DOMElement $e): bool {

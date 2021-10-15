@@ -64,7 +64,7 @@ abstract class Serializer {
                         #  ... and the attribute's local name is xmlns
                         if ($a->localName === "xmlns") {
                             # The attribute's serialized name is the string "xmlns".
-                            $a = "xmlns";
+                            $name = "xmlns";
                         }
                         # ... and the attribute's local name is not xmlns
                         else {
@@ -82,9 +82,9 @@ abstract class Serializer {
                     # If the attribute is in some other namespace
                     else {
                         # The attribute's serialized name is the attribute's qualified name.
-                        $name = $a->name;
+                        $name = ($a->prefix !== "") ? $a->prefix.":".$a->name : $a->name;
                     }
-                    $value = self::escapeString($a->value);
+                    $value = self::escapeString((string) $a->value, true);
                     $s .= " $name=\"$value\"";
                 }
                 # Append a U+003E GREATER-THAN SIGN character (>).

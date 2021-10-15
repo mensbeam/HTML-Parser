@@ -8,12 +8,9 @@
 declare(strict_types=1);
 namespace MensBeam\HTML\DOM\TestCase;
 
-use MensBeam\HTML\DOM\{
-    Document,
-    DOMException,
-    Exception
-};
 use MensBeam\HTML\Parser;
+use MensBeam\HTML\Parser\AttributeSetter;
+use MensBeam\HTML\Parser\NameCoercion;
 use MensBeam\HTML\Parser\Serializer;
 
 /**
@@ -27,6 +24,8 @@ use MensBeam\HTML\Parser\Serializer;
  * @covers \MensBeam\HTML\DOM\ToString
  */
 class TestSerializer extends \PHPUnit\Framework\TestCase {
+    use NameCoercion, AttributeSetter;
+
     public function provideStandardTreeTests(): iterable {
         $blacklist = [];
         $files = new \AppendIterator();
@@ -85,17 +84,12 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
             } elseif (preg_match('/^<(?:([^ ]+) )?([^>]+)>$/', $d, $m)) {
                 // element
                 $ns = strlen((string) $m[1]) ? (array_flip(Parser::NAMESPACE_MAP)[$m[1]] ?? $m[1]) : null;
-                $cur = $cur->appendChild($document->createElementNS($ns, $m[2]));
+                $cur = $cur->appendChild($document->createElementNS($ns, self::coerceName($m[2])));
                 $pad += 2;
             } elseif (preg_match('/^(?:([^" ]+) )?([^"=]+)="((?:[^"]|"(?!$))*)"$/', $d, $m)) {
                 // attribute
                 $ns = strlen((string) $m[1]) ? (array_flip(Parser::NAMESPACE_MAP)[$m[1]] ?? $m[1]) : "";
-
-                if ($ns === '') {
-                    $cur->setAttribute($m[2], $m[3]);
-                } else {
-                    $cur->setAttributeNS($ns, $m[2], $m[3]);
-                }
+                $this->elementSetAttribute($cur, $ns, $m[2], $m[3]);
             } elseif (preg_match('/^"((?:[^"]|"(?!$))*)("?)$/', $d, $m)) {
                 // text
                 $t = $m[1];
