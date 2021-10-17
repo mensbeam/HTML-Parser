@@ -51,6 +51,14 @@ class Parser {
         return static::parseDocumentOrFragment($data, $encodingOrContentType, null, null, $config ?? new Config);
     }
 
+    /** Parses a string to produce a partial document (a document fragment)
+     * 
+     * @param \DOMElement $contextElement The context element. The fragment will be pparsed as if it is a collection of children of this element
+     * @param int|null $quirksMode The "quirks mode" property of the context element's document. Must be one of Parser::NO_QUIRKS_MODE, Parser::LIMITED_QUIRKS_MODE, or Parser::QUIRKS_MODE
+     * @param string $data The string to parse. This may be in any valid encoding
+     * @param string|null $encodingOrContentType The document encoding, or HTTP Content-Type header value, if known. If no provided encoding detection will be attempted
+     * @param \MensBeam\HTML\Parser\Config|null $config The configuration parameters to use, if any
+     */
     public static function parseFragment(\DOMElement $contextElement, ?int $quirksMode, string $data, ?string $encodingOrContentType = null, ?Config $config = null): \DOMDocumentFragment {
         // parse the fragment into a temporary document
         $out = self::parseDocumentOrFragment($data, $encodingOrContentType, $contextElement, $quirksMode, $config ?? new Config);
