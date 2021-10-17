@@ -19,8 +19,6 @@ use MensBeam\HTML\Parser\TreeConstructor;
 use MensBeam\HTML\Parser\Output;
 
 class Parser {
-    public static $fallbackEncoding = "windows-1252";
-
     public const NO_QUIRKS_MODE = 0;
     public const QUIRKS_MODE = 1;
     public const LIMITED_QUIRKS_MODE = 2;
