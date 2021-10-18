@@ -13,16 +13,6 @@ use MensBeam\HTML\Parser\AttributeSetter;
 use MensBeam\HTML\Parser\NameCoercion;
 use MensBeam\HTML\Parser\Serializer;
 
-/**
- * @covers \MensBeam\HTML\DOM\Comment
- * @covers \MensBeam\HTML\DOM\Document
- * @covers \MensBeam\HTML\DOM\DocumentFragment
- * @covers \MensBeam\HTML\DOM\Element
- * @covers \MensBeam\HTML\DOM\HTMLTemplateElement
- * @covers \MensBeam\HTML\DOM\ProcessingInstruction
- * @covers \MensBeam\HTML\DOM\Text
- * @covers \MensBeam\HTML\DOM\ToString
- */
 class TestSerializer extends \PHPUnit\Framework\TestCase {
     use NameCoercion, AttributeSetter;
 
