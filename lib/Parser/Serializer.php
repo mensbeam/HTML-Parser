@@ -14,6 +14,10 @@ abstract class Serializer {
     protected const VOID_ELEMENTS = ["basefont", "bgsound", "frame", "keygen", "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"];
     protected const RAWTEXT_ELEMENTS = ["style", "script", "xmp", "iframe", "noembed", "noframes", "plaintext"];
 
+    /** Serializes an HTML DOM node to a string. This is equivalent to the outerHTML getter
+     * 
+     * @param \DOMDocument|\DOMElement|\DOMText|\DOMComment|\DOMProcessingInstruction|\DOMDocumentFragment|\DOMDocumentType $node The node to serialize
+    */
     public static function serializeOuter(\DOMNode $node): string {
         $s = "";
         $stack = [];
@@ -192,6 +196,10 @@ abstract class Serializer {
         return $s;
     }
 
+    /** Serializes the children of an HTML DOM node to a string. This is equivalent to the innerHTML getter
+     * 
+     * @param \DOMDocument|\DOMElement|\DOMDocumentFragment $node The node to serialize
+    */
     public static function serializeInner(\DOMNode $node): string {
         # Let s be a string, and initialize it to the empty string.
         $s = "";
