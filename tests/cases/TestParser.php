@@ -33,6 +33,15 @@ class TestParser extends \PHPUnit\Framework\TestCase {
         $this->assertInstanceOf(\DOMDocumentFragment::class, $out);
     }
 
+    /** @covers \MensBeam\HTML\Parser\TreeConstructor::__construct */
+    public function testParseAFragmentWithBogusQuirksMode(): void {
+        $doc = new \DOMDocument();
+        $context = $doc->createElement("div");
+        $in = "hello world!";
+        $this->expectExceptionObject(new Exception(Exception::INVALID_QUIRKS_MODE));
+        Parser::parseFragment($context, -1, $in, "tex/html; charset=utf8");
+    }
+
     public function testParseADocumentReportingErrors(): void {
         $in = "hello world!";
         $conf = new Config;

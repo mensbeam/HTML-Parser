@@ -521,7 +521,8 @@ class TreeConstructor {
                                 if (strlen($nextToken->data) === 1 && $nextToken->data === "\n") {
                                     continue;
                                 } elseif (strpos($nextToken->data, "\n") === 0) {
-                                    $nextToken->data = substr($nextToken->data, 1);
+                                    // NOTE: This case is not currently encountered by the parser due to special handling of newlines
+                                    $nextToken->data = substr($nextToken->data, 1); // @codeCoverageIgnore
                                 }
                             }
                             // Process the next token
@@ -818,7 +819,8 @@ class TreeConstructor {
                                 if (strlen($nextToken->data) === 1 && $nextToken->data === "\n") {
                                     continue;
                                 } elseif (strpos($nextToken->data, "\n") === 0) {
-                                    $nextToken->data = substr($nextToken->data, 1);
+                                    // NOTE: This case is not currently encountered by the parser due to special handling of newlines
+                                    $nextToken->data = substr($nextToken->data, 1); // @codeCoverageIgnore
                                 }
                             }
                             # Let the original insertion mode be the current insertion mode.
@@ -1065,7 +1067,7 @@ class TreeConstructor {
                             else {
                                 # 1. If the stack of open elements does not have a form element in scope, then
                                 # this is a parse error; return and ignore the token.
-                                if ($this->stack->hasElementInScope('form')) {
+                                if (!$this->stack->hasElementInScope('form')) {
                                     $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                                     continue;
                                 }
@@ -1917,10 +1919,6 @@ class TreeConstructor {
                             }
                             elseif ($token->name === 'noframes' || $token->name === 'style') {
                                 $this->parseGenericRawText($token);
-                            }
-                            elseif ($token->name === 'noscript') {
-                                $this->insertStartTagToken($token);
-                                $this->insertionMode = self::IN_HEAD_NOSCRIPT_MODE;
                             }
                             elseif ($token->name === 'script') {
                                 $this->insertStartTagToken($token);

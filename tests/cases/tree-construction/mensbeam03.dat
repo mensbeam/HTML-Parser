@@ -16,3 +16,92 @@ X
 template
 #document
 | "X"
+
+#data
+<input type="text">
+#errors
+#document-fragment
+form
+#document
+| <input>
+|   type="text"
+
+#data
+<rb>X
+#errors
+#document-fragment
+ruby
+#document
+| <rb>
+|   "X"
+
+#data
+<!DOCTYPE html><ruby><div><rb>X</div></ruby>
+#errors
+(1,30): unexpected-parent-in-ruby
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <ruby>
+|       <div>
+|         <rb>
+|           "X"
+
+#data
+<math definitionurl="http://example.com/"/>
+#errors
+#document-fragment
+div
+#document
+| <math math>
+|   definitionURL="http://example.com/"
+
+#data
+<!DOCTYPE html><body><form><template><div></form></div></template></form>
+#errors
+(1,49): unexpected-end-tag
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <form>
+|       <template>
+|         content
+|           <div>
+
+#data
+<!DOCTYPE html><body><template><form><div></form></template>
+#errors
+(1,49): unexpected-end-tag
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <template>
+|       content
+|         <form>
+|           <div>
+
+#data
+<dd><div></dd>
+#errors
+(1,14): unexpected-end-tag
+#document-fragment
+dl
+#document
+| <dd>
+|   <div>
+
+#data
+<!DOCTYPE html><head></head></template>
+#errors
+(1,39): unexpected-end-tag
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
