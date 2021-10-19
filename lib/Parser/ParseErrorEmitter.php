@@ -78,7 +78,7 @@ trait ParseErrorEmitter {
         // Count the number of replacements needed in the message.
         $count = substr_count($message, '%s');
         // If the number of replacements don't match the arguments then oops.
-        assert(count($arg) === $count, new \Exception("Parse error message expects $count parameters"));
+        assert(count($arg) === $count, new \Exception("Message of parse error $code expects $count parameters"));
 
         if ($count > 0) {
             // Convert newlines and tabs in the arguments to words to better
@@ -89,7 +89,7 @@ trait ParseErrorEmitter {
                 } elseif ($value === "\t") {
                     return 'Tab';
                 } elseif ($value === null) {
-                    return 'nothing';
+                    return 'nothing'; // @codeCoverageIgnore
                 } else {
                     return $value;
                 }

@@ -335,12 +335,6 @@ class TreeConstructor {
             $iterations = 0;
             $insertionMode = $this->insertionMode;
 
-            // If element name coercison has occurred at some earlier point,
-            //   we must coerce all end tag names to match mangled start tags
-            if ($token instanceof EndTagToken && $this->mangledElements) {
-                $token->name = self::coerceName($token->name);
-            }
-
             # 13.2.6 Tree construction
             #
             # As each token is emitted from the tokenizer, the user agent must follow the
@@ -378,6 +372,12 @@ class TreeConstructor {
                     $this->debugLog .= "    Mode: $mode (".(string) $this->stack.")\n";
                     return true;
                 })());
+
+                // If element name coercison has occurred at some earlier point,
+                //   we must coerce all end tag names to match mangled start tags
+                if ($this->mangledElements && $token instanceof EndTagToken) {
+                    $token->name = self::coerceName($token->name);
+                }
 
                 # 13.2.6.4. The rules for parsing tokens in HTML content
                 // OPTIMIZATION: Evaluation the "in body" mode first is
@@ -3434,6 +3434,12 @@ class TreeConstructor {
                     return true;
                 })());
 
+                // If element name coercison has occurred at some earlier point,
+                //   we must coerce all end tag names to match mangled start tags
+                if ($this->mangledElements && $token instanceof EndTagToken) {
+                    $token->name = self::coerceName($token->name, true);
+                }
+
                 # 13.2.6.5 The rules for parsing tokens in foreign content
                 #
                 # When the user agent is to apply the rules for parsing tokens in foreign
@@ -3587,7 +3593,8 @@ class TreeConstructor {
                         $node = $this->stack[$pos];
                         # If node's tag name, converted to ASCII lowercase, is not the
                         #   same as the tag name of the token, then this is a parse error.
-                        if (strtolower($node->nodeName) !== $token->name) {
+                        $nodeName = self::coerceName(strtolower(self::uncoerceName($node->nodeName)), true);
+                        if ($nodeName !== $token->name) {
                             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                         }
                         do {
@@ -3598,7 +3605,8 @@ class TreeConstructor {
                             # If node's tag name, converted to ASCII lowercase, is the same as the
                             #   tag name of the token, pop elements from the stack of open elements until node
                             #   has been popped from the stack, and then abort these steps.
-                            if (strtolower($node->nodeName) === $token->name) {
+                            $nodeName = self::coerceName(strtolower(self::uncoerceName($node->nodeName)), true);
+                            if ($nodeName === $token->name) {
                                 $this->stack->popUntilSame($node);
                                 continue 2;
                             }
@@ -4216,11 +4224,7 @@ class TreeConstructor {
             // The element name is invalid for XML
             // Replace any offending characters with "UHHHHHH" where H are the
             //   uppercase hexadecimal digits of the character's code point
-            if ($namespace !== $this->htmlNamespace) {
-                $qualifiedName = implode(":", array_map([$this, "coerceName"], explode(":", $token->name, 2)));
-            } else {
-                $qualifiedName = self::coerceName($token->name);
-            }
+            $qualifiedName = self::coerceName($token->name, ($namespace !== $this->htmlNamespace));
             $element = $this->DOM->createElementNS($namespace, $qualifiedName);
             $this->mangledElements = true;
         }

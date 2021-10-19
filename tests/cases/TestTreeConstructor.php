@@ -16,6 +16,7 @@ use MensBeam\HTML\Parser\Tokenizer;
 use MensBeam\HTML\Parser\TreeConstructor;
 
 /** 
+ * @covers \MensBeam\HTML\Parser\Data
  * @covers \MensBeam\HTML\Parser\Tokenizer
  * @covers \MensBeam\HTML\Parser\TreeConstructor
  * @covers \MensBeam\HTML\Parser\ActiveFormattingElementsList

@@ -19,13 +19,16 @@ trait AttributeSetter {
             $d->appendChild($d->createElement("html"));
             try {
                 $a = $d->createAttributeNS($namespaceURI, $qualifiedName);
+            // @codeCoverageIgnoreStart
             } catch (\DOMException $e) {
                 // The attribute name is invalid for XML 1.0 Second Edition
                 // Replace any offending characters with "UHHHHHH" where H are the
                 //   uppercase hexadecimal digits of the character's code point
-                $qualifiedName = implode(":", array_map([$this, "coerceName"], explode(":", $qualifiedName, 2)));
+                // NOTE: This case is never encountered by the parser
+                $qualifiedName = self::coerceName($qualifiedName, true);
                 $a = $d->createAttributeNS($namespaceURI, $qualifiedName);
             }
+            // @codeCoverageIgnoreEnd
             $a->value = self::escapeString($value, true);
             $element->setAttributeNodeNS($element->ownerDocument->importNode($a));
         } else {
@@ -35,11 +38,7 @@ trait AttributeSetter {
                 // The attribute name is invalid for XML 1.0 Second Edition
                 // Replace any offending characters with "UHHHHHH" where H are the
                 //   uppercase hexadecimal digits of the character's code point
-                if ($namespaceURI !== null) {
-                    $qualifiedName = implode(":", array_map([$this, "coerceName"], explode(":", $qualifiedName, 2)));
-                } else {
-                    $qualifiedName = self::coerceName($qualifiedName);
-                }
+                $qualifiedName = self::coerceName($qualifiedName, ($namespaceURI !== null));
                 $element->setAttributeNS($namespaceURI, $qualifiedName, $value);
                 $this->mangledAttributes = true;
             }

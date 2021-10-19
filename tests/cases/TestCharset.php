@@ -117,6 +117,28 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
         $this->assertSame($exp, $act->encoding);
     }
 
+    /** 
+     * @dataProvider provideNonstandardDeclarationTests
+     * @covers \MensBeam\HTML\Parser\Data::__construct */
+    public function testNonstandardDeclarationTests(string $data, ?string $charset, ?string $fallback, int $bytesToScan, string $exp): void {
+        $config = new Config;
+        $config->encodingPrescanBytes = $bytesToScan;
+        $config->encodingFallback = $fallback;
+        $act = Parser::parse($data, $charset, $config);
+        $this->assertSame($exp, $act->encoding);
+    }
+
+    public function provideNonstandardDeclarationTests(): iterable {
+        return [
+            ["<?xml".str_repeat(" ", 1024).">", null,                      null,    1024, "windows-1252"],
+            ["<?xml ",                          null,                      null,    1024, "windows-1252"],
+            ["",                                "text/html;charset=utf-8", null,    1024, "UTF-8"],
+            ["<meta charset='UTF-8'>",          null,                      null,    1024, "UTF-8"],
+            ["",                                null,                      "UTF-8", 1024, "UTF-8"],
+            ["",                                null,                      "UTF-7", 1024, "windows-1252"],
+        ];
+    }
+
     public function provideStandardDeclarationTests() {
         $tests = [];
         $blacklist = ["xmldecl-3.html"];
