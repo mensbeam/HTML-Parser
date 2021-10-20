@@ -13,6 +13,7 @@ use MensBeam\HTML\Parser\Exception;
 
 /** 
  * @covers \MensBeam\HTML\Parser
+ * @covers \MensBeam\HTML\Parser\Exception
  */
 class TestParser extends \PHPUnit\Framework\TestCase {
     public function testParseADocument(): void {

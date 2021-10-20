@@ -2712,7 +2712,9 @@ class TreeConstructor {
                         #   element in table scope, then this is a parse error;
                         #   ignore the token. (fragment case)
                         if (!$this->stack->hasElementInTableScope("td", "th")) {
-                            $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
+                            // NOTE: This case appears to be unreachable
+                            // See https://github.com/whatwg/html/issues/7242
+                            $this->error(ParseError::UNEXPECTED_START_TAG, $token->name); //@codeCoverageIgnore
                         }
                         # Otherwise, close the cell (see below) and reprocess the token.
                         else {
@@ -2859,7 +2861,7 @@ class TreeConstructor {
                     # An end tag...
                     elseif ($token instanceof EndTagToken) {
                         # An end tag whose tag name is "template"
-                        if ($token->name === "tenplate") {
+                        if ($token->name === "template") {
                             # Process the token using the rules for the "in head" insertion mode.
                             $insertionMode = self::IN_HEAD_MODE;
                             goto ProcessToken;
@@ -3260,10 +3262,8 @@ class TreeConstructor {
                     # Anything else
                     else {
                         # Parse error. Ignore the token.
-                        assert($token instanceof CharacterToken || $token instanceof TagToken, new \Exception("Invalid token class: ".get_class($token)));
-                        if ($token instanceof StartTagToken) {
-                            $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
-                        } elseif ($token instanceof EndTagToken) {
+                        assert($token instanceof CharacterToken || $token instanceof EndTagToken, new \Exception("Invalid token class: ".get_class($token)));
+                        if ($token instanceof EndTagToken) {
                             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                         } elseif ($token instanceof CharacterToken) {
                             $this->error(ParseError::UNEXPECTED_CHAR, $token->data, "exclude whitespace");
@@ -4156,7 +4156,7 @@ class TreeConstructor {
             # 17. Let node now be the node before node in the stack of open elements.
             # 18. Return to the step labeled Loop.
         }
-    }
+    } // @codeCoverageIgnore
 
     protected function closePElement(TagToken $token) {
         # When the steps above say the UA is to close a p element, it means that the UA

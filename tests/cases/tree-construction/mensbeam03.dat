@@ -105,3 +105,30 @@ dl
 | <html>
 |   <head>
 |   <body>
+
+#data
+<!DOCTYPE html><select></template></select>
+#errors
+(1,34): unexpected-end-tag
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <select>
+
+#data
+<!DOCTYPE html><body><template><select><template>
+#errors
+(1,50): unexpected-eof
+(1,50): unexpected-eof
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <template>
+|       content
+|         <select>
+|           <template>
+|             content
