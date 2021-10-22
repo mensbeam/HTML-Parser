@@ -206,7 +206,7 @@ abstract class Serializer {
 
         if ($node instanceof \DOMElement && ($node->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
             # If the node serializes as void, then return the empty string.
-            if (!in_array($node->tagName, self::VOID_ELEMENTS)) {
+            if (in_array($node->tagName, self::VOID_ELEMENTS)) {
                 return "";
             }
             # If the node is a template element, then let the node instead

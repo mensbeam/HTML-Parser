@@ -8,13 +8,21 @@
 declare(strict_types=1);
 namespace MensBeam\HTML\DOM\TestCase;
 
+use MensBeam\HTML\Parser\Exception;
 use MensBeam\HTML\Parser;
 use MensBeam\HTML\Parser\AttributeSetter;
 use MensBeam\HTML\Parser\NameCoercion;
 use MensBeam\HTML\Parser\Serializer;
 
+/** @covers \MensBeam\HTML\Parser\Serializer */
 class TestSerializer extends \PHPUnit\Framework\TestCase {
     use NameCoercion, AttributeSetter;
+
+    /** @dataProvider provideStandardTreeTests */
+    public function testStandardTreeTests(array $data, bool $fragment, string $exp): void {
+        $node = $this->buildTree($data, $fragment);
+        $this->assertSame($exp, Serializer::serializeOuter($node));
+    }
 
     public function provideStandardTreeTests(): iterable {
         $blacklist = [];
@@ -27,13 +35,119 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
         }
     }
 
-    /**
-     * @dataProvider provideStandardTreeTests
-     * @covers \MensBeam\HTML\Parser\Serializer
-     */
-    public function testStandardTreeTests(array $data, bool $fragment, string $exp): void {
-        $node = $this->buildTree($data, $fragment);
-        $this->assertSame($exp, Serializer::serializeOuter($node));
+    /** @dataProvider provideTemplateTests */
+    public function testSerializeADecoratedTemplate(?string $ns, bool $content, bool $fragment, bool $text, string $exp): void {
+        $d = new \DOMDocument;
+        $t = $d->createElementNS($ns, "template");
+        $t->appendChild($d->createTextNode("EEK"));
+        if ($content) {
+            $t->content = null;
+            if ($fragment) {
+                $f = $d->createDocumentFragment();
+                $t->content = $f;
+                if ($text) {
+                    $f->appendChild($d->createTextNode("OOK"));
+                }
+            }
+        }
+        $exp1 = $exp;
+        $exp2 = "<template>$exp</template>";
+        $this->assertSame($exp1, Serializer::serializeInner($t));
+        $this->assertSame($exp2, Serializer::serializeOuter($t));
+    }
+
+    public function provideTemplateTests(): iterable {
+        return [
+            [null,                   false, false, false, "EEK"],
+            [null,                   true,  false, false, "EEK"],
+            [null,                   true,  true,  false, ""],
+            [null,                   true,  true,  true,  "OOK"],
+            [Parser::HTML_NAMESPACE, false, false, false, "EEK"],
+            [Parser::HTML_NAMESPACE, true,  false, false, "EEK"],
+            [Parser::HTML_NAMESPACE, true,  true,  false, ""],
+            [Parser::HTML_NAMESPACE, true,  true,  true,  "OOK"],
+        ];
+    }
+
+    /** @dataProvider provideEmptyElementTests */
+    public function testInnerSerializeEmptyElement(string $tagName, ?string $ns, string $exp): void {
+        $d = new \DOMDocument;
+        $e = $d->createElementNS($ns, $tagName);
+        $e->appendChild($d->createTextNode("EEK"));
+        $this->assertSame($exp, Serializer::serializeInner($e));
+    }
+
+    public function provideEmptyElementTests(): iterable {
+        return [
+            ["basefont", null,                   ""],
+            ["bgsound",  null,                   ""],
+            ["frame",    null,                   ""],
+            ["keygen",   null,                   ""],
+            ["area",     null,                   ""],
+            ["base",     null,                   ""],
+            ["br",       null,                   ""],
+            ["col",      null,                   ""],
+            ["embed",    null,                   ""],
+            ["hr",       null,                   ""],
+            ["img",      null,                   ""],
+            ["input",    null,                   ""],
+            ["link",     null,                   ""],
+            ["meta",     null,                   ""],
+            ["param",    null,                   ""],
+            ["source",   null,                   ""],
+            ["track",    null,                   ""],
+            ["wbr",      null,                   ""],
+            ["basefont", Parser::HTML_NAMESPACE, ""],
+            ["bgsound",  Parser::HTML_NAMESPACE, ""],
+            ["frame",    Parser::HTML_NAMESPACE, ""],
+            ["keygen",   Parser::HTML_NAMESPACE, ""],
+            ["area",     Parser::HTML_NAMESPACE, ""],
+            ["base",     Parser::HTML_NAMESPACE, ""],
+            ["br",       Parser::HTML_NAMESPACE, ""],
+            ["col",      Parser::HTML_NAMESPACE, ""],
+            ["embed",    Parser::HTML_NAMESPACE, ""],
+            ["hr",       Parser::HTML_NAMESPACE, ""],
+            ["img",      Parser::HTML_NAMESPACE, ""],
+            ["input",    Parser::HTML_NAMESPACE, ""],
+            ["link",     Parser::HTML_NAMESPACE, ""],
+            ["meta",     Parser::HTML_NAMESPACE, ""],
+            ["param",    Parser::HTML_NAMESPACE, ""],
+            ["source",   Parser::HTML_NAMESPACE, ""],
+            ["track",    Parser::HTML_NAMESPACE, ""],
+            ["wbr",      Parser::HTML_NAMESPACE, ""],
+            ["basefont", Parser::SVG_NAMESPACE,  "EEK"],
+            ["bgsound",  Parser::SVG_NAMESPACE,  "EEK"],
+            ["frame",    Parser::SVG_NAMESPACE,  "EEK"],
+            ["keygen",   Parser::SVG_NAMESPACE,  "EEK"],
+            ["area",     Parser::SVG_NAMESPACE,  "EEK"],
+            ["base",     Parser::SVG_NAMESPACE,  "EEK"],
+            ["br",       Parser::SVG_NAMESPACE,  "EEK"],
+            ["col",      Parser::SVG_NAMESPACE,  "EEK"],
+            ["embed",    Parser::SVG_NAMESPACE,  "EEK"],
+            ["hr",       Parser::SVG_NAMESPACE,  "EEK"],
+            ["img",      Parser::SVG_NAMESPACE,  "EEK"],
+            ["input",    Parser::SVG_NAMESPACE,  "EEK"],
+            ["link",     Parser::SVG_NAMESPACE,  "EEK"],
+            ["meta",     Parser::SVG_NAMESPACE,  "EEK"],
+            ["param",    Parser::SVG_NAMESPACE,  "EEK"],
+            ["source",   Parser::SVG_NAMESPACE,  "EEK"],
+            ["track",    Parser::SVG_NAMESPACE,  "EEK"],
+            ["wbr",      Parser::SVG_NAMESPACE,  "EEK"],
+        ];
+    }
+
+    public function testOuterSerializeAnInvalidNode(): void {
+        $d = new \DOMDocument;
+        $a = $d->createAttribute("oops");
+        $this->expectExceptionObject(new Exception(Exception::UNSUPPORTED_NODE_TYPE, [\DOMAttr::class]));
+        Serializer::serializeOuter($a);
+    }
+
+    public function testInnerSerializeAnInvalidNode(): void {
+        $d = new \DOMDocument;
+        $t = $d->createTextNode("OOPS");
+        $this->expectExceptionObject(new Exception(Exception::UNSUPPORTED_NODE_TYPE, [\DOMText::class]));
+        Serializer::serializeInner($t);
     }
 
     protected function buildTree(array $data, bool $fragment, bool $formatOutput = false): \DOMNode {
