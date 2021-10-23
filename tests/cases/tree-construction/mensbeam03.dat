@@ -132,3 +132,14 @@ dl
 |         <select>
 |           <template>
 |             content
+
+#data
+<tr>X
+#errors
+(1,5): fostered-char
+#document-fragment
+table
+#document
+| <tbody>
+|   <tr>
+| "X"
