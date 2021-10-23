@@ -142,8 +142,9 @@ Similarly, the `MensBeam\HTML\Parser::serializeInner` method can be used to conv
   use MensBeam\HTML\Parser;
 
   $document = Parser::parse("<!DOCTYPE html><a>Ook<p>Eek</a>");
+  $body = $document->getElementsByTagName("body")[0];
   echo Parser::serialize($document); // prints "<html><head></head><body><a>Ook</a><p><a>Eek</a></p></body></html>
-  echo Parser::serializeInner($document->getElementsByTagName("body")[0]); // prints "<a>Ook</a><p><a>Eek</a></p>
+  echo Parser::serializeInner($body); // prints "<a>Ook</a><p><a>Eek</a></p>
   ```
 
 ## Configuration
