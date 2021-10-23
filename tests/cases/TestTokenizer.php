@@ -44,10 +44,10 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
     ];
 
     /** @dataProvider provideStandardTokenizerTests */
-    public function testStandardTokenizerTests(string $input, array $expected, int $state, string $open = null, array $expErrors) {
+    public function testStandardTokenizerTests(string $input, array $expected, int $state, ?string $open, ?array $expErrors) {
         $config = new Config;
         $config->encodingFallback = "UTF-8";
-        $errorHandler = new ParseError;
+        $errorHandler = ($expErrors !== null) ? new ParseError : null;
         // initialize a stack of open elements, possibly with an open element
         $stack = new OpenElementsStack(null);
         if ($open) {
@@ -71,10 +71,29 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
             }
         } finally {
             $actual = $this->normalizeTokens($actual);
-            $errors = $this->formatErrors($errorHandler->errors);
             $this->assertEquals($expected, $actual, $tokenizer->debugLog);
+            $errors = ($expErrors !== null) ? $this->formatErrors($errorHandler->errors) : null;
             $this->assertEquals($expErrors, $errors, $tokenizer->debugLog);
         }
+    }
+
+    /** 
+     * @dataProvider provideStandardTokenizerTests 
+     * @depends testStandardTokenizerTests 
+     */
+    public function testStandardTokenizerTestsWithoutErrorReporting(string $input, array $expected, int $state, ?string $open, array $expErrors) {
+        $this->testStandardTokenizerTests($input, $expected, $state, $open, null);
+    }
+
+    /** @dataProvider provideNonstandardTokenizerTests */
+    public function testNonstandardTokenizerTests(string $input, array $expected, int $state, ?string $open, array $expErrors) {
+        $this->testStandardTokenizerTests($input, $expected, $state, $open, $expErrors);
+    }
+
+    public function provideNonstandardTokenizerTests(): iterable {
+        return [
+            ["\xFF", [new CharacterToken("\u{FFFD}"), new EOFToken], Tokenizer::DATA_STATE, "", [['code' => "noncharacter-in-input-stream", 'line' => 1, 'col' => 1]]],
+        ];
     }
 
     public function provideStandardTokenizerTests() {

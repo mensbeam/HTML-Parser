@@ -16,6 +16,7 @@ use MensBeam\HTML\Parser\Tokenizer;
 use MensBeam\HTML\Parser\TreeConstructor;
 
 /** 
+ * @covers \MensBeam\HTML\Parser\Data
  * @covers \MensBeam\HTML\Parser\Tokenizer
  * @covers \MensBeam\HTML\Parser\TreeConstructor
  * @covers \MensBeam\HTML\Parser\ActiveFormattingElementsList
@@ -122,11 +123,11 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
     }
 
     protected function patchTest(string $data, $fragment, array $errors, array $exp): array {
-        // When using the HTML namespace, xmlns attribute cannot be inserted due to a PHP limitation
+        // When using the HTML namespace, xmlns attributes lose their namespace due to a PHP limitation
         if ($this->ns) {
             for ($a = 0; $a < sizeof($exp); $a++) {
                 if (preg_match('/^\|\s+xmlns xmlns=/', $exp[$a])) {
-                    array_splice($exp, $a--, 1);
+                    $exp[$a] = preg_replace('/^\|(\s+)xmlns xmlns=/', "|$1xmlns=", $exp[$a]);
                 }
             }
         }
@@ -180,7 +181,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                 $prefix = "null ";
             }
         }
-        $localName = $this->uncoerceName($e->localName);
+        $localName = self::uncoerceName($e->localName);
         $this->push("<".$prefix.$localName.">");
         $this->depth++;
         $attr = [];
@@ -191,7 +192,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                 assert((bool) $prefix, new \Exception("Prefix for namespace {$a->namespaceURI} is not defined"));
                 $prefix .= " ";
             }
-            $attr[$prefix.$this->uncoerceName($a->name)] = $a->value;
+            $attr[$prefix.self::uncoerceName($a->name)] = $a->value;
         }
         ksort($attr, \SORT_STRING);
         foreach ($attr as $k => $v) {

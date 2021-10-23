@@ -9,7 +9,7 @@ namespace MensBeam\HTML\Parser;
 use MensBeam\HTML\Parser;
 
 class TreeConstructor {
-    use ParseErrorEmitter, NameCoercion;
+    use ParseErrorEmitter, NameCoercion, AttributeSetter;
 
     public $debugLog = "";
 
@@ -335,12 +335,6 @@ class TreeConstructor {
             $iterations = 0;
             $insertionMode = $this->insertionMode;
 
-            // If element name coercison has occurred at some earlier point,
-            //   we must coerce all end tag names to match mangled start tags
-            if ($token instanceof EndTagToken && $this->mangledElements) {
-                $token->name = $this->coerceName($token->name);
-            }
-
             # 13.2.6 Tree construction
             #
             # As each token is emitted from the tokenizer, the user agent must follow the
@@ -379,6 +373,12 @@ class TreeConstructor {
                     return true;
                 })());
 
+                // If element name coercison has occurred at some earlier point,
+                //   we must coerce all end tag names to match mangled start tags
+                if ($this->mangledElements && $token instanceof EndTagToken) {
+                    $token->name = self::coerceName($token->name);
+                }
+
                 # 13.2.6.4. The rules for parsing tokens in HTML content
                 // OPTIMIZATION: Evaluation the "in body" mode first is
                 //   faster for typical documents
@@ -401,7 +401,7 @@ class TreeConstructor {
                                     // If attribute name coercison has occurred at some earlier point,
                                     //   we must coerce all attributes on html and body start tags in
                                     //   case they are relocated to existing elements
-                                    $attrName = $this->mangledAttributes ? $this->coerceName($a->name) : $a->name;
+                                    $attrName = $this->mangledAttributes ? self::coerceName($a->name) : $a->name;
                                     if (!$top->hasAttributeNS(null, $attrName)) {
                                         $this->elementSetAttribute($top, null, $attrName, $a->value);
                                     }
@@ -433,7 +433,7 @@ class TreeConstructor {
                                     // If attribute name coercison has occurred at some earlier point,
                                     //   we must coerce all attributes on html and body start tags in
                                     //   case they are relocated to existing elements
-                                    $attrName = $this->mangledAttributes ? $this->coerceName($a->name) : $a->name;
+                                    $attrName = $this->mangledAttributes ? self::coerceName($a->name) : $a->name;
                                     if (!$body->hasAttributeNS(null, $attrName)) {
                                         $this->elementSetAttribute($body, null, $attrName, $a->value);
                                     }
@@ -521,7 +521,8 @@ class TreeConstructor {
                                 if (strlen($nextToken->data) === 1 && $nextToken->data === "\n") {
                                     continue;
                                 } elseif (strpos($nextToken->data, "\n") === 0) {
-                                    $nextToken->data = substr($nextToken->data, 1);
+                                    // NOTE: This case is not currently encountered by the parser due to special handling of newlines
+                                    $nextToken->data = substr($nextToken->data, 1); // @codeCoverageIgnore
                                 }
                             }
                             // Process the next token
@@ -818,7 +819,8 @@ class TreeConstructor {
                                 if (strlen($nextToken->data) === 1 && $nextToken->data === "\n") {
                                     continue;
                                 } elseif (strpos($nextToken->data, "\n") === 0) {
-                                    $nextToken->data = substr($nextToken->data, 1);
+                                    // NOTE: This case is not currently encountered by the parser due to special handling of newlines
+                                    $nextToken->data = substr($nextToken->data, 1); // @codeCoverageIgnore
                                 }
                             }
                             # Let the original insertion mode be the current insertion mode.
@@ -1065,7 +1067,7 @@ class TreeConstructor {
                             else {
                                 # 1. If the stack of open elements does not have a form element in scope, then
                                 # this is a parse error; return and ignore the token.
-                                if ($this->stack->hasElementInScope('form')) {
+                                if (!$this->stack->hasElementInScope('form')) {
                                     $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                                     continue;
                                 }
@@ -1918,10 +1920,6 @@ class TreeConstructor {
                             elseif ($token->name === 'noframes' || $token->name === 'style') {
                                 $this->parseGenericRawText($token);
                             }
-                            elseif ($token->name === 'noscript') {
-                                $this->insertStartTagToken($token);
-                                $this->insertionMode = self::IN_HEAD_NOSCRIPT_MODE;
-                            }
                             elseif ($token->name === 'script') {
                                 $this->insertStartTagToken($token);
                                 $this->tokenizer->state = Tokenizer::SCRIPT_DATA_STATE;
@@ -2714,7 +2712,9 @@ class TreeConstructor {
                         #   element in table scope, then this is a parse error;
                         #   ignore the token. (fragment case)
                         if (!$this->stack->hasElementInTableScope("td", "th")) {
-                            $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
+                            // NOTE: This case appears to be unreachable
+                            // See https://github.com/whatwg/html/issues/7242
+                            $this->error(ParseError::UNEXPECTED_START_TAG, $token->name); //@codeCoverageIgnore
                         }
                         # Otherwise, close the cell (see below) and reprocess the token.
                         else {
@@ -2861,7 +2861,7 @@ class TreeConstructor {
                     # An end tag...
                     elseif ($token instanceof EndTagToken) {
                         # An end tag whose tag name is "template"
-                        if ($token->name === "tenplate") {
+                        if ($token->name === "template") {
                             # Process the token using the rules for the "in head" insertion mode.
                             $insertionMode = self::IN_HEAD_MODE;
                             goto ProcessToken;
@@ -3262,10 +3262,8 @@ class TreeConstructor {
                     # Anything else
                     else {
                         # Parse error. Ignore the token.
-                        assert($token instanceof CharacterToken || $token instanceof TagToken, new \Exception("Invalid token class: ".get_class($token)));
-                        if ($token instanceof StartTagToken) {
-                            $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
-                        } elseif ($token instanceof EndTagToken) {
+                        assert($token instanceof CharacterToken || $token instanceof EndTagToken, new \Exception("Invalid token class: ".get_class($token)));
+                        if ($token instanceof EndTagToken) {
                             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                         } elseif ($token instanceof CharacterToken) {
                             $this->error(ParseError::UNEXPECTED_CHAR, $token->data, "exclude whitespace");
@@ -3434,6 +3432,12 @@ class TreeConstructor {
                     return true;
                 })());
 
+                // If element name coercison has occurred at some earlier point,
+                //   we must coerce all end tag names to match mangled start tags
+                if ($this->mangledElements && $token instanceof EndTagToken) {
+                    $token->name = self::coerceName($token->name, true);
+                }
+
                 # 13.2.6.5 The rules for parsing tokens in foreign content
                 #
                 # When the user agent is to apply the rules for parsing tokens in foreign
@@ -3587,7 +3591,8 @@ class TreeConstructor {
                         $node = $this->stack[$pos];
                         # If node's tag name, converted to ASCII lowercase, is not the
                         #   same as the tag name of the token, then this is a parse error.
-                        if (strtolower($node->nodeName) !== $token->name) {
+                        $nodeName = self::coerceName(strtolower(self::uncoerceName($node->nodeName)), true);
+                        if ($nodeName !== $token->name) {
                             $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                         }
                         do {
@@ -3598,7 +3603,8 @@ class TreeConstructor {
                             # If node's tag name, converted to ASCII lowercase, is the same as the
                             #   tag name of the token, pop elements from the stack of open elements until node
                             #   has been popped from the stack, and then abort these steps.
-                            if (strtolower($node->nodeName) === $token->name) {
+                            $nodeName = self::coerceName(strtolower(self::uncoerceName($node->nodeName)), true);
+                            if ($nodeName === $token->name) {
                                 $this->stack->popUntilSame($node);
                                 continue 2;
                             }
@@ -3673,14 +3679,8 @@ class TreeConstructor {
             // NOTE: The "entry above" refers to the "in body" insertion mode
             //   Changes here should be mirrored there
             foreach ($this->stack as $node) {
-                if ($node->nodeName === $token->name && $node->namespaceURI === $this->htmlNamespace) {
-                    $this->stack->generateImpliedEndTags($token->name);
-                    if (!$node->isSameNode($this->stack->currentNode)) {
-                        $this->error($errorCode, $token->name);
-                    }
-                    $this->stack->popUntilSame($node);
-                    return;
-                } elseif ($this->isElementSpecial($node)) {
+                // NOTE: Only the "is special" case is possible here
+                if ($this->isElementSpecial($node)) {
                     $this->error($errorCode, $token->name);
                     return;
                 }
@@ -3890,12 +3890,15 @@ class TreeConstructor {
                 // Abort!
             }
             else {
+                // NOTE: This is an edge case only possible via scripting
+                // @codeCoverageIgnoreStart
                 # 6. Let previous element be the element immediately above last table in the
                 # stack of open elements.
                 $previousElement = $this->stack[$lastTableIndex - 1];
                 # 7. Let adjusted insertion location be inside previous element, after its last
                 # child (if any).
                 $insertionLocation = $previousElement;
+                // @codeCoverageIgnoreEnd
             }
         }
         # Otherwise let adjusted insertion location be inside target, after its last
@@ -4150,7 +4153,7 @@ class TreeConstructor {
             # 17. Let node now be the node before node in the stack of open elements.
             # 18. Return to the step labeled Loop.
         }
-    }
+    } // @codeCoverageIgnore
 
     protected function closePElement(TagToken $token) {
         # When the steps above say the UA is to close a p element, it means that the UA
@@ -4216,11 +4219,7 @@ class TreeConstructor {
             // The element name is invalid for XML
             // Replace any offending characters with "UHHHHHH" where H are the
             //   uppercase hexadecimal digits of the character's code point
-            if ($namespace !== $this->htmlNamespace) {
-                $qualifiedName = implode(":", array_map([$this, "coerceName"], explode(":", $token->name, 2)));
-            } else {
-                $qualifiedName = $this->coerceName($token->name);
-            }
+            $qualifiedName = self::coerceName($token->name, ($namespace !== $this->htmlNamespace));
             $element = $this->DOM->createElementNS($namespace, $qualifiedName);
             $this->mangledElements = true;
         }
@@ -4244,47 +4243,6 @@ class TreeConstructor {
         }
         # Return element.
         return $element;
-    }
-
-    public function elementSetAttribute(\DOMElement $element, ?string $namespaceURI, string $qualifiedName, string $value): void {
-        if ($namespaceURI === Parser::XMLNS_NAMESPACE) {
-            // NOTE: We create attribute nodes so that xmlns attributes
-            //   don't get lost; otherwise they cannot be serialized
-            try {
-                $a = @$element->ownerDocument->createAttributeNS($namespaceURI, $qualifiedName);
-            } catch (\DOMException $e) {
-                // FIXME: PHP has a fit here if the document element has a namespace and no prefix
-                // A workaround does not seem to exist
-                return;
-            }
-            if ($a === false) {
-                // The document element does not exist yet, so we need
-                //   to insert this element into the document
-                $element->ownerDocument->appendChild($element);
-                $a = $element->ownerDocument->createAttributeNS($namespaceURI, $qualifiedName);
-                $element->ownerDocument->removeChild($element);
-            }
-            $a->value = $this->escapeString($value, true);
-            $element->setAttributeNodeNS($a);
-        } else {
-            try {
-                $element->setAttributeNS($namespaceURI, $qualifiedName, $value);
-            } catch (\DOMException $e) {
-                // The attribute name is invalid for XML
-                // Replace any offending characters with "UHHHHHH" where H are the
-                //   uppercase hexadecimal digits of the character's code point
-                if ($namespaceURI !== null) {
-                    $qualifiedName = implode(":", array_map([$this, "coerceName"], explode(":", $qualifiedName, 2)));
-                } else {
-                    $qualifiedName = $this->coerceName($qualifiedName);
-                }
-                $element->setAttributeNS($namespaceURI, $qualifiedName, $value);
-                $this->mangledAttributes = true;
-            }
-            if ($qualifiedName === "id" && $namespaceURI === null) {
-                $element->setIdAttribute($qualifiedName, true);
-            }
-        }
     }
 
     public function isMathMLTextIntegrationPoint(\DOMElement $e): bool {

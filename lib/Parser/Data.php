@@ -112,15 +112,17 @@ class Data {
             else {
                 $char = "\n";
             }
+        } elseif ($char === '') {
+            $this->eof = true;
         }
         // unless we're peeking, track line and column position, and whether we've hit EOF
         if ($this->track) {
-            if ($char === "\n") {
+            if ($char === '') {
+                // do nothing
+            } elseif ($char === "\n") {
                 $this->newlines[$this->data->posChar()] = $this->_column;
                 $this->_column = 0;
                 $this->_line++;
-            } elseif ($char === '') {
-                $this->eof = true;
             } else {
                 $this->_column++;
                 $len = strlen($char);
@@ -155,7 +157,7 @@ class Data {
                                 $this->error(ParseError::NONCHARACTER_IN_INPUT_STREAM);
                                 $this->lastError = $here;
                             } elseif ($tail === 0xBFBD && $this->data->posErr === $here) {
-                                $this->error(ParseError::NONCHARACTER_IN_INPUT_STREAM, $this->data->posByte);
+                                $this->error(ParseError::NONCHARACTER_IN_INPUT_STREAM);
                                 $this->lastError = $here;
                             }
                         }
@@ -184,20 +186,21 @@ class Data {
             $here = $this->data->posChar();
             // if the previous character was a normalized CR+LF pair, we need to go back two
             if (isset($this->normalized[$here])) {
-                $this->data->seek(-1);
+                // NOTE: This case is never encountered by the parser
+                $this->data->seek(-1); // @codeCoverageIgnore
             }
             // recalculate line and column positions, if requested
             if ($retreatPointer && $this->track) {
-                $col = $this->newlines[$here] ?? 0;
-                if ($col) {
-                    $this->_column = $col;
+                // NOTE: These cases are never encountered by the parser
+                // @codeCoverageIgnoreStart
+                if ($col = $this->newlines[$here] ?? 0) {
+                    $this->_column = $col + 1;
                     $this->_line--;
-                } else {
+                } elseif ($this->astrals[$here] ?? false) {
                     $this->_column--;
-                    if ($this->astrals[$here] ?? false) {
-                        $this->_column--;
-                    }
                 }
+                // @codeCoverageIgnoreEnd
+                $this->_column--;
             }
             $this->data->seek(-1);
         }
@@ -252,21 +255,22 @@ class Data {
                 do {
                     // If the current position is the start of a line,
                     //  get the column position of the end of the previous line
+                    // NOTE: These cases are never encountered by the parser
+                    // @codeCoverageIgnoreStart
                     if (isset($this->newlines[$pos])) {
                         $line--;
-                        $col = $this->newlines[$pos];
+                        $col = $this->newlines[$pos] + 1;
                         // If the newline was a normalized CR+LF pair,
                         //  go back one extra character
                         if (isset($this->normalized[$pos])) {
                             $pos--;
                         }
-                    } else {
-                        $col--;
+                    } elseif ($this->astrals[$pos] ?? false) {
                         // supplementary plane characters count as two
-                        if ($this->astrals[$pos] ?? false) {
-                            $this->_column--;
-                        }
+                        $col--;
                     }
+                    // @codeCoverageIgnoreEnd
+                    $col--;
                     $pos--;
                 } while (++$relativePos < 0);
                 return [$line, $col];
@@ -274,19 +278,23 @@ class Data {
                 return [$this->_line, $this->_column + $relativePos];
             }
         } else {
-            return [0, 0];
+            return [0, 0]; // @codeCoverageIgnore
         }
     }
 
     public function __get($property) {
         switch ($property) {
-            case 'column': return $this->_column;
-            break;
-            case 'line': return $this->_line;
-            break;
-            case 'pointer': return $this->data->posChar();
-            break;
-            default: return null;
+            case 'column':
+                return $this->_column; // @codeCoverageIgnore
+                break;
+            case 'line':
+                return $this->_line; // @codeCoverageIgnore
+                break;
+            case 'pointer':
+                return $this->data->posChar();
+                break;
+            default:
+                return null; // @codeCoverageIgnore
         }
     }
 
