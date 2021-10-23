@@ -18,7 +18,7 @@ abstract class Serializer {
      * 
      * @param \DOMDocument|\DOMElement|\DOMText|\DOMComment|\DOMProcessingInstruction|\DOMDocumentFragment|\DOMDocumentType $node The node to serialize
     */
-    public static function serializeOuter(\DOMNode $node): string {
+    public static function serialize(\DOMNode $node): string {
         $s = "";
         $stack = [];
         $n = $node;
@@ -220,9 +220,9 @@ abstract class Serializer {
         }
         if ($node instanceof \DOMElement || $node instanceof \DOMDocument || $node instanceof \DOMDocumentFragment) {
             # For each child node of the node, in tree order, run the following steps:
-            // NOTE: the steps in question are implemented in the "serializeOuter" routine
+            // NOTE: the steps in question are implemented in the "serialize" routine
             foreach ($node->childNodes as $n) {
-                $s .= self::serializeOuter($n);
+                $s .= self::serialize($n);
             }
         } else {
             throw new Exception(Exception::UNSUPPORTED_NODE_TYPE, [get_class($node)]);

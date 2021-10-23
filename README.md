@@ -1,13 +1,13 @@
 # HTML-Parser
 
-A modern, accurate HTML parser for PHP.
+A modern, accurate HTML parser and serializer for PHP.
 
 ## Usage
 
 ### Parsing documents
 
 ```php
-public MensBeam\HTML\Parser::parse(
+public static MensBeam\HTML\Parser::parse(
     string $data, 
     ?string $encodingOrContentType = null. 
     ?MensBeam\HTML\Parser\Config $config = null
@@ -26,7 +26,7 @@ Extra configuration parameters may be given to the parser by passing a `MensBeam
 ### Parsing fragments
 
 ```php
-public MensBeam\HTML\Parser::parse(
+public static MensBeam\HTML\Parser::parse(
     DOMElement $contextElement,
     int $quirksMode,
     string $data, 
@@ -41,7 +41,33 @@ If the "quirks mode" property of the document is not know, using `Parser::NO_QUI
 
 Unlike the `parse()` method, the `parseFragment()` method returns a `DOMDocumentFragment` object belonging to `$contextElement`'s owner document.
 
-### Examples
+### Serializing nodes
+
+```php
+public static MensBeam\HTML\Parser::serialize(DOMNode $node): string
+```
+
+```php
+public static MensBeam\HTML\Parser::serializeInner(DOMNode $node): string
+```
+
+The `MensBeam\HTML\Parser::serialize` method can be used to convert most `DOMNode` objects into strings, using the basic algorithm defined in the HTML specification. Nodes of the following types can be successfully serialized:
+
+- `DOMDocument`
+- `DOMElement`
+- `DOMText`
+- `DOMComment`
+- `DOMDocumentFragment`
+- `DOMDocumentType`
+- `DOMProcessingInstruction`
+
+Similarly, the `MensBeam\HTML\Parser::serializeInner` method can be used to convert the children of non-leaf `DOMNode` objects into strings, using the basic algorithm defined in the HTML specification. Children of nodes of the following types can be successfully serialized:
+
+- `DOMDocument`
+- `DOMElement`
+- `DOMDocumentFragment`
+
+## Examples
 
 - Parsing a document with unknown encoding:
 
@@ -108,6 +134,16 @@ Unlike the `parse()` method, the `parseFragment()` method returns a `DOMDocument
   $mathFragment = Parser::parseFragment($math, 0, "<mi>&pi;</mi>", "UTF-8", $config);
   echo $htmlFragment->firstChild->namespaceURI; // prints "http://www.w3.org/1999/xhtml"
   echo $mathFragment->firstChild->namespaceURI; // prints "http://www.w3.org/1998/Math/MathML"
+  ```
+
+- Serializing documents and elements:
+
+  ```php
+  use MensBeam\HTML\Parser;
+
+  $document = Parser::parse("<!DOCTYPE html><a>Ook<p>Eek</a>");
+  echo Parser::serialize($document); // prints "<html><head></head><body><a>Ook</a><p><a>Eek</a></p></body></html>
+  echo Parser::serializeInner($document->getElementsByTagName("body")[0]); // prints "<a>Ook</a><p><a>Eek</a></p>
   ```
 
 ## Configuration

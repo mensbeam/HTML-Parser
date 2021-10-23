@@ -21,7 +21,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
     /** @dataProvider provideStandardTreeTests */
     public function testStandardTreeTests(array $data, bool $fragment, string $exp): void {
         $node = $this->buildTree($data, $fragment);
-        $this->assertSame($exp, Serializer::serializeOuter($node));
+        $this->assertSame($exp, Serializer::serialize($node));
     }
 
     public function provideStandardTreeTests(): iterable {
@@ -53,7 +53,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
         $exp1 = $exp;
         $exp2 = "<template>$exp</template>";
         $this->assertSame($exp1, Serializer::serializeInner($t));
-        $this->assertSame($exp2, Serializer::serializeOuter($t));
+        $this->assertSame($exp2, Serializer::serialize($t));
     }
 
     public function provideTemplateTests(): iterable {
@@ -140,7 +140,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
         $d = new \DOMDocument;
         $a = $d->createAttribute("oops");
         $this->expectExceptionObject(new Exception(Exception::UNSUPPORTED_NODE_TYPE, [\DOMAttr::class]));
-        Serializer::serializeOuter($a);
+        Serializer::serialize($a);
     }
 
     public function testInnerSerializeAnInvalidNode(): void {

@@ -6,7 +6,6 @@
 declare(strict_types=1);
 namespace MensBeam\HTML;
 
-use MensBeam\HTML\Parser\Charset;
 use MensBeam\HTML\Parser\Data;
 use MensBeam\HTML\Parser\ParseError;
 use MensBeam\HTML\Parser\Config;
@@ -17,8 +16,9 @@ use MensBeam\HTML\Parser\TemplateInsertionModesStack;
 use MensBeam\HTML\Parser\Tokenizer;
 use MensBeam\HTML\Parser\TreeConstructor;
 use MensBeam\HTML\Parser\Output;
+use MensBeam\HTML\Parser\Serializer;
 
-class Parser {
+class Parser extends Serializer {
     public const NO_QUIRKS_MODE = 0;
     public const QUIRKS_MODE = 1;
     public const LIMITED_QUIRKS_MODE = 2;
@@ -47,7 +47,6 @@ class Parser {
      * @param \MensBeam\HTML\Parser\Config|null $config The configuration parameters to use, if any
      */
     public static function parse(string $data, ?string $encodingOrContentType = null, ?Config $config = null): Output {
-        // parse the document
         return static::parseDocumentOrFragment($data, $encodingOrContentType, null, null, $config ?? new Config);
     }
 
