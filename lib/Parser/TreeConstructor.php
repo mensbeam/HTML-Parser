@@ -3679,14 +3679,8 @@ class TreeConstructor {
             // NOTE: The "entry above" refers to the "in body" insertion mode
             //   Changes here should be mirrored there
             foreach ($this->stack as $node) {
-                if ($node->nodeName === $token->name && $node->namespaceURI === $this->htmlNamespace) {
-                    $this->stack->generateImpliedEndTags($token->name);
-                    if (!$node->isSameNode($this->stack->currentNode)) {
-                        $this->error($errorCode, $token->name);
-                    }
-                    $this->stack->popUntilSame($node);
-                    return;
-                } elseif ($this->isElementSpecial($node)) {
+                // NOTE: Only the "is special" case is possible here
+                if ($this->isElementSpecial($node)) {
                     $this->error($errorCode, $token->name);
                     return;
                 }
@@ -3896,12 +3890,15 @@ class TreeConstructor {
                 // Abort!
             }
             else {
+                // NOTE: This is an edge case only possible via scripting
+                // @codeCoverageIgnoreStart
                 # 6. Let previous element be the element immediately above last table in the
                 # stack of open elements.
                 $previousElement = $this->stack[$lastTableIndex - 1];
                 # 7. Let adjusted insertion location be inside previous element, after its last
                 # child (if any).
                 $insertionLocation = $previousElement;
+                // @codeCoverageIgnoreEnd
             }
         }
         # Otherwise let adjusted insertion location be inside target, after its last
