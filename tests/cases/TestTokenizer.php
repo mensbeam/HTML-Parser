@@ -54,7 +54,7 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
             $stack[] = (new \DOMDocument)->createElement($open);
         }
         // initialize the data stream and tokenizer
-        $data = new Data($input, "UTF-8", $errorHandler, $config);
+        $data = new Data("\u{FEFF}".$input, "UTF-8", $errorHandler, $config);
         $tokenizer = new Tokenizer($data, $stack, $errorHandler);
         $tokenizer->state = $state;
         // perform the test

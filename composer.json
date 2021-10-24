@@ -6,8 +6,8 @@
     "require": {
         "php": ">=7.1",
         "ext-dom": "*",
-        "mensbeam/intl": ">=0.9.0",
-        "mensbeam/mimesniff": "^0.2.0"
+        "mensbeam/intl": ">=0.9.1",
+        "mensbeam/mimesniff": ">=0.2.0"
     },
     "suggest": {
         "ext-ctype": "Improved performance"
