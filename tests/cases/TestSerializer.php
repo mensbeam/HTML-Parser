@@ -192,7 +192,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
                 $pad += 2;
             } elseif (preg_match('/^(?:([^" ]+) )?([^"=]+)="((?:[^"]|"(?!$))*)"$/', $d, $m)) {
                 // attribute
-                $ns = strlen((string) $m[1]) ? (array_flip(Parser::NAMESPACE_MAP)[$m[1]] ?? $m[1]) : "";
+                $ns = strlen((string) $m[1]) ? (array_flip(Parser::NAMESPACE_MAP)[$m[1]] ?? $m[1]) : null;
                 $this->elementSetAttribute($cur, $ns, $m[2], $m[3]);
             } elseif (preg_match('/^"((?:[^"]|"(?!$))*)("?)$/', $d, $m)) {
                 // text

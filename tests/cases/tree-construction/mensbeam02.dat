@@ -31,3 +31,15 @@
 |   <body>
 |     <a>
 |       poop💩="PHP does not support Fifth Edition XML, hence name coercion"
+
+#data
+<!DOCTYPE html><article xmlns:xlink="http://www.w3.org/1999/xlink">No coercion should occur here</article>
+#errors
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <article>
+|       xmlns:xlink="http://www.w3.org/1999/xlink"
+|       "No coercion should occur here"

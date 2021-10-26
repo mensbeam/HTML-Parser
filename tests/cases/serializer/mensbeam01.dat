@@ -31,3 +31,14 @@
 |   poop💩="soccer"
 #output
 <test poop💩="soccer"></test>
+
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <article>
+|       xmlns:xlink="http://www.w3.org/1999/xlink"
+|       "No coercion should occur here"
+#output
+<!DOCTYPE html><html><head></head><body><article xmlns:xlink="http://www.w3.org/1999/xlink">No coercion should occur here</article></body></html>
