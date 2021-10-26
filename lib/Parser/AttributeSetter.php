@@ -31,7 +31,7 @@ trait AttributeSetter {
             // @codeCoverageIgnoreEnd
             $a->value = self::escapeString($value, true);
             $element->setAttributeNodeNS($element->ownerDocument->importNode($a));
-        } else {
+        } elseif ($namespaceURI !== null || strpos($qualifiedName, "xml:") === 0) {
             try {
                 $element->setAttributeNS($namespaceURI, $qualifiedName, $value);
             } catch (\DOMException $e) {
@@ -42,7 +42,18 @@ trait AttributeSetter {
                 $element->setAttributeNS($namespaceURI, $qualifiedName, $value);
                 $this->mangledAttributes = true;
             }
-            if ($qualifiedName === "id" && $namespaceURI === null) {
+        } else {
+            try {
+                $element->setAttribute($qualifiedName, $value);
+            } catch (\DOMException $e) {
+                // The attribute name is invalid for XML 1.0 Second Edition
+                // Replace any offending characters with "UHHHHHH" where H are the
+                //   uppercase hexadecimal digits of the character's code point
+                $qualifiedName = self::coerceName($qualifiedName, false);
+                $element->setAttribute($qualifiedName, $value);
+                $this->mangledAttributes = true;
+            }
+            if ($qualifiedName === "id") {
                 $element->setIdAttribute($qualifiedName, true);
             }
         }
