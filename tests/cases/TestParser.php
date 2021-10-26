@@ -90,4 +90,24 @@ class TestParser extends \PHPUnit\Framework\TestCase {
         $this->expectExceptionCode(Exception::INVALID_DOCUMENT_CLASS);
         Parser::parse($in, "utf8", $conf);
     }
+
+    public function testParseCheckingAttributeCoercion(): void {
+        $document = Parser::parse('<!DOCTYPE html><article xmlns:xlink="http://www.w3.org/1999/xlink">No coercion should occur here</article>', "UTF-8")->document;
+        $act = [];
+        foreach($document->getElementsByTagName("article")[0]->attributes as $a) {
+            $act[] = [
+                'ns' => $a->namespaceURI,
+                'prefix' => $a->prefix,
+                'name' => $a->localName,
+                'value' => $a->value,
+            ];
+        }
+        $exp = [[
+            'ns' => null,
+            'prefix' => '',
+            'name' => "xmlns:xlink",
+            'value' => "http://www.w3.org/1999/xlink",
+        ]];
+        $this->assertSame($exp, $act);
+    }
 }
