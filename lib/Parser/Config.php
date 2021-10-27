@@ -21,7 +21,7 @@ class Config {
     public $processingInstructions = null;
     /** @var bool|null Whether to self-close void foreign elements during serialization. Per the standard all foreign elements have their end tags printed */
     public $serializeVoidEndTags = null;
-    /** @var bool|null Whether to include the values of boolean attributes on HTML elements. Per the standard this should be true, but may be false to minimize relevant attributes */
+    /** @var bool|null Whether to include the values of boolean attributes on HTML elements during serialization. Per the standard this should be true, but may be false to minimize relevant attributes */
     public $serializeBooleanAttributeValues = null;
 
     /* Future serializer settings might include:
