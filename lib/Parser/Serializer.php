@@ -48,7 +48,7 @@ abstract class Serializer {
     public static function serialize(\DOMNode $node, ?Config $config = null): string {
         $config = $config ?? new Config;
         $boolAttr = $config->serializeBooleanAttributeValues ?? true;
-        $endTags = $config->serializeVoidEndTags ?? true;
+        $endTags = $config->serializeForeignVoidEndTags ?? true;
 
         $s = "";
         $stack = [];

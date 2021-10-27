@@ -19,9 +19,9 @@ class Config {
     public $htmlNamespace = null;
     /** @var bool|null Whether to retain processing instructions rather than parsing them into comments as the HTML specification requires. Setting this true will yield non-standard documents */
     public $processingInstructions = null;
-    /** @var bool|null Whether to self-close void foreign elements during serialization. Per the standard all foreign elements have their end tags printed */
-    public $serializeVoidEndTags = null;
-    /** @var bool|null Whether to include the values of boolean attributes on HTML elements during serialization. Per the standard this should be true, but may be false to minimize relevant attributes */
+    /** @var bool|null Whether to print the end tags of foreign void elements rather than self-closing their start tags. Per the standard this is true by default */
+    public $serializeForeignVoidEndTags = null;
+    /** @var bool|null Whether to include the values of boolean attributes on HTML elements during serialization. Per the standard this is true by default */
     public $serializeBooleanAttributeValues = null;
 
     /* Future serializer settings might include:
