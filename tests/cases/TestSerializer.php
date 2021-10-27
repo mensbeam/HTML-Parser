@@ -11,6 +11,7 @@ namespace MensBeam\HTML\DOM\TestCase;
 use MensBeam\HTML\Parser\Exception;
 use MensBeam\HTML\Parser;
 use MensBeam\HTML\Parser\AttributeSetter;
+use MensBeam\HTML\Parser\Config;
 use MensBeam\HTML\Parser\NameCoercion;
 use MensBeam\HTML\Parser\Serializer;
 
@@ -133,6 +134,26 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
             ["source",   Parser::SVG_NAMESPACE,  "EEK"],
             ["track",    Parser::SVG_NAMESPACE,  "EEK"],
             ["wbr",      Parser::SVG_NAMESPACE,  "EEK"],
+        ];
+    }
+
+    /** @dataProvider provideCustomSerializations */
+    public function testSerializeWithSimpleOptions(string $in, bool $boolAttr, bool $foreignVoid, string $exp): void {
+        $config = new Config;
+        $config->serializeBooleanAttributeValues = $boolAttr;
+        $config->serializeForeignVoidEndTags = $foreignVoid;
+        $body = Parser::parse($in, "UTF-8")->document->getElementsByTagName("body")[0];
+        $act = Parser::serializeInner($body, $config);
+        $this->assertSame($exp, $act);
+    }
+
+    public function provideCustomSerializations(): iterable {
+        return [
+            ['<a hidden="hidden"></a><b hidden=""></b><c hidden="HIDDEN"></c><d hidden="true"></d>', true,  true,  '<a hidden="hidden"></a><b hidden=""></b><c hidden="HIDDEN"></c><d hidden="true"></d>'],
+            ['<a hidden="hidden"></a><b hidden=""></b><c hidden="HIDDEN"></c><d hidden="true"></d>', false, true,  '<a hidden></a><b hidden></b><c hidden></c><d hidden="true"></d>'],
+            ['<br><svg/><svg>blah</svg><math/><math>blah</math><input>',                             true,  true,  '<br><svg></svg><svg>blah</svg><math></math><math>blah</math><input>'],
+            ['<br><svg/><svg>blah</svg><math/><math>blah</math><input>',                             true,  false, '<br><svg/><svg>blah</svg><math/><math>blah</math><input>'],
+            ['<audio loop hidden></audio><svg/>',                                                    false, false,  '<audio loop hidden></audio><svg/>'],
         ];
     }
 
