@@ -43,6 +43,7 @@ abstract class Serializer {
     /** Serializes an HTML DOM node to a string. This is equivalent to the outerHTML getter
      * 
      * @param \DOMDocument|\DOMElement|\DOMText|\DOMComment|\DOMProcessingInstruction|\DOMDocumentFragment|\DOMDocumentType $node The node to serialize
+     * @param \MensBeam\HTML\Parser\Config|null $config The configuration parameters to use, if any
     */
     public static function serialize(\DOMNode $node, ?Config $config = null): string {
         $config = $config ?? new Config;
@@ -248,6 +249,7 @@ abstract class Serializer {
     /** Serializes the children of an HTML DOM node to a string. This is equivalent to the innerHTML getter
      * 
      * @param \DOMDocument|\DOMElement|\DOMDocumentFragment $node The node to serialize
+     * @param \MensBeam\HTML\Parser\Config|null $config The configuration parameters to use, if any
     */
     public static function serializeInner(\DOMNode $node, ?Config $config = null): string {
         # Let s be a string, and initialize it to the empty string.
