@@ -7,16 +7,28 @@ declare(strict_types=1);
 namespace MensBeam\HTML\Parser;
 
 class Config {
-    /** @var ?string The class to use for the resultant document object. This class must derive from \DOMDocument and may not require any constructor parameters */
+    /** @var string|null The class to use for the resultant document object. This class must derive from \DOMDocument and may not require any constructor parameters */
     public $documentClass = null;
-    /** @var ?string The fallback encoding used when no encoding is provided or can be detected for the document. See https://html.spec.whatwg.org/multipage/parsing.html#determining-the-character-encoding:implementation-defined for guidance */
+    /** @var string|null The fallback encoding used when no encoding is provided or can be detected for the document. See https://html.spec.whatwg.org/multipage/parsing.html#determining-the-character-encoding:implementation-defined for guidance */
     public $encodingFallback = null;
-    /** @var ?int The number of bytes to examine during encoding pre-scan. 1024 is the default and recommended value */
+    /** @var int|null The number of bytes to examine during encoding pre-scan. 1024 is the default and recommended value */
     public $encodingPrescanBytes = null;
-    /** @var ?bool Whether parse errors should be recorded. Recording parse errors incurs a performance penalty. */
+    /** @var bool|null Whether parse errors should be recorded. Recording parse errors incurs a performance penalty. */
     public $errorCollection = null;
-    /** @var ?bool Whether to use the HTML namespace rather than the null namespace for HTML elements. Using the HTML namespace is the correct behaviour, but this has performance and compatibility implications for PHP */
+    /** @var bool|null Whether to use the HTML namespace rather than the null namespace for HTML elements. Using the HTML namespace is the correct behaviour, but this has performance and compatibility implications for PHP */
     public $htmlNamespace = null;
-    /** @var ?bool Whether to retain processing instructions rather than parsing them into comments as the HTML specification requires. Setting this true will yield non-standard documents */
+    /** @var bool|null Whether to retain processing instructions rather than parsing them into comments as the HTML specification requires. Setting this true will yield non-standard documents */
     public $processingInstructions = null;
+    /** @var bool|null Whether to self-close void foreign elements during serialization. Per the standard all foreign elements have their end tags printed */
+    public $serializeVoidEndTags = null;
+    /** @var bool|null Whether to include the values of boolean attributes on HTML elements. Per the standard this should be true, but may be false to minimize relevant attributes */
+    public $serializeBooleanAttributeValues = null;
+
+    /* Future serializer settings might include:
+
+    - Reformat whitespace (pretty-print)
+    - Indent string (arbitrary, to allow tabs or spaces or whatever)
+    - Attribute quoting style (single quote, double quote, with or without a preference for none)
+
+    */
 }

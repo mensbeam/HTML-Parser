@@ -13,18 +13,49 @@ abstract class Serializer {
 
     protected const VOID_ELEMENTS = ["basefont", "bgsound", "frame", "keygen", "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"];
     protected const RAWTEXT_ELEMENTS = ["style", "script", "xmp", "iframe", "noembed", "noframes", "plaintext"];
+    protected const BOOLEAN_ATTRIBUTES = [
+        'allowfullscreen' => ["iframe"],
+        'async'           => ["script"],
+        'autofocus'       => true,
+        'autoplay'        => ["audio", "video"],
+        'checked'         => ["input"],
+        'controls'        => ["audio", "video"],
+        'default'         => ["track"],
+        'defer'           => ["script"],
+        'disabled'        => ["button", "fieldset", "input", "link", "optgroup", "option", "select", "textarea"],
+        'formnovalidate'  => ["button", "input"],
+        'hidden'          => true,
+        'ismap'           => ["img"],
+        'itemscope'       => true,
+        'loop'            => ["audio", "video"],
+        'multiple'        => ["input", "select"],
+        'muted'           => ["audio", "video"],
+        'nomodule'        => ["script"],
+        'novalidate'      => ["form"],
+        'open'            => ["details", "dialog"],
+        'playsinline'     => ["video"],
+        'readonly'        => ["input", "textarea"],
+        'required'        => ["input", "select", "textarea"],
+        'reversed'        => ["ol"],
+        'selected'        => ["option"],
+    ];
 
     /** Serializes an HTML DOM node to a string. This is equivalent to the outerHTML getter
      * 
      * @param \DOMDocument|\DOMElement|\DOMText|\DOMComment|\DOMProcessingInstruction|\DOMDocumentFragment|\DOMDocumentType $node The node to serialize
     */
-    public static function serialize(\DOMNode $node): string {
+    public static function serialize(\DOMNode $node, ?Config $config = null): string {
+        $config = $config ?? new Config;
+        $boolAttr = $config->serializeBooleanAttributeValues ?? true;
+        $endTags = $config->serializeVoidEndTags ?? true;
+
         $s = "";
         $stack = [];
         $n = $node;
         do {
             # If current node is an Element
             if ($n instanceof \DOMElement) {
+                $htmlElement = ($n->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE;
                 # If current node is an element in the HTML namespace,
                 #   the MathML namespace, or the SVG namespace, then let
                 #   tagname be current node's local name. Otherwise, let
@@ -88,42 +119,60 @@ abstract class Serializer {
                         # The attribute's serialized name is the attribute's qualified name.
                         $name = ($a->prefix !== "") ? $a->prefix.":".$a->name : $a->name;
                     }
+                    // retrieve the attribute value
                     $value = self::escapeString((string) $a->value, true);
-                    $s .= " $name=\"$value\"";
+                    if (
+                        $boolAttr
+                        || !$htmlElement
+                        || !isset(self::BOOLEAN_ATTRIBUTES[$name])
+                        || is_array(self::BOOLEAN_ATTRIBUTES[$name]) && !in_array($tagName, self::BOOLEAN_ATTRIBUTES[$name])
+                        || (strlen($value) && strtolower($value) !== $name)
+                    ) {
+                        // print the attribute value unless the stars align
+                        $s .= " $name=\"$value\"";
+                    } else {
+                        // omit the value if the stars do align
+                        $s .= " $name";
+                    }
                 }
                 # Append a U+003E GREATER-THAN SIGN character (>).
-                $s .= ">";
-                # If current node serializes as void, then continue on to the
-                #   next child node at this point.
-                # Append the value of running the HTML fragment serialization
-                #   algorithm on the current node element (thus recursing into
-                #   this algorithm for that element), followed by a 
-                #   U+003C LESS-THAN SIGN character (<), a U+002F SOLIDUS
-                #   character (/), tagname again, and finally a
-                #   U+003E GREATER-THAN SIGN character (>).
-                if (($n->namespaceURI ?? Parser::HTML_NAMESPACE) !== Parser::HTML_NAMESPACE || !in_array($tagName, self::VOID_ELEMENTS)) {
-                    # If the node is a template element, then let the node instead
-                    #   be the template element's template contents
-                    #   (a DocumentFragment node).
-                    if (
-                        ($n->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE
-                        && $n->tagName === "template"
-                        && property_exists($n, "content")
-                        && $n->content instanceof \DOMDocumentFragment
-                    ) {
-                        // NOTE: Treat template content as any other document
-                        //   fragment and just invoke the inner serializer
-                        $s .= self::serializeInner($n->content)."</$tagName>";
-                    } elseif ($n->hasChildNodes()) {
-                        // If the element has children, store its tag name and
-                        //   continue the loop with its first child; its end
-                        //   tag will be written out further down
-                        $stack[] = $tagName;
-                        $n = $n->firstChild;
-                        continue;
-                    } else {
-                        // Otherwise just append the end tag now
-                        $s .= "</$tagName>";
+                // If we're minimizing void foreign elements, insert a slash first where appropriate
+                if (!$endTags && !$htmlElement && !$n->hasChildNodes()) {
+                    $s .= "/>";
+                } else {
+                    $s .= ">";
+                    # If current node serializes as void, then continue on to the
+                    #   next child node at this point.
+                    # Append the value of running the HTML fragment serialization
+                    #   algorithm on the current node element (thus recursing into
+                    #   this algorithm for that element), followed by a 
+                    #   U+003C LESS-THAN SIGN character (<), a U+002F SOLIDUS
+                    #   character (/), tagname again, and finally a
+                    #   U+003E GREATER-THAN SIGN character (>).
+                    if (($n->namespaceURI ?? Parser::HTML_NAMESPACE) !== Parser::HTML_NAMESPACE || !in_array($tagName, self::VOID_ELEMENTS)) {
+                        # If the node is a template element, then let the node instead
+                        #   be the template element's template contents
+                        #   (a DocumentFragment node).
+                        if (
+                            $htmlElement
+                            && $n->tagName === "template"
+                            && property_exists($n, "content")
+                            && $n->content instanceof \DOMDocumentFragment
+                        ) {
+                            // NOTE: Treat template content as any other document
+                            //   fragment and just invoke the inner serializer
+                            $s .= self::serializeInner($n->content, $config)."</$tagName>";
+                        } elseif ($n->hasChildNodes()) {
+                            // If the element has children, store its tag name and
+                            //   continue the loop with its first child; its end
+                            //   tag will be written out further down
+                            $stack[] = $tagName;
+                            $n = $n->firstChild;
+                            continue;
+                        } else {
+                            // Otherwise just append the end tag now
+                            $s .= "</$tagName>";
+                        }
                     }
                 }
             }
@@ -179,7 +228,7 @@ abstract class Serializer {
             // NOTE: Documents and document fragments have no outer content,
             //   so we can just serialize the inner content
             elseif ($n instanceof \DOMDocument || $n instanceof \DOMDocumentFragment) {
-                return self::serializeInner($n);
+                return self::serializeInner($n, $config);
             } else {
                 throw new Exception(Exception::UNSUPPORTED_NODE_TYPE, [get_class($n)]);
             }
@@ -200,7 +249,7 @@ abstract class Serializer {
      * 
      * @param \DOMDocument|\DOMElement|\DOMDocumentFragment $node The node to serialize
     */
-    public static function serializeInner(\DOMNode $node): string {
+    public static function serializeInner(\DOMNode $node, ?Config $config = null): string {
         # Let s be a string, and initialize it to the empty string.
         $s = "";
 
@@ -222,7 +271,7 @@ abstract class Serializer {
             # For each child node of the node, in tree order, run the following steps:
             // NOTE: the steps in question are implemented in the "serialize" routine
             foreach ($node->childNodes as $n) {
-                $s .= self::serialize($n);
+                $s .= self::serialize($n, $config);
             }
         } else {
             throw new Exception(Exception::UNSUPPORTED_NODE_TYPE, [get_class($node)]);
