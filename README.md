@@ -44,11 +44,17 @@ Unlike the `parse()` method, the `parseFragment()` method returns a `DOMDocument
 ### Serializing nodes
 
 ```php
-public static MensBeam\HTML\Parser::serialize(DOMNode $node): string
+public static MensBeam\HTML\Parser::serialize(
+    DOMNode $node,
+    ?MensBeam\HTML\Parser\Config $config = null
+): string
 ```
 
 ```php
-public static MensBeam\HTML\Parser::serializeInner(DOMNode $node): string
+public static MensBeam\HTML\Parser::serializeInner(
+    DOMNode $node,
+    ?MensBeam\HTML\Parser\Config $config = null
+): string
 ```
 
 The `MensBeam\HTML\Parser::serialize` method can be used to convert most `DOMNode` objects into strings, using the basic algorithm defined in the HTML specification. Nodes of the following types can be successfully serialized:
@@ -157,6 +163,8 @@ The `MensBeam\HTML\Parser\Config` class is used as a container for configuration
 - `errorCollection`: A boolean value indicating whether parse errors should be collected into the `Output` object's `errors` array. This should usually be left at the default `false` for performance reasons. The content of the `errors` array is currently considered an implemenmtation detail subject to change without notice
 - `htmlNamespace`: A boolean value indicating whether to create HTML elements within the HTML namespace i.e. `http://www.w3.org/1999/xhtml` rather than the `null` namespace. Though using the HTML namespace is the correct behaviour, the `null` namespace is used by default for performance and compatibility reasons
 - `processingInstructions`: A boolean value indicating whether to preserve processing instructions in the parsed document. By default processing instructions are parsed as comments, per the specification. Note that if set to `true` the parser will insert _HTML processing sinstructions_ which are terminated by the first `>` character, not XML processing instructions terminated by `?>`
+- `serializeForeignVoidEndTags`: A boolean value indication whether the print the end tags of empty foreign elements rather than self-closing their start tags. By default this is `true`
+- `serializeBooleanAttributeValues`: A boolean value indication whether the print the values of boolean attributes on HTML elements rather only the attribute names. By default this is `true`
 
 ## Limitations
 

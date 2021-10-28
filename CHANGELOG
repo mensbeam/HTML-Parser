@@ -1,4 +1,4 @@
-Version 1.2.0 (2021-??-??)
+Version 1.2.0 (2021-10-28)
 ==========================
 
 - Added optional attribute and end-tag minimization for serialization
