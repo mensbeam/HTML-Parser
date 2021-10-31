@@ -47,7 +47,7 @@ abstract class Serializer {
     ];
 
     /** Serializes an HTML DOM node to a string. This is equivalent to the outerHTML getter
-     * 
+     *
      * @param \DOMDocument|\DOMElement|\DOMText|\DOMComment|\DOMProcessingInstruction|\DOMDocumentFragment|\DOMDocumentType $node The node to serialize
      * @param \MensBeam\HTML\Parser\Config|null $config The configuration parameters to use, if any
     */
@@ -77,10 +77,10 @@ abstract class Serializer {
                 # If current node's is value is not null, and the element does
                 #   not have an is attribute in its attribute list, then
                 #   append the string " is="", followed by current node's is
-                #   value escaped as described below in attribute mode, 
+                #   value escaped as described below in attribute mode,
                 #   followed by a U+0022 QUOTATION MARK character (").
                 // DEVIATION: We don't support custom elements
-                # For each attribute that the element has, append a 
+                # For each attribute that the element has, append a
                 #   U+0020 SPACE character, the attribute's serialized name as
                 #   described below, a U+003D EQUALS SIGN character (=), a
                 #   U+0022 QUOTATION MARK character ("), the attribute's
@@ -99,7 +99,7 @@ abstract class Serializer {
                     elseif ($a->namespaceURI === Parser::XML_NAMESPACE) {
                         # The attribute's serialized name is the string "xml:" followed
                         #   by the attribute's local name.
-                        $name = "xml:".self::uncoerceName($a->localName); 
+                        $name = "xml:".self::uncoerceName($a->localName);
                     }
                     # If the attribute is in the XMLNS namespace...
                     elseif ($a->namespaceURI === Parser::XMLNS_NAMESPACE) {
@@ -152,7 +152,7 @@ abstract class Serializer {
                     #   next child node at this point.
                     # Append the value of running the HTML fragment serialization
                     #   algorithm on the current node element (thus recursing into
-                    #   this algorithm for that element), followed by a 
+                    #   this algorithm for that element), followed by a
                     #   U+003C LESS-THAN SIGN character (<), a U+002F SOLIDUS
                     #   character (/), tagname again, and finally a
                     #   U+003E GREATER-THAN SIGN character (>).
@@ -160,15 +160,9 @@ abstract class Serializer {
                         # If the node is a template element, then let the node instead
                         #   be the template element's template contents
                         #   (a DocumentFragment node).
-                        if (
-                            $htmlElement
-                            && $n->tagName === "template"
-                            && property_exists($n, "content")
-                            && $n->content instanceof \DOMDocumentFragment
-                        ) {
-                            // NOTE: Treat template content as any other document
-                            //   fragment and just invoke the inner serializer
-                            $s .= self::serializeInner($n->content, $config)."</$tagName>";
+                        if ($htmlElement && $n->tagName === "template" && ((property_exists($node, "content") && $node->content instanceof \DOMDocumentFragment) || $node->ownerDocument instanceof \MensBeam\HTML\DOM\InnerNode\Document)) {
+                            // NOTE: The inner serializer will determine what to do with template content
+                            $s .= self::serializeInner($n, $config)."</$tagName>";
                         } elseif ($n->hasChildNodes()) {
                             // If the element has children, store its tag name and
                             //   continue the loop with its first child; its end
@@ -253,7 +247,7 @@ abstract class Serializer {
     }
 
     /** Serializes the children of an HTML DOM node to a string. This is equivalent to the innerHTML getter
-     * 
+     *
      * @param \DOMDocument|\DOMElement|\DOMDocumentFragment $node The node to serialize
      * @param \MensBeam\HTML\Parser\Config|null $config The configuration parameters to use, if any
     */
@@ -269,10 +263,18 @@ abstract class Serializer {
             # If the node is a template element, then let the node instead
             #   be the template element's template contents
             #   (a DocumentFragment node).
-            elseif ($node->tagName === "template" && property_exists($node, "content") && $node->content instanceof \DOMDocumentFragment) {
+            elseif ($node->tagName === "template") {
                 // NOTE: template elements won't necessarily have a content
                 //   property because PHP's DOM does not support this natively
-                $node = $node->content;
+                if (property_exists($node, "content") && $node->content instanceof \DOMDocumentFragment) {
+                    $node = $node->content;
+                }
+                // Special case for MensBeam's DOM which wraps DOM classes. While traversing
+                // the DOM occurs within its inner DOM, template contents are entirely in the
+                // userland wrapper class, so that must be accounted for.
+                elseif ($node->ownerDocument instanceof \MensBeam\HTML\DOM\InnerNode\Document) {
+                    $node = $node->ownerDocument->getInnerNode($node->ownerDocument->getWrapperNode($node)->content);
+                }
             }
         }
         if ($node instanceof \DOMElement || $node instanceof \DOMDocument || $node instanceof \DOMDocumentFragment) {
