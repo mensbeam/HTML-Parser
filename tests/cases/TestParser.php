@@ -11,15 +11,27 @@ use MensBeam\HTML\Parser\Output;
 use MensBeam\HTML\Parser\Config;
 use MensBeam\HTML\Parser\Exception;
 
-/** 
+/**
  * @covers \MensBeam\HTML\Parser
  * @covers \MensBeam\HTML\Parser\Exception
  */
 class TestParser extends \PHPUnit\Framework\TestCase {
     public function testParseADocument(): void {
         $in = "hello world!";
-        $out = Parser::parse($in, "tex/html; charset=utf8");
+        $out = Parser::parse($in, "text/html; charset=utf8");
         $this->assertInstanceOf(Output::class, $out);
+        $this->assertInstanceOf(\DOMDocument::class, $out->document);
+        $this->assertSame("UTF-8", $out->encoding);
+        $this->assertSame(Parser::QUIRKS_MODE, $out->quirksMode);
+        $this->assertNull($out->errors);
+    }
+
+    public function testParseIntoExistingDocument(): void {
+        $in = "hello world!";
+        $d = new \DOMDocument();
+        $out = Parser::parseInto($in, $d, "text/html; charset=utf8");
+        $this->assertInstanceOf(Output::class, $out);
+        $this->assertSame($d, $out->document);
         $this->assertInstanceOf(\DOMDocument::class, $out->document);
         $this->assertSame("UTF-8", $out->encoding);
         $this->assertSame(Parser::QUIRKS_MODE, $out->quirksMode);
@@ -30,7 +42,7 @@ class TestParser extends \PHPUnit\Framework\TestCase {
         $doc = new \DOMDocument();
         $context = $doc->createElement("div");
         $in = "hello world!";
-        $out = Parser::parseFragment($context, 0, $in, "tex/html; charset=utf8");
+        $out = Parser::parseFragment($context, 0, $in, "text/html; charset=utf8");
         $this->assertInstanceOf(\DOMDocumentFragment::class, $out);
     }
 
@@ -40,14 +52,14 @@ class TestParser extends \PHPUnit\Framework\TestCase {
         $context = $doc->createElement("div");
         $in = "hello world!";
         $this->expectExceptionObject(new Exception(Exception::INVALID_QUIRKS_MODE));
-        Parser::parseFragment($context, -1, $in, "tex/html; charset=utf8");
+        Parser::parseFragment($context, -1, $in, "text/html; charset=utf8");
     }
 
     public function testParseADocumentReportingErrors(): void {
         $in = "hello world!";
         $conf = new Config;
         $conf->errorCollection = true;
-        $out = Parser::parse($in, "tex/html; charset=utf8", $conf);
+        $out = Parser::parse($in, "text/html; charset=utf8", $conf);
         $this->assertInstanceOf(Output::class, $out);
         $this->assertInstanceOf(\DOMDocument::class, $out->document);
         $this->assertSame("UTF-8", $out->encoding);
@@ -89,6 +101,14 @@ class TestParser extends \PHPUnit\Framework\TestCase {
         $conf->documentClass = get_class($c);
         $this->expectExceptionCode(Exception::INVALID_DOCUMENT_CLASS);
         Parser::parse($in, "utf8", $conf);
+    }
+
+    public function testParseIntoExistingDocumentWithANonEmptyDocument(): void {
+        $in = "hello world!";
+        $d = new \DOMDocument();
+        $d->appendChild($d->createElement('fail'));
+        $this->expectExceptionCode(Exception::NON_EMPTY_DOCUMENT);
+        Parser::parseInto($in, $d, "utf8");
     }
 
     public function testParseCheckingAttributeCoercion(): void {

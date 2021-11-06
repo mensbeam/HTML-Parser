@@ -273,7 +273,7 @@ abstract class Serializer {
                 // the DOM occurs within its inner DOM, template contents are entirely in the
                 // userland wrapper class, so that must be accounted for.
                 elseif ($node->ownerDocument instanceof \MensBeam\HTML\DOM\InnerNode\Document) {
-                    $node = $node->ownerDocument->getInnerNode($node->ownerDocument->getWrapperNode($node)->content);
+                    $node = $node->ownerDocument->getInnerNode($node->ownerDocument->getWrapperNode($node)->content); // @codeCoverageIgnore
                 }
             }
         }

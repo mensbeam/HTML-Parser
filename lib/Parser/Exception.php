@@ -10,6 +10,7 @@ class Exception extends \Exception {
     public const INVALID_QUIRKS_MODE = 101;
     public const FAILED_CREATING_DOCUMENT = 102;
     public const INVALID_DOCUMENT_CLASS = 103;
+    public const NON_EMPTY_DOCUMENT = 104;
 
     public const UNSUPPORTED_NODE_TYPE = 201;
 
@@ -17,6 +18,7 @@ class Exception extends \Exception {
         101 => 'Fragment\'s quirks mode must be one of Parser::NO_QUIRKS_MODE, Parser::LIMITED_QUIRKS_MODE, or Parser::QUIRKS_MODE',
         102 => 'Unable to create instance of configured document class "%s"',
         103 => 'Configured document class "%s" must be a subclass of \DOMDocument',
+        104 => 'Supplied document is not empty',
         201 => 'Unable to serialize unsupported node type %s',
     ];
 

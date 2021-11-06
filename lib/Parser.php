@@ -41,17 +41,17 @@ class Parser extends Serializer {
     ];
 
     /** Parses a string to produce a document object
-     * 
+     *
      * @param string $data The string to parse. This may be in any valid encoding
      * @param string|null $encodingOrContentType The document encoding, or HTTP Content-Type header value, if known. If no provided encoding detection will be attempted
      * @param \MensBeam\HTML\Parser\Config|null $config The configuration parameters to use, if any
      */
     public static function parse(string $data, ?string $encodingOrContentType = null, ?Config $config = null): Output {
-        return static::parseDocumentOrFragment($data, $encodingOrContentType, null, null, $config ?? new Config);
+        return static::parseDocumentOrFragment($data, $encodingOrContentType, null, null, null, $config ?? new Config);
     }
 
     /** Parses a string to produce a partial document (a document fragment)
-     * 
+     *
      * @param \DOMElement $contextElement The context element. The fragment will be pparsed as if it is a collection of children of this element
      * @param int|null $quirksMode The "quirks mode" property of the context element's document. Must be one of Parser::NO_QUIRKS_MODE, Parser::LIMITED_QUIRKS_MODE, or Parser::QUIRKS_MODE
      * @param string $data The string to parse. This may be in any valid encoding
@@ -60,7 +60,7 @@ class Parser extends Serializer {
      */
     public static function parseFragment(\DOMElement $contextElement, ?int $quirksMode, string $data, ?string $encodingOrContentType = null, ?Config $config = null): \DOMDocumentFragment {
         // parse the fragment into a temporary document
-        $out = self::parseDocumentOrFragment($data, $encodingOrContentType, $contextElement, $quirksMode, $config ?? new Config);
+        $out = self::parseDocumentOrFragment($data, $encodingOrContentType, null, $contextElement, $quirksMode, $config ?? new Config);
         $document = $out->document;
         // extract the nodes from the temporary document into a fragment belonging to the context element's document
         $fragment = $contextElement->ownerDocument->createDocumentFragment();
@@ -71,20 +71,38 @@ class Parser extends Serializer {
         return $fragment;
     }
 
-    protected static function parseDocumentOrFragment(string $data, ?string $encodingOrContentType, ?\DOMElement $fragmentContext, ?int $fragmentQuirks, Config $config): Output {
-        // check the document class
-        if (isset($config->documentClass)) {
-            try {
-                $document = new $config->documentClass;
-            } catch (\Throwable $e) {
-                throw new Exception(Exception::FAILED_CREATING_DOCUMENT, [$config->documentClass], $e);
-            }
-            if (!$document instanceof \DOMDocument) {
-                throw new Exception(Exception::INVALID_DOCUMENT_CLASS, [get_class($document)]);
+    /** Parses a string into an existing document object
+     *
+     * @param string $data The string to parse. This may be in any valid encoding
+     * @param \DOMDocument $document The document to parse into. Must be an instance of or derived from \DOMDocument and must be empty
+     * @param string|null $encodingOrContentType The document encoding, or HTTP Content-Type header value, if known. If no provided encoding detection will be attempted
+     * @param \MensBeam\HTML\Parser\Config|null $config The configuration parameters to use, if any
+     */
+    public static function parseInto(string $data, \DOMDocument $document, ?string $encodingOrContentType = null, ?Config $config = null): Output {
+        return static::parseDocumentOrFragment($data, $encodingOrContentType, $document, null, null, $config ?? new Config);
+    }
+
+    protected static function parseDocumentOrFragment(string $data, ?string $encodingOrContentType, ?\DOMDocument $document, ?\DOMElement $fragmentContext, ?int $fragmentQuirks, Config $config): Output {
+        if ($document === null) {
+            // check the document class
+            if (isset($config->documentClass)) {
+                try {
+                    $document = new $config->documentClass;
+                } catch (\Throwable $e) {
+                    throw new Exception(Exception::FAILED_CREATING_DOCUMENT, [$config->documentClass], $e);
+                }
+                if (!$document instanceof \DOMDocument) {
+                    throw new Exception(Exception::INVALID_DOCUMENT_CLASS, [get_class($document)]);
+                }
+            } else {
+                $document = new \DOMDocument();
             }
         } else {
-            $document = new \DOMDocument();
+            if ($document->hasChildNodes()) {
+                throw new Exception(Exception::NON_EMPTY_DOCUMENT);
+            }
         }
+
         // sort out other needed configuration
         $htmlNamespace = ($config->htmlNamespace) ? self::HTML_NAMESPACE : null;
         // Initialize the various classes needed for parsing
@@ -110,7 +128,7 @@ class Parser extends Serializer {
             // Destroy our existing objects
             unset($errorHandler, $decoder, $stack, $tokenizer, $tokenList, $treeConstructor);
             // Parse a second time
-            return static::parseDocumentOrFragment($data, $encoding, $fragmentContext, $fragmentQuirks, $config);
+            return static::parseDocumentOrFragment($data, $encoding, $document, $fragmentContext, $fragmentQuirks, $config);
         }
         // prepare the output
         $out = new Output;

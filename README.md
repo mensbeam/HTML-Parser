@@ -8,20 +8,35 @@ A modern, accurate HTML parser and serializer for PHP.
 
 ```php
 public static MensBeam\HTML\Parser::parse(
-    string $data, 
-    ?string $encodingOrContentType = null. 
+    string $data,
+    ?string $encodingOrContentType = null.
     ?MensBeam\HTML\Parser\Config $config = null
 ): MensBeam\HTML\Parser\Output
 ```
 
 The `MensBeam\HTML\Parser::parse` static method is used to parse documents. An arbitrary string (and optional encoding) are taken as input, and a `MensBeam\HTML\Parser\Output` object is returned as output. The `Output` object has the following properties:
 
-- `document`: A `DOMDocument` object representing the parsed document
+- `documentClass`: A string `DOMDocument` object representing the parsed document
 - `encoding`: The original character encoding of the document, as supplied by the user or otherwise detected during parsing
 - `quirksMode`: The detected "quirks mode" property of the document. This will be one of `Parser::NO_QURIKS_MODE` (`0`), `Parser::QUIRKS_MODE` (`1`), or `Parser::LIMITED_QUIRKS_MODE` (`2`)
 - `errors`: An array containing the list of parse errors emitted during processing if parse error reporting was turned on (see **Configuration** below), or `null` otherwise
 
 Extra configuration parameters may be given to the parser by passing a `MensBeam\HTML\Parser\Config` object as the final `$config` argument. See the **Configuration** section below for more details.
+
+### Parsing into existing documents
+
+```php
+public static MensBeam\HTML\Parser::parseInto(
+    string $data,
+    \DOMDocument $document,
+    ?string $encodingOrContentType = null.
+    ?MensBeam\HTML\Parser\Config $config = null
+): MensBeam\HTML\Parser\Output
+```
+
+The `MensBeam\HTML\Parser::parseInto` static method is used to parse into an existing document. The supplied document must be an instance of (or derived from) `\DOMDocument` and also must be empty. All other arguments are identical to those used when parsing documents normally.
+
+*NOTE:* The `documentClass` configuration option has no effect when using this method.
 
 ### Parsing fragments
 
@@ -29,15 +44,15 @@ Extra configuration parameters may be given to the parser by passing a `MensBeam
 public static MensBeam\HTML\Parser::parse(
     DOMElement $contextElement,
     int $quirksMode,
-    string $data, 
-    ?string $encodingOrContentType = null. 
+    string $data,
+    ?string $encodingOrContentType = null.
     ?MensBeam\HTML\Parser\Config $config = null
 ): DOMDocumentFragment
 ```
 
 The `MensBeam\HTML\Parser::parseFragment` static method is used to parse document fragments. The primary use case for this method is in the implementation of the `innerHTML` setter of HTML elements. Consequently a context element is required, as well as the "quirks mode" property of the context element's document (which must be one of `Parser::NO_QURIKS_MODE` (`0`), `Parser::QUIRKS_MODE` (`1`), or `Parser::LIMITED_QUIRKS_MODE` (`2`)). The further arguments are identical to those used when parsing documents.
 
-If the "quirks mode" property of the document is not know, using `Parser::NO_QUIRKS_MODE` (`0`) is usually the best choice.
+If the "quirks mode" property of the document is not known, using `Parser::NO_QUIRKS_MODE` (`0`) is usually the best choice.
 
 Unlike the `parse()` method, the `parseFragment()` method returns a `DOMDocumentFragment` object belonging to `$contextElement`'s owner document.
 
