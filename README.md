@@ -9,14 +9,14 @@ A modern, accurate HTML parser and serializer for PHP.
 ```php
 public static MensBeam\HTML\Parser::parse(
     string $data,
-    ?string $encodingOrContentType = null.
+    ?string $encodingOrContentType = null,
     ?MensBeam\HTML\Parser\Config $config = null
 ): MensBeam\HTML\Parser\Output
 ```
 
 The `MensBeam\HTML\Parser::parse` static method is used to parse documents. An arbitrary string (and optional encoding) are taken as input, and a `MensBeam\HTML\Parser\Output` object is returned as output. The `Output` object has the following properties:
 
-- `documentClass`: A string `DOMDocument` object representing the parsed document
+- `document`: A string `DOMDocument` object representing the parsed document
 - `encoding`: The original character encoding of the document, as supplied by the user or otherwise detected during parsing
 - `quirksMode`: The detected "quirks mode" property of the document. This will be one of `Parser::NO_QURIKS_MODE` (`0`), `Parser::QUIRKS_MODE` (`1`), or `Parser::LIMITED_QUIRKS_MODE` (`2`)
 - `errors`: An array containing the list of parse errors emitted during processing if parse error reporting was turned on (see **Configuration** below), or `null` otherwise
@@ -29,7 +29,7 @@ Extra configuration parameters may be given to the parser by passing a `MensBeam
 public static MensBeam\HTML\Parser::parseInto(
     string $data,
     \DOMDocument $document,
-    ?string $encodingOrContentType = null.
+    ?string $encodingOrContentType = null,
     ?MensBeam\HTML\Parser\Config $config = null
 ): MensBeam\HTML\Parser\Output
 ```
@@ -45,7 +45,7 @@ public static MensBeam\HTML\Parser::parse(
     DOMElement $contextElement,
     int $quirksMode,
     string $data,
-    ?string $encodingOrContentType = null.
+    ?string $encodingOrContentType = null,
     ?MensBeam\HTML\Parser\Config $config = null
 ): DOMDocumentFragment
 ```
