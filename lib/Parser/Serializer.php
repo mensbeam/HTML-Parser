@@ -160,7 +160,7 @@ abstract class Serializer {
                         # If the node is a template element, then let the node instead
                         #   be the template element's template contents
                         #   (a DocumentFragment node).
-                        if ($htmlElement && $n->tagName === "template" && ((property_exists($node, "content") && $node->content instanceof \DOMDocumentFragment) || $node->ownerDocument instanceof \MensBeam\HTML\DOM\InnerNode\Document)) {
+                        if ($htmlElement && $n->tagName === "template" && ((property_exists($node, "content") && $node->content instanceof \DOMDocumentFragment) || $node->ownerDocument instanceof \MensBeam\HTML\DOM\Inner\Document)) {
                             // NOTE: The inner serializer will determine what to do with template content
                             $s .= self::serializeInner($n, $config)."</$tagName>";
                         } elseif ($n->hasChildNodes()) {
@@ -272,7 +272,7 @@ abstract class Serializer {
                 // Special case for MensBeam's DOM which wraps DOM classes. While traversing
                 // the DOM occurs within its inner DOM, template contents are entirely in the
                 // userland wrapper class, so that must be accounted for.
-                elseif ($node->ownerDocument instanceof \MensBeam\HTML\DOM\InnerNode\Document) {
+                elseif ($node->ownerDocument instanceof \MensBeam\HTML\DOM\Inner\Document) {
                     $node = $node->ownerDocument->getInnerNode($node->ownerDocument->getWrapperNode($node)->content); // @codeCoverageIgnore
                 }
             }
