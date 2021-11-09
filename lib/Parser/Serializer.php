@@ -11,6 +11,12 @@ use MensBeam\HTML\Parser;
 abstract class Serializer {
     use NameCoercion;
 
+    // Elements treated as block elements when reformatting whitespace
+    protected const BLOCK_ELEMENTS = [ 'address', 'article', 'aside', 'blockquote', 'base', 'body', 'details', 'dialog', 'dd', 'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hr', 'html', 'isindex', 'li', 'link', 'main', 'meta', 'nav', 'ol', 'p', 'picture', 'pre', 'section', 'script', 'source', 'style', 'table', 'template', 'td', 'tfoot', 'th', 'thead', 'title', 'tr', 'ul' ];
+    protected const H_ELEMENTS = [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ];
+    // List of preformatted elements where content is ignored for the purposes of
+    // reformatting whitespace
+    protected const PREFORMATTED_ELEMENTS = [ 'iframe', 'listing', 'noembed', 'noframes', 'noscript', 'plaintext', 'pre', 'style', 'script', 'textarea', 'title', 'xmp' ];
     protected const VOID_ELEMENTS = ["basefont", "bgsound", "frame", "keygen", "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"];
     protected const RAWTEXT_ELEMENTS = ["style", "script", "xmp", "iframe", "noembed", "noframes", "plaintext"];
     protected const BOOLEAN_ATTRIBUTES = [
@@ -46,6 +52,8 @@ abstract class Serializer {
         'selected'        => ["option"],
     ];
 
+    protected const BLOCK_QUERY = 'count(./descendant::*[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"][name()="address" or name()="article" or name()="aside" or name()="blockquote" or name()="base" or name()="body" or name()="details" or name()="dialog" or name()="dd" or name()="div" or name()="dl" or name()="dt" or name()="fieldset" or name()="figcaption" or name()="figure" or name()="footer" or name()="form" or name()="frame" or name()="frameset" or name()="h1" or name()="h2" or name()="h3" or name()="h4" or name()="h5" or name()="h6" or name()="head" or name()="header" or name()="hr" or name()="html" or name()="isindex" or name()="li" or name()="link" or name()="main" or name()="meta" or name()="nav" or name()="ol" or name()="p" or name()="picture" or name()="pre" or name()="section" or name()="script" or name()="source" or name()="style" or name()="table" or name()="template" or name()="td" or name()="tfoot" or name()="th" or name()="thead" or name()="title" or name()="tr" or name()="ul"][1])';
+
     /** Serializes an HTML DOM node to a string. This is equivalent to the outerHTML getter
      *
      * @param \DOMDocument|\DOMElement|\DOMText|\DOMComment|\DOMProcessingInstruction|\DOMDocumentFragment|\DOMDocumentType $node The node to serialize
@@ -55,11 +63,22 @@ abstract class Serializer {
         $config = $config ?? new Config;
         $boolAttr = $config->serializeBooleanAttributeValues ?? true;
         $endTags = $config->serializeForeignVoidEndTags ?? true;
+        $reformatWhitespace = $config->reformatWhitespace ?? false;
+
+        if ($reformatWhitespace) {
+            $foreignElementWithBlockElementSiblings = false;
+            $previousNonTextNodeSiblingName = null;
+        }
 
         $s = "";
         $stack = [];
         $n = $node;
         do {
+            if ($reformatWhitespace) {
+                $first = true;
+                $indentionLevel = 0;
+            }
+
             # If current node is an Element
             if ($n instanceof \DOMElement) {
                 $htmlElement = ($n->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE;
@@ -72,6 +91,49 @@ abstract class Serializer {
                 } else {
                     $tagName = self::uncoerceName($n->tagName);
                 }
+
+                if ($reformatWhitespace) {
+                    $hasChildNodes = $n->hasChildNodes();
+                    $modify = false;
+                    $xpath = new \DOMXPath($n->ownerDocument);
+
+                    // If a block element or the current node's parent has any "block" element descendants...
+                    if ($htmlElement) {
+                        if (in_array($tagName, self::BLOCK_ELEMENTS) || $xpath->evaluate(self::BLOCK_QUERY, $n->parentNode) > 0) {
+                            $modify = true;
+                        }
+                    } else {
+                        // If a foreign element with block element siblings
+                        if ($foreignElement === null) {
+                            if ($xpath->evaluate(self::BLOCK_QUERY, $n->parentNode) > 0) {
+                                $foreignElementWithBlockElementSiblings = true;
+                                $modify = true;
+                            }
+
+                            if ($hasChildNodes) {
+                                $foreignElement = $n;
+                            }
+                        }
+                        // If a foreign element with a foreign element ancestor with block element
+                        // siblings
+                        elseif ($foreignElementWithBlockElementSiblings) {
+                            $modify = true;
+                        }
+                    }
+
+                    if ($modify) {
+                        // If the previous non text node sibling doesn't have the same name as the
+                        // current node and neither are h1-h6 elements then add an additional newline.
+                        if ($previousNonTextNodeSiblingName !== null && $previousNonTextNodeSiblingName !== $tagName && !(in_array($previousNonTextNodeSiblingName, self::H_ELEMENTS) && in_array($tagName, self::H_ELEMENTS))) {
+                            $s .= "\n";
+                        }
+
+                        if (!$first) {
+                            $s .= "\n" . str_repeat(' ', $indentionLevel);
+                        }
+                    }
+                }
+
                 # Append a U+003C LESS-THAN SIGN character (<), followed by tagname.
                 $s .= "<$tagName";
                 # If current node's is value is not null, and the element does

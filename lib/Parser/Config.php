@@ -19,6 +19,8 @@ class Config {
     public $htmlNamespace = null;
     /** @var bool|null Whether to retain processing instructions rather than parsing them into comments as the HTML specification requires. Setting this true will yield non-standard documents */
     public $processingInstructions = null;
+    /** @var bool|null Whether to reformat whitespace (pretty-print) or not. This is false by default */
+    public $reformatWhitespace = null;
     /** @var bool|null Whether to print the end tags of foreign void elements rather than self-closing their start tags. Per the standard this is true by default */
     public $serializeForeignVoidEndTags = null;
     /** @var bool|null Whether to include the values of boolean attributes on HTML elements during serialization. Per the standard this is true by default */
