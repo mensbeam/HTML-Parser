@@ -37,20 +37,10 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
     }
 
     /** @dataProvider provideTemplateTests */
-    public function testSerializeADecoratedTemplate(?string $ns, bool $content, bool $fragment, bool $text, string $exp): void {
+    public function testSerializeADecoratedTemplate(?string $ns, string $exp): void {
         $d = new \DOMDocument;
         $t = $d->createElementNS($ns, "template");
         $t->appendChild($d->createTextNode("EEK"));
-        if ($content) {
-            $t->content = null;
-            if ($fragment) {
-                $f = $d->createDocumentFragment();
-                $t->content = $f;
-                if ($text) {
-                    $f->appendChild($d->createTextNode("OOK"));
-                }
-            }
-        }
         $exp1 = $exp;
         $exp2 = "<template>$exp</template>";
         $this->assertSame($exp1, Serializer::serializeInner($t));
@@ -59,14 +49,8 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
 
     public function provideTemplateTests(): iterable {
         return [
-            [null,                   false, false, false, "EEK"],
-            [null,                   true,  false, false, "EEK"],
-            [null,                   true,  true,  false, ""],
-            [null,                   true,  true,  true,  "OOK"],
-            [Parser::HTML_NAMESPACE, false, false, false, "EEK"],
-            [Parser::HTML_NAMESPACE, true,  false, false, "EEK"],
-            [Parser::HTML_NAMESPACE, true,  true,  false, ""],
-            [Parser::HTML_NAMESPACE, true,  true,  true,  "OOK"],
+            [null,                   "EEK"],
+            [Parser::HTML_NAMESPACE, "EEK"],
         ];
     }
 

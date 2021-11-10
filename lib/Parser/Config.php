@@ -17,6 +17,10 @@ class Config {
     public $errorCollection = null;
     /** @var bool|null Whether to use the HTML namespace rather than the null namespace for HTML elements. Using the HTML namespace is the correct behaviour, but this has performance and compatibility implications for PHP */
     public $htmlNamespace = null;
+    /** @var int|null The number of spaces or tabs (depending on setting of indentStep) to indent at each step. This is 1 by default and has no effect unless reformatWhitespace is true */
+    public $indentStep = null;
+    /** @var bool|null Whether to use spaces or tabs to indent. This is true by default and has no effect unless reformatWhitespace is true */
+    public $indentWithSpaces = null;
     /** @var bool|null Whether to retain processing instructions rather than parsing them into comments as the HTML specification requires. Setting this true will yield non-standard documents */
     public $processingInstructions = null;
     /** @var bool|null Whether to reformat whitespace (pretty-print) or not. This is false by default */
