@@ -97,18 +97,11 @@ abstract class Serializer {
                 if ($reformatWhitespace) {
                     $hasChildNodes = $n->hasChildNodes();
                     $modify = false;
-                    $isPreformattedContent = self::isPreformattedContent($n);
 
-                    // If the node is an HTML element and its tag name is in the list of
-                    // preformatted elements or if the node is not an html element and if the
-                    // element is preformatted content then there's no need to modify.
-                    if ((($htmlElement && in_array($tagName, self::PREFORMATTED_ELEMENTS)) || !$htmlElement) && $isPreformattedContent) {
-                        $modify = false;
-                    }
                     // If the node is an HTML element, and either its tag name is in the list of
                     // elements to be treated as block for the purposes of serialization or the
                     // element itself is to be treated as block then we need to modify whitespace.
-                    elseif ($htmlElement) {
+                    if ($htmlElement) {
                         if (in_array($tagName, self::BLOCK_ELEMENTS) || self::treatAsBlock($n)) {
                             $modify = true;
                         }
@@ -122,7 +115,7 @@ abstract class Serializer {
                         // Otherwise, walk up the DOM and find the root foreign ancestor. If that
                         // ancestor is to be treated as block then we need to modify whitespace.
                         else {
-                            $modify = self::treatForeignContentAsBlock($n);
+                            $modify = self::treatForeignRootAsBlock($n);
                         }
                     }
 
@@ -143,9 +136,8 @@ abstract class Serializer {
                             $s .= "\n";
                         }
 
-                        //if (!$first) {
-                            $s .= "\n" . str_repeat($indentChar, $indentionLevel * $indentStep);
-                        //}
+
+                        $s .= "\n" . str_repeat($indentChar, $indentionLevel * $indentStep);
                     }
                 }
 
@@ -235,19 +227,21 @@ abstract class Serializer {
                     if (($n->namespaceURI ?? Parser::HTML_NAMESPACE) !== Parser::HTML_NAMESPACE || !in_array($tagName, self::VOID_ELEMENTS)) {
                         # If the node is a template element, then let the node instead be the template
                         # element's template contents (a DocumentFragment node).
-                        if ($htmlElement && $n->tagName === "template") {
+                        if ($htmlElement && $tagName === "template") {
                             // NOTE: Templates are handled by their own serializer
                             // Disable pretty printing when serializing templates in preformatted content
+                            $templateConfig = $config;
+                            $isPreformattedContent = self::isPreformattedContent($n);
                             if ($reformatWhitespace && $isPreformattedContent) {
-                                $config->reformatWhitespace = false;
+                                $templateConfig->reformatWhitespace = false;
                             }
 
-                            $ss = self::serializeTemplate($n, $config);
+                            $ss = self::serializeTemplate($n, $templateConfig);
 
                             // If reformatting whitespace indention needs to be applied to the template's
                             // serialized contents if not preformatted content.
                             if ($reformatWhitespace && !$isPreformattedContent && $indentionLevel > 0) {
-                            $ss = explode("\n", $ss);
+                                $ss = explode("\n", $ss);
                                 foreach ($ss as $key => $value) {
                                     $ss[$key] = str_repeat($indentChar, $indentionLevel * $indentStep) . $ss[$key];
                                 }
@@ -258,11 +252,8 @@ abstract class Serializer {
                             if ($reformatWhitespace) {
                                 // If formatting output and the element's whitespace has already been modified
                                 // increment the indention level
-                                if ($modify) {
-                                    $indentionLevel++;
-                                }
-
-                                $modifyStack[] = $modify;
+                                $indentionLevel++;
+                                $prettyPrintStack[] = $n;
                             }
 
                             // If the element has children, store its tag name and continue the loop with
@@ -270,19 +261,6 @@ abstract class Serializer {
                             $stack[] = $tagName;
                             $n = $n->firstChild;
                             continue;
-                        }
-
-                        if ($reformatWhitespace) {
-                            if (end($modifyStack)) {
-                                // Decrement the indention level.
-                                $indentionLevel--;
-
-                                // If a foreign element that isn't preformatted content and its root foreign
-                                // element is to be treated as block then add whitespace.
-                                if (!$htmlElement && self::treatForeignContentAsBlock($n)) {
-                                    $s .= "\n" . str_repeat($indentChar, $indentionLevel * $indentStep);
-                                }
-                            }
                         }
 
                         // Otherwise just append the end tag now
@@ -306,11 +284,12 @@ abstract class Serializer {
                 else {
                     $t = $n->data;
                     if ($reformatWhitespace && !self::isPreformattedContent($n)) {
-                        if (self::treatAsBlock($n) || self::treatForeignContentAsBlock($n)) {
+                        if (self::treatAsBlock($n) || self::treatForeignRootAsBlock($n)) {
                             // If the text node's data is made up of only whitespace characters continue
                             // onto the next node
                             if (strspn($t, Data::WHITESPACE) === strlen($t)) {
-                                continue;
+                                // FIXME: this is temporary
+                                goto next;
                             }
                         }
 
@@ -323,22 +302,40 @@ abstract class Serializer {
             }
             # If current node is a Comment
             elseif ($n instanceof \DOMComment) {
-                if ($reformatWhitespace /*&& !$first*/ && !self::isPreformattedContent($n) && (self::treatAsBlock($n) || self::treatForeignContentAsBlock($n))) {
-                    $previousNonTextNodeSiblingName = null;
-                    $nn = $n;
-                    while ($nn = $nn->previousSibling) {
-                        if (!$nn instanceof \DOMText) {
-                            $previousNonTextNodeSiblingName = $nn->nodeName;
-                            break;
+                if ($reformatWhitespace && !self::isPreformattedContent($n)) {
+                    $modify = false;
+                    $parentIsHTMLElement = (($n->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) !== Parser::HTML_NAMESPACE);
+                    if ($parentIsHTMLElement) {
+                        if (self::treatAsBlock($n)) {
+                            $modify = true;
+                        }
+                    } else {
+                        if ($n->parentNode->parentNode !== null && ($n->parentNode->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
+                            if (self::treatAsBlock($n)) {
+                                $modify = true;
+                            }
+                        } elseif (self::treatForeignRootAsBlock($n)) {
+                            $modify = true;
                         }
                     }
 
-                    // Add an additional newline if the previous sibling wasn't a comment.
-                    if ($previousNonTextNodeSiblingName !== null && $previousNonTextNodeSiblingName !== $this->nodeName) {
-                        $s .= "\n";
-                    }
+                    if ($modify) {
+                        $previousNonTextNodeSiblingName = null;
+                        $nn = $n;
+                        while ($nn = $nn->previousSibling) {
+                            if (!$nn instanceof \DOMText) {
+                                $previousNonTextNodeSiblingName = $nn->nodeName;
+                                break;
+                            }
+                        }
 
-                    $s .= "\n" . str_repeat($indentChar, $indentionLevel * $indentStep);
+                        // Add an additional newline if the previous sibling wasn't a comment.
+                        if ($previousNonTextNodeSiblingName !== null && $previousNonTextNodeSiblingName !== $n->nodeName) {
+                            $s .= "\n";
+                        }
+
+                        $s .= "\n" . str_repeat($indentChar, $indentionLevel * $indentStep);
+                    }
                 }
 
                 # Append the literal string "<!--" (U+003C LESS-THAN SIGN,
@@ -351,22 +348,40 @@ abstract class Serializer {
             }
             # If current node is a ProcessingInstruction
             elseif ($n instanceof \DOMProcessingInstruction) {
-                if ($reformatWhitespace /* && !$first */ && !self::isPreformattedContent($n) && (self::treatAsBlock($n) || self::treatForeignContentAsBlock($n))) {
-                    $previousNonTextNodeSiblingName = null;
-                    $nn = $n;
-                    while ($nn = $n->previousSibling) {
-                        if (!$nn instanceof \DOMText) {
-                            $previousNonTextNodeSiblingName = $nn->nodeName;
-                            break;
+                if ($reformatWhitespace && !self::isPreformattedContent($n)) {
+                    $modify = false;
+                    $parentIsHTMLElement = (($n->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) !== Parser::HTML_NAMESPACE);
+                    if ($parentIsHTMLElement) {
+                        if (self::treatAsBlock($n)) {
+                            $modify = true;
+                        }
+                    } else {
+                        if ($n->parentNode->parentNode !== null && ($n->parentNode->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
+                            if (self::treatAsBlock($n)) {
+                                $modify = true;
+                            }
+                        } elseif (self::treatForeignRootAsBlock($n)) {
+                            $modify = true;
                         }
                     }
 
-                    // Add an additional newline if the previous sibling wasn't a comment.
-                    if ($previousNonTextNodeSiblingName !== null && $previousNonTextNodeSiblingName !== $this->nodeName) {
-                        $s .= "\n";
-                    }
+                    if ($modify) {
+                        $previousNonTextNodeSiblingName = null;
+                        $nn = $n;
+                        while ($nn = $nn->previousSibling) {
+                            if (!$nn instanceof \DOMText) {
+                                $previousNonTextNodeSiblingName = $nn->nodeName;
+                                break;
+                            }
+                        }
 
-                    $s .= "\n" . str_repeat($indentChar, $indentionLevel * $indentStep);
+                        // Add an additional newline if the previous sibling wasn't a comment.
+                        if ($previousNonTextNodeSiblingName !== null && $previousNonTextNodeSiblingName !== $n->nodeName) {
+                            $s .= "\n";
+                        }
+
+                        $s .= "\n" . str_repeat($indentChar, $indentionLevel * $indentStep);
+                    }
                 }
 
                 # Append the literal string "<?" (U+003C LESS-THAN SIGN,
@@ -396,15 +411,55 @@ abstract class Serializer {
             } else {
                 throw new Exception(Exception::UNSUPPORTED_NODE_TYPE, [get_class($n)]);
             }
+
+            next:
             // If the current node has no more siblings, go up the tree till a
             //   sibling is found or we've reached the original node
             while (!$n->nextSibling && $stack) {
-                if ($reformatWhitespace) {
-                    array_pop($modifyStack);
-                }
-
                 // Write out the stored end tag each time we go up the tree
                 $tagName = array_pop($stack);
+
+                if ($reformatWhitespace) {
+                    $indentionLevel--;
+                    $tag = array_pop($prettyPrintStack);
+                    $modify = false;
+
+                    if (!self::isPreformattedContent($n)) {
+                        if (($tag->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
+                            if (self::treatAsBlock($tag->firstChild)) {
+                                $modify = true;
+                            }
+                        } else {
+                            $firstElementChild = null;
+                            if (property_exists($tag, 'firstElementChild')) {
+                                $firstElementChild = $tag->firstElementChild;
+                            } else {
+                                $t = $tag->firstChild;
+                                do {
+                                    if ($t instanceof \DOMElement) {
+                                        $firstElementChild = $t;
+                                        break;
+                                    }
+                                } while ($t = $t->nextSibling);
+                            }
+
+                            if ($firstElementChild !== null) {
+                                if (($tag->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
+                                    if (self::treatAsBlock($tag)) {
+                                        $modify = true;
+                                    }
+                                } elseif (self::treatForeignRootAsBlock($tag)) {
+                                    $modify = true;
+                                }
+                            }
+                        }
+                    }
+
+                    if ($modify) {
+                        $s .= "\n" . str_repeat($indentChar, $indentionLevel * $indentStep);
+                    }
+                }
+
                 $s .= "</$tagName>";
                 $n = $n->parentNode;
             }
@@ -472,11 +527,11 @@ abstract class Serializer {
         // be able to moonwalk through document fragment hosts.
 
         $n = $node;
-        while ($n = $n->parentNode) {
+        do {
             if ($n instanceof \DOMElement && ($n->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE && in_array($n->tagName, self::PREFORMATTED_ELEMENTS)) {
                 return true;
             }
-        }
+        } while ($n = $n->parentNode);
 
         return false;
     }
@@ -491,11 +546,15 @@ abstract class Serializer {
             return false;
         }
 
+        if ($node->parentNode instanceof \DOMDocument) {
+            return true;
+        }
+
         $xpath = new \DOMXPath($node->ownerDocument);
         return ($xpath->evaluate(self::BLOCK_QUERY, $node->parentNode) > 0);
     }
 
-    protected static function treatForeignContentAsBlock(\DOMNode $node): bool {
+    protected static function treatForeignRootAsBlock(\DOMNode $node): bool {
         // NOTE: This method is used only when pretty printing. Implementors of userland
         // PHP DOM solutions with template contents will need to extend this method to
         // be able to moonwalk through document fragment hosts.
