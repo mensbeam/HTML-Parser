@@ -68,9 +68,6 @@ abstract class Serializer {
         if ($reformatWhitespace) {
             $indentStep = $config->indentStep ?? 1;
             $indentChar = ($config->indentWithSpaces ?? true) ? ' ' : "\t";
-
-            $foreignAsBlock = false;
-            $previousNonTextNodeSiblingName = null;
         }
 
         $s = "";
@@ -131,7 +128,7 @@ abstract class Serializer {
 
                     // If we're modifying whitespace...
                     if ($modify) {
-                        $previousNonTextNodeSiblingName === null;
+                        $previousNonTextNodeSiblingName = null;
                         $nn = $n;
                         while ($nn = $nn->previousSibling) {
                             if (!$nn instanceof \DOMText) {
@@ -327,7 +324,7 @@ abstract class Serializer {
             # If current node is a Comment
             elseif ($n instanceof \DOMComment) {
                 if ($reformatWhitespace /*&& !$first*/ && !self::isPreformattedContent($n) && (self::treatAsBlock($n) || self::treatForeignContentAsBlock($n))) {
-                    $previousNonTextNodeSiblingName === null;
+                    $previousNonTextNodeSiblingName = null;
                     $nn = $n;
                     while ($nn = $nn->previousSibling) {
                         if (!$nn instanceof \DOMText) {
@@ -355,7 +352,7 @@ abstract class Serializer {
             # If current node is a ProcessingInstruction
             elseif ($n instanceof \DOMProcessingInstruction) {
                 if ($reformatWhitespace /* && !$first */ && !self::isPreformattedContent($n) && (self::treatAsBlock($n) || self::treatForeignContentAsBlock($n))) {
-                    $previousNonTextNodeSiblingName === null;
+                    $previousNonTextNodeSiblingName = null;
                     $nn = $n;
                     while ($nn = $n->previousSibling) {
                         if (!$nn instanceof \DOMText) {
