@@ -100,12 +100,12 @@ abstract class Serializer {
                 if ($reformatWhitespace) {
                     $hasChildNodes = $n->hasChildNodes();
                     $modify = false;
-                    $isPreformattedContent = self::isPreformattedContent();
+                    $isPreformattedContent = self::isPreformattedContent($n);
 
                     // If the node is an HTML element and its tag name is in the list of
                     // preformatted elements or if the node is not an html element and if the
                     // element is preformatted content then there's no need to modify.
-                    if ((($htmlElement && in_array($tagName, self::PREFORMATTED_ELEMENTS) || !$htmlElement) && $isPreformattedContent) {
+                    if ((($htmlElement && in_array($tagName, self::PREFORMATTED_ELEMENTS)) || !$htmlElement) && $isPreformattedContent) {
                         $modify = false;
                     }
                     // If the node is an HTML element, and either its tag name is in the list of
@@ -132,7 +132,8 @@ abstract class Serializer {
                     // If we're modifying whitespace...
                     if ($modify) {
                         $previousNonTextNodeSiblingName === null;
-                        while ($nn = $n->previousSibling) {
+                        $nn = $n;
+                        while ($nn = $nn->previousSibling) {
                             if (!$nn instanceof \DOMText) {
                                 $previousNonTextNodeSiblingName = $nn->nodeName;
                                 break;
@@ -145,9 +146,9 @@ abstract class Serializer {
                             $s .= "\n";
                         }
 
-                        if (!$first) {
+                        //if (!$first) {
                             $s .= "\n" . str_repeat($indentChar, $indentionLevel * $indentStep);
-                        }
+                        //}
                     }
                 }
 
@@ -249,7 +250,7 @@ abstract class Serializer {
                             // If reformatting whitespace indention needs to be applied to the template's
                             // serialized contents if not preformatted content.
                             if ($reformatWhitespace && !$isPreformattedContent && $indentionLevel > 0) {
-                                $ss = explode("\n", $ss);
+                            $ss = explode("\n", $ss);
                                 foreach ($ss as $key => $value) {
                                     $ss[$key] = str_repeat($indentChar, $indentionLevel * $indentStep) . $ss[$key];
                                 }
@@ -307,11 +308,11 @@ abstract class Serializer {
                 # Otherwise, append the value of current node's data IDL attribute, escaped as described below.
                 else {
                     $t = $n->data;
-                    if ($reformatWhitespace && !self::isPreformattedContent()) {
+                    if ($reformatWhitespace && !self::isPreformattedContent($n)) {
                         if (self::treatAsBlock($n) || self::treatForeignContentAsBlock($n)) {
                             // If the text node's data is made up of only whitespace characters continue
                             // onto the next node
-                            if (strspn($text, Data::WHITESPACE) === strlen($t)) {
+                            if (strspn($t, Data::WHITESPACE) === strlen($t)) {
                                 continue;
                             }
                         }
@@ -325,9 +326,10 @@ abstract class Serializer {
             }
             # If current node is a Comment
             elseif ($n instanceof \DOMComment) {
-                if ($reformatWhitespace && !$first && !self::isPreformattedContent() && (self::treatAsBlock($n) || self::treatForeignContentAsBlock($n))) {
+                if ($reformatWhitespace /*&& !$first*/ && !self::isPreformattedContent($n) && (self::treatAsBlock($n) || self::treatForeignContentAsBlock($n))) {
                     $previousNonTextNodeSiblingName === null;
-                    while ($nn = $n->previousSibling) {
+                    $nn = $n;
+                    while ($nn = $nn->previousSibling) {
                         if (!$nn instanceof \DOMText) {
                             $previousNonTextNodeSiblingName = $nn->nodeName;
                             break;
@@ -352,8 +354,9 @@ abstract class Serializer {
             }
             # If current node is a ProcessingInstruction
             elseif ($n instanceof \DOMProcessingInstruction) {
-                if ($reformatWhitespace && !$first && !self::isPreformattedContent() && (self::treatAsBlock($n) || self::treatForeignContentAsBlock($n))) {
+                if ($reformatWhitespace /* && !$first */ && !self::isPreformattedContent($n) && (self::treatAsBlock($n) || self::treatForeignContentAsBlock($n))) {
                     $previousNonTextNodeSiblingName === null;
+                    $nn = $n;
                     while ($nn = $n->previousSibling) {
                         if (!$nn instanceof \DOMText) {
                             $previousNonTextNodeSiblingName = $nn->nodeName;
@@ -470,8 +473,10 @@ abstract class Serializer {
         // NOTE: This method is used only when pretty printing. Implementors of userland
         // PHP DOM solutions with template contents will need to extend this method to
         // be able to moonwalk through document fragment hosts.
-        while ($n = $node->parentNode) {
-            if (($n->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE && in_array($n->tagName, self::PREFORMATTED_ELEMENTS)) {
+
+        $n = $node;
+        while ($n = $n->parentNode) {
+            if ($n instanceof \DOMElement && ($n->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE && in_array($n->tagName, self::PREFORMATTED_ELEMENTS)) {
                 return true;
             }
         }
@@ -484,6 +489,11 @@ abstract class Serializer {
         // PHP DOM solutions with template contents will need to extend this method to
         // check for any templates and look within their content fragments for "block"
         // content.
+
+        if ($node->parentNode === null) {
+            return false;
+        }
+
         $xpath = new \DOMXPath($node->ownerDocument);
         return ($xpath->evaluate(self::BLOCK_QUERY, $node->parentNode) > 0);
     }
@@ -492,7 +502,8 @@ abstract class Serializer {
         // NOTE: This method is used only when pretty printing. Implementors of userland
         // PHP DOM solutions with template contents will need to extend this method to
         // be able to moonwalk through document fragment hosts.
-        while ($n = $node->parentNode) {
+        $n = $node;
+        while ($n = $n->parentNode) {
             if (($n->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
                 if (self::treatAsBlock($n)) {
                     return true;
