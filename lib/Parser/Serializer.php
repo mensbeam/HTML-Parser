@@ -238,15 +238,18 @@ abstract class Serializer {
 
                             $ss = self::serializeTemplate($n, $templateConfig);
 
-                            // If reformatting whitespace indention needs to be applied to the template's
-                            // serialized contents if not preformatted content.
-                            /*if ($reformatWhitespace && !$isPreformattedContent && $indentionLevel > 0) {
-                                $ss = explode("\n", $ss);
-                                foreach ($ss as $key => $value) {
-                                    $ss[$key] = str_repeat($indentChar, $indentionLevel * $indentStep) . $ss[$key];
+                            if ($reformatWhitespace) {
+                                if (!$isPreformattedContent && $indentionLevel > 0) {
+                                    $firstChild = self::templateFirstChild($n);
+                                    if (self::treatAsBlock($firstChild)) {
+                                        $ss = explode("\n", $ss);
+                                        foreach ($ss as $key => $value) {
+                                            $ss[$key] = str_repeat($indentChar, ($indentionLevel + 1) * $indentStep) . $ss[$key];
+                                        }
+                                        $ss = implode("\n", $ss);
+                                    }
                                 }
-                                $ss = implode("\n", $ss);
-                            }*/
+                            }
 
                             $s .= $ss;
                         } elseif ($n->hasChildNodes()) {
@@ -535,6 +538,13 @@ abstract class Serializer {
         } while ($n = $n->parentNode);
 
         return false;
+    }
+
+    protected static function templateFirstChild(\DOMElement $template): \DOMNode {
+        // NOTE: This method is used only when pretty printing. Implementors of userland
+        // PHP DOM solutions with template contents will need to extend this method to
+        // be able to get the template's first child.
+        return $template->firstChild;
     }
 
     protected static function treatAsBlock(\DOMNode $node): bool {
