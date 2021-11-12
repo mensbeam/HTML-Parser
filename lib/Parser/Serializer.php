@@ -13,6 +13,8 @@ abstract class Serializer {
 
     // Elements treated as block elements when reformatting whitespace
     protected const BLOCK_ELEMENTS = [ 'address', 'article', 'aside', 'blockquote', 'base', 'body', 'details', 'dialog', 'dd', 'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hr', 'html', 'isindex', 'li', 'link', 'main', 'meta', 'nav', 'ol', 'p', 'picture', 'pre', 'section', 'script', 'source', 'style', 'table', 'td', 'tfoot', 'th', 'thead', 'title', 'tr', 'ul' ];
+    // List of h-elements which are used to determine element grouping for the
+    // purposes of reformatting whitespace
     protected const H_ELEMENTS = [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ];
     // List of preformatted elements where content is ignored for the purposes of
     // reformatting whitespace
@@ -52,7 +54,9 @@ abstract class Serializer {
         'selected'        => ["option"],
     ];
 
-    protected const BLOCK_QUERY = 'count(./descendant::*[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"][name()="address" or name()="article" or name()="aside" or name()="blockquote" or name()="base" or name()="body" or name()="details" or name()="dialog" or name()="dd" or name()="div" or name()="dl" or name()="dt" or name()="fieldset" or name()="figcaption" or name()="figure" or name()="footer" or name()="form" or name()="frame" or name()="frameset" or name()="h1" or name()="h2" or name()="h3" or name()="h4" or name()="h5" or name()="h6" or name()="head" or name()="header" or name()="hr" or name()="html" or name()="isindex" or name()="li" or name()="link" or name()="main" or name()="meta" or name()="nav" or name()="ol" or name()="p" or name()="picture" or name()="pre" or name()="section" or name()="script" or name()="source" or name()="style" or name()="table" or name()="td" or name()="tfoot" or name()="th" or name()="thead" or name()="title" or name()="tr" or name()="ul"][1])';
+    // Used when reformatting whitespace when nodes are checked for being treated as block.
+
+    protected const BLOCK_QUERY = 'count(.//*[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"][not(ancestor::iframe[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::listing[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::noembed[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::noframes[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::noscript[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::plaintext[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::pre[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::style[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::script[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::textarea[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::title[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::xmp[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"])][name()="address" or name()="article" or name()="aside" or name()="blockquote" or name()="base" or name()="body" or name()="details" or name()="dialog" or name()="dd" or name()="div" or name()="dl" or name()="dt" or name()="fieldset" or name()="figcaption" or name()="figure" or name()="footer" or name()="form" or name()="frame" or name()="frameset" or name()="h1" or name()="h2" or name()="h3" or name()="h4" or name()="h5" or name()="h6" or name()="head" or name()="header" or name()="hr" or name()="html" or name()="isindex" or name()="li" or name()="link" or name()="main" or name()="meta" or name()="nav" or name()="ol" or name()="p" or name()="picture" or name()="pre" or name()="section" or name()="script" or name()="source" or name()="style" or name()="table" or name()="td" or name()="tfoot" or name()="th" or name()="thead" or name()="title" or name()="tr" or name()="ul"][1])';
 
     /** Serializes an HTML DOM node to a string. This is equivalent to the outerHTML getter
      *
@@ -98,19 +102,44 @@ abstract class Serializer {
                     $hasChildNodes = $n->hasChildNodes();
                     $modify = false;
 
-                    // If the node is an HTML element, and either its tag name is in the list of
-                    // elements to be treated as block for the purposes of serialization or the
-                    // element itself is to be treated as block then we need to modify whitespace.
+                    // Start off by finding the first non-text node child in the document or fragment.
+                    $firstNonTextNodeChild = null;
+                    // If the parent node is null this means the element itself is being serialized.
+                    // It is the first non-text node child.
+                    if ($n->parentNode === null) {
+                        $firstNonTextNodeChild = $n;
+                    }
+                    // Otherwise, if the node's parent node is a Document or a DocumentFragment then
+                    // iterate through that parent node's children and get the first non-text node
+                    // child.
+                    elseif (($n->parentNode instanceof \DOMDocument || $n->parentNode instanceof \DOMDocumentFragment)) {
+                        $t = $n->parentNode->firstChild;
+                        do {
+                            if (!$t instanceof \DOMText) {
+                                $firstNonTextNodeChild = $t;
+                                break;
+                            }
+                        } while ($t = $t->nextSibling);
+                    }
+
+                    // If the node is an HTML element...
                     if ($htmlElement) {
-                        if (in_array($tagName, self::BLOCK_ELEMENTS) || self::treatAsBlock($n)) {
+                        // If the element is to be treated as block then we need to modify whitespace.
+                        if (self::treatAsBlock($n->parentNode)) {
                             $modify = true;
                         }
-                    } else {
+                    }
+                    // If the node is not an HTML element...
+                    else {
+                        // If the parent node is null then we need to modify whitespace.
+                        if ($n->parentNode === null) {
+                            $modify = true;
+                        }
                         // If a foreign element with an html element parent
-                        if (($n->parentNode ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
+                        elseif (($n->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
                             // If the foreign element should be treated as block then we need to modify
                             // whitespace
-                            $modify = self::treatAsBlock($n);
+                            $modify = self::treatAsBlock($n->parentNode);
                         }
                         // Otherwise, walk up the DOM and find the root foreign ancestor. If that
                         // ancestor is to be treated as block then we need to modify whitespace.
@@ -119,8 +148,11 @@ abstract class Serializer {
                         }
                     }
 
-                    // If we're modifying whitespace...
-                    if ($modify) {
+                    // Only modify the whitespace here if the current node is not the first non-text
+                    // node child. This is to prevent newlines from being printed when elements
+                    // themsleves are serialized or if they're the first node in the tree when a
+                    // Document or DocumentFragment.
+                    if ($modify && $firstNonTextNodeChild !== $n) {
                         $previousNonTextNodeSiblingName = null;
                         $nn = $n;
                         while ($nn = $nn->previousSibling) {
@@ -228,7 +260,6 @@ abstract class Serializer {
                         # If the node is a template element, then let the node instead be the template
                         # element's template contents (a DocumentFragment node).
                         if ($htmlElement && $tagName === "template") {
-                            // NOTE: Templates are handled by their own serializer
                             // Disable pretty printing when serializing templates in preformatted content
                             $templateConfig = $config;
                             $isPreformattedContent = self::isPreformattedContent($n);
@@ -236,17 +267,22 @@ abstract class Serializer {
                                 $templateConfig->reformatWhitespace = false;
                             }
 
-                            $ss = self::serializeTemplate($n, $templateConfig);
+                            $nn = self::getTemplateContent($n);
+                            $ss = '';
+
+                            # For each child node of the node, in tree order, run the following steps:
+                            foreach ($nn->childNodes as $nnn) {
+                                $ss .= self::serialize($nnn, $config);
+                            }
 
                             if ($reformatWhitespace) {
                                 if (!$isPreformattedContent && $indentionLevel > 0) {
-                                    $firstChild = self::templateFirstChild($n);
-                                    if (self::treatAsBlock($firstChild)) {
-                                        $ss = explode("\n", $ss);
-                                        foreach ($ss as $key => $value) {
-                                            $ss[$key] = str_repeat($indentChar, ($indentionLevel + 1) * $indentStep) . $ss[$key];
-                                        }
-                                        $ss = implode("\n", $ss);
+                                    // If the template's content is to be treated as block content then post-indent
+                                    // newlines at 1 + the current indention level in the serialized template
+                                    // contents. Then append a newline followed by another indention at the current
+                                    // indention level for the end tag.
+                                    if (self::treatAsBlock($n)) {
+                                        $ss = str_replace("\n", "\n" . str_repeat($indentChar, ($indentionLevel + 1) * $indentStep), $ss) . "\n" . str_repeat($indentChar, $indentionLevel * $indentStep);
                                     }
                                 }
                             }
@@ -288,7 +324,9 @@ abstract class Serializer {
                 else {
                     $t = $n->data;
                     if ($reformatWhitespace && !self::isPreformattedContent($n)) {
-                        if (self::treatAsBlock($n) || self::treatForeignRootAsBlock($n)) {
+                        // If the node's parent node is to be treated as block or if it is not an HTML
+                        // element and its root foreign element is to be treated as block...
+                        if (self::treatAsBlock($n->parentNode) || (($n->namespaceURI ?? Parser::HTML_NAMESPACE) !== Parser::HTML_NAMESPACE && self::treatForeignRootAsBlock($n))) {
                             // If the text node's data is made up of only whitespace characters continue
                             // onto the next node
                             if (strspn($t, Data::WHITESPACE) === strlen($t)) {
@@ -308,14 +346,13 @@ abstract class Serializer {
             elseif ($n instanceof \DOMComment) {
                 if ($reformatWhitespace && !self::isPreformattedContent($n)) {
                     $modify = false;
-                    $parentIsHTMLElement = (($n->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) !== Parser::HTML_NAMESPACE);
-                    if ($parentIsHTMLElement) {
-                        if (self::treatAsBlock($n)) {
+                    if (($n->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) !== Parser::HTML_NAMESPACE) {
+                        if (self::treatAsBlock($n->parentNode)) {
                             $modify = true;
                         }
                     } else {
                         if ($n->parentNode->parentNode !== null && ($n->parentNode->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
-                            if (self::treatAsBlock($n)) {
+                            if (self::treatAsBlock($n->parentNode)) {
                                 $modify = true;
                             }
                         } elseif (self::treatForeignRootAsBlock($n)) {
@@ -354,14 +391,13 @@ abstract class Serializer {
             elseif ($n instanceof \DOMProcessingInstruction) {
                 if ($reformatWhitespace && !self::isPreformattedContent($n)) {
                     $modify = false;
-                    $parentIsHTMLElement = (($n->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) !== Parser::HTML_NAMESPACE);
-                    if ($parentIsHTMLElement) {
-                        if (self::treatAsBlock($n)) {
+                    if (($n->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) !== Parser::HTML_NAMESPACE) {
+                        if (self::treatAsBlock($n->parentNode)) {
                             $modify = true;
                         }
                     } else {
                         if ($n->parentNode->parentNode !== null && ($n->parentNode->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
-                            if (self::treatAsBlock($n)) {
+                            if (self::treatAsBlock($n->parentNode)) {
                                 $modify = true;
                             }
                         } elseif (self::treatForeignRootAsBlock($n)) {
@@ -428,9 +464,12 @@ abstract class Serializer {
                     $tag = array_pop($prettyPrintStack);
                     $modify = false;
 
+                    // If the element popped off the stack isn't a preformatted element...
                     if (!self::isPreformattedContent($n)) {
+                        // If it is in the HTML namespace and is to be treated as block then we need to
+                        // modify whitespace.
                         if (($tag->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
-                            if (self::treatAsBlock($tag->firstChild)) {
+                            if (self::treatAsBlock($tag)) {
                                 $modify = true;
                             }
                         } else {
@@ -447,12 +486,17 @@ abstract class Serializer {
                                 } while ($t = $t->nextSibling);
                             }
 
+                            // Otherwise, if foreign and has a child element...
                             if ($firstElementChild !== null) {
-                                if (($tag->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
-                                    if (self::treatAsBlock($tag)) {
+                                // If the element popped off the stack has an HTML element parent and its parent
+                                // is to be treated as block then we need to modify whitespace.
+                                if ($tag->parentNode !== null && ($tag->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
+                                    if (self::treatAsBlock($tag->parentNode)) {
                                         $modify = true;
                                     }
-                                } elseif (self::treatForeignRootAsBlock($tag)) {
+                                // Otherwise, if the element's foreign root is to be treated as block we need to
+                                // modify whitespace, too.
+                                } elseif ($tag->parentNode === null || self::treatForeignRootAsBlock($tag)) {
                                     $modify = true;
                                 }
                             }
@@ -478,6 +522,8 @@ abstract class Serializer {
      * @param \MensBeam\HTML\Parser\Config|null $config The configuration parameters to use, if any
     */
     public static function serializeInner(\DOMNode $node, ?Config $config = null): string {
+        $reformatWhitespace = $config->reformatWhitespace ?? false;
+
         # Let s be a string, and initialize it to the empty string.
         $s = "";
 
@@ -489,7 +535,15 @@ abstract class Serializer {
             # If the node is a template element, then let the node instead be the template
             # element's template contents (a DocumentFragment node).
             elseif ($node->tagName === "template") {
-                return self::serializeTemplate($node, $config);
+                $n = self::getTemplateContent($n);
+
+                # For each child node of the node, in tree order, run the following steps:
+                // NOTE: the steps in question are implemented in the "serialize" routine
+                foreach ($n->childNodes as $nn) {
+                    $s .= self::serialize($nn, $config);
+                }
+
+                return $s;
             }
         }
         if ($node instanceof \DOMElement || $node instanceof \DOMDocument || $node instanceof \DOMDocumentFragment) {
@@ -506,24 +560,12 @@ abstract class Serializer {
     }
 
 
-    protected static function serializeTemplate(\DOMElement $node, ?Config $config = null): string {
-        # Let s be a string, and initialize it to the empty string.
-        $s = "";
-
+    protected static function getTemplateContent(\DOMElement $node, ?Config $config = null): \DOMNode {
         // NOTE: PHP's DOM does not support the content property on template elements
-        // natively, so there is nothing additional to do here. This method exists
-        // purely so implementors of userland PHP DOM solutions may extend this method
-        // to get template contents how they need them.
-
-        # For each child node of the node, in tree order, run the following steps:
-        // NOTE: the steps in question are implemented in the "serialize" routine
-        foreach ($node->childNodes as $n) {
-            $s .= self::serialize($n, $config);
-        }
-
-        return $s;
+        // natively. This method exists purely so implementors of userland PHP DOM
+        // solutions may extend this method to get template contents how they need them.
+        return $node;
     }
-
 
     protected static function isPreformattedContent(\DOMNode $node): bool {
         // NOTE: This method is used only when pretty printing. Implementors of userland
@@ -540,29 +582,17 @@ abstract class Serializer {
         return false;
     }
 
-    protected static function templateFirstChild(\DOMElement $template): \DOMNode {
-        // NOTE: This method is used only when pretty printing. Implementors of userland
-        // PHP DOM solutions with template contents will need to extend this method to
-        // be able to get the template's first child.
-        return $template->firstChild;
-    }
-
     protected static function treatAsBlock(\DOMNode $node): bool {
         // NOTE: This method is used only when pretty printing. Implementors of userland
         // PHP DOM solutions with template contents will need to extend this method to
         // check for any templates and look within their content fragments for "block"
         // content.
-
-        if ($node->parentNode === null) {
-            return false;
-        }
-
-        if ($node->parentNode instanceof \DOMDocument) {
+        if ($node instanceof \DOMDocument || $node instanceof \DOMDocumentFragment) {
             return true;
         }
 
         $xpath = new \DOMXPath($node->ownerDocument);
-        return ($xpath->evaluate(self::BLOCK_QUERY, $node->parentNode) > 0);
+        return ($xpath->evaluate(self::BLOCK_QUERY, $node) > 0);
     }
 
     protected static function treatForeignRootAsBlock(\DOMNode $node): bool {
@@ -571,8 +601,10 @@ abstract class Serializer {
         // be able to moonwalk through document fragment hosts.
         $n = $node;
         while ($n = $n->parentNode) {
-            if (($n->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
-                if (self::treatAsBlock($n)) {
+            if ($n instanceof \DOMDocument || $n instanceof \DOMDocumentFragment || ($n instanceof \DOMElement && $n->parentNode === null)) {
+                return true;
+            } elseif (($n->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
+                if (self::treatAsBlock($n->parentNode)) {
                     return true;
                 }
                 break;
