@@ -88,7 +88,7 @@ abstract class Serializer {
             # If the node is a template element, then let the node instead be the template
             # element's template contents (a DocumentFragment node).
             elseif ($node->tagName === 'template') {
-                $node = self::getTemplateContent($node);
+                $node = static::getTemplateContent($node);
             }
         }
         if ($node instanceof \DOMElement || $node instanceof \DOMDocument || $node instanceof \DOMDocumentFragment) {
@@ -109,16 +109,6 @@ abstract class Serializer {
         # 2. Let s be a string, and initialize it to the empty string.
         $s = '';
 
-        # 3. If the node is a template element, then let the node instead be the
-        #    template element’s template contents (a DocumentFragment node).
-        if ($node instanceof \DOMElement) {
-            $htmlElement = ($node->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE;
-
-            if ($htmlElement && $node->tagName === 'template') {
-                $node = self::getTemplateContent($node);
-            }
-        }
-
         # If current node is an Element
         if ($node instanceof \DOMElement) {
             extract($serializerState);
@@ -133,16 +123,17 @@ abstract class Serializer {
                 $tagName = self::uncoerceName($node->tagName);
             }
 
+            $htmlElement = ($node->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE;
+
             if ($reformatWhitespace) {
                 $modify = false;
-
-                $preformattedContent = $preformattedContent ?: self::isPreformattedContent($node);
+                $preformattedContent = $preformattedContent ?: static::isPreformattedContent($node);
 
                 // If the node is an HTML element...
                 if ($htmlElement) {
                     // If the element's parent is to be treated as block then we need to modify
                     // whitespace.
-                    if (!$first && self::treatAsBlock($node->parentNode)) {
+                    if (!$first && static::treatAsBlock($node->parentNode)) {
                         $modify = true;
                     }
                 }
@@ -159,7 +150,7 @@ abstract class Serializer {
                         $modify = true;
                         $foreignAsBlock = true;
                     } elseif (($node->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
-                        if (self::treatAsBlock($node->parentNode)) {
+                        if (static::treatAsBlock($node->parentNode)) {
                             $modify = true;
                             $foreignAsBlock = true;
                         }
@@ -171,7 +162,7 @@ abstract class Serializer {
                     // the document.
                     // TODO: Figure out how to make this not fire on every single "inline" svg
                     // element.
-                    elseif (self::treatForeignRootAsBlock($node->parentNode)) {
+                    elseif (static::treatForeignRootAsBlock($node->parentNode)) {
                         $modify = true;
                         $foreignAsBlock = true;
                     }
@@ -276,7 +267,12 @@ abstract class Serializer {
                 }
             }
 
-            $hasChildNodes = $node->hasChildNodes();
+            if ($htmlElement && $tagName === 'template') {
+                $node = static::getTemplateContent($node);
+                $hasChildNodes = $node->hasChildNodes();
+            } else {
+                $hasChildNodes = $node->hasChildNodes();
+            }
 
             if (!$endTags && !$htmlElement && !$hasChildNodes) {
                 $s .= '/>';
@@ -321,26 +317,20 @@ abstract class Serializer {
                     if (!$preformattedContent) {
                         $modify = false;
 
-                        if ($foreignAsBlock) {
-                            $firstElementChild = null;
-                            if (property_exists($node, 'firstElementChild')) {
-                                if ($node->firstElementChild !== null) {
-                                    $modify = true;
+                        $firstElementChild = null;
+                        if (property_exists($node, 'firstElementChild')) {
+                            $firstElementChild = $node->firstElementChild;
+                        } else {
+                            $n = $node->firstChild;
+                            do {
+                                if ($n instanceof \DOMElement) {
+                                    $firstElementChild = $n;
+                                    break;
                                 }
-                            } else {
-                                $n = $node->firstChild;
-                                do {
-                                    if ($n instanceof \DOMElement) {
-                                        $modify = true;
-                                        break;
-                                    }
-                                } while ($n = $n->nextSibling);
-                            }
-                        } elseif ($htmlElement && self::treatAsBlock($node)) {
-                            $modify = true;
+                            } while ($n = $n->nextSibling);
                         }
 
-                        if ($modify) {
+                        if ($firstElementChild !== null && ($foreignAsBlock || ($htmlElement && static::treatAsBlock($node)))) {
                             $s .= "\n" . str_repeat($indentChar, $indentionLevel * $indentStep);
                         }
                     }
@@ -366,8 +356,8 @@ abstract class Serializer {
                 $data = $node->data;
 
                 if ($serializerState['reformatWhitespace']) {
-                    $preformattedContent = $serializerState['preformattedContent'] ?: self::isPreformattedContent($node);
-                    if (!$preformattedContent && ($serializerState['foreignAsBlock'] || self::treatAsBlock($node->parentNode)) && strspn($data, Data::WHITESPACE) === strlen($data)) {
+                    $preformattedContent = $serializerState['preformattedContent'] ?: static::isPreformattedContent($node);
+                    if (!$preformattedContent && ($serializerState['foreignAsBlock'] || static::treatAsBlock($node->parentNode)) && strspn($data, Data::WHITESPACE) === strlen($data)) {
                         return $s;
                     }
 
@@ -381,8 +371,8 @@ abstract class Serializer {
         # If current node is a Comment
         elseif ($node instanceof \DOMComment) {
             if ($serializerState['reformatWhitespace'] && !$serializerState['first']) {
-                $preformattedContent = $serializerState['preformattedContent'] ?: self::isPreformattedContent($node);
-                if (!$preformattedContent && ($serializerState['foreignAsBlock'] || self::treatAsBlock($node->parentNode))) {
+                $preformattedContent = $serializerState['preformattedContent'] ?: static::isPreformattedContent($node);
+                if (!$preformattedContent && ($serializerState['foreignAsBlock'] || static::treatAsBlock($node->parentNode))) {
                     $n = $node;
                     while ($n = $n->previousSibling) {
                         if (!$n instanceof \DOMText) {
@@ -407,8 +397,8 @@ abstract class Serializer {
         # If current node is a ProcessingInstruction
         elseif ($node instanceof \DOMProcessingInstruction) {
             if ($serializerState['reformatWhitespace'] && !$serializerState['first']) {
-                $preformattedContent = $serializerState['preformattedContent'] ?: self::isPreformattedContent($node);
-                if (!$preformattedContent && ($serializerState['foreignAsBlock'] || self::treatAsBlock($node->parentNode))) {
+                $preformattedContent = $serializerState['preformattedContent'] ?: static::isPreformattedContent($node);
+                if (!$preformattedContent && ($serializerState['foreignAsBlock'] || static::treatAsBlock($node->parentNode))) {
                     $n = $node;
                     while ($n = $n->previousSibling) {
                         if (!$n instanceof \DOMText) {
@@ -528,7 +518,7 @@ abstract class Serializer {
             if ($n instanceof \DOMDocument || $n instanceof \DOMDocumentFragment || ($n instanceof \DOMElement && $n->parentNode === null)) {
                 return true;
             } elseif (($n->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
-                if (self::treatAsBlock($n->parentNode)) {
+                if (static::treatAsBlock($n->parentNode)) {
                     return true;
                 }
                 break;
