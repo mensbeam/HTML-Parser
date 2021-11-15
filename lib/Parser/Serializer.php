@@ -63,18 +63,51 @@ abstract class Serializer {
      * @param \MensBeam\HTML\Parser\Config|null $config The configuration parameters to use, if any
     */
     public static function serialize(\DOMNode $node, ?Config $config = null): string {
-        $config = $config ?? new Config;
-        $boolAttr = $config->serializeBooleanAttributeValues ?? true;
-        $endTags = $config->serializeForeignVoidEndTags ?? true;
-        $reformatWhitespace = $config->reformatWhitespace ?? false;
+        return self::serializeNode($node, self::configToSerializerState($config));
+    }
 
-        if ($reformatWhitespace) {
-            $indentStep = $config->indentStep ?? 1;
-            $indentChar = ($config->indentWithSpaces ?? true) ? ' ' : "\t";
+    /** Serializes the children of an HTML DOM node to a string. This is equivalent to the innerHTML getter
+     *
+     * @param \DOMDocument|\DOMElement|\DOMDocumentFragment $node The node to serialize
+     * @param \MensBeam\HTML\Parser\Config|null $config The configuration parameters to use, if any
+    */
+    public static function serializeInner(\DOMNode $node, ?Config $config = null): string {
+        return self::serializeInnerNodes($node, self::configToSerializerState($config));
+    }
+
+
+    protected static function serializeInnerNodes(\DOMNode $node, array $serializerState): string {
+        # Let s be a string, and initialize it to the empty string.
+        $s = '';
+
+        if ($node instanceof \DOMElement && ($node->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
+            # If the node serializes as void, then return the empty string.
+            if (in_array($node->tagName, self::VOID_ELEMENTS)) {
+                return '';
+            }
+            # If the node is a template element, then let the node instead be the template
+            # element's template contents (a DocumentFragment node).
+            elseif ($node->tagName === 'template') {
+                $node = self::getTemplateContent($node);
+            }
+        }
+        if ($node instanceof \DOMElement || $node instanceof \DOMDocument || $node instanceof \DOMDocumentFragment) {
+            # For each child node of the node, in tree order, run the following steps:
+            // NOTE: the steps in question are implemented in the "serialize" routine
+            foreach ($node->childNodes as $n) {
+                $s .= self::serializeNode($n, $serializerState);
+                $serializerState['first'] = false;
+            }
+        } else {
+            throw new Exception(Exception::UNSUPPORTED_NODE_TYPE, [get_class($node)]);
         }
 
+        return $s;
+    }
+
+    protected static function serializeNode(\DOMNode $node, array $serializerState): string {
         # 2. Let s be a string, and initialize it to the empty string.
-        $s = "";
+        $s = '';
 
         # 3. If the node is a template element, then let the node instead be the
         #    template element’s template contents (a DocumentFragment node).
@@ -82,12 +115,14 @@ abstract class Serializer {
             $htmlElement = ($node->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE;
 
             if ($htmlElement && $node->tagName === 'template') {
-                $node = $node->content;
+                $node = self::getTemplateContent($node);
             }
         }
 
         # If current node is an Element
         if ($node instanceof \DOMElement) {
+            extract($serializerState);
+
             # If current node is an element in the HTML namespace, the MathML namespace, or
             # the SVG namespace, then let tagname be current node's local name.
             if (in_array($node->namespaceURI ?? Parser::HTML_NAMESPACE, [Parser::HTML_NAMESPACE, Parser::SVG_NAMESPACE, Parser::MATHML_NAMESPACE])) {
@@ -96,6 +131,79 @@ abstract class Serializer {
             # Otherwise, let tagname be current node's qualified name.
             else {
                 $tagName = self::uncoerceName($node->tagName);
+            }
+
+            if ($reformatWhitespace) {
+                $modify = false;
+
+                $preformattedContent = $preformattedContent ?: self::isPreformattedContent($node);
+
+                // If the node is an HTML element...
+                if ($htmlElement) {
+                    // If the element's parent is to be treated as block then we need to modify
+                    // whitespace.
+                    if (!$first && self::treatAsBlock($node->parentNode)) {
+                        $modify = true;
+                    }
+                }
+                // If the node is not an HTML element...
+                elseif ($foreignAsBlock) {
+                    $modify = true;
+                } else {
+                    // If the parent node is null then we need to modify whitespace; this means that
+                    // it is the element itself that is being serialized. Foreign content without
+                    // any context is printed as "block" content.
+                    // If a foreign element with an html element parent and the foreign element
+                    // should be treated as block then we also need to modify whitespace.
+                    if ($node->parentNode === null) {
+                        $modify = true;
+                        $foreignAsBlock = true;
+                    } elseif (($node->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
+                        if (self::treatAsBlock($node->parentNode)) {
+                            $modify = true;
+                            $foreignAsBlock = true;
+                        }
+                    }
+                    // Otherwise, if the node's parent is not an HTML element then moonwalk up
+                    // the tree until the root foreign node is found, and if it is to be treated
+                    // as block then we need to modify whitespace. This should only match when
+                    // printing non-root foreign elements themselves while also being appended to
+                    // the document.
+                    // TODO: Figure out how to make this not fire on every single "inline" svg
+                    // element.
+                    elseif (self::treatForeignRootAsBlock($node->parentNode)) {
+                        $modify = true;
+                        $foreignAsBlock = true;
+                    }
+                }
+
+                // Only modify here before printing the open tag if it's not the first element
+                // printed. Above whether to modify is still partially calculated because if
+                // printing just foreign nodes the foreignAsBlock flag needs to be set for any
+                // descendants.
+                if (!$first && $modify) {
+                    // If the previous non text or non document type node sibling doesn't have the
+                    // same name as the current node and neither are h1-h6 elements then add an
+                    // additional newline. This causes like elements to be grouped together.
+                    $n = $node;
+                    while ($n = $n->previousSibling) {
+                        if (!$n instanceof \DOMText && !$n instanceof \DOMDocumentType) {
+                            if (!$n instanceof \DOMElement || ($n->tagName !== $tagName && count(array_intersect([ $n->tagName, $tagName ], self::H_ELEMENTS)) !== 2)) {
+                                $s .= "\n";
+                            }
+                            break;
+                        }
+                    }
+
+                    $s .= "\n" . str_repeat($indentChar, $indentionLevel * $indentStep);
+                }
+
+                // Disable whitespace reformatting when the content is preformatted.
+                if ($preformattedContent) {
+                    $reformatWhitespace = false;
+                }
+
+                $first = false;
             }
 
             # Append a U+003C LESS-THAN SIGN character (<), followed by tagname.
@@ -168,11 +276,9 @@ abstract class Serializer {
                 }
             }
 
-            if (!$endTags && !$htmlElement && !$node->hasChildNodes()) {
-                // Printing XML-based content such as SVG as if it's HTML might be practical
-                // when a browser is serializing, but it's not in this library's usage. So, if
-                // the element is foreign and doesn't contain any children close the element
-                // instead and return s.
+            $hasChildNodes = $node->hasChildNodes();
+
+            if (!$endTags && !$htmlElement && !$hasChildNodes) {
                 $s .= '/>';
                 return $s;
             }
@@ -186,11 +292,62 @@ abstract class Serializer {
                 return $s;
             }
 
-            # Append the value of running the HTML fragment serialization algorithm on the
-            # current node element (thus recursing into this algorithm for that element),
-            # followed by a U+003C LESS-THAN SIGN character (<), a U+002F SOLIDUS character (/),
-            # tagname again, and finally a U+003E GREATER-THAN SIGN character (>).
-            $s .= self::serializeInner($node, $config) . "</$tagName>";
+            if ($hasChildNodes) {
+                if ($reformatWhitespace) {
+                    $indentionLevel++;
+                }
+
+                // PHP's compact function sucks. Sorry.
+                $state = [
+                    'boolAttr' => $boolAttr,
+                    'endTags' => $endTags,
+                    'reformatWhitespace' => $reformatWhitespace
+                ];
+
+                if (isset($indentionLevel)) {
+                    $state['first'] = $first;
+                    $state['indentionLevel'] = $indentionLevel;
+                    $state['indentStep'] = $indentStep;
+                    $state['indentChar'] = $indentChar;
+                    $state['foreignAsBlock'] = $foreignAsBlock;
+                    $state['preformattedContent'] = $preformattedContent;
+                }
+
+                $s .= self::serializeInnerNodes($node, $state);
+
+                if ($reformatWhitespace) {
+                    $indentionLevel--;
+
+                    if (!$preformattedContent) {
+                        $modify = false;
+
+                        if ($foreignAsBlock) {
+                            $firstElementChild = null;
+                            if (property_exists($node, 'firstElementChild')) {
+                                if ($node->firstElementChild !== null) {
+                                    $modify = true;
+                                }
+                            } else {
+                                $n = $node->firstChild;
+                                do {
+                                    if ($n instanceof \DOMElement) {
+                                        $modify = true;
+                                        break;
+                                    }
+                                } while ($n = $n->nextSibling);
+                            }
+                        } elseif ($htmlElement && self::treatAsBlock($node)) {
+                            $modify = true;
+                        }
+
+                        if ($modify) {
+                            $s .= "\n" . str_repeat($indentChar, $indentionLevel * $indentStep);
+                        }
+                    }
+                }
+            }
+
+            $s .= "</$tagName>";
         }
         # If current node is a Text node
         elseif ($node instanceof \DOMText) {
@@ -206,11 +363,41 @@ abstract class Serializer {
             }
             # Otherwise, append the value of current node's data IDL attribute, escaped as described below.
             else {
-                $s .= self::escapeString($node->data);
+                $data = $node->data;
+
+                if ($serializerState['reformatWhitespace']) {
+                    $preformattedContent = $serializerState['preformattedContent'] ?: self::isPreformattedContent($node);
+                    if (!$preformattedContent && ($serializerState['foreignAsBlock'] || self::treatAsBlock($node->parentNode)) && strspn($data, Data::WHITESPACE) === strlen($data)) {
+                        return $s;
+                    }
+
+                    // Condense spaces and tabs into a single space.
+                    $data = preg_replace('/ +/', ' ', str_replace("\t", '    ', $data));
+                }
+
+                $s .= self::escapeString($data);
             }
         }
         # If current node is a Comment
         elseif ($node instanceof \DOMComment) {
+            if ($serializerState['reformatWhitespace'] && !$serializerState['first']) {
+                $preformattedContent = $serializerState['preformattedContent'] ?: self::isPreformattedContent($node);
+                if (!$preformattedContent && ($serializerState['foreignAsBlock'] || self::treatAsBlock($node->parentNode))) {
+                    $n = $node;
+                    while ($n = $n->previousSibling) {
+                        if (!$n instanceof \DOMText) {
+                            if (!$n instanceof \DOMComment) {
+                                $s .= "\n";
+                            }
+
+                            break;
+                        }
+                    }
+
+                    $s .= "\n" . str_repeat($serializerState['indentChar'], $serializerState['indentionLevel'] * $serializerState['indentStep']);
+                }
+            }
+
             # Append the literal string "<!--" (U+003C LESS-THAN SIGN, U+0021 EXCLAMATION
             # MARK, U+002D HYPHEN-MINUS, U+002D HYPHEN-MINUS), followed by the value of
             # current node’s data IDL attribute, followed by the literal string "-->"
@@ -219,14 +406,36 @@ abstract class Serializer {
         }
         # If current node is a ProcessingInstruction
         elseif ($node instanceof \DOMProcessingInstruction) {
+            if ($serializerState['reformatWhitespace'] && !$serializerState['first']) {
+                $preformattedContent = $serializerState['preformattedContent'] ?: self::isPreformattedContent($node);
+                if (!$preformattedContent && ($serializerState['foreignAsBlock'] || self::treatAsBlock($node->parentNode))) {
+                    $n = $node;
+                    while ($n = $n->previousSibling) {
+                        if (!$n instanceof \DOMText) {
+                            if (!$n instanceof \DOMProcessingInstruction) {
+                                $s .= "\n";
+                            }
+
+                            break;
+                        }
+                    }
+
+                    $s .= "\n" . str_repeat($serializerState['indentChar'], $serializerState['indentionLevel'] * $serializerState['indentStep']);
+                }
+            }
+
             # Append the literal string "<?" (U+003C LESS-THAN SIGN, U+003F QUESTION MARK),
             # followed by the value of current node’s target IDL attribute, followed by a
             # single U+0020 SPACE character, followed by the value of current node’s data
             # IDL attribute, followed by a single U+003E GREATER-THAN SIGN character (>).
-            $s .= '<?' . self::uncoerceName($node->target) . " {$n->data}>";
+            $s .= '<?' . self::uncoerceName($node->target) . " {$node->data}>";
         }
         # If current node is a DocumentType
         elseif ($node instanceof \DOMDocumentType) {
+            if ($serializerState['reformatWhitespace'] && !$serializerState['first']) {
+                $s .= "\n";
+            }
+
             # Append the literal string "<!DOCTYPE" (U+003C LESS-THAN SIGN,
             #   U+0021 EXCLAMATION MARK, U+0044 LATIN CAPITAL LETTER D,
             #   U+004F LATIN CAPITAL LETTER O, U+0043 LATIN CAPITAL LETTER C,
@@ -240,7 +449,7 @@ abstract class Serializer {
         // NOTE: Documents and document fragments have no outer content,
         //   so we can just serialize the inner content
         elseif ($node instanceof \DOMDocument || $node instanceof \DOMDocumentFragment) {
-            return self::serializeInner($node, $config);
+            return self::serializeInnerNodes($node, $serializerState);
         } else {
             throw new Exception(Exception::UNSUPPORTED_NODE_TYPE, [get_class($node)]);
         }
@@ -248,39 +457,32 @@ abstract class Serializer {
         return $s;
     }
 
-    /** Serializes the children of an HTML DOM node to a string. This is equivalent to the innerHTML getter
-     *
-     * @param \DOMDocument|\DOMElement|\DOMDocumentFragment $node The node to serialize
-     * @param \MensBeam\HTML\Parser\Config|null $config The configuration parameters to use, if any
-    */
-    public static function serializeInner(\DOMNode $node, ?Config $config = null): string {
-        # Let s be a string, and initialize it to the empty string.
-        $s = '';
+    protected static function configToSerializerState(?Config $config = null): array {
+        $state = [
+            'boolAttr' => true,
+            'endTags' => true,
+            'reformatWhitespace' => false
+        ];
 
-        if ($node instanceof \DOMElement && ($node->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
-            # If the node serializes as void, then return the empty string.
-            if (in_array($node->tagName, self::VOID_ELEMENTS)) {
-                return '';
-            }
-            # If the node is a template element, then let the node instead be the template
-            # element's template contents (a DocumentFragment node).
-            elseif ($node->tagName === 'template') {
-                $node = self::getTemplateContent($node);
+        if ($config !== null) {
+            $state = [
+                'boolAttr' => $config->serializeBooleanAttributeValues ?? true,
+                'endTags' => $config->serializeForeignVoidEndTags ?? true,
+                'reformatWhitespace' => $config->reformatWhitespace ?? false
+            ];
+
+            if ($state['reformatWhitespace']) {
+                $state['first'] = true;
+                $state['indentionLevel'] = 0;
+                $state['indentStep'] = $config->indentStep ?? 1;
+                $state['indentChar'] = ($config->indentWithSpaces ?? true) ? ' ' : "\t";
+                $state['foreignAsBlock'] = false;
+                $state['preformattedContent'] = false;
             }
         }
-        if ($node instanceof \DOMElement || $node instanceof \DOMDocument || $node instanceof \DOMDocumentFragment) {
-            # For each child node of the node, in tree order, run the following steps:
-            // NOTE: the steps in question are implemented in the "serialize" routine
-            foreach ($node->childNodes as $n) {
-                $s .= self::serialize($n, $config);
-            }
-        } else {
-            throw new Exception(Exception::UNSUPPORTED_NODE_TYPE, [get_class($node)]);
-        }
 
-        return $s;
+        return $state;
     }
-
 
     protected static function getTemplateContent(\DOMElement $node, ?Config $config = null): \DOMNode {
         // NOTE: PHP's DOM does not support the content property on template elements
