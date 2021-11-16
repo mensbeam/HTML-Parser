@@ -133,7 +133,7 @@ abstract class Serializer {
                 if ($htmlElement) {
                     // If the element's parent is to be treated as block then we need to modify
                     // whitespace.
-                    if (!$first && static::treatAsBlock($node->parentNode)) {
+                    if (!$first && self::treatAsBlock($node->parentNode)) {
                         $modify = true;
                     }
                 }
@@ -150,7 +150,7 @@ abstract class Serializer {
                         $modify = true;
                         $foreignAsBlock = true;
                     } elseif (($node->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
-                        if (static::treatAsBlock($node->parentNode)) {
+                        if (self::treatAsBlock($node->parentNode)) {
                             $modify = true;
                             $foreignAsBlock = true;
                         }
@@ -178,8 +178,8 @@ abstract class Serializer {
                     // additional newline. This causes like elements to be grouped together.
                     $n = $node;
                     while ($n = $n->previousSibling) {
-                        if (!$n instanceof \DOMText && !$n instanceof \DOMDocumentType) {
-                            if (!$n instanceof \DOMElement || ($n->tagName !== $tagName && count(array_intersect([ $n->tagName, $tagName ], self::H_ELEMENTS)) !== 2)) {
+                        if (!$n instanceof \DOMText) {
+                            if ((!$n instanceof \DOMElement && !$n instanceof \DOMDocumentType) || ($n instanceof \DOMElement && $n->tagName !== $tagName && count(array_intersect([ $n->tagName, $tagName ], self::H_ELEMENTS)) !== 2)) {
                                 $s .= "\n";
                             }
                             break;
@@ -330,7 +330,7 @@ abstract class Serializer {
                             } while ($n = $n->nextSibling);
                         }
 
-                        if ($firstElementChild !== null && ($foreignAsBlock || ($htmlElement && static::treatAsBlock($node)))) {
+                        if ($firstElementChild !== null && ($foreignAsBlock || ($htmlElement && self::treatAsBlock($node)))) {
                             $s .= "\n" . str_repeat($indentChar, $indentionLevel * $indentStep);
                         }
                     }
@@ -357,12 +357,37 @@ abstract class Serializer {
 
                 if ($serializerState['reformatWhitespace']) {
                     $preformattedContent = $serializerState['preformattedContent'] ?: static::isPreformattedContent($node);
-                    if (!$preformattedContent && ($serializerState['foreignAsBlock'] || static::treatAsBlock($node->parentNode)) && strspn($data, Data::WHITESPACE) === strlen($data)) {
-                        return $s;
-                    }
+                    if (!$preformattedContent) {
+                        $treatAsBlock = self::treatAsBlock($node);
+                        $modify = false;
+                        if (($serializerState['foreignAsBlock'] || $treatAsBlock || (self::treatAsBlock($node->parentNode) && count($node->parentNode->childNodes) === 1)) && strspn($data, Data::WHITESPACE) === strlen($data)) {
+                            return $s;
+                        }
 
-                    // Condense spaces and tabs into a single space.
-                    $data = preg_replace('/ +/', ' ', str_replace("\t", '    ', $data));
+                        if ($treatAsBlock) {
+                            // Block formatting context -- remove all whitespace
+                            $data = preg_replace(Data::WHITESPACE_REGEX, '', $data);
+                        } else {
+                            // Inline formatting context
+                            $data = preg_replace([
+                                // 1. Remove all whitespace before and after a newline
+                                '/[\t\n\x0c\x0D ]*\n[\t\n\x0c\x0D ]*/',
+                                // 2. Convert all tabs to a single space
+                                '/\t/',
+                                // 3. Convert all line breaks to a single space
+                                '/\n/'
+                            ], [
+                                "\n",
+                                ' ',
+                                ' '
+                            ], $data);
+
+                            // 4. Convert multiple spaces to a single space even across inline elements.
+
+                            // 5. Spaces at the beginning and ending of a line (beginning and ending of
+                            // inline content) are removed.
+                        }
+                    }
                 }
 
                 $s .= self::escapeString($data);
@@ -372,7 +397,7 @@ abstract class Serializer {
         elseif ($node instanceof \DOMComment) {
             if ($serializerState['reformatWhitespace'] && !$serializerState['first']) {
                 $preformattedContent = $serializerState['preformattedContent'] ?: static::isPreformattedContent($node);
-                if (!$preformattedContent && ($serializerState['foreignAsBlock'] || static::treatAsBlock($node->parentNode))) {
+                if (!$preformattedContent && ($serializerState['foreignAsBlock'] || self::treatAsBlock($node->parentNode))) {
                     $n = $node;
                     while ($n = $n->previousSibling) {
                         if (!$n instanceof \DOMText) {
@@ -398,7 +423,7 @@ abstract class Serializer {
         elseif ($node instanceof \DOMProcessingInstruction) {
             if ($serializerState['reformatWhitespace'] && !$serializerState['first']) {
                 $preformattedContent = $serializerState['preformattedContent'] ?: static::isPreformattedContent($node);
-                if (!$preformattedContent && ($serializerState['foreignAsBlock'] || static::treatAsBlock($node->parentNode))) {
+                if (!$preformattedContent && ($serializerState['foreignAsBlock'] || self::treatAsBlock($node->parentNode))) {
                     $n = $node;
                     while ($n = $n->previousSibling) {
                         if (!$n instanceof \DOMText) {
@@ -497,16 +522,32 @@ abstract class Serializer {
     }
 
     protected static function treatAsBlock(\DOMNode $node): bool {
+        if ($node instanceof \DOMDocument || $node instanceof \DOMDocumentFragment || ($node instanceof \DOMElement && in_array($node->tagName, self::BLOCK_ELEMENTS))) {
+            return true;
+        }
+
+        if (!$node instanceof \DOMElement) {
+            $node = $node->parentNode;
+
+            if ($node === null) {
+                return false;
+            }
+        }
+
+        $xpath = new \DOMXPath($node->ownerDocument);
+        if ($xpath->evaluate(self::BLOCK_QUERY, $node) === 0) {
+            return static::treatAsBlockWithTemplates($node);
+        }
+
+        return true;
+    }
+
+    protected static function treatAsBlockWithTemplates(\DOMNode $node): bool {
         // NOTE: This method is used only when pretty printing. Implementors of userland
         // PHP DOM solutions with template contents will need to extend this method to
         // check for any templates and look within their content fragments for "block"
         // content.
-        if ($node instanceof \DOMDocument || $node instanceof \DOMDocumentFragment) {
-            return true;
-        }
-
-        $xpath = new \DOMXPath($node->ownerDocument);
-        return ($xpath->evaluate(self::BLOCK_QUERY, $node) > 0);
+        return $result;
     }
 
     protected static function treatForeignRootAsBlock(\DOMNode $node): bool {
@@ -518,7 +559,7 @@ abstract class Serializer {
             if ($n instanceof \DOMDocument || $n instanceof \DOMDocumentFragment || ($n instanceof \DOMElement && $n->parentNode === null)) {
                 return true;
             } elseif (($n->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
-                if (static::treatAsBlock($n->parentNode)) {
+                if (self::treatAsBlock($n->parentNode)) {
                     return true;
                 }
                 break;

@@ -122,22 +122,182 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
     }
 
     /** @dataProvider provideCustomSerializations */
-    public function testSerializeWithSimpleOptions(string $in, bool $boolAttr, bool $foreignVoid, string $exp): void {
+    public function testSerializeWithOptions(int $indentStep, bool $indentWithSpaces, bool $processingInstructions, bool $reformatWhitespace, bool $boolAttr, bool $foreignVoid, string $in, string $exp): void {
         $config = new Config;
+        $config->indentStep = $indentStep;
+        $config->indentWithSpaces = $indentWithSpaces;
+        $config->processingInstructions = $processingInstructions;
+        $config->reformatWhitespace = $reformatWhitespace;
         $config->serializeBooleanAttributeValues = $boolAttr;
         $config->serializeForeignVoidEndTags = $foreignVoid;
-        $body = Parser::parse($in, "UTF-8")->document->getElementsByTagName("body")[0];
-        $act = Parser::serializeInner($body, $config);
+        $d = Parser::parse($in, "UTF-8")->document;
+        $act = Parser::serialize($d, $config);
         $this->assertSame($exp, $act);
     }
 
     public function provideCustomSerializations(): iterable {
         return [
-            ['<a hidden="hidden"></a><b hidden=""></b><c hidden="HIDDEN"></c><d hidden="true"></d>', true,  true,  '<a hidden="hidden"></a><b hidden=""></b><c hidden="HIDDEN"></c><d hidden="true"></d>'],
-            ['<a hidden="hidden"></a><b hidden=""></b><c hidden="HIDDEN"></c><d hidden="true"></d>', false, true,  '<a hidden></a><b hidden></b><c hidden></c><d hidden="true"></d>'],
-            ['<br><svg/><svg>blah</svg><math/><math>blah</math><input>',                             true,  true,  '<br><svg></svg><svg>blah</svg><math></math><math>blah</math><input>'],
-            ['<br><svg/><svg>blah</svg><math/><math>blah</math><input>',                             true,  false, '<br><svg/><svg>blah</svg><math/><math>blah</math><input>'],
-            ['<audio loop hidden></audio><svg/>',                                                    false, false,  '<audio loop hidden></audio><svg/>'],
+            // Boolean attribute values serialized
+            [0, false, false, false, true, true,
+                <<<HTML
+                <a hidden="hidden"></a><b hidden=""></b><c hidden="HIDDEN"></c><d hidden="true"></d>
+                HTML,
+
+                <<<HTML
+                <html><head></head><body><a hidden="hidden"></a><b hidden=""></b><c hidden="HIDDEN"></c><d hidden="true"></d></body></html>
+                HTML
+            ],
+
+            // Boolean attribute values not serialized
+            [0, false, false, false, false, true,
+                <<<HTML
+                <a hidden="hidden"></a><b hidden=""></b><c hidden="HIDDEN"></c><d hidden="true"></d>
+                HTML,
+
+                <<<HTML
+                <html><head></head><body><a hidden></a><b hidden></b><c hidden></c><d hidden="true"></d></body></html>
+                HTML
+            ],
+
+            // Boolean attribute values serialized, foreign void end tags serialized
+            [0, false, false, false, true, true,
+                <<<HTML
+                <br><svg/><svg>blah</svg><math/><math>blah</math><input>
+                HTML,
+
+                <<<HTML
+                <html><head></head><body><br><svg></svg><svg>blah</svg><math></math><math>blah</math><input></body></html>
+                HTML
+            ],
+
+            // Boolean attribute values serialized, foreign void end tags not serialized
+            [0, false, false, false, true, false,
+                <<<HTML
+                <br><svg/><svg>blah</svg><math/><math>blah</math><input>
+                HTML,
+
+                <<<HTML
+                <html><head></head><body><br><svg/><svg>blah</svg><math/><math>blah</math><input></body></html>
+                HTML
+            ],
+
+            // Neither attribute values nor foreign void end tags serialized
+            [0, false, false, false, false, false,
+                <<<HTML
+                <audio loop hidden></audio><svg/>
+                HTML,
+
+                <<<HTML
+                <html><head></head><body><audio loop hidden></audio><svg/></body></html>
+                HTML
+            ],
+
+            // Reformat whitespace, empty document
+            [1, true, false, true, false, false,
+                <<<HTML
+                <html></html>
+                HTML,
+
+                <<<HTML
+                <html>
+                 <head></head>
+
+                 <body></body>
+                </html>
+                HTML
+            ],
+
+            // Reformat whitespace, comment before doctype
+            [1, true, false, true, false, false,
+                <<<HTML
+                <!--data-->
+                <!DOCTYPE html>
+                <html></html>
+                HTML,
+
+                <<<HTML
+                <!--data-->
+                <!DOCTYPE html>
+                <html>
+                 <head></head>
+
+                 <body></body>
+                </html>
+                HTML
+            ],
+
+            // Reformat whitespace, preformatted element
+            [1, true, false, true, false, false,
+                <<<HTML
+                <pre><code></code></pre>
+                HTML,
+
+                <<<HTML
+                <html>
+                 <head></head>
+
+                 <body>
+                  <pre><code></code></pre>
+                 </body>
+                </html>
+                HTML
+            ],
+
+            // Reformat whitespace, element grouping, foreign "block" content, & foreign
+            // void end tags not serialized
+            [1, true, false, true, false, false,
+                <<<HTML
+                <div></div><svg><g id="ook"></g></svg>
+                HTML,
+
+                <<<HTML
+                <html>
+                 <head></head>
+
+                 <body>
+                  <div></div>
+
+                  <svg>
+                   <g id="ook"/>
+                  </svg>
+                 </body>
+                </html>
+                HTML
+            ],
+
+            // Reformat whitespace, whitespace collapsing, custom indentions
+            [4, true, false, true, false, false,
+                <<<HTML
+                <!DOCTYPE html>
+                <html>
+
+
+
+                <head>
+
+                </head>
+                          <body>
+                    ook
+
+                                    <div/>
+                </body>
+                   </html>
+                HTML,
+
+                <<<HTML
+                <!DOCTYPE html>
+                <html>
+                    <head></head>
+
+                    <body>
+                 ook
+
+                 
+                        <div></div>
+                    </body>
+                </html>
+                HTML
+            ],
         ];
     }
 
