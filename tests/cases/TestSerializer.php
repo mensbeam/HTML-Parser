@@ -552,19 +552,6 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
                 HTML
             ],
 
-            /*
-            // Fragment, html elements
-            [true, 'div', 1, true, false, true, false, false,
-                <<<HTML
-                <span> <span> Ook!</span></span>
-                HTML,
-
-                <<<HTML
-                <span><span>Ook!</span></span>
-                HTML
-            ],
-            */
-
             // Solo text node without context
             [1, true, false, true, false, true,
                 function (Config $config): string {
