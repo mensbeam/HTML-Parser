@@ -11,8 +11,9 @@ use MensBeam\HTML\Parser;
 abstract class Serializer {
     use NameCoercion;
 
+    protected const BLOCK_ELEMENTS = [ 'address', 'article', 'aside', 'blockquote', 'canvas', 'dd', 'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'hr', 'li', 'main', 'nav', 'noscript', 'ol', 'p', 'pre', 'section', 'table', 'tfoot', 'ul', 'video' ];
     // Elements treated as block elements when reformatting whitespace
-    protected const BLOCK_ELEMENTS = [ 'address', 'article', 'aside', 'blockquote', 'base', 'body', 'details', 'dialog', 'dd', 'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hr', 'html', 'isindex', 'li', 'link', 'main', 'meta', 'nav', 'ol', 'p', 'picture', 'pre', 'section', 'script', 'source', 'style', 'table', 'td', 'tfoot', 'th', 'thead', 'title', 'tr', 'ul' ];
+    protected const PRINTING_BLOCK_ELEMENTS = [ 'address', 'article', 'aside', 'blockquote', 'base', 'body', 'canvas', 'details', 'dialog', 'dd', 'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hr', 'html', 'isindex', 'li', 'link', 'main', 'meta', 'nav', 'noscript', 'ol', 'p', 'picture', 'pre', 'section', 'script', 'source', 'style', 'table', 'td', 'tfoot', 'th', 'thead', 'title', 'tr', 'ul', 'video' ];
     // List of h-elements which are used to determine element grouping for the
     // purposes of reformatting whitespace
     protected const H_ELEMENTS = [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ];
@@ -55,7 +56,7 @@ abstract class Serializer {
     ];
 
     /* Used when reformatting whitespace when nodes are checked for being treated as block. */
-    protected const BLOCK_QUERY = 'count(.//*[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"][not(ancestor::iframe[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::listing[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::noembed[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::noframes[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::noscript[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::plaintext[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::pre[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::style[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::script[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::textarea[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::title[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::xmp[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"])][name()="address" or name()="article" or name()="aside" or name()="blockquote" or name()="base" or name()="body" or name()="details" or name()="dialog" or name()="dd" or name()="div" or name()="dl" or name()="dt" or name()="fieldset" or name()="figcaption" or name()="figure" or name()="footer" or name()="form" or name()="frame" or name()="frameset" or name()="h1" or name()="h2" or name()="h3" or name()="h4" or name()="h5" or name()="h6" or name()="head" or name()="header" or name()="hr" or name()="html" or name()="isindex" or name()="li" or name()="link" or name()="main" or name()="meta" or name()="nav" or name()="ol" or name()="p" or name()="picture" or name()="pre" or name()="section" or name()="script" or name()="source" or name()="style" or name()="table" or name()="td" or name()="tfoot" or name()="th" or name()="thead" or name()="title" or name()="tr" or name()="ul"][1])';
+    protected const BLOCK_QUERY = 'count(.//*[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"][not(ancestor::iframe[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::listing[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::noembed[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::noframes[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::noscript[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::plaintext[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::pre[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::style[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::script[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::textarea[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::title[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::xmp[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"])][name()="address" or name()="article" or name()="aside" or name()="blockquote" or name()="base" or name()="body" or name()="canvas" or name()="details" or name()="dialog" or name()="dd" or name()="div" or name()="dl" or name()="dt" or name()="fieldset" or name()="figcaption" or name()="figure" or name()="footer" or name()="form" or name()="frame" or name()="frameset" or name()="h1" or name()="h2" or name()="h3" or name()="h4" or name()="h5" or name()="h6" or name()="head" or name()="header" or name()="hr" or name()="html" or name()="isindex" or name()="li" or name()="link" or name()="main" or name()="meta" or name()="nav" or name()="ol" or name()="p" or name()="picture" or name()="pre" or name()="section" or name()="script" or name()="source" or name()="style" or name()="table" or name()="td" or name()="tfoot" or name()="th" or name()="thead" or name()="title" or name()="tr" or name()="ul" or name()="video"][1])';
 
     /** Serializes an HTML DOM node to a string. This is equivalent to the outerHTML getter
      *
@@ -367,7 +368,10 @@ abstract class Serializer {
                         if ($treatAsBlock) {
                             // Block formatting context -- remove all whitespace
                             $data = preg_replace(Data::WHITESPACE_REGEX, '', $data);
-                        } else {
+                            if ($data === '') {
+                                return $s;
+                            }
+                        } elseif (preg_match(Data::WHITESPACE_REGEX, $data)) {
                             // Inline formatting context
                             $data = preg_replace([
                                 // 1. Remove all whitespace before and after a newline
@@ -383,9 +387,35 @@ abstract class Serializer {
                             ], $data);
 
                             // 4. Convert multiple spaces to a single space even across inline elements.
+                            //
+                            // This will be accomplished by looking backwards through siblings, checking
+                            // if the previous text node had whitespace at the end and then lobbing off
+                            // whitespace at the beginning of the current text node. This has the added
+                            // benefit of doing part of the work of #5 as well -- if it matches.
+                            $xpath = new \DOMXPath($node->ownerDocument);
+                            $previousTextNode = $xpath->query('./preceding-sibling::text()[1] | ./preceding-sibling::*/descendant::text()[1]', $node);
+                            $ltrimmed = false;
+                            if ($previousTextNode->length > 0) {
+                                $data2 = $previousTextNode->item(0)->data;
+                                if (preg_match('/[\t\n\x0c\x0D ]+$/', $data2)) {
+                                    $data = ltrim($data);
+                                    $ltrimmed = true;
+                                }
+                            }
 
                             // 5. Spaces at the beginning and ending of a line (beginning and ending of
-                            // inline content) are removed.
+                            //    inline content) are removed.
+                            if (!$ltrimmed) {
+                                $firstOfLine = $xpath->query('./ancestor::*[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"][name()="address" or name()="article" or name()="aside" or name()="blockquote" or name="body" or name()="canvas" or name()="dd" or name()="div" or name()="dl" or name()="dt" or name()="fieldset" or name()="figcaption" or name()="figure" or name()="footer" or name()="form" or name()="h1" or name()="h2" or name()="h3" or name()="h4" or name()="h5" or name()="h6" or name="head" or name="header" or name="hr" or name="html" or name="li" or name="main" or name="nav" or name="ol" or name="p" or name="section" or name="table" or name="tfoot" or name="ul" or name="video"][1]/descendant::text()[1]', $node);
+                                if ($firstOfLine->length > 0 && $node === $firstOfLine->item(0)) {
+                                    $data = ltrim($data);
+                                }
+                            }
+
+                            $lastOfLine = $xpath->query('./ancestor::*[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"][name()="address" or name()="article" or name()="aside" or name()="blockquote" or name="body" or name()="canvas" or name()="dd" or name()="div" or name()="dl" or name()="dt" or name()="fieldset" or name()="figcaption" or name()="figure" or name()="footer" or name()="form" or name()="h1" or name()="h2" or name()="h3" or name()="h4" or name()="h5" or name()="h6" or name="head" or name="header" or name="hr" or name="html" or name="li" or name="main" or name="nav" or name="ol" or name="p" or name="section" or name="table" or name="tfoot" or name="ul" or name="video"][1]/descendant::text()[last()]', $node);
+                            if ($lastOfLine->length > 0 && $node === $lastOfLine->item(0)) {
+                                $data = rtrim($data);
+                            }
                         }
                     }
                 }
@@ -522,7 +552,7 @@ abstract class Serializer {
     }
 
     protected static function treatAsBlock(\DOMNode $node): bool {
-        if ($node instanceof \DOMDocument || $node instanceof \DOMDocumentFragment || ($node instanceof \DOMElement && in_array($node->tagName, self::BLOCK_ELEMENTS))) {
+        if ($node instanceof \DOMDocument || $node instanceof \DOMDocumentFragment || ($node instanceof \DOMElement && in_array($node->tagName, self::PRINTING_BLOCK_ELEMENTS))) {
             return true;
         }
 
