@@ -11,9 +11,6 @@ use MensBeam\HTML\Parser;
 abstract class Serializer {
     use NameCoercion;
 
-    protected const BLOCK_ELEMENTS = [ 'address', 'article', 'aside', 'blockquote', 'canvas', 'dd', 'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'hr', 'li', 'main', 'nav', 'noscript', 'ol', 'p', 'pre', 'section', 'table', 'tfoot', 'ul', 'video' ];
-    // Elements treated as block elements when reformatting whitespace
-    protected const PRINTING_BLOCK_ELEMENTS = [ 'address', 'article', 'aside', 'blockquote', 'base', 'body', 'canvas', 'details', 'dialog', 'dd', 'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hr', 'html', 'isindex', 'li', 'link', 'main', 'meta', 'nav', 'noscript', 'ol', 'p', 'picture', 'pre', 'section', 'script', 'source', 'style', 'table', 'td', 'tfoot', 'th', 'thead', 'title', 'tr', 'ul', 'video' ];
     // List of h-elements which are used to determine element grouping for the
     // purposes of reformatting whitespace
     protected const H_ELEMENTS = [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ];
@@ -321,6 +318,7 @@ abstract class Serializer {
                         $firstElementChild = null;
                         if (property_exists($node, 'firstElementChild')) {
                             $firstElementChild = $node->firstElementChild;
+                        // @codeCoverageIgnoreStart
                         } else {
                             $n = $node->firstChild;
                             do {
@@ -330,6 +328,7 @@ abstract class Serializer {
                                 }
                             } while ($n = $n->nextSibling);
                         }
+                        // @codeCoverageIgnoreEnd
 
                         if ($firstElementChild !== null && ($foreignAsBlock || ($htmlElement && self::treatAsBlock($node)))) {
                             $s .= "\n" . str_repeat($indentChar, $indentionLevel * $indentStep);
@@ -355,19 +354,21 @@ abstract class Serializer {
             # Otherwise, append the value of current node's data IDL attribute, escaped as described below.
             else {
                 $data = $node->data;
-
                 if ($serializerState['reformatWhitespace']) {
+                    // The serializer should disable 'reformatWhitespace' on children of a
+                    // preformatted element, but just in case check for it here.
                     $preformattedContent = $serializerState['preformattedContent'] ?: static::isPreformattedContent($node);
                     if (!$preformattedContent) {
                         $treatAsBlock = self::treatAsBlock($node);
                         $modify = false;
-                        if (($serializerState['foreignAsBlock'] || $treatAsBlock || (self::treatAsBlock($node->parentNode) && count($node->parentNode->childNodes) === 1)) && strspn($data, Data::WHITESPACE) === strlen($data)) {
+                        if (($serializerState['foreignAsBlock'] || $treatAsBlock || ($node->parentNode !== null && self::treatAsBlock($node->parentNode) && count($node->parentNode->childNodes) === 1)) && strspn($data, Data::WHITESPACE) === strlen($data)) {
                             return $s;
                         }
 
                         if ($treatAsBlock) {
-                            // Block formatting context -- remove all whitespace
-                            $data = preg_replace(Data::WHITESPACE_REGEX, '', $data);
+                            // Block formatting context -- trim data and convert all whitespace to a single
+                            // space
+                            $data = preg_replace('/[\t\n\x0c\x0D ]+/', ' ', trim($data));
                             if ($data === '') {
                                 return $s;
                             }
@@ -386,34 +387,55 @@ abstract class Serializer {
                                 ' '
                             ], $data);
 
-                            // 4. Convert multiple spaces to a single space even across inline elements.
-                            //
-                            // This will be accomplished by looking backwards through siblings, checking
-                            // if the previous text node had whitespace at the end and then lobbing off
-                            // whitespace at the beginning of the current text node. This has the added
-                            // benefit of doing part of the work of #5 as well -- if it matches.
+                            // Moonwalk and find the closest block element (actual block element, not
+                            // elements treated as block for the purposes of serializing) then grab all
+                            // descendant text nodes that aren't descendants of templates.
                             $xpath = new \DOMXPath($node->ownerDocument);
-                            $previousTextNode = $xpath->query('./preceding-sibling::text()[1] | ./preceding-sibling::*/descendant::text()[1]', $node);
-                            $ltrimmed = false;
-                            if ($previousTextNode->length > 0) {
-                                $data2 = $previousTextNode->item(0)->data;
-                                if (preg_match('/[\t\n\x0c\x0D ]+$/', $data2)) {
-                                    $data = ltrim($data);
-                                    $ltrimmed = true;
+                            $textNodes = $xpath->query('./ancestor::*[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"][name()="address" or name()="article" or name()="aside" or name()="blockquote" or name="body" or name()="canvas" or name()="dd" or name()="div" or name()="dl" or name()="dt" or name()="fieldset" or name()="figcaption" or name()="figure" or name()="footer" or name()="form" or name()="h1" or name()="h2" or name()="h3" or name()="h4" or name()="h5" or name()="h6" or name()="head" or name()="header" or name()="hr" or name()="html" or name()="li" or name()="main" or name()="nav" or name()="ol" or name()="p" or name()="section" or name()="table" or name()="tfoot" or name()="ul" or name()="video"][1]/descendant::text()[not(ancestor::template[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"])]', $node);
+
+                            // If nothing was matched then the text node is either disconnected from its
+                            // document and being serialized alone or an inline descendant of a document
+                            // fragment.
+                            if ($textNodes->length > 0) {
+                                $firstOfLine = ($node === $textNodes->item(0));
+                                $lastOfLine = ($node === $textNodes->item($textNodes->length - 1));
+                            } else {
+                                // If the text node is either disconnected from its document then firstOfLine
+                                // and lastOfLine is true.
+                                if ($node->parentNode === null) {
+                                    $firstOfLine = $lastOfLine = true;
+                                }
+                                // Otherwise, it's an inline descendant of a document fragment. Find its root
+                                // node and then grab all text node descendants of that fragment.
+                                else {
+                                    $n = $node;
+                                    while ($n = $n->parentNode) {
+                                        $root = $n;
+                                    }
+
+                                    $textNodes = $xpath->query('.//text()[not(ancestor::template[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"])]', $root);
+                                    $firstOfLine = ($node === $textNodes->item(0));
+                                    $lastOfLine = ($node === $textNodes->item($textNodes->length - 1));
+                                }
+                            }
+
+                            // 4. Convert multiple spaces to a single space even across inline elements.
+                            $data = preg_replace('/ +/', ' ', $data);
+                            if (!$firstOfLine) {
+                                foreach ($textNodes as $key => $t) {
+                                    if ($t === $node && preg_match('/[\t\n\x0c\x0D ]+$/', $textNodes[$key - 1]->data)) {
+                                        $data = ltrim($data);
+                                        break;
+                                    }
                                 }
                             }
 
                             // 5. Spaces at the beginning and ending of a line (beginning and ending of
                             //    inline content) are removed.
-                            if (!$ltrimmed) {
-                                $firstOfLine = $xpath->query('./ancestor::*[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"][name()="address" or name()="article" or name()="aside" or name()="blockquote" or name="body" or name()="canvas" or name()="dd" or name()="div" or name()="dl" or name()="dt" or name()="fieldset" or name()="figcaption" or name()="figure" or name()="footer" or name()="form" or name()="h1" or name()="h2" or name()="h3" or name()="h4" or name()="h5" or name()="h6" or name="head" or name="header" or name="hr" or name="html" or name="li" or name="main" or name="nav" or name="ol" or name="p" or name="section" or name="table" or name="tfoot" or name="ul" or name="video"][1]/descendant::text()[1]', $node);
-                                if ($firstOfLine->length > 0 && $node === $firstOfLine->item(0)) {
-                                    $data = ltrim($data);
-                                }
+                            if ($firstOfLine) {
+                                $data = ltrim($data);
                             }
-
-                            $lastOfLine = $xpath->query('./ancestor::*[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"][name()="address" or name()="article" or name()="aside" or name()="blockquote" or name="body" or name()="canvas" or name()="dd" or name()="div" or name()="dl" or name()="dt" or name()="fieldset" or name()="figcaption" or name()="figure" or name()="footer" or name()="form" or name()="h1" or name()="h2" or name()="h3" or name()="h4" or name()="h5" or name()="h6" or name="head" or name="header" or name="hr" or name="html" or name="li" or name="main" or name="nav" or name="ol" or name="p" or name="section" or name="table" or name="tfoot" or name="ul" or name="video"][1]/descendant::text()[last()]', $node);
-                            if ($lastOfLine->length > 0 && $node === $lastOfLine->item(0)) {
+                            if ($lastOfLine) {
                                 $data = rtrim($data);
                             }
                         }
@@ -552,7 +574,7 @@ abstract class Serializer {
     }
 
     protected static function treatAsBlock(\DOMNode $node): bool {
-        if ($node instanceof \DOMDocument || $node instanceof \DOMDocumentFragment || ($node instanceof \DOMElement && in_array($node->tagName, self::PRINTING_BLOCK_ELEMENTS))) {
+    if ($node instanceof \DOMDocument || $node instanceof \DOMDocumentFragment) {
             return true;
         }
 
@@ -565,11 +587,12 @@ abstract class Serializer {
         }
 
         $xpath = new \DOMXPath($node->ownerDocument);
-        if ($xpath->evaluate(self::BLOCK_QUERY, $node) === 0) {
+        $result = ($xpath->evaluate(self::BLOCK_QUERY, $node) > 0);
+        if (!$result) {
             return static::treatAsBlockWithTemplates($node);
         }
 
-        return true;
+        return $result;
     }
 
     protected static function treatAsBlockWithTemplates(\DOMNode $node): bool {
@@ -577,7 +600,7 @@ abstract class Serializer {
         // PHP DOM solutions with template contents will need to extend this method to
         // check for any templates and look within their content fragments for "block"
         // content.
-        return $result;
+        return false;
     }
 
     protected static function treatForeignRootAsBlock(\DOMNode $node): bool {
@@ -585,16 +608,17 @@ abstract class Serializer {
         // PHP DOM solutions with template contents will need to extend this method to
         // be able to moonwalk through document fragment hosts.
         $n = $node;
-        while ($n = $n->parentNode) {
-            if ($n instanceof \DOMDocument || $n instanceof \DOMDocumentFragment || ($n instanceof \DOMElement && $n->parentNode === null)) {
-                return true;
-            } elseif (($n->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
-                if (self::treatAsBlock($n->parentNode)) {
-                    return true;
-                }
-                break;
+        do {
+            if ($n->parentNode !== null && ($n->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) !== Parser::HTML_NAMESPACE) {
+                continue;
             }
-        }
+
+            if (self::treatAsBlock($n->parentNode)) {
+                return true;
+            }
+
+            break;
+        } while ($n = $n->parentNode);
 
         return false;
     }

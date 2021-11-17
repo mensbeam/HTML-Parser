@@ -122,7 +122,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
     }
 
     /** @dataProvider provideCustomSerializations */
-    public function testSerializeWithOptions(int $indentStep, bool $indentWithSpaces, bool $processingInstructions, bool $reformatWhitespace, bool $boolAttr, bool $foreignVoid, string $in, string $exp): void {
+    public function testSerializeWithOptions(bool $fragment, ?string $fragmentContext, int $indentStep, bool $indentWithSpaces, bool $processingInstructions, bool $reformatWhitespace, bool $boolAttr, bool $foreignVoid, string $in, string $exp): void {
         $config = new Config;
         $config->indentStep = $indentStep;
         $config->indentWithSpaces = $indentWithSpaces;
@@ -130,15 +130,22 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
         $config->reformatWhitespace = $reformatWhitespace;
         $config->serializeBooleanAttributeValues = $boolAttr;
         $config->serializeForeignVoidEndTags = $foreignVoid;
-        $d = Parser::parse($in, "UTF-8")->document;
-        $act = Parser::serialize($d, $config);
+
+        if (!$fragment) {
+            $d = Parser::parse($in, "UTF-8", $config)->document;
+            $act = Parser::serialize($d, $config);
+        } else {
+            $d = new \DOMDocument();
+            $act = Parser::serialize(Parser::parseFragment($d->createElement($fragmentContext), 0, $in, 'UTF-8', $config), $config);
+        }
+
         $this->assertSame($exp, $act);
     }
 
     public function provideCustomSerializations(): iterable {
         return [
             // Boolean attribute values serialized
-            [0, false, false, false, true, true,
+            [false, null, 0, false, false, false, true, true,
                 <<<HTML
                 <a hidden="hidden"></a><b hidden=""></b><c hidden="HIDDEN"></c><d hidden="true"></d>
                 HTML,
@@ -149,7 +156,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
             ],
 
             // Boolean attribute values not serialized
-            [0, false, false, false, false, true,
+            [false, null, 0, false, false, false, false, true,
                 <<<HTML
                 <a hidden="hidden"></a><b hidden=""></b><c hidden="HIDDEN"></c><d hidden="true"></d>
                 HTML,
@@ -160,7 +167,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
             ],
 
             // Boolean attribute values serialized, foreign void end tags serialized
-            [0, false, false, false, true, true,
+            [false, null, 0, false, false, false, true, true,
                 <<<HTML
                 <br><svg/><svg>blah</svg><math/><math>blah</math><input>
                 HTML,
@@ -171,7 +178,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
             ],
 
             // Boolean attribute values serialized, foreign void end tags not serialized
-            [0, false, false, false, true, false,
+            [false, null, 0, false, false, false, true, false,
                 <<<HTML
                 <br><svg/><svg>blah</svg><math/><math>blah</math><input>
                 HTML,
@@ -182,7 +189,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
             ],
 
             // Neither attribute values nor foreign void end tags serialized
-            [0, false, false, false, false, false,
+            [false, null, 0, false, false, false, false, false,
                 <<<HTML
                 <audio loop hidden></audio><svg/>
                 HTML,
@@ -193,7 +200,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
             ],
 
             // Reformat whitespace, empty document
-            [1, true, false, true, false, false,
+            [false, null, 1, true, false, true, false, false,
                 <<<HTML
                 <html></html>
                 HTML,
@@ -208,7 +215,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
             ],
 
             // Reformat whitespace, comment before doctype
-            [1, true, false, true, false, false,
+            [false, null, 1, true, false, true, false, false,
                 <<<HTML
                 <!--data-->
                 <!DOCTYPE html>
@@ -227,7 +234,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
             ],
 
             // Reformat whitespace, preformatted element
-            [1, true, false, true, false, false,
+            [false, null, 1, true, false, true, false, false,
                 <<<HTML
                 <pre><code></code></pre>
                 HTML,
@@ -245,7 +252,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
 
             // Reformat whitespace, element grouping, foreign "block" content, & foreign
             // void end tags not serialized
-            [1, true, false, true, false, false,
+            [false, null, 1, true, false, true, false, false,
                 <<<HTML
                 <div></div><svg><g id="ook"></g></svg>
                 HTML,
@@ -265,8 +272,60 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
                 HTML
             ],
 
+            // Inline serialized comments and processing instructions, parsing of processing instructions off
+            [false, null, 1, true, false, true, false, false,
+                <<<HTML
+                <html>
+                 <head></head>
+                 <body>
+                  <!--ook-->
+                  <?ook eeeeek ?>
+                 </body>
+                </html>
+                HTML,
+
+                <<<HTML
+                <html>
+                 <head></head>
+
+                 <body><!--ook--><!--?ook eeeeek ?--></body>
+                </html>
+                HTML
+            ],
+
+            // Block serialized comments and processing instructions, parsing of processing instructions on
+            [false, null, 1, true, true, true, false, false,
+                <<<HTML
+                <html>
+                 <head></head>
+                 <body>
+                  <div></div>
+                  <!--ook-->
+                  <?ook eeeeek ?>
+                  <div></div>
+                 </body>
+                </html>
+                HTML,
+
+                <<<HTML
+                <html>
+                 <head></head>
+
+                 <body>
+                  <div></div>
+
+                  <!--ook-->
+
+                  <?ook eeeeek ?>
+
+                  <div></div>
+                 </body>
+                </html>
+                HTML
+            ],
+
             // Reformat whitespace, whitespace collapsing, custom indentions
-            [4, true, false, true, false, false,
+            [false, null, 4, true, false, true, false, false,
                 <<<HTML
                 <!DOCTYPE html>
                 <html>
@@ -277,9 +336,15 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
 
                 </head>
                           <body>
-                    ook
+                    ook     eek
+                                        <pre>
+                    This should be ignored
 
-                                    <div/>
+                                also this
+                         </pre>
+                                    <div></div>
+                 <p>   Ook
+                <span> Eek!</span>     </p>
                 </body>
                    </html>
                 HTML,
@@ -289,13 +354,239 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
                 <html>
                     <head></head>
 
-                    <body>
-                 ook
+                    <body>ook eek
+                        <pre>    This should be ignored
 
-                 
+                                also this
+                         </pre>
+
                         <div></div>
+
+                        <p>Ook <span>Eek!</span></p>
                     </body>
                 </html>
+                HTML
+            ],
+
+            // Fragment, html elements
+            [true, 'div', 1, true, false, true, false, false,
+                <<<HTML
+                <span> <span> Ook!</span></span>
+                HTML,
+
+                <<<HTML
+                <span><span>Ook!</span></span>
+                HTML
+            ],
+
+            // Fragment, foreign elements
+            [true, 'div', 1, true, false, true, false, false,
+                <<<HTML
+                <svg> <g><path d=""/></g></svg>
+                HTML,
+
+                <<<HTML
+                <svg>
+                 <g>
+                  <path d=""/>
+                 </g>
+                </svg>
+                HTML
+            ],
+
+            // Fragment, foreign elements
+            [true, 'div', 1, true, false, true, false, false,
+                <<<HTML
+                <svg> <g><path d=""/></g></svg>
+                HTML,
+
+                <<<HTML
+                <svg>
+                 <g>
+                  <path d=""/>
+                 </g>
+                </svg>
+                HTML
+            ],
+        ];
+    }
+
+    /** @dataProvider provideCustomSerializationsForNodes */
+    public function testSerializeNodesWithOptions(int $indentStep, bool $indentWithSpaces, bool $processingInstructions, bool $reformatWhitespace, bool $boolAttr, bool $foreignVoid, \Closure $in, string $exp): void {
+        $config = new Config;
+        $config->indentStep = $indentStep;
+        $config->indentWithSpaces = $indentWithSpaces;
+        $config->processingInstructions = $processingInstructions;
+        $config->reformatWhitespace = $reformatWhitespace;
+        $config->serializeBooleanAttributeValues = $boolAttr;
+        $config->serializeForeignVoidEndTags = $foreignVoid;
+
+        $act = $in($config);
+        $this->assertSame($exp, $act);
+    }
+
+    public function provideCustomSerializationsForNodes(): iterable {
+        return [
+            // Solo html element with context
+            [1, true, false, true, false, false,
+                function (Config $config): string {
+                    $html = <<<HTML
+                    <!DOCTYPE html>
+                    <html>
+                     <body>
+                      <p> Ook! </p>
+                     </body>
+                    </html>
+                    HTML;
+
+                    $d = Parser::parse($html, "UTF-8")->document;
+                    return Parser::serialize($d->getElementsByTagName('p')->item(0), $config);
+                },
+
+                <<<HTML
+                <p>Ook!</p>
+                HTML
+            ],
+
+            // Solo html element without context
+            [1, true, false, true, false, false,
+                function (Config $config): string {
+                    $html = <<<HTML
+                    <!DOCTYPE html>
+                    <html>
+                     <body>
+                      <p> Ook! </p>
+                     </body>
+                    </html>
+                    HTML;
+
+                    $d = Parser::parse($html, "UTF-8")->document;
+                    $p = $d->getElementsByTagName('p')->item(0);
+                    $p->parentNode->removeChild($p);
+
+                    return Parser::serialize($p, $config);
+                },
+
+                <<<HTML
+                <p>Ook!</p>
+                HTML
+            ],
+
+            // Solo svg element serializing as inline with context
+            [1, true, false, true, false, true,
+                function (Config $config): string {
+                    $html = <<<HTML
+                    <!DOCTYPE html>
+                    <html>
+                     <body>
+                      <svg role="img" viewBox="0 0 26 26"><title>Ook</title>
+                          <rect id="eek--a" width="5" height="5"/></svg>
+                     </body>
+                    </html>
+                    HTML;
+
+                    $d = Parser::parse($html, "UTF-8")->document;
+                    $svg = $d->getElementsByTagName('svg')->item(0);
+
+                    return Parser::serialize($svg, $config);
+                },
+
+                <<<HTML
+                <svg role="img" viewBox="0 0 26 26"><title>Ook</title> <rect id="eek--a" width="5" height="5"></rect></svg>
+                HTML
+            ],
+
+            // Solo svg element serializing as block with context
+            [1, true, false, true, false, false,
+                function (Config $config): string {
+                    $html = <<<HTML
+                    <!DOCTYPE html>
+                    <html>
+                     <body>
+                      <svg><g><g><rect id="eek--a" width="5" height="5"/></g></g></svg>
+                      <div></div>
+                     </body>
+                    </html>
+                    HTML;
+
+                    $d = Parser::parse($html, "UTF-8")->document;
+                    $svg = $d->getElementsByTagName('svg')->item(0);
+                    $g = $svg->firstChild->firstChild;
+
+                    return Parser::serialize($g, $config);
+                },
+
+                <<<HTML
+                <g>
+                 <rect id="eek--a" width="5" height="5"/>
+                </g>
+                HTML
+            ],
+
+            // Solo svg element without context
+            [1, true, false, true, false, true,
+                function (Config $config): string {
+                    $html = <<<HTML
+                    <!DOCTYPE html>
+                    <html>
+                     <body>
+                      <svg role="img" viewBox="0 0 26 26"><title>Ook</title>
+                          <rect id="eek--a" width="5" height="5"/></svg>
+                     </body>
+                    </html>
+                    HTML;
+
+                    $d = Parser::parse($html, "UTF-8")->document;
+                    $svg = $d->getElementsByTagName('svg')->item(0);
+                    $svg->parentNode->removeChild($svg);
+
+                    return Parser::serialize($svg, $config);
+                },
+
+                <<<HTML
+                <svg role="img" viewBox="0 0 26 26">
+                 <title>Ook</title>
+
+                 <rect id="eek--a" width="5" height="5"></rect>
+                </svg>
+                HTML
+            ],
+
+            /*
+            // Fragment, html elements
+            [true, 'div', 1, true, false, true, false, false,
+                <<<HTML
+                <span> <span> Ook!</span></span>
+                HTML,
+
+                <<<HTML
+                <span><span>Ook!</span></span>
+                HTML
+            ],
+            */
+
+            // Solo text node without context
+            [1, true, false, true, false, true,
+                function (Config $config): string {
+                    $html = <<<HTML
+                    <!DOCTYPE html>
+                    <html>
+                     <body>
+                      OOK eeek ooooooook     ook
+
+                     </body>
+                    </html>
+                    HTML;
+
+                    $d = Parser::parse($html, "UTF-8")->document;
+                    $text = $d->getElementsByTagName('body')->item(0)->firstChild;
+                    $text->parentNode->removeChild($text);
+
+                    return Parser::serialize($text, $config);
+                },
+
+                <<<HTML
+                OOK eeek ooooooook ook
                 HTML
             ],
         ];
