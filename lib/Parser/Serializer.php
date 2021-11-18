@@ -59,23 +59,23 @@ abstract class Serializer {
     /** Serializes an HTML DOM node to a string. This is equivalent to the outerHTML getter
      *
      * @param \DOMDocument|\DOMElement|\DOMText|\DOMComment|\DOMProcessingInstruction|\DOMDocumentFragment|\DOMDocumentType $node The node to serialize
-     * @param array|null $config The configuration parameters to use, if any. Possible options are as follows:
+     * @param array $config The configuration parameters to use, if any. Possible options are as follows:
      *          booleanAttributeValues bool|null - Whether to include the values of boolean attributes on HTML elements during serialization. Per the standard this is true by default
      *          foreignVoidEndTags bool|null - Whether to print the end tags of foreign void elements rather than self-closing their start tags. Per the standard this is true by default
      *          indentStep int|null - The number of spaces or tabs (depending on setting of indentStep) to indent at each step. This is 1 by default and has no effect unless reformatWhitespace is true
      *          indentWithSpaces bool|null - Whether to use spaces or tabs to indent. This is true by default and has no effect unless reformatWhitespace is true
      *          reformatWhitespace bool|null - Whether to reformat whitespace (pretty-print) or not. This is false by default
     */
-    public static function serialize(\DOMNode $node, ?array $config = null): string {
+    public static function serialize(\DOMNode $node, array $config = []): string {
         return self::serializeNode($node, self::verifyConfiguration($config));
     }
 
     /** Serializes the children of an HTML DOM node to a string. This is equivalent to the innerHTML getter
      *
      * @param \DOMDocument|\DOMElement|\DOMDocumentFragment $node The node to serialize
-     * @param array|null $config The configuration parameters to use, if any
+     * @param array $config The configuration parameters to use, if any
     */
-    public static function serializeInner(\DOMNode $node, ?array $config = null): string {
+    public static function serializeInner(\DOMNode $node, array $config = []): string {
         return self::serializeInnerNodes($node, self::verifyConfiguration($config));
     }
 
@@ -524,7 +524,7 @@ abstract class Serializer {
     }
 
 
-    protected static function verifyConfiguration(?array $config = null): array {
+    protected static function verifyConfiguration(array $config): array {
         $config['booleanAttributeValues'] = $config['booleanAttributeValues'] ?? true;
         $config['foreignVoidEndTags'] = $config['foreignVoidEndTags'] ?? true;
         $config['reformatWhitespace'] = $config['reformatWhitespace'] ?? false;
