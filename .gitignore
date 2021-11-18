@@ -1,8 +1,8 @@
 # html5-parser specific
 manual
 node_modules
-test*.html
-test*.php
+/test*.html
+/test*.php
 
 /vendor/
 /vendor-bin/*/vendor

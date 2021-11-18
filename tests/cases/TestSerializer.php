@@ -368,6 +368,50 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
                 HTML
             ],
 
+            // Reformat whitespace, whitespace collapsing, custom indentions, tabs
+            [false, null, 1, false, false, true, false, false,
+                <<<HTML
+                <!DOCTYPE html>
+                <html>
+
+
+
+                <head>
+
+                </head>
+                          <body>
+                    ook     eek
+                                        <pre>
+                    This should be ignored
+
+                                also this
+                         </pre>
+                                    <div></div>
+                 <p>   Ook
+                <span> Eek!</span>     </p>
+                </body>
+                   </html>
+                HTML,
+
+                <<<HTML
+                <!DOCTYPE html>
+                <html>
+                \t<head></head>
+
+                \t<body>ook eek
+                \t\t<pre>    This should be ignored
+
+                                also this
+                         </pre>
+
+                \t\t<div></div>
+
+                \t\t<p>Ook <span>Eek!</span></p>
+                \t</body>
+                </html>
+                HTML
+            ],
+
             // Fragment, html elements
             [true, 'div', 1, true, false, true, false, false,
                 <<<HTML
