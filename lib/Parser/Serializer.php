@@ -577,7 +577,7 @@ abstract class Serializer {
         return $config;
     }
 
-    protected static function getTemplateContent(\DOMElement $node, ?Config $config = null): \DOMNode {
+    protected static function getTemplateContent(\DOMElement $node): \DOMNode {
         // NOTE: PHP's DOM does not support the content property on template elements
         // natively. This method exists purely so implementors of userland PHP DOM
         // solutions may extend this method to get template contents how they need them.
