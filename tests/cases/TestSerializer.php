@@ -123,20 +123,23 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
 
     /** @dataProvider provideCustomSerializations */
     public function testSerializeWithOptions(bool $fragment, ?string $fragmentContext, int $indentStep, bool $indentWithSpaces, bool $processingInstructions, bool $reformatWhitespace, bool $boolAttr, bool $foreignVoid, string $in, string $exp): void {
-        $config = new Config;
-        $config->indentStep = $indentStep;
-        $config->indentWithSpaces = $indentWithSpaces;
-        $config->processingInstructions = $processingInstructions;
-        $config->reformatWhitespace = $reformatWhitespace;
-        $config->serializeBooleanAttributeValues = $boolAttr;
-        $config->serializeForeignVoidEndTags = $foreignVoid;
+        $parserConfig = new Config();
+        $parserConfig->processingInstructions = $processingInstructions;
+
+        $serializerConfig = [
+            'booleanAttributeValues' => $boolAttr,
+            'foreignVoidEndTags' => $foreignVoid,
+            'indentStep' => $indentStep,
+            'indentWithSpaces' => $indentWithSpaces,
+            'reformatWhitespace' => $reformatWhitespace
+        ];
 
         if (!$fragment) {
-            $d = Parser::parse($in, "UTF-8", $config)->document;
-            $act = Parser::serialize($d, $config);
+            $d = Parser::parse($in, "UTF-8", $parserConfig)->document;
+            $act = Parser::serialize($d, $serializerConfig);
         } else {
             $d = new \DOMDocument();
-            $act = Parser::serialize(Parser::parseFragment($d->createElement($fragmentContext), 0, $in, 'UTF-8', $config), $config);
+            $act = Parser::serialize(Parser::parseFragment($d->createElement($fragmentContext), 0, $in, 'UTF-8', $parserConfig), $serializerConfig);
         }
 
         $this->assertSame($exp, $act);
@@ -457,15 +460,18 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
 
     /** @dataProvider provideCustomSerializationsForNodes */
     public function testSerializeNodesWithOptions(int $indentStep, bool $indentWithSpaces, bool $processingInstructions, bool $reformatWhitespace, bool $boolAttr, bool $foreignVoid, \Closure $in, string $exp): void {
-        $config = new Config;
-        $config->indentStep = $indentStep;
-        $config->indentWithSpaces = $indentWithSpaces;
-        $config->processingInstructions = $processingInstructions;
-        $config->reformatWhitespace = $reformatWhitespace;
-        $config->serializeBooleanAttributeValues = $boolAttr;
-        $config->serializeForeignVoidEndTags = $foreignVoid;
+        $parserConfig = new Config();
+        $parserConfig->processingInstructions = $processingInstructions;
 
-        $act = $in($config);
+        $serializerConfig = [
+            'booleanAttributeValues' => $boolAttr,
+            'foreignVoidEndTags' => $foreignVoid,
+            'indentStep' => $indentStep,
+            'indentWithSpaces' => $indentWithSpaces,
+            'reformatWhitespace' => $reformatWhitespace
+        ];
+
+        $act = $in($parserConfig, $serializerConfig);
         $this->assertSame($exp, $act);
     }
 
@@ -473,7 +479,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
         return [
             // Solo html element with context
             [1, true, false, true, false, false,
-                function (Config $config): string {
+                function (Config $parserConfig, array $serializerConfig): string {
                     $html = <<<HTML
                     <!DOCTYPE html>
                     <html>
@@ -483,8 +489,8 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
                     </html>
                     HTML;
 
-                    $d = Parser::parse($html, "UTF-8")->document;
-                    return Parser::serialize($d->getElementsByTagName('p')->item(0), $config);
+                    $d = Parser::parse($html, "UTF-8", $parserConfig)->document;
+                    return Parser::serialize($d->getElementsByTagName('p')->item(0), $serializerConfig);
                 },
 
                 <<<HTML
@@ -494,7 +500,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
 
             // Solo html element without context
             [1, true, false, true, false, false,
-                function (Config $config): string {
+                function (Config $parserConfig, array $serializerConfig): string {
                     $html = <<<HTML
                     <!DOCTYPE html>
                     <html>
@@ -504,11 +510,11 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
                     </html>
                     HTML;
 
-                    $d = Parser::parse($html, "UTF-8")->document;
+                    $d = Parser::parse($html, "UTF-8", $parserConfig)->document;
                     $p = $d->getElementsByTagName('p')->item(0);
                     $p->parentNode->removeChild($p);
 
-                    return Parser::serialize($p, $config);
+                    return Parser::serialize($p, $serializerConfig);
                 },
 
                 <<<HTML
@@ -518,7 +524,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
 
             // Solo svg element serializing as inline with context
             [1, true, false, true, false, true,
-                function (Config $config): string {
+                function (Config $parserConfig, array $serializerConfig): string {
                     $html = <<<HTML
                     <!DOCTYPE html>
                     <html>
@@ -529,10 +535,10 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
                     </html>
                     HTML;
 
-                    $d = Parser::parse($html, "UTF-8")->document;
+                    $d = Parser::parse($html, "UTF-8", $parserConfig)->document;
                     $svg = $d->getElementsByTagName('svg')->item(0);
 
-                    return Parser::serialize($svg, $config);
+                    return Parser::serialize($svg, $serializerConfig);
                 },
 
                 <<<HTML
@@ -542,7 +548,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
 
             // Solo svg element serializing as block with context
             [1, true, false, true, false, false,
-                function (Config $config): string {
+                function (Config $parserConfig, array $serializerConfig): string {
                     $html = <<<HTML
                     <!DOCTYPE html>
                     <html>
@@ -553,11 +559,11 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
                     </html>
                     HTML;
 
-                    $d = Parser::parse($html, "UTF-8")->document;
+                    $d = Parser::parse($html, "UTF-8", $parserConfig)->document;
                     $svg = $d->getElementsByTagName('svg')->item(0);
                     $g = $svg->firstChild->firstChild;
 
-                    return Parser::serialize($g, $config);
+                    return Parser::serialize($g, $serializerConfig);
                 },
 
                 <<<HTML
@@ -569,7 +575,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
 
             // Solo svg element without context
             [1, true, false, true, false, true,
-                function (Config $config): string {
+                function (Config $parserConfig, array $serializerConfig): string {
                     $html = <<<HTML
                     <!DOCTYPE html>
                     <html>
@@ -580,11 +586,11 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
                     </html>
                     HTML;
 
-                    $d = Parser::parse($html, "UTF-8")->document;
+                    $d = Parser::parse($html, "UTF-8", $parserConfig)->document;
                     $svg = $d->getElementsByTagName('svg')->item(0);
                     $svg->parentNode->removeChild($svg);
 
-                    return Parser::serialize($svg, $config);
+                    return Parser::serialize($svg, $serializerConfig);
                 },
 
                 <<<HTML
@@ -598,7 +604,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
 
             // Solo text node without context
             [1, true, false, true, false, true,
-                function (Config $config): string {
+                function (Config $parserConfig, array $serializerConfig): string {
                     $html = <<<HTML
                     <!DOCTYPE html>
                     <html>
@@ -609,11 +615,11 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
                     </html>
                     HTML;
 
-                    $d = Parser::parse($html, "UTF-8")->document;
+                    $d = Parser::parse($html, "UTF-8", $parserConfig)->document;
                     $text = $d->getElementsByTagName('body')->item(0)->firstChild;
                     $text->parentNode->removeChild($text);
 
-                    return Parser::serialize($text, $config);
+                    return Parser::serialize($text, $serializerConfig);
                 },
 
                 <<<HTML

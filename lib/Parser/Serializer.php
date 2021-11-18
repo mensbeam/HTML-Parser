@@ -55,26 +55,32 @@ abstract class Serializer {
     /* Used when reformatting whitespace when nodes are checked for being treated as block. */
     protected const BLOCK_QUERY = 'count(.//*[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"][not(ancestor::iframe[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::listing[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::noembed[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::noframes[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::noscript[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::plaintext[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::pre[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::style[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::script[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::textarea[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::title[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::xmp[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"])][name()="address" or name()="article" or name()="aside" or name()="blockquote" or name()="base" or name()="body" or name()="canvas" or name()="details" or name()="dialog" or name()="dd" or name()="div" or name()="dl" or name()="dt" or name()="fieldset" or name()="figcaption" or name()="figure" or name()="footer" or name()="form" or name()="frame" or name()="frameset" or name()="h1" or name()="h2" or name()="h3" or name()="h4" or name()="h5" or name()="h6" or name()="head" or name()="header" or name()="hr" or name()="html" or name()="isindex" or name()="li" or name()="link" or name()="main" or name()="meta" or name()="nav" or name()="ol" or name()="p" or name()="picture" or name()="pre" or name()="section" or name()="script" or name()="source" or name()="style" or name()="table" or name()="td" or name()="tfoot" or name()="th" or name()="thead" or name()="title" or name()="tr" or name()="ul" or name()="video"][1])';
 
+
     /** Serializes an HTML DOM node to a string. This is equivalent to the outerHTML getter
      *
      * @param \DOMDocument|\DOMElement|\DOMText|\DOMComment|\DOMProcessingInstruction|\DOMDocumentFragment|\DOMDocumentType $node The node to serialize
-     * @param \MensBeam\HTML\Parser\Config|null $config The configuration parameters to use, if any
+     * @param array|null $config The configuration parameters to use, if any. Possible options are as follows:
+     *          booleanAttributeValues bool|null - Whether to include the values of boolean attributes on HTML elements during serialization. Per the standard this is true by default
+     *          foreignVoidEndTags bool|null - Whether to print the end tags of foreign void elements rather than self-closing their start tags. Per the standard this is true by default
+     *          indentStep int|null - The number of spaces or tabs (depending on setting of indentStep) to indent at each step. This is 1 by default and has no effect unless reformatWhitespace is true
+     *          indentWithSpaces bool|null - Whether to use spaces or tabs to indent. This is true by default and has no effect unless reformatWhitespace is true
+     *          reformatWhitespace bool|null - Whether to reformat whitespace (pretty-print) or not. This is false by default
     */
-    public static function serialize(\DOMNode $node, ?Config $config = null): string {
-        return self::serializeNode($node, self::configToSerializerState($config));
+    public static function serialize(\DOMNode $node, ?array $config = null): string {
+        return self::serializeNode($node, self::verifyConfiguration($config));
     }
 
     /** Serializes the children of an HTML DOM node to a string. This is equivalent to the innerHTML getter
      *
      * @param \DOMDocument|\DOMElement|\DOMDocumentFragment $node The node to serialize
-     * @param \MensBeam\HTML\Parser\Config|null $config The configuration parameters to use, if any
+     * @param array|null $config The configuration parameters to use, if any
     */
-    public static function serializeInner(\DOMNode $node, ?Config $config = null): string {
-        return self::serializeInnerNodes($node, self::configToSerializerState($config));
+    public static function serializeInner(\DOMNode $node, ?array $config = null): string {
+        return self::serializeInnerNodes($node, self::verifyConfiguration($config));
     }
 
 
-    protected static function serializeInnerNodes(\DOMNode $node, array $serializerState): string {
+    protected static function serializeInnerNodes(\DOMNode $node, array $config): string {
         # Let s be a string, and initialize it to the empty string.
         $s = '';
 
@@ -93,8 +99,8 @@ abstract class Serializer {
             # For each child node of the node, in tree order, run the following steps:
             // NOTE: the steps in question are implemented in the "serialize" routine
             foreach ($node->childNodes as $n) {
-                $s .= self::serializeNode($n, $serializerState);
-                $serializerState['first'] = false;
+                $s .= self::serializeNode($n, $config);
+                $config['first'] = false;
             }
         } else {
             throw new Exception(Exception::UNSUPPORTED_NODE_TYPE, [get_class($node)]);
@@ -103,13 +109,13 @@ abstract class Serializer {
         return $s;
     }
 
-    protected static function serializeNode(\DOMNode $node, array $serializerState): string {
+    protected static function serializeNode(\DOMNode $node, array $config): string {
         # 2. Let s be a string, and initialize it to the empty string.
         $s = '';
 
         # If current node is an Element
         if ($node instanceof \DOMElement) {
-            extract($serializerState);
+            extract($config);
 
             # If current node is an element in the HTML namespace, the MathML namespace, or
             # the SVG namespace, then let tagname be current node's local name.
@@ -251,7 +257,7 @@ abstract class Serializer {
                 // retrieve the attribute value
                 $value = self::escapeString((string) $a->value, true);
                 if (
-                    $boolAttr
+                    $booleanAttributeValues
                     || !$htmlElement
                     || !isset(self::BOOLEAN_ATTRIBUTES[$name])
                     || is_array(self::BOOLEAN_ATTRIBUTES[$name]) && !in_array($tagName, self::BOOLEAN_ATTRIBUTES[$name])
@@ -272,7 +278,7 @@ abstract class Serializer {
                 $hasChildNodes = $node->hasChildNodes();
             }
 
-            if (!$endTags && !$htmlElement && !$hasChildNodes) {
+            if (!$foreignVoidEndTags && !$htmlElement && !$hasChildNodes) {
                 $s .= '/>';
                 return $s;
             }
@@ -287,30 +293,23 @@ abstract class Serializer {
             }
 
             if ($hasChildNodes) {
-                if ($reformatWhitespace) {
-                    $indentionLevel++;
-                }
-
                 // PHP's compact function sucks. Sorry.
-                $state = [
-                    'boolAttr' => $boolAttr,
-                    'endTags' => $endTags,
-                    'reformatWhitespace' => $reformatWhitespace
-                ];
-
-                if (isset($indentionLevel)) {
-                    $state['first'] = $first;
-                    $state['indentionLevel'] = $indentionLevel;
-                    $state['indentStep'] = $indentStep;
-                    $state['indentChar'] = $indentChar;
-                    $state['foreignAsBlock'] = $foreignAsBlock;
-                    $state['preformattedContent'] = $preformattedContent;
-                }
-
-                $s .= self::serializeInnerNodes($node, $state);
+                $innerConfig = $config;
 
                 if ($reformatWhitespace) {
-                    $indentionLevel--;
+                    $innerConfig['first'] = $first;
+                    $innerConfig['indentionLevel'] = ++$indentionLevel;
+                    $innerConfig['foreignAsBlock'] = $foreignAsBlock;
+                    $innerConfig['preformattedContent'] = $preformattedContent;
+                    $innerConfig['reformatWhitespace'] = $reformatWhitespace;
+                }
+
+                $s .= self::serializeInnerNodes($node, $innerConfig);
+
+                if ($reformatWhitespace) {
+                    if ($hasChildNodes) {
+                        $indentionLevel--;
+                    }
 
                     if (!$preformattedContent) {
                         $modify = false;
@@ -354,14 +353,14 @@ abstract class Serializer {
             # Otherwise, append the value of current node's data IDL attribute, escaped as described below.
             else {
                 $data = $node->data;
-                if ($serializerState['reformatWhitespace']) {
+                if ($config['reformatWhitespace']) {
                     // The serializer should disable 'reformatWhitespace' on children of a
                     // preformatted element, but just in case check for it here.
-                    $preformattedContent = $serializerState['preformattedContent'] ?: static::isPreformattedContent($node);
+                    $preformattedContent = $config['preformattedContent'] ?: static::isPreformattedContent($node);
                     if (!$preformattedContent) {
                         $treatAsBlock = self::treatAsBlock($node);
                         $modify = false;
-                        if (($serializerState['foreignAsBlock'] || $treatAsBlock || ($node->parentNode !== null && self::treatAsBlock($node->parentNode) && count($node->parentNode->childNodes) === 1)) && strspn($data, Data::WHITESPACE) === strlen($data)) {
+                        if (($config['foreignAsBlock'] || $treatAsBlock || ($node->parentNode !== null && self::treatAsBlock($node->parentNode) && count($node->parentNode->childNodes) === 1)) && strspn($data, Data::WHITESPACE) === strlen($data)) {
                             return $s;
                         }
 
@@ -447,9 +446,9 @@ abstract class Serializer {
         }
         # If current node is a Comment
         elseif ($node instanceof \DOMComment) {
-            if ($serializerState['reformatWhitespace'] && !$serializerState['first']) {
-                $preformattedContent = $serializerState['preformattedContent'] ?: static::isPreformattedContent($node);
-                if (!$preformattedContent && ($serializerState['foreignAsBlock'] || self::treatAsBlock($node->parentNode))) {
+            if ($config['reformatWhitespace'] && !$config['first']) {
+                $preformattedContent = $config['preformattedContent'] ?: static::isPreformattedContent($node);
+                if (!$preformattedContent && ($config['foreignAsBlock'] || self::treatAsBlock($node->parentNode))) {
                     $n = $node;
                     while ($n = $n->previousSibling) {
                         if (!$n instanceof \DOMText) {
@@ -461,7 +460,7 @@ abstract class Serializer {
                         }
                     }
 
-                    $s .= "\n" . str_repeat($serializerState['indentChar'], $serializerState['indentionLevel'] * $serializerState['indentStep']);
+                    $s .= "\n" . str_repeat($config['indentChar'], $config['indentionLevel'] * $config['indentStep']);
                 }
             }
 
@@ -473,9 +472,9 @@ abstract class Serializer {
         }
         # If current node is a ProcessingInstruction
         elseif ($node instanceof \DOMProcessingInstruction) {
-            if ($serializerState['reformatWhitespace'] && !$serializerState['first']) {
-                $preformattedContent = $serializerState['preformattedContent'] ?: static::isPreformattedContent($node);
-                if (!$preformattedContent && ($serializerState['foreignAsBlock'] || self::treatAsBlock($node->parentNode))) {
+            if ($config['reformatWhitespace'] && !$config['first']) {
+                $preformattedContent = $config['preformattedContent'] ?: static::isPreformattedContent($node);
+                if (!$preformattedContent && ($config['foreignAsBlock'] || self::treatAsBlock($node->parentNode))) {
                     $n = $node;
                     while ($n = $n->previousSibling) {
                         if (!$n instanceof \DOMText) {
@@ -487,7 +486,7 @@ abstract class Serializer {
                         }
                     }
 
-                    $s .= "\n" . str_repeat($serializerState['indentChar'], $serializerState['indentionLevel'] * $serializerState['indentStep']);
+                    $s .= "\n" . str_repeat($config['indentChar'], $config['indentionLevel'] * $config['indentStep']);
                 }
             }
 
@@ -499,7 +498,7 @@ abstract class Serializer {
         }
         # If current node is a DocumentType
         elseif ($node instanceof \DOMDocumentType) {
-            if ($serializerState['reformatWhitespace'] && !$serializerState['first']) {
+            if ($config['reformatWhitespace'] && !$config['first']) {
                 $s .= "\n";
             }
 
@@ -516,7 +515,7 @@ abstract class Serializer {
         // NOTE: Documents and document fragments have no outer content,
         //   so we can just serialize the inner content
         elseif ($node instanceof \DOMDocument || $node instanceof \DOMDocumentFragment) {
-            return self::serializeInnerNodes($node, $serializerState);
+            return self::serializeInnerNodes($node, $config);
         } else {
             throw new Exception(Exception::UNSUPPORTED_NODE_TYPE, [get_class($node)]);
         }
@@ -524,31 +523,60 @@ abstract class Serializer {
         return $s;
     }
 
-    protected static function configToSerializerState(?Config $config = null): array {
-        $state = [
-            'boolAttr' => true,
-            'endTags' => true,
-            'reformatWhitespace' => false
-        ];
 
-        if ($config !== null) {
-            $state = [
-                'boolAttr' => $config->serializeBooleanAttributeValues ?? true,
-                'endTags' => $config->serializeForeignVoidEndTags ?? true,
-                'reformatWhitespace' => $config->reformatWhitespace ?? false
-            ];
+    protected static function verifyConfiguration(?array $config = null): array {
+        $config['booleanAttributeValues'] = $config['booleanAttributeValues'] ?? true;
+        $config['foreignVoidEndTags'] = $config['foreignVoidEndTags'] ?? true;
+        $config['reformatWhitespace'] = $config['reformatWhitespace'] ?? false;
 
-            if ($state['reformatWhitespace']) {
-                $state['first'] = true;
-                $state['indentionLevel'] = 0;
-                $state['indentStep'] = $config->indentStep ?? 1;
-                $state['indentChar'] = ($config->indentWithSpaces ?? true) ? ' ' : "\t";
-                $state['foreignAsBlock'] = false;
-                $state['preformattedContent'] = false;
-            }
+        if ($config['reformatWhitespace']) {
+            $config['indentWithSpaces'] = $config['indentWithSpaces'] ?? true;
+            $config['indentStep'] = $config['indentStep'] ?? 1;
         }
 
-        return $state;
+        foreach ($config as $key => $value) {
+            switch ($key) {
+                case 'booleanAttributeValues':
+                case 'foreignVoidEndTags':
+                case 'indentWithSpaces':
+                case 'reformatWhitespace':
+                    if (!is_bool($value)) {
+                        $type = gettype($value);
+                        if ($type === 'object') {
+                            $type = get_class($value);
+                        }
+                        trigger_error("Value for serializer configuration option \"$key\" must be a boolean; $type given", \E_USER_WARNING);
+                        continue 2;
+                    }
+                break;
+                case 'indentStep':
+                    if (!is_int($value)) {
+                        $type = gettype($value);
+                        if ($type === 'object') {
+                            $type = get_class($value);
+                        }
+                        trigger_error("Value for serializer configuration option \"$key\" must be an integer; $type given", \E_USER_WARNING);
+                        continue 2;
+                    }
+                break;
+                default:
+                    trigger_error("\"$key\" is an invalid serializer configuration option", \E_USER_WARNING);
+                    unset($config[$key]);
+                    continue 2;
+            }
+
+            $config[$key] = $value;
+        }
+
+        if ($config['reformatWhitespace']) {
+            $config['first'] = true;
+            $config['indentChar'] = ($config['indentWithSpaces']) ? ' ' : "\t";
+            $config['indentionLevel'] = 0;
+            $config['foreignAsBlock'] = false;
+            $config['preformattedContent'] = false;
+        }
+
+        return $config;
     }
 
     protected static function getTemplateContent(\DOMElement $node, ?Config $config = null): \DOMNode {
