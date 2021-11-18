@@ -307,9 +307,7 @@ abstract class Serializer {
                 $s .= self::serializeInnerNodes($node, $innerConfig);
 
                 if ($reformatWhitespace) {
-                    if ($hasChildNodes) {
-                        $indentionLevel--;
-                    }
+                    $indentionLevel--;
 
                     if (!$preformattedContent) {
                         $modify = false;
