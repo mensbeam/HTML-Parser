@@ -629,6 +629,32 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
         ];
     }
 
+    /** @dataProvider provideSerializerConfigWarnings */
+    public function testSerializerConfigWarnings(array $config): void {
+        // PHPUnit is supposed to support expecting of warnings, but it doesn't. So
+        // let's write a bunch of bullshit so we can catch and assert warnings instead.
+        set_error_handler(function($errno) {
+            if ($errno === \E_USER_WARNING) {
+                $this->assertEquals(\E_USER_WARNING, $errno);
+            }
+        });
+
+        $d = Parser::parse('<html></html>', "UTF-8")->document;
+        $act = Parser::serialize($d, $config);
+
+        restore_error_handler();
+    }
+
+    public function provideSerializerConfigWarnings(): iterable {
+        return [
+            [[ 'booleanAttributeValues' => new \DateTime() ]],
+            [[ 'foreignVoidEndTags' => 'fail' ]],
+            [[ 'indentStep' => new \DateTime() ]],
+            [[ 'indentStep' => 'fail' ]],
+            [[ 'thisWillFail' => 'fail' ]]
+        ];
+    }
+
     public function testOuterSerializeAnInvalidNode(): void {
         $d = new \DOMDocument;
         $a = $d->createAttribute("oops");
