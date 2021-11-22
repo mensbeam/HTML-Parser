@@ -143,3 +143,13 @@ table
 | <tbody>
 |   <tr>
 | "X"
+
+#data
+<!DOCTYPE html><html xmlns="ook">
+#errors
+#document
+| <!DOCTYPE html>
+| <html>
+|   xmlns="ook"
+|   <head>
+|   <body>

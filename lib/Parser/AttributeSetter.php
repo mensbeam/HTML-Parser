@@ -42,6 +42,14 @@ trait AttributeSetter {
                 $element->setAttributeNS($namespaceURI, $qualifiedName, $value);
                 $this->mangledAttributes = true;
             }
+        } elseif ($namespaceURI === null && $qualifiedName === 'xmlns') {
+            // There are even more bugs with xmlns attributes. Xmlns attributes on html
+            // elements are parsed in the null namespace per the specification. PHP still
+            // goes a bit screwy when trying to access them afterwards. Attempt to work
+            // around that.
+            $a = $element->ownerDocument->createAttribute('xmlns');
+            $a->value = $value;
+            $element->setAttributeNode($a);
         } else {
             try {
                 $element->setAttribute($qualifiedName, $value);
