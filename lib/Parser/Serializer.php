@@ -53,7 +53,7 @@ abstract class Serializer {
     ];
 
     /* Used when reformatting whitespace when nodes are checked for being treated as block. */
-    protected const BLOCK_QUERY = 'count(.//*[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"][not(ancestor::iframe[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::listing[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::noembed[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::noframes[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::noscript[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::plaintext[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::pre[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::style[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::script[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::textarea[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::title[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::xmp[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"])][name()="address" or name()="article" or name()="aside" or name()="blockquote" or name()="base" or name()="body" or name()="canvas" or name()="details" or name()="dialog" or name()="dd" or name()="div" or name()="dl" or name()="dt" or name()="fieldset" or name()="figcaption" or name()="figure" or name()="footer" or name()="form" or name()="frame" or name()="frameset" or name()="h1" or name()="h2" or name()="h3" or name()="h4" or name()="h5" or name()="h6" or name()="head" or name()="header" or name()="hr" or name()="html" or name()="isindex" or name()="li" or name()="link" or name()="main" or name()="meta" or name()="nav" or name()="ol" or name()="p" or name()="picture" or name()="pre" or name()="section" or name()="script" or name()="source" or name()="style" or name()="table" or name()="td" or name()="tfoot" or name()="th" or name()="thead" or name()="title" or name()="tr" or name()="ul" or name()="video"][1])';
+    protected const BLOCK_QUERY = 'count(./*[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"][not(ancestor::iframe[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::listing[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::noembed[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::noframes[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::noscript[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::plaintext[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::pre[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::style[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::script[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::textarea[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::title[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"] or ancestor::xmp[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"])][name()="address" or name()="article" or name()="aside" or name()="blockquote" or name()="base" or name()="body" or name()="canvas" or name()="details" or name()="dialog" or name()="dd" or name()="div" or name()="dl" or name()="dt" or name()="fieldset" or name()="figcaption" or name()="figure" or name()="footer" or name()="form" or name()="frame" or name()="frameset" or name()="h1" or name()="h2" or name()="h3" or name()="h4" or name()="h5" or name()="h6" or name()="head" or name()="header" or name()="hr" or name()="html" or name()="isindex" or name()="li" or name()="link" or name()="main" or name()="meta" or name()="nav" or name()="ol" or name()="p" or name()="picture" or name()="pre" or name()="section" or name()="script" or name()="source" or name()="style" or name()="table" or name()="td" or name()="tfoot" or name()="th" or name()="thead" or name()="title" or name()="tr" or name()="ul" or name()="video"][1])';
 
 
     /** Serializes an HTML DOM node to a string. This is equivalent to the outerHTML getter
@@ -151,11 +151,12 @@ abstract class Serializer {
                         // any context is printed as "block" content.
                         // If a foreign element with an html element parent and the foreign element
                         // should be treated as block then we also need to modify whitespace.
-                        if ($node->parentNode === null) {
+                        $parent = $node->parentNode;
+                        if ($parent === null) {
                             $modify = true;
                             $foreignAsBlock = true;
-                        } elseif (($node->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
-                            if (self::treatAsBlock($node->parentNode)) {
+                        } elseif (($parent->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
+                            if (self::treatAsBlock($parent)) {
                                 $modify = true;
                                 $foreignAsBlock = true;
                             }
@@ -167,7 +168,7 @@ abstract class Serializer {
                         // the document.
                         // TODO: Figure out how to make this not fire on every single "inline" svg
                         // element.
-                        elseif (static::treatForeignRootAsBlock($node->parentNode)) {
+                        elseif (static::treatForeignRootAsBlock($parent)) {
                             $modify = true;
                             $foreignAsBlock = true;
                         }
@@ -579,6 +580,13 @@ abstract class Serializer {
         return $config;
     }
 
+    protected static function fragmentHasHost(\DOMDocumentFragment $fragment): bool {
+        // NOTE: PHP's DOM does not support the content property on template elements
+        // natively. This method exists purely so implementors of userland PHP DOM
+        // solutions may extend this method to get template contents how they need them.
+        return false;
+    }
+
     protected static function getTemplateContent(\DOMElement $node): \DOMNode {
         // NOTE: PHP's DOM does not support the content property on template elements
         // natively. This method exists purely so implementors of userland PHP DOM
@@ -602,11 +610,11 @@ abstract class Serializer {
     }
 
     protected static function treatAsBlock(\DOMNode $node): bool {
-    if ($node instanceof \DOMDocument || $node instanceof \DOMDocumentFragment) {
+        if ($node instanceof \DOMDocument || ($node instanceof \DOMDocumentFragment && !static::fragmentHasHost($node))) {
             return true;
         }
 
-        if (!$node instanceof \DOMElement) {
+        if (!$node instanceof \DOMElement && !$node instanceof \DOMDocumentFragment) {
             $node = $node->parentNode;
 
             if ($node === null) {
@@ -616,8 +624,9 @@ abstract class Serializer {
 
         $xpath = new \DOMXPath($node->ownerDocument);
         $result = ($xpath->evaluate(self::BLOCK_QUERY, $node) > 0);
+
         if (!$result) {
-            return static::treatAsBlockWithTemplates($node);
+            $result = static::treatAsBlockWithTemplates($node);
         }
 
         return $result;
