@@ -131,66 +131,68 @@ abstract class Serializer {
 
             if ($reformatWhitespace) {
                 $modify = false;
-                $preformattedContent = $preformattedContent ?: static::isPreformattedContent($node);
 
-                // If the node is an HTML element...
-                if ($htmlElement) {
-                    // If the element's parent is to be treated as block then we need to modify
-                    // whitespace.
-                    if (!$first && self::treatAsBlock($node->parentNode)) {
-                        $modify = true;
+                $preformattedContent = $preformattedContent ?: static::isPreformattedContent($node);
+                if (!$preformattedContent || in_array($node->tagName, self::PREFORMATTED_ELEMENTS)) {
+                    // If the node is an HTML element...
+                    if ($htmlElement) {
+                        // If the element's parent is to be treated as block then we need to modify
+                        // whitespace.
+                        if (!$first && self::treatAsBlock($node->parentNode)) {
+                            $modify = true;
+                        }
                     }
-                }
-                // If the node is not an HTML element...
-                elseif ($foreignAsBlock) {
-                    $modify = true;
-                } else {
-                    // If the parent node is null then we need to modify whitespace; this means that
-                    // it is the element itself that is being serialized. Foreign content without
-                    // any context is printed as "block" content.
-                    // If a foreign element with an html element parent and the foreign element
-                    // should be treated as block then we also need to modify whitespace.
-                    if ($node->parentNode === null) {
+                    // If the node is not an HTML element...
+                    elseif ($foreignAsBlock) {
                         $modify = true;
-                        $foreignAsBlock = true;
-                    } elseif (($node->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
-                        if (self::treatAsBlock($node->parentNode)) {
+                    } else {
+                        // If the parent node is null then we need to modify whitespace; this means that
+                        // it is the element itself that is being serialized. Foreign content without
+                        // any context is printed as "block" content.
+                        // If a foreign element with an html element parent and the foreign element
+                        // should be treated as block then we also need to modify whitespace.
+                        if ($node->parentNode === null) {
+                            $modify = true;
+                            $foreignAsBlock = true;
+                        } elseif (($node->parentNode->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE) {
+                            if (self::treatAsBlock($node->parentNode)) {
+                                $modify = true;
+                                $foreignAsBlock = true;
+                            }
+                        }
+                        // Otherwise, if the node's parent is not an HTML element then moonwalk up
+                        // the tree until the root foreign node is found, and if it is to be treated
+                        // as block then we need to modify whitespace. This should only match when
+                        // printing non-root foreign elements themselves while also being appended to
+                        // the document.
+                        // TODO: Figure out how to make this not fire on every single "inline" svg
+                        // element.
+                        elseif (static::treatForeignRootAsBlock($node->parentNode)) {
                             $modify = true;
                             $foreignAsBlock = true;
                         }
                     }
-                    // Otherwise, if the node's parent is not an HTML element then moonwalk up
-                    // the tree until the root foreign node is found, and if it is to be treated
-                    // as block then we need to modify whitespace. This should only match when
-                    // printing non-root foreign elements themselves while also being appended to
-                    // the document.
-                    // TODO: Figure out how to make this not fire on every single "inline" svg
-                    // element.
-                    elseif (static::treatForeignRootAsBlock($node->parentNode)) {
-                        $modify = true;
-                        $foreignAsBlock = true;
-                    }
-                }
 
-                // Only modify here before printing the open tag if it's not the first element
-                // printed. Above whether to modify is still partially calculated because if
-                // printing just foreign nodes the foreignAsBlock flag needs to be set for any
-                // descendants.
-                if (!$first && $modify) {
-                    // If the previous non text or non document type node sibling doesn't have the
-                    // same name as the current node and neither are h1-h6 elements then add an
-                    // additional newline. This causes like elements to be grouped together.
-                    $n = $node;
-                    while ($n = $n->previousSibling) {
-                        if (!$n instanceof \DOMText) {
-                            if ((!$n instanceof \DOMElement && !$n instanceof \DOMDocumentType) || ($n instanceof \DOMElement && $n->tagName !== $tagName && count(array_intersect([ $n->tagName, $tagName ], self::H_ELEMENTS)) !== 2)) {
-                                $s .= "\n";
+                    // Only modify here before printing the open tag if it's not the first element
+                    // printed. Above whether to modify is still partially calculated because if
+                    // printing just foreign nodes the foreignAsBlock flag needs to be set for any
+                    // descendants.
+                    if (!$first && $modify) {
+                        // If the previous non text or non document type node sibling doesn't have the
+                        // same name as the current node and neither are h1-h6 elements then add an
+                        // additional newline. This causes like elements to be grouped together.
+                        $n = $node;
+                        while ($n = $n->previousSibling) {
+                            if (!$n instanceof \DOMText) {
+                                if ((!$n instanceof \DOMElement && !$n instanceof \DOMDocumentType) || ($n instanceof \DOMElement && $n->tagName !== $tagName && count(array_intersect([ $n->tagName, $tagName ], self::H_ELEMENTS)) !== 2)) {
+                                    $s .= "\n";
+                                }
+                                break;
                             }
-                            break;
                         }
-                    }
 
-                    $s .= "\n" . str_repeat($indentChar, $indentionLevel * $indentStep);
+                        $s .= "\n" . str_repeat($indentChar, $indentionLevel * $indentStep);
+                    }
                 }
 
                 // Disable whitespace reformatting when the content is preformatted.
