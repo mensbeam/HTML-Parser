@@ -62,6 +62,7 @@ abstract class Serializer {
      * @param array $config The configuration parameters to use, if any. Possible options are as follows:
      *          booleanAttributeValues bool|null - Whether to include the values of boolean attributes on HTML elements during serialization. Per the standard this is true by default
      *          foreignVoidEndTags bool|null - Whether to print the end tags of foreign void elements rather than self-closing their start tags. Per the standard this is true by default
+     *          groupElements bool|null - Group like "block" elements and insert extra newlines between groups
      *          indentStep int|null - The number of spaces or tabs (depending on setting of indentStep) to indent at each step. This is 1 by default and has no effect unless reformatWhitespace is true
      *          indentWithSpaces bool|null - Whether to use spaces or tabs to indent. This is true by default and has no effect unless reformatWhitespace is true
      *          reformatWhitespace bool|null - Whether to reformat whitespace (pretty-print) or not. This is false by default
@@ -182,13 +183,15 @@ abstract class Serializer {
                         // If the previous non text or non document type node sibling doesn't have the
                         // same name as the current node and neither are h1-h6 elements then add an
                         // additional newline. This causes like elements to be grouped together.
-                        $n = $node;
-                        while ($n = $n->previousSibling) {
-                            if (!$n instanceof \DOMText) {
-                                if ((!$n instanceof \DOMElement && !$n instanceof \DOMDocumentType) || ($n instanceof \DOMElement && $n->tagName !== $tagName && count(array_intersect([ $n->tagName, $tagName ], self::H_ELEMENTS)) !== 2)) {
-                                    $s .= "\n";
+                        if ($config['groupElements']) {
+                            $n = $node;
+                            while ($n = $n->previousSibling) {
+                                if (!$n instanceof \DOMText) {
+                                    if ((!$n instanceof \DOMElement && !$n instanceof \DOMDocumentType) || ($n instanceof \DOMElement && $n->tagName !== $tagName && count(array_intersect([ $n->tagName, $tagName ], self::H_ELEMENTS)) !== 2)) {
+                                        $s .= "\n";
+                                    }
+                                    break;
                                 }
-                                break;
                             }
                         }
 
@@ -528,6 +531,7 @@ abstract class Serializer {
     protected static function verifyConfiguration(array $config): array {
         $config['booleanAttributeValues'] = $config['booleanAttributeValues'] ?? true;
         $config['foreignVoidEndTags'] = $config['foreignVoidEndTags'] ?? true;
+        $config['groupElements'] = $config['groupElements'] ?? true;
         $config['reformatWhitespace'] = $config['reformatWhitespace'] ?? false;
 
         if ($config['reformatWhitespace']) {
@@ -539,6 +543,7 @@ abstract class Serializer {
             switch ($key) {
                 case 'booleanAttributeValues':
                 case 'foreignVoidEndTags':
+                case 'groupElements':
                 case 'indentWithSpaces':
                 case 'reformatWhitespace':
                     if (!is_bool($value)) {
