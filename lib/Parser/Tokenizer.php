@@ -2873,7 +2873,7 @@ class Tokenizer {
                     # Set the DOCTYPE token's system identifier to the empty string (not missing),
                     #   then switch to the DOCTYPE system identifier (double-quoted) state.
                     $this->error(ParseError::MISSING_WHITESPACE_BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS);
-                    $this->system = '';
+                    $token->system = '';
                     $this->state = self::DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED_STATE;
                 }
                 # "'" (U+0027)
@@ -2882,7 +2882,7 @@ class Tokenizer {
                     # Set the DOCTYPE token's system identifier to the empty string (not missing),
                     #   then switch to the DOCTYPE system identifier (single-quoted) state.
                     $this->error(ParseError::MISSING_WHITESPACE_BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS);
-                    $this->system = '';
+                    $token->system = '';
                     $this->state = self::DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED_STATE;
                 }
                 # EOF
@@ -2932,7 +2932,7 @@ class Tokenizer {
                     # Set the DOCTYPE token's system identifier to the
                     #   empty string (not missing), then switch to the
                     #   DOCTYPE system identifier (double-quoted) state.
-                    $this->system = '';
+                    $token->system = '';
                     $this->state = self::DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED_STATE;
                 }
                 # "'" (U+0027)
@@ -2940,7 +2940,7 @@ class Tokenizer {
                     # Set the DOCTYPE token's system identifier to the
                     #   empty string (not missing), then switch to the
                     #   DOCTYPE system identifier (single-quoted) state.
-                    $this->system = '';
+                    $token->system = '';
                     $this->state = self::DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED_STATE;
                 }
                 # EOF

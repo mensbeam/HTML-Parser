@@ -9,6 +9,8 @@ namespace MensBeam\HTML\Parser;
 use MensBeam\HTML\Parser;
 
 trait AttributeSetter {
+    protected $mangledAttributes = false;
+
     public function elementSetAttribute(\DOMElement $element, ?string $namespaceURI, string $qualifiedName, string $value): void {
         if ($namespaceURI === Parser::XMLNS_NAMESPACE) {
             // NOTE: We create attribute nodes so that xmlns attributes

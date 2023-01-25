@@ -35,7 +35,9 @@ class TreeConstructor {
     protected $stack;
     /** @var \MensBeam\HTML\Parser\Data Instance of the Data class used for reading the input character-stream */
     protected $data;
-    /** @var \Generator Instance of the Tokenizer class used for creating tokens */
+    /** @var \Generator The output of the tokenizer */
+    protected $tokenList;
+    /** @var \MensBeam\HTML\Parser\Tokenizer Instance of the Tokenizer class used for creating tokens */
     protected $tokenizer;
     /** @var \MensBeam\HTML\Parser\TemplateInsertionModesStack Used to store the template insertion modes */
     protected $templateInsertionModes;
@@ -3709,6 +3711,7 @@ class TreeConstructor {
         #   is lower in the stack than formatting element, and is an element in the
         #   special category. There might not be one.
         $furthestBlock = null;
+        $furthestBlockIndex = null;
         for ($k = ($stackIndex + 1); $k < count($this->stack); $k++) {
             if ($this->isElementSpecial($this->stack[$k])) {
                 $furthestBlockIndex = $k;
