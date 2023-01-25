@@ -74,21 +74,21 @@ abstract class Charset {
             $pos = $found + 7;
             # Skip any ASCII whitespace that immediately follow the word "charset" 
             #   (there might not be any).
-            while (in_array(@$s[$pos], ["\x09", "\x0A", "\x0C", "\x0D", " "])) {
+            while (in_array($s[$pos] ?? "", ["\x09", "\x0A", "\x0C", "\x0D", " "])) {
                 $pos++;
             }
             # If the next character is not a U+003D EQUALS SIGN (=), 
             #   then move position to point just before that next 
             #   character, and jump back to the step labeled loop.
-            if (@$s[$pos] !== "=") {
+            if (($s[$pos] ?? "") !== "=") {
                 continue;
             }
             # Skip any ASCII whitespace that immediately follow the equals sign 
             #   (there might not be any).
-            while (in_array(@$s[++$pos], ["\x09", "\x0A", "\x0C", "\x0D", " "]));
+            while (in_array($s[++$pos] ?? "", ["\x09", "\x0A", "\x0C", "\x0D", " "]));
 
             # Process the next character as follows:
-            $char = @$s[$pos];
+            $char = $s[$pos] ?? "";
 
             # If it is a U+0022 QUOTATION MARK character (")...
             # If it is a U+0027 APOSTROPHE character (')...
@@ -118,7 +118,7 @@ abstract class Charset {
                 #   the first ASCII whitespace or U+003B SEMICOLON (;) 
                 #   character, or the end of s, whichever comes first.
                 $size = -1;
-                while (!in_array(@$s[$pos + (++$size)], ["\x09", "\x0A", "\x0C", "\x0D", " ", ";", ""]));
+                while (!in_array($s[$pos + (++$size)] ?? "", ["\x09", "\x0A", "\x0C", "\x0D", " ", ";", ""]));
                 return self::fromCharset(substr($s, $pos, $size));
             }
         }
@@ -167,11 +167,11 @@ abstract class Charset {
         # Loop: If position points to:
         while ($pos < $endAfter) {
             // OPTIMIZATION: Start my skipping anything not a less-than sign
-            if (@$s[$pos] === "<") {
+            if (($s[$pos] ?? "") === "<") {
                 $pos++;
                 
                 # A sequence of bytes starting with: 0x3C 0x21 0x2D 0x2D (`<!--`)
-                if (@$s[$pos] === "!" && @$s[$pos + 1] === "-" && @$s[$pos + 2] === "-") {
+                if (($s[$pos] ?? "") === "!" && ($s[$pos + 1] ?? "") === "-" && ($s[$pos + 2] ?? "") === "-") {
                     # Advance the position pointer so that it points at the 
                     #   first 0x3E byte which is preceded by two 0x2D bytes 
                     #   (i.e. at the end of an ASCII '-->' sequence) and 
@@ -266,10 +266,10 @@ abstract class Charset {
                 }
                 # A sequence of bytes starting with a 0x3C byte (<), optionally a 0x2F byte (/), 
                 #   and finally a byte in the range 0x41-0x5A or 0x61-0x7A (A-Z or a-z)
-                elseif ((@$s[$pos] === "/" && ctype_alpha(@$s[$pos + 1])) || (ctype_alpha(@$s[$pos]))) {
+                elseif ((($s[$pos] ?? "") === "/" && ctype_alpha($s[$pos + 1] ?? "")) || (ctype_alpha($s[$pos] ?? ""))) {
                     # Advance the position pointer so that it points at the next 
                     #   0x09 (HT), 0x0A (LF), 0x0C (FF), 0x0D (CR), 0x20 (SP), or 0x3E (>) byte.
-                    while (!in_array(@$s[++$pos], ["\x09", "\x0A", "\x0C", "\x0D", " ", ">", ""]));
+                    while (!in_array($s[++$pos] ?? "", ["\x09", "\x0A", "\x0C", "\x0D", " ", ">", ""]));
                     # Repeatedly get an attribute until no further attributes can be found, 
                     #   then jump to the step below labeled next byte.
                     while(self::getAttribute($s, $pos));
@@ -277,7 +277,7 @@ abstract class Charset {
                 # A sequence of bytes starting with: 0x3C 0x21 (`<!`)
                 # A sequence of bytes starting with: 0x3C 0x2F (`</`)
                 # A sequence of bytes starting with: 0x3C 0x3F (`<?`)
-                elseif (in_array(@$s[$pos], ["!", "/", "?"])) {
+                elseif (in_array($s[$pos] ?? "", ["!", "/", "?"])) {
                     # Advance the position pointer so that it points at the first 
                     #   0x3E byte (>) that comes after the 0x3C byte that was found.
                     $pos = (strpos($s, ">", $pos) ?: $endAfter) + 1;
@@ -385,10 +385,10 @@ abstract class Charset {
         #   0x09 (HT), 0x0A (LF), 0x0C (FF), 0x0D (CR), 0x20 (SP), 
         #   or 0x2F (/) then advance position to the next byte and 
         #   redo this step.
-        while (in_array(@$s[$pos], ["\x09", "\x0A", "\x0C", "\x0D", " ", "/"])) {
+        while (in_array($s[$pos] ?? "", ["\x09", "\x0A", "\x0C", "\x0D", " ", "/"])) {
             $pos++;
         }
-        $char = @$s[$pos];
+        $char = $s[$pos] ?? "";
         
         # If the byte at position is 0x3E (>), 
         #   then abort the get an attribute algorithm. There isn't one.
@@ -430,7 +430,7 @@ abstract class Charset {
             }
 
             # Advance position to the next byte and return to the previous step.
-            $char = @$s[++$pos];
+            $char = $s[++$pos] ?? "";
         }
         
         if ($char === "") {
@@ -441,10 +441,10 @@ abstract class Charset {
         spaces:
         #  If the byte at position is one of 0x09 (HT), 0x0A (LF), 0x0C (FF), 0x0D (CR), 
         #   or 0x20 (SP) then advance position to the next byte, then, repeat this step.
-        while (in_array(@$s[$pos], ["\x09", "\x0A", "\x0C", "\x0D", " "])) {
+        while (in_array($s[$pos] ?? "", ["\x09", "\x0A", "\x0C", "\x0D", " "])) {
             $pos++;
         }
-        $char = @$s[$pos];
+        $char = $s[$pos] ?? "";
         if ($char === "") {
             // Out of bytes
             return [];
@@ -455,15 +455,15 @@ abstract class Charset {
             return ['name' => $name, 'value' => $value];
         }
         # Advance position past the 0x3D (=) byte.
-        $char = @$s[++$pos];
+        $char = $s[++$pos] ?? "";
 
         value:
         # If the byte at position is one of 0x09 (HT), 0x0A (LF), 0x0C (FF), 0x0D (CR), 
         #   or 0x20 (SP) then advance position to the next byte, then, repeat this step.
-        while (in_array(@$s[$pos], ["\x09", "\x0A", "\x0C", "\x0D", " "])) {
+        while (in_array($s[$pos] ?? "", ["\x09", "\x0A", "\x0C", "\x0D", " "])) {
             $pos++;
         }
-        $char = @$s[$pos];
+        $char = $s[$pos] ?? "";
         if ($char === "") {
             // Out of bytes
             return [];
@@ -474,7 +474,7 @@ abstract class Charset {
             # Let b be the value of the byte at position.
             $b = $char;
             # Quote loop: Advance position to the next byte.
-            while (($char = @$s[++$pos]) !== "") {
+            while (($char = $s[++$pos] ?? "") !== "") {
                 # If the value of the byte at position is the value of b, 
                 #   then advance position to the next byte and abort 
                 #   the "get an attribute" algorithm. 
@@ -508,7 +508,7 @@ abstract class Charset {
             // OPTIMIZATION: Also handle uppercase characters
             $value .= strtolower($char);
             
-            while (($char = @$s[++$pos]) !== "") {
+            while (($char = $s[++$pos] ?? "") !== "") {
                 # Process the byte at position as follows:
                 # If it is 0x09 (HT), 0x0A (LF), 0x0C (FF), 0x0D (CR), 0x20 (SP), or 0x3E (>)
                 if (in_array($char, ["\x09", "\x0A", "\x0C", "\x0D", " ", ">"])) {

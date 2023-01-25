@@ -95,8 +95,8 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
             while ($l < $end) {
                 $testId = "$f #".$index++;
                 $data = "";
-                while ($l < $end && !preg_match("/^#data\s+$/", @$test[$l++]));
-                while ($l < $end && !preg_match("/^#encoding\s+$/", ($line = @$test[$l++]))) {
+                while ($l < $end && !preg_match("/^#data\s+$/", $test[$l++] ?? ""));
+                while ($l < $end && !preg_match("/^#encoding\s+$/", ($line = $test[$l++] ?? ""))) {
                     $data .= $line;
                 }
                 if ($l >= $end) {
