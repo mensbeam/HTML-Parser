@@ -276,7 +276,7 @@ class Tokenizer {
                     // DEVIATION: Character reference consumption implemented as a function
                     $outChar = $this->switchToCharacterReferenceState(self::DATA_STATE);
                     if (strspn($outChar, Data::WHITESPACE)) {
-                        yield new WhitespaceToken($outChar); // a character reference is either all whitespace is no whitespace
+                        yield new WhitespaceToken($outChar); // a character reference is either all whitespace or is not whitespace
                     } else {
                         yield new CharacterToken($outChar);
                     }

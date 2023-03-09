@@ -33,13 +33,19 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
     protected $depth;
     protected $ns;
 
+    protected static $passed = [];
+
     /** @dataProvider provideStandardTreeTests */
-    public function testStandardTreeTests(string $data, array $exp, array $errors, $fragment): void {
+    public function testStandardTreeTests(string $data, array $exp, array $errors, $fragment, string $id): void {
         $this->runTreeTest($data, $exp, $errors, $fragment, null);
+        self::$passed[$id] = true;
     }
 
     /** @dataProvider provideStandardTreeTests */
-    public function testStandardTreeTestsWithHtmlNamespace(string $data, array $exp, array $errors, $fragment): void {
+    public function testStandardTreeTestsWithHtmlNamespace(string $data, array $exp, array $errors, $fragment, string $id): void {
+        if (!isset(self::$passed[$id])) {
+            $this->markTestSkipped("Null-namespaced test failed or skipped.");
+        }
         $config = new Config;
         $config->htmlNamespace = true;
         $this->runTreeTest($data, $exp, $errors, $fragment, $config);
@@ -49,7 +55,13 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         $files = new \AppendIterator();
         $files->append(new \GlobIterator(\MensBeam\HTML\Parser\BASE."tests/html5lib-tests/tree-construction/*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
         $files->append(new \GlobIterator(\MensBeam\HTML\Parser\BASE."tests/cases/tree-construction/mensbeam*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
-        return $this->parseTreeTest($files);
+        // filter out tests for the prospective <search> element, which has not yet been added to HTML
+        $filtered = new class($files) extends \FilterIterator {
+            public function accept(): bool {
+                return !preg_match('/\bsearch-element.dat$/', parent::current());
+            }
+        };
+        return $this->parseTreeTest($filtered);
     }
 
     /** @dataProvider provideProcessingInstructionTreeTests */
@@ -312,7 +324,8 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                     if (!$script) {
                         // scripting-dependent tests are skipped entirely since we will not support scripting
                         $errors = ['old' => $errors, 'new' => $newErrors];
-                        yield basename($file)." #$index (line $pos)" => [$data, $exp, $errors, $fragment];
+                        $id = basename($file)." #$index (line $pos)";
+                        yield $id => [$data, $exp, $errors, $fragment, $id];
                     }
                     $l++;
                     $index++;

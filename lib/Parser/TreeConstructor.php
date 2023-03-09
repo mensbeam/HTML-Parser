@@ -1076,7 +1076,7 @@ class TreeConstructor {
                                 # 2. Generate implied end tags.
                                 $this->stack->generateImpliedEndTags();
                                 # 3. If the current node is not a form element, then this is a parse error.
-                                if (!$this->stack->currentNodeName !== 'form') {
+                                if ($this->stack->currentNodeName !== 'form') {
                                     $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                                 }
                                 # 4. Pop elements from the stack of open elements until a form element has been
@@ -2036,8 +2036,8 @@ class TreeConstructor {
                     //   mode as it may have been turned on in a previous evluation
                     //   of this mode
                     $this->fosterParenting = false;
-                    # A character token, if the current node is table, tbody, tfoot, thead, or tr element
-                    if ($token instanceof CharacterToken && in_array($this->stack->currentNodeName, ["table", "tbody", "tfoot", "thead", "tr"])) {
+                    # A character token, if the current node is table, tbody, template, tfoot, thead, or tr element
+                    if ($token instanceof CharacterToken && in_array($this->stack->currentNodeName, ["table", "tbody", "template", "tfoot", "thead", "tr"])) {
                         # Let the pending table character tokens be an empty list of tokens.
                         $this->pendingTableCharacterTokens = [];
                         # Let the original insertion mode be the current insertion mode.

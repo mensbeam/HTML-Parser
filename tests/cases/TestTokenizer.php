@@ -235,32 +235,6 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
             case ["<!\u{B}", ["Data state"]]:
                 $test['errors'] = array_reverse($test['errors']);
                 break;
-            // eof-in-<whatever> positions in some tests don't make sense
-            // https://github.com/html5lib/html5lib-tests/issues/125
-            case ["", ["CDATA section state"]]:
-                // there is no position 2
-                $test['errors'][0]['col']--;
-                break;
-            case ["\u{A}", ["CDATA section state"]]:
-                // the line break is, for some reason, not counted in the test
-                $test['errors'][0]['line']++;
-                $test['errors'][0]['col'] = 1;
-                break;
-            case ["<!----!\r\n>", ["Data state"]]:
-            case ["<!----!\n>", ["Data state"]]:
-            case ["<!----!\r>", ["Data state"]]:
-                // the line break is, for some reason, not counted in the test
-                $test['errors'][0]['line']++;
-                $test['errors'][0]['col'] = 2;
-                break;
-            case ["<!----! >", ["Data state"]]:
-                $test['errors'][0]['col']++;
-                break;
-            case [hex2bin("f4808080"), ["CDATA section state"]]:
-            case [hex2bin("3bf4808080"), ["CDATA section state"]]:
-                // malpaired surrogates count as two characters
-                $test['errors'][0]['col']++;
-                break;
         }
     }
 }
