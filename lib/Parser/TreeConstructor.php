@@ -3541,7 +3541,7 @@ class TreeConstructor {
                             # corresponding cell in the fourth column. (This fixes the use of namespaced
                             # attributes, in particular lang attributes in the XML namespace.)
                             // DOMElement::setAttributeNS requires the prefix and local name be in one
-                            // string, so there is no need to separate the prefix and the local name here.
+                            //   string, so there is no need to separate the prefix and the local name here.
                             $a->namespace = self::FOREIGN_ATTRIBUTE_NAMESPACE_MAP[$a->name] ?? null;
                         }
                         # Insert a foreign element for the token, in the same namespace as the adjusted
@@ -4236,9 +4236,9 @@ class TreeConstructor {
             // NOTE: The specification is silent as to how to handle these
             //   attributes. We assume these bad attributes should be dropped,
             //   since they break the DOM when added
-            if ($attr->name === "xmlns" && $namespace !== $this->htmlNamespace && $attr->value !== $namespace) {
+            if ($attr->name === "xmlns" && $attr->namespace === Parser::XMLNS_NAMESPACE && $attr->value !== ($namespace ?? Parser::HTML_NAMESPACE)) {
                 $this->error(ParseError::INVALID_NAMESPACE_ATTRIBUTE_VALUE, "xmlns", $namespace);
-            } elseif ($attr->name === "xmlns:xlink" && $namespace !== $this->htmlNamespace && $attr->value !== Parser::XLINK_NAMESPACE) {
+            } elseif ($attr->name === "xmlns:xlink" && $attr->namespace === Parser::XMLNS_NAMESPACE && $attr->value !== Parser::XLINK_NAMESPACE) {
                 $this->error(ParseError::INVALID_NAMESPACE_ATTRIBUTE_VALUE, "xmlns:xlink", Parser::XLINK_NAMESPACE);
             } else {
                 $this->elementSetAttribute($element, $attr->namespace, $attr->name, $attr->value);

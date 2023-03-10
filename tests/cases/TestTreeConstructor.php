@@ -135,7 +135,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
     }
 
     protected function patchTest(string $data, $fragment, array $errors, array $exp): array {
-        // When using the HTML namespace, xmlns attributes lose their namespace due to a PHP limitation
+        // When using the HTML namespace, xmlns attributes in the xmlns namespace lose their namespace URI due to a PHP limitation
         if ($this->ns) {
             for ($a = 0; $a < sizeof($exp); $a++) {
                 if (preg_match('/^\|\s+xmlns xmlns=/', $exp[$a])) {
