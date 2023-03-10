@@ -4236,9 +4236,9 @@ class TreeConstructor {
             // NOTE: The specification is silent as to how to handle these
             //   attributes. We assume these bad attributes should be dropped,
             //   since they break the DOM when added
-            if ($attr->name === "xmlns" && $namespace !== null && $attr->value !== $namespace) {
+            if ($attr->name === "xmlns" && $namespace !== $this->htmlNamespace && $attr->value !== $namespace) {
                 $this->error(ParseError::INVALID_NAMESPACE_ATTRIBUTE_VALUE, "xmlns", $namespace);
-            } elseif ($attr->name === "xmlns:xlink" && $namespace !== null && $attr->value !== Parser::XLINK_NAMESPACE) {
+            } elseif ($attr->name === "xmlns:xlink" && $namespace !== $this->htmlNamespace && $attr->value !== Parser::XLINK_NAMESPACE) {
                 $this->error(ParseError::INVALID_NAMESPACE_ATTRIBUTE_VALUE, "xmlns:xlink", Parser::XLINK_NAMESPACE);
             } else {
                 $this->elementSetAttribute($element, $attr->namespace, $attr->name, $attr->value);

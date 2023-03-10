@@ -66,3 +66,13 @@
 |       xml id="proper"
 |     <p>
 |       xml:id="bogus"
+
+#data
+<!DOCTYPE html><html xmlns="ook">
+#errors
+#document
+| <!DOCTYPE html>
+| <html>
+|   xmlns="ook"
+|   <head>
+|   <body>

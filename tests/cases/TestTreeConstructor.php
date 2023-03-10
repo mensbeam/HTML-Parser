@@ -140,8 +140,6 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             for ($a = 0; $a < sizeof($exp); $a++) {
                 if (preg_match('/^\|\s+xmlns xmlns=/', $exp[$a])) {
                     $exp[$a] = preg_replace('/^\|(\s+)xmlns xmlns=/', "|$1xmlns=", $exp[$a]);
-                } elseif (preg_match('/^\|\s+xmlns=/', $exp[$a])) {
-                    $this->markTestSkipped();
                 }
             }
         }
