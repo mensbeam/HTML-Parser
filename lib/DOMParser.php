@@ -50,9 +50,34 @@ class DOMParser {
             $config = new Parser\Config;
             $config->encodingFallback = "UTF-8";
             $config->encodingPrescanBytes = 0;
-            return Parser::parse($string, $charset, $config);
+            return Parser::parse($string, $charset, $config)->document;
         } else {
             // for XML we have to jump through a few hoops to make sure the DOMDocument doesn't make a hash of things, or try to detect encoding
+            $doc = new \DOMDocument();
+            try {
+                if ($charset !== "UTF-8") {
+                    // transcode the string to UTF-8 where necessary
+                    $decoder = Encoding::createDecoder($charset, $string, true, false);
+                    $string = "";
+                    while (strlen($c = $decoder->nextChar())) {
+                        $string .= $c;
+                        $string .= $decoder->asciiSpanNot("");
+                    }
+                    unset($decoder);
+                }
+                // add a byte-order mark if the string doesn't have one; this serves as an authoritative encoding specifier
+                if (substr($string, 0, 3) !== "\xEF\xBB\xBF") {
+                    $string = "\xEF\xBB\xBF".$string;
+                }
+                // parse the document
+                if (!$doc->loadXML($string, \LIBXML_NONET | \LIBXML_BIGLINES | \LIBXML_COMPACT |\LIBXML_NOWARNING | \LIBXML_NOERROR)) {
+                    throw new \Exception(libxml_get_last_error()->message);
+                }
+            } catch (\Exception $e) {
+                $doc->appendChild($doc->createElementNS("http://www.mozilla.org/newlayout/xml/parsererror.xml", "parserror"));
+                $doc->documentElement->appendChild($doc->createTextNode($e->getMessage()));
+            }
+            return $doc;
         }
     }
 }
