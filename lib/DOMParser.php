@@ -38,7 +38,7 @@ class DOMParser {
         // start by parsing the type
         $t = MimeType::parseBytes($type);
         if (!$t->isHtml && !$t->isXml) {
-            throw new \InvalidArgumentException("\$type must be \"text/html\" or an XML type"));
+            throw new \InvalidArgumentException("\$type must be \"text/html\" or an XML type");
         }
         // parse the string as either HTML or XML
         if ($t->isHtml) {
