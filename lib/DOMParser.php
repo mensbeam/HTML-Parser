@@ -37,14 +37,11 @@ class DOMParser {
     public function parseFromString(string $string, string $type): \DOMDocument {
         // start by parsing the type
         $t = MimeType::parseBytes($type);
-        if (!$t->isHtml && !$t->isXml) {
-            throw new \InvalidArgumentException("\$type must be \"text/html\" or an XML type");
-        }
         // parse the string as either HTML or XML
         if ($t->isHtml) {
             // for HTML we invoke our parser which has its own handling for everything
             return Parser::parse($string, $type)->document;
-        } else {
+        } elseif ($t->isXml) {
             // for XML we have to jump through a few hoops to deal with encoding;
             //   if we have a known encoding we want to make sure the XML parser
             //   doesn't try to do its own detection. The best way to do this is
@@ -57,11 +54,13 @@ class DOMParser {
                     $charset = $t->params['charset'] ?? "";
                     if ($charset) {
                         $encoding = Encoding::matchLabel($charset);
-                        if (!$encoding) {
-                            throw new \InvalidArgumentException("Specified charset is not supported");
+                        if ($encoding) {
+                            $charset = $encoding['name'];
                         }
-                        $charset = $encoding['name'];
                     }
+                    // if a supported encoding was parsed from the type, act
+                    //   accordingly; otherwise skip to parsing and let the
+                    //   XML parser detect encoding
                     if ($charset) {
                         // if the string is known to be UTF-8 or UTF-16 according to the type but has no BOM, add one
                         if ($charset === "UTF-8") {
@@ -91,6 +90,8 @@ class DOMParser {
                 $doc->documentElement->appendChild($doc->createTextNode($e->getMessage()));
             }
             return $doc;
+        } else {
+            throw new \InvalidArgumentException("\$type must be \"text/html\" or an XML type");
         }
     }
 }
