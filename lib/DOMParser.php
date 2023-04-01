@@ -124,7 +124,8 @@ XMLDECL;
     protected function createDocumentXml(string $string): \DOMDocument {
         $document = new \DOMDocument;
         if (!$document->loadXML($string, \LIBXML_NONET | \LIBXML_BIGLINES | \LIBXML_COMPACT |\LIBXML_NOWARNING | \LIBXML_NOERROR)) {
-            throw new \Exception(libxml_get_last_error()->message);
+            $err = libxml_get_last_error();
+            throw new \Exception($err->code.": \"".trim($err->message)."\" on line ".$err->line.", column ".$err->column);
         }
         return $document;
     }
