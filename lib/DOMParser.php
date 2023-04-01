@@ -50,14 +50,13 @@ XMLDECL;
         // parse the string as either HTML or XML
         if ($t->isHtml) {
             // for HTML we invoke our parser which has its own handling for everything
-            return Parser::parse($string, $type)->document;
+            return $this->createDocumentHtml($string, $type);
         } elseif ($t->isXml) {
             // for XML we have to jump through a few hoops to deal with encoding;
             //   if we have a known encoding we want to make sure the XML parser
             //   doesn't try to do its own detection. The only way to do this is
             //   to convert to UTF-8 where necessary and remove any XML
             //   declaration encoding information
-            $doc = new \DOMDocument();
             try {
                 // first check for a byte order mark; if one exists we can go straight to parsing
                 if (!Encoding::sniffBOM($string)) {
@@ -80,6 +79,9 @@ XMLDECL;
                         //   or ISO 2022-JP never contain non-ASCII characters
                         //   before encoding information is seen)
                         if ($charset === "UTF-16BE" || $charset === "UTF-16LE") {
+                            // NOTE: the transcoding operation may throw an 
+                            //   exception, which is why this whole operation
+                            //   is wrapped in a try block
                             $decoder = Encoding::createDecoder($charset, $string, true, false);
                             $string = "";
                             while (strlen($c = $decoder->nextChar())) {
@@ -100,16 +102,25 @@ XMLDECL;
                     }
                 }
                 // parse the document
-                if (!$doc->loadXML($string, \LIBXML_NONET | \LIBXML_BIGLINES | \LIBXML_COMPACT |\LIBXML_NOWARNING | \LIBXML_NOERROR)) {
-                    throw new \Exception(libxml_get_last_error()->message);
-                }
+                return $this->createDocumentXml($string);
             } catch (\Exception $e) {
-                $doc->appendChild($doc->createElementNS("http://www.mozilla.org/newlayout/xml/parsererror.xml", "parserror"));
-                $doc->documentElement->appendChild($doc->createTextNode($e->getMessage()));
+                $string = "<parsererror xmlns=\"http://www.mozilla.org/newlayout/xml/parsererror.xml\">".htmlspecialchars($e->getMessage(), \ENT_NOQUOTES | \ENT_SUBSTITUTE | \ENT_XML1, "UTF-8")."</parsererror>";
+                return $this->createDocumentXml($string);
             }
-            return $doc;
         } else {
             throw new \InvalidArgumentException("\$type must be \"text/html\" or an XML type");
         }
+    }
+
+    protected function createDocumentHtml(string $string, string $type): \DOMDocument {
+        return Parser::parse($string, $type)->document;
+    }
+
+    protected function createDocumentXml(string $string): \DOMDocument {
+        $document = new \DOMDocument;
+        if (!$document->loadXML($string, \LIBXML_NONET | \LIBXML_BIGLINES | \LIBXML_COMPACT |\LIBXML_NOWARNING | \LIBXML_NOERROR)) {
+            throw new \Exception(libxml_get_last_error()->message);
+        }
+        return $document;
     }
 }
