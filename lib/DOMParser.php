@@ -22,7 +22,7 @@ class DOMParser {
     /^
     <\?xml
     (\s+version=(?:"1\.[0-9]+"|'1\.[0-9]+'))
-    (?:\s+encoding=(?:"[A-Za-z][A-Za-z0-9\._\-]*"|'[A-Za-z][A-Za-z0-9\._\-]*'))?
+    (?:\s+encoding=("[A-Za-z][A-Za-z0-9\._\-]*"|'[A-Za-z][A-Za-z0-9\._\-]*'))?
     (\s+standalone=(?:"yes"|"no"|'yes'|'no'))?
     (\s*)\?>
     /sx
@@ -63,8 +63,7 @@ XMLDECL;
                     // check the type for a charset parameter if there is no BOM
                     $charset = $t->params['charset'] ?? "";
                     if ($charset) {
-                        $encoding = Encoding::matchLabel($charset);
-                        if ($encoding) {
+                        if ($encoding = Encoding::matchLabel($charset)) {
                             $charset = $encoding['name'];
                         }
                     }
@@ -79,9 +78,10 @@ XMLDECL;
                         //   or ISO 2022-JP never contain non-ASCII characters
                         //   before encoding information is seen)
                         if ($charset === "UTF-16BE" || $charset === "UTF-16LE") {
-                            // NOTE: the transcoding operation may throw an 
-                            //   exception, which is why this whole operation
-                            //   is wrapped in a try block
+                            // NOTE: the transcoding operation may throw an
+                            //   exception due to unpaired surrogates, which
+                            //   is why this whole operation is wrapped in a
+                            //   try block
                             $decoder = Encoding::createDecoder($charset, $string, true, false);
                             $string = "";
                             while (strlen($c = $decoder->nextChar())) {
@@ -93,10 +93,27 @@ XMLDECL;
                         }
                         // look for an XML declaration
                         if (preg_match(self::XML_DECLARATION_PATTERN, $string, $match)) {
-                            // substitute the information if one is found
-                            $string = "<?xml".$match[1]." encoding=\"$charset\"".$match[2].$match[3]."?>".substr($string, strlen($match[0]));
-                        } else {
-                            // add a declaration if none is found
+                            // if an existing encoding declaration is found,
+                            //   keep it only if it matches; if no encoding
+                            //   declaration is found but the encoding is UTF-8
+                            //   this is also acceptable
+                            $keep = false;
+                            if ($match[2]) {
+                                $candidate = substr($match[2], 1, strlen($match[2]) - 2);
+                                if ($encoding = Encoding::matchLabel($candidate)) {
+                                    if ($charset === $encoding['name']) {
+                                        $keep = true;
+                                    }
+                                }
+                            } elseif ($charset === "UTF-8") {
+                                $keep = true;
+                            }
+                            // substitute the encoding declaration where necessary
+                            if (!$keep) {
+                                $string = "<?xml".$match[1]." encoding=\"$charset\"".$match[3].$match[4]."?>".substr($string, strlen($match[0]));
+                            }
+                        } elseif ($charset !== "UTF-8") {
+                            // add a declaration if none is found and the encoding is not UTF-8
                             $string = "<?xml version=\"1.0\" encoding=\"$charset\" ?>".$string;
                         }
                     }
