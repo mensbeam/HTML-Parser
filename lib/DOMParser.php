@@ -11,12 +11,22 @@ use MensBeam\Intl\Encoding;
 
 /** The DOMParser interface allows authors to create new DOMDocument objects by parsing strings, as either HTML or XML */
 class DOMParser {
-    /** @var A UTF-8 byte order mark */
+    /** @var string A UTF-8 byte order mark */
     protected const BOM_UTF8 = "\xEF\xBB\xBF";
-    /** @var A UTF-16 (big-endian) byte order mark */
+    /** @var string A UTF-16 (big-endian) byte order mark */
     protected const BOM_UTF16BE = "\xFE\xFF";
-    /** @var A UTF-16 (little-endian) byte order mark */
+    /** @var string A UTF-16 (little-endian) byte order mark */
     protected const BOM_UTF16LE = "\xFF\xFE";
+    /** @var string A pattern for matching an XML declaration; this matches the production listed in XML 1.0, which does not materially differ from that of XML 1.1 */
+    protected const XML_DECLARATION_PATTERN = <<<XMLDECL
+    /^
+    <\?xml
+    (\s+version=(?:"1\.[0-9]+"|'1\.[0-9]+'))
+    (?:\s+encoding=(?:"[A-Za-z][A-Za-z0-9\._\-]*"|'[A-Za-z][A-Za-z0-9\._\-]*'))?
+    (\s+standalone=(?:"yes"|"no"|'yes'|'no'))?
+    (\s*)\?>
+    /sx
+XMLDECL;
 
     /** Parses `$string` using either the HTML or XML parser, according to `$type`, and returns the resulting `DOMDocument`
      * 
@@ -44,8 +54,9 @@ class DOMParser {
         } elseif ($t->isXml) {
             // for XML we have to jump through a few hoops to deal with encoding;
             //   if we have a known encoding we want to make sure the XML parser
-            //   doesn't try to do its own detection. The best way to do this is
-            //   to add a Unicode byte order mark if the string doesn't have one
+            //   doesn't try to do its own detection. The only way to do this is
+            //   to convert to UTF-8 where necessary and remove any XML
+            //   declaration encoding information
             $doc = new \DOMDocument();
             try {
                 // first check for a byte order mark; if one exists we can go straight to parsing
@@ -62,22 +73,29 @@ class DOMParser {
                     //   accordingly; otherwise skip to parsing and let the
                     //   XML parser detect encoding
                     if ($charset) {
-                        // if the string is known to be UTF-8 or UTF-16 according to the type but has no BOM, add one
-                        if ($charset === "UTF-8") {
-                            $string = self::BOM_UTF8.$string;
-                        } elseif ($charset === "UTF-16BE") {
-                            $string = self::BOM_UTF16BE.$string;
-                        } elseif ($charset === "UTF-16LE") {
-                            $string = self::BOM_UTF16LE.$string;
-                        } else {
-                            // transcode the string to UTF-8 with a BOM where the string's encoding cannot include a BOM
+                        // if the string is UTF-16, transcode it to UTF-8 so
+                        //   we're always dealing with an ASCII-compatible
+                        //   encoding (XML's parsing rules ensure documents
+                        //   in semi-ASCII-compatible encodings like Shift_JIS
+                        //   or ISO 2022-JP never contain non-ASCII characters
+                        //   before encoding information is seen)
+                        if ($charset === "UTF-16BE" || $charset === "UTF-16LE") {
                             $decoder = Encoding::createDecoder($charset, $string, true, false);
-                            $string = self::BOM_UTF8;
+                            $string = "";
                             while (strlen($c = $decoder->nextChar())) {
                                 $string .= $c;
                                 $string .= $decoder->asciiSpanNot("");
                             }
                             unset($decoder);
+                            $charset = "UTF-8";
+                        }
+                        // look for an XML declaration
+                        if (preg_match(self::XML_DECLARATION_PATTERN, $string, $match)) {
+                            // substitute the information if one is found
+                            $string = "<?xml".$match[1]." encoding=\"$charset\"".$match[2].$match[3]."?>".substr($string, strlen($match[0]));
+                        } else {
+                            // add a declaration if none is found
+                            $string = "<?xml version=\"1.0\" encoding=\"$charset\" ?>".$string;
                         }
                     }
                 }
