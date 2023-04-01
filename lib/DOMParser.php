@@ -52,11 +52,13 @@ XMLDECL;
             // for HTML we invoke our parser which has its own handling for everything
             return $this->createDocumentHtml($string, $type);
         } elseif ($t->isXml) {
-            // for XML we have to jump through a few hoops to deal with encoding;
-            //   if we have a known encoding we want to make sure the XML parser
-            //   doesn't try to do its own detection. The only way to do this is
-            //   to convert to UTF-8 where necessary and remove any XML
-            //   declaration encoding information
+            // for XML we have to jump through a few hoops to deal with
+            //   encoding; if we have a known encoding we want to make sure
+            //   the XML parser doesn't try to do its own detection. We can
+            //   treat byte order marks as authoritative. In their absence we
+            //   can add BOMs to UTF-16 documents, but for other encodings we
+            //   must parse XML declarations and validate that any encoding
+            //   declaration is correct and change it if it is incorrect
             try {
                 // first check for a byte order mark; if one exists we can go straight to parsing
                 if (!Encoding::sniffBOM($string)) {
@@ -70,28 +72,14 @@ XMLDECL;
                     // if a supported encoding was parsed from the type, act
                     //   accordingly; otherwise skip to parsing and let the
                     //   XML parser detect encoding
-                    if ($charset) {
-                        // if the string is UTF-16, transcode it to UTF-8 so
-                        //   we're always dealing with an ASCII-compatible
-                        //   encoding (XML's parsing rules ensure documents
-                        //   in semi-ASCII-compatible encodings like Shift_JIS
-                        //   or ISO 2022-JP never contain non-ASCII characters
-                        //   before encoding information is seen)
-                        if ($charset === "UTF-16BE" || $charset === "UTF-16LE") {
-                            // NOTE: the transcoding operation may throw an
-                            //   exception due to unpaired surrogates, which
-                            //   is why this whole operation is wrapped in a
-                            //   try block
-                            $decoder = Encoding::createDecoder($charset, $string, true, false);
-                            $string = "";
-                            while (strlen($c = $decoder->nextChar())) {
-                                $string .= $c;
-                                $string .= $decoder->asciiSpanNot("");
-                            }
-                            unset($decoder);
-                            $charset = "UTF-8";
-                        }
-                        // look for an XML declaration
+                    if ($charset === "UTF-16BE") {
+                        // if the string is UTF-16BE, adding a BOM is sufficient
+                        $string = self::BOM_UTF16BE.$string;
+                     } elseif ($charset === "UTF-16LE") {
+                        // if the string is UTF-16LE, adding a BOM is sufficient
+                        $string = self::BOM_UTF16LE.$string;
+                     } elseif ($charset) {
+                        // for ASCII-compatible encodings look for an XML declaration
                         if (preg_match(self::XML_DECLARATION_PATTERN, $string, $match)) {
                             // if an existing encoding declaration is found,
                             //   keep it only if it matches; if no encoding
