@@ -14,14 +14,34 @@ public static MensBeam\HTML\Parser::parse(
 ): MensBeam\HTML\Parser\Output
 ```
 
-The `MensBeam\HTML\Parser::parse` static method is used to parse documents. An arbitrary string (and optional encoding) are taken as input, and a `MensBeam\HTML\Parser\Output` object is returned as output. The `Output` object has the following properties:
+The `MensBeam\HTML\Parser::parse` static method is used to parse documents. An arbitrary string and optional encoding are taken as input, and a `MensBeam\HTML\Parser\Output` object is returned as output. The `Output` object has the following properties:
 
-- `document`: A string `DOMDocument` object representing the parsed document
+- `document`: A `DOMDocument` object representing the parsed document
 - `encoding`: The original character encoding of the document, as supplied by the user or otherwise detected during parsing
 - `quirksMode`: The detected "quirks mode" property of the document. This will be one of `Parser::NO_QURIKS_MODE` (`0`), `Parser::QUIRKS_MODE` (`1`), or `Parser::LIMITED_QUIRKS_MODE` (`2`)
 - `errors`: An array containing the list of parse errors emitted during processing if parse error reporting was turned on (see **Configuration** below), or `null` otherwise
 
 Extra configuration parameters may be given to the parser by passing a `MensBeam\HTML\Parser\Config` object as the final `$config` argument. See the **Configuration** section below for more details.
+
+### Parsing with `DOMParser`
+
+Since version 1.3.0, the library also provides an implemention of [the `DOMParser` interface](https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-parsing-and-serialization). 
+
+```php
+class MensBeam\HTML\DOMParser {
+  public function parseFromString(
+    string $string,
+    string $type
+  ): \DOMDocument
+}
+```
+
+Like the standard interface, it will parse either HTML or XML documents. This implementation does, however, differ in the following ways:
+
+- Any XML MIME content-type (e.g. `application/rss+xml`) is acceptable, not just the restricted list mandated by the interface
+- MIME content-types may include a `charset` parameter to specify an authoritative encoding of the document
+- If no `charset` is provided encoding will be detected from document hints; the default encoding for HTML is `windows-1252` and for XML `UTF-8`
+- `InvalidArgumentException` is thrown in place of JavaScript's `TypeError`
 
 ### Parsing into existing documents
 
