@@ -58,7 +58,8 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         // filter out tests for the prospective <search> element, which has not yet been added to HTML
         $filtered = new class($files) extends \FilterIterator {
             public function accept(): bool {
-                return !preg_match('/\bsearch-element.dat$/', parent::current());
+                return true;
+                //return !preg_match('/\bsearch-element.dat$/', parent::current());
             }
         };
         return $this->parseTreeTest($filtered);

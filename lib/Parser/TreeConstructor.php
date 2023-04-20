@@ -474,8 +474,8 @@ class TreeConstructor {
                         # A start tag whose tag name is one of: "address", "article", "aside",
                         # "blockquote", "center", "details", "dialog", "dir", "div", "dl", "fieldset",
                         # "figcaption", "figure", "footer", "header", "hgroup", "menu", "main", "nav", "ol", "p",
-                        # "section", "summary", "ul"
-                        elseif (in_array($token->name, ['address', 'article', 'aside', 'blockquote', 'center', 'details', 'dialog', 'dir', 'div', 'dl', 'fieldset', 'figcaption', 'figure', 'footer', 'header', 'hgroup', 'main', 'menu', 'nav', 'ol', 'p', 'section', 'summary', 'ul'])) {
+                        # "search", "section", "summary", "ul"
+                        elseif (in_array($token->name, ['address', 'article', 'aside', 'blockquote', 'center', 'details', 'dialog', 'dir', 'div', 'dl', 'fieldset', 'figcaption', 'figure', 'footer', 'header', 'hgroup', 'main', 'menu', 'nav', 'ol', 'p', 'search', 'section', 'summary', 'ul'])) {
                             # If the stack of open elements has a p element in button scope, then close a p
                             # element.
                             if ($this->stack->hasElementInButtonScope('p')) {
@@ -1015,8 +1015,8 @@ class TreeConstructor {
                         # An end tag whose tag name is one of: "address", "article", "aside",
                         # "blockquote", "button", "center", "details", "dialog", "dir", "div", "dl",
                         # "fieldset", "figcaption", "figure", "footer", "header", "hgroup", "listing",
-                        #  "main", "menu", "nav", "ol", "pre", "section", "summary", "ul"
-                        elseif (in_array($token->name, ['address', 'article', 'aside', 'blockquote', 'button', 'center', 'details', 'dialog', 'dir', 'div', 'dl', 'fieldset', 'figcaption', 'figure', 'footer', 'header', 'hgroup', 'listing', 'main', 'menu', 'nav', 'ol', 'pre', 'section', 'summary', 'ul'])) {
+                        #  "main", "menu", "nav", "ol", "pre", "search", "section", "summary", "ul"
+                        elseif (in_array($token->name, ['address', 'article', 'aside', 'blockquote', 'button', 'center', 'details', 'dialog', 'dir', 'div', 'dl', 'fieldset', 'figcaption', 'figure', 'footer', 'header', 'hgroup', 'listing', 'main', 'menu', 'nav', 'ol', 'pre', 'search', 'section', 'summary', 'ul'])) {
                             # If the stack of open elements does not have an element in scope that is an
                             # HTML element with the same tag name as that of the token, then this is a parse
                             # error; ignore the token.
