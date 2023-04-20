@@ -55,10 +55,11 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         $files = new \AppendIterator();
         $files->append(new \GlobIterator(\MensBeam\HTML\Parser\BASE."tests/html5lib-tests/tree-construction/*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
         $files->append(new \GlobIterator(\MensBeam\HTML\Parser\BASE."tests/cases/tree-construction/mensbeam*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
-        // filter out tests for the prospective <search> element, which has not yet been added to HTML
+        // filter out tests which are problematic, if any
         $filtered = new class($files) extends \FilterIterator {
             public function accept(): bool {
                 return true;
+                // previously tests for the search element were filtered out before the element was formally added to HTML
                 //return !preg_match('/\bsearch-element.dat$/', parent::current());
             }
         };
