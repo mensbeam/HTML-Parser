@@ -27,6 +27,8 @@
     </testsuite>
     <testsuite name="Parser">
         <file>cases/TestParser.php</file>
+    </testsuite>
+    <testsuite name="DOMParser">
         <file>cases/TestDOMParser.php</file>
     </testsuite>
     <testsuite name="Serializer">

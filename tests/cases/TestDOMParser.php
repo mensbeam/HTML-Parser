@@ -43,6 +43,10 @@ class TestDOMParser extends \PHPUnit\Framework\TestCase {
             ["<?xml version='1.1' ?><html>Ol\u{E9}</html>",                                            "text/xml;charset=UTF-8",        "Ol\u{E9}"],
             ["<?xml version='1.0' standalone='yes'?><html>Ol\u{E9}</html>",                            "text/xml;charset=UTF-8",        "Ol\u{E9}"],
             ["<?xml version='1.0' standalone='yes'?><html>Ol\xE9</html>",                              "text/xml;charset=windows-1252", "Ol\u{E9}"],
+            ["<?xml version='1.0' encoding='bogus'?><html>Ol\u{E9}</html>",                            "text/xml",                      "Ol\u{E9}"],
+            ["<?xml version='1.0'?><html>Ol\u{E9}</html>",                                             "text/xml;charset=bogus",        "Ol\u{E9}"],
+            ["<?xml version='1.0' encoding='bogus'?><html>Ol\u{E9}</html>",                            "text/xml;charset=bogus",        "Ol\u{E9}"],
+            ["<html>\x81\xE9</html>",                                                                  "text/xml;charset=euc-kr",       "\u{ACF2}"],
             [$mkUtf16("\xFE\xFF<html>Ol\x00\xE9</html>", false),                                       "text/xml",                      "Ol\u{E9}"],
             [$mkUtf16("\xFF\xFE<html>Ol\xE9\x00</html>", true),                                        "text/xml",                      "Ol\u{E9}"],
             [$mkUtf16("<?xml version='1.0' encoding='UTF-16'?><html>Ol\x00\xE9</html>", false),        "text/xml",                      "Ol\u{E9}"],
@@ -68,5 +72,14 @@ class TestDOMParser extends \PHPUnit\Framework\TestCase {
         $p = new DOMParser;
         $this->expectException(\InvalidArgumentException::class);
         $p->parseFromString($in, "text/plain");
+    }
+
+    public function testParseWithInvalidEncoding(): void {
+        $in = "<html>Test</html>";
+        $p = new DOMParser;
+        $d = $p->parseFromString($in, "text/xml;charset=csiso2022kr");
+        $this->assertSame("parsererror", $d->documentElement->tagName);
+        $this->assertSame("http://www.mozilla.org/newlayout/xml/parsererror.xml", $d->documentElement->namespaceURI);
+        $this->assertNotSame("", trim($d->documentElement->textContent));
     }
 }
