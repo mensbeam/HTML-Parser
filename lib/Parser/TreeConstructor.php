@@ -2710,19 +2710,9 @@ class TreeConstructor {
                     # A start tag whose tag name is one of: "caption", "col",
                     #   "colgroup", "tbody", "td", "tfoot", "th", "thead", "tr"
                     elseif ($token instanceof StartTagToken && in_array($token->name, ["caption", "col", "colgroup", "tbody", "td", "tfoot", "th", "thead", "tr"])) {
-                        # If the stack of open elements does not have a td or th
-                        #   element in table scope, then this is a parse error;
-                        #   ignore the token. (fragment case)
-                        if (!$this->stack->hasElementInTableScope("td", "th")) {
-                            // NOTE: This case appears to be unreachable
-                            // See https://github.com/whatwg/html/issues/7242
-                            $this->error(ParseError::UNEXPECTED_START_TAG, $token->name); //@codeCoverageIgnore
-                        }
-                        # Otherwise, close the cell (see below) and reprocess the token.
-                        else {
-                            $insertionMode = $this->closeCell($token);
-                            goto ProcessToken;
-                        }
+                        # Close the cell (see below) and reprocess the token.
+                        $insertionMode = $this->closeCell($token);
+                        goto ProcessToken;
                     }
                     # An end tag whose tag name is one of: "body", "caption", "col",
                     #   "colgroup", "html"
@@ -2808,6 +2798,25 @@ class TreeConstructor {
                             }
                             # Insert an HTML element for the token.
                             $this->insertStartTagToken($token);
+                        }
+                        # A start tag whose tag name is "hr"
+                        elseif ($token->name === "hr") {
+                            # If the current node is an option element, pop that
+                            #   node from the stack of open elements.
+                            if ($this->stack->currentNodeName === "option") {
+                                $this->stack->pop();
+                            }
+                            # If the current node is an optgroup element, pop that
+                            #   node from the stack of open elements.
+                            if ($this->stack->currentNodeName === "optgroup") {
+                                $this->stack->pop();
+                            }
+                            # Insert an HTML element for the token.
+                            $this->insertStartTagToken($token);
+                            # Immediately pop the current node off the stack of open elements.
+                            $this->stack->pop();
+                            # Acknowledge the token's self-closing flag, if it is set.
+                            $token->selfClosingAcknowledged = true;
                         }
                         # A start tag whose tag name is "select"
                         elseif ($token->name === "select") {
