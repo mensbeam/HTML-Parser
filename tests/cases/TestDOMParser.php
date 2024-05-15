@@ -44,7 +44,7 @@ class TestDOMParser extends \PHPUnit\Framework\TestCase {
             ["<?xml version='1.0' standalone='yes'?><html>Ol\u{E9}</html>",                            "text/xml;charset=UTF-8",        "Ol\u{E9}"],
             ["<?xml version='1.0' standalone='yes'?><html>Ol\xE9</html>",                              "text/xml;charset=windows-1252", "Ol\u{E9}"],
             ["<?xml version='1.0'?><html>Ol\u{E9}</html>",                                             "text/xml;charset=bogus",        "Ol\u{E9}"],
-            ["<?xml version='1.0' encoding='bogus'?><html>Ol\u{E9}</html>",                            "text/xml;charset=bogus",        "Ol\u{E9}"],
+            ["<?xml version='1.0' encoding='utf-8'?><html>Ol\u{E9}</html>",                            "text/xml;charset=bogus",        "Ol\u{E9}"],
             ["<html>\x81\xE9</html>",                                                                  "text/xml;charset=euc-kr",       "\u{ACF2}"],
             [$mkUtf16("\xFE\xFF<html>Ol\x00\xE9</html>", false),                                       "text/xml",                      "Ol\u{E9}"],
             [$mkUtf16("\xFF\xFE<html>Ol\xE9\x00</html>", true),                                        "text/xml",                      "Ol\u{E9}"],

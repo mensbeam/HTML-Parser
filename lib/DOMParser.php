@@ -79,13 +79,8 @@ XMLDECL;
             return $this->createDocumentHtml($string, $type);
         } elseif ($t->isXml) {
             // for XML we have to jump through a few hoops to deal with
-            //   encoding; if we have a known encoding we want to make sure
-            //   the XML parser doesn't try to do its own detection.
-            if (isset($t->params['charset'])) {
-                $string = $this->fixXmlEncoding($string, $t->params['charset']);
-            }
-            // parse the document
-            return $this->createDocumentXml($string);
+            //   encoding
+            return $this->createDocumentXml($this->fixXmlEncoding($string, $t->params['charset'] ?? ""));
         } else {
             throw new \InvalidArgumentException("\$type must be \"text/html\" or an XML type");
         }
@@ -150,7 +145,11 @@ XMLDOC;
             // if the document encoding differs from the type encoding
             //   or the document encoding is not recognized by libxml,
             //   we need to mangle the document before parsing
-            if (($typeEnc && $docEnc && $docEnc['name'] !== $typeEnc['name']) || ($docEnc && in_array($docEnc['label'], self::ENCODING_NAUGHTY_LIST)) || (!$docEnc && !$typeEnc)) {
+            if (
+                ($typeEnc && $docEnc && $docEnc['name'] !== $typeEnc['name'])
+                || ($typeEnc && !$docEnc && $typeEnc !== "UTF-8")
+                || ($docEnc && in_array($docEnc['label'], self::ENCODING_NAUGHTY_LIST))
+            ) {
                 $charset = ($typeEnc ?? $docEnc)['name'] ?? "UTF-8";
                 // some canonical names are not recognized by libxml, so we must use other labels
                 $charset = self::ENCODING_ALIAS_MAP[$charset] ?? $charset;
