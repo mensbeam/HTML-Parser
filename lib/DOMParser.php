@@ -80,64 +80,12 @@ XMLDECL;
         } elseif ($t->isXml) {
             // for XML we have to jump through a few hoops to deal with
             //   encoding; if we have a known encoding we want to make sure
-            //   the XML parser doesn't try to do its own detection. We can
-            //   treat byte order marks as authoritative. In their absence we
-            //   can add BOMs to UTF-16 documents, but for other encodings we
-            //   must parse XML declarations and validate that any encoding
-            //   declaration is correct and change it if it is incorrect
-
-            // this process is further complicated by libxml not understanding
-            //   all labels from the Encoding specification (which we try to
-            //   honour since it can be assumed to be a best practice), so we
-            //   must also rewrite some encoding declarations
-            try {
-                // first check for a byte order mark; if one exists we can go straight to parsing
-                if (!Encoding::sniffBOM($string)) {
-                    // otherwise determine the embedded encoding of the document
-                    if (preg_match(self::XML_DECLARATION_PATTERN, $string, $match)) {
-                        $match[2] = ($match[2] ?? "") ?: '"utf-8"'; // declaration without encoding is UTF-8
-                        $xmlDeclaration = $match[0];
-                        $xmlVersion = $match[1];
-                        $xmlEncoding = substr($match[2], 1, strlen($match[2]) - 2);
-                        $xmlStandalone = $match[3] ?? "";
-                        $docEnc = Encoding::matchLabel($xmlEncoding);
-                    } else {
-                        $xmlDeclaration = "";
-                        $xmlVersion = " version=\"1.0\"";
-                        $xmlEncoding = "";
-                        $xmlStandalone = "";
-                        $docEnc = Encoding::matchLabel("utf-8");
-                    }
-                    // next check the type for a charset parameter if there is one
-                    $typeEnc = Encoding::matchLabel($t->params['charset'] ?? "");
-                    // if the document encoding differs from the type encoding
-                    //   or the document encoding is not recognized by libxml,
-                    //   we need to mangle the document before parsing
-                    if (($typeEnc && $docEnc && $docEnc['name'] !== $typeEnc['name']) || ($docEnc && in_array($docEnc['label'], self::ENCODING_NAUGHTY_LIST)) || (!$docEnc && !$typeEnc)) {
-                        $charset = ($typeEnc ?? $docEnc)['name'] ?? "UTF-8";
-                        // some canonical names are not recognized by libxml, so we must use other labels
-                        $charset = self::ENCODING_ALIAS_MAP[$charset] ?? $charset;
-                        if ($charset === "UTF-8") {
-                            // if the string is UTF-8, adding a BOM is sufficient
-                            $string = self::BOM_UTF8.$string;
-                        } elseif ($charset === "UTF-16BE") {
-                            // if the string is UTF-16BE, adding a BOM is sufficient
-                            $string = self::BOM_UTF16BE.$string;
-                        } elseif ($charset === "UTF-16LE") {
-                            // if the string is UTF-16LE, adding a BOM is sufficient
-                            $string = self::BOM_UTF16LE.$string;
-                        } elseif ($charset) {
-                            // otherwise substitute the encoding declaration if any
-                            $string = "<?xml".$xmlVersion." encoding=\"$charset\"".$xmlStandalone."?>".substr($string, strlen($xmlDeclaration));
-                        }
-                    }
-                }
-                // parse the document
-                return $this->createDocumentXml($string);
-            } catch (\Exception $e) {
-                $string = "<parsererror xmlns=\"http://www.mozilla.org/newlayout/xml/parsererror.xml\">".htmlspecialchars($e->getMessage(), \ENT_NOQUOTES | \ENT_SUBSTITUTE | \ENT_XML1, "UTF-8")."</parsererror>";
-                return $this->createDocumentXml($string);
+            //   the XML parser doesn't try to do its own detection.
+            if (isset($t->params['charset'])) {
+                $string = $this->fixXmlEncoding($string, $t->params['charset']);
             }
+            // parse the document
+            return $this->createDocumentXml($string);
         } else {
             throw new \InvalidArgumentException("\$type must be \"text/html\" or an XML type");
         }
@@ -151,8 +99,76 @@ XMLDECL;
         $document = new \DOMDocument;
         if (!$document->loadXML($string, \LIBXML_NONET | \LIBXML_BIGLINES | \LIBXML_COMPACT |\LIBXML_NOWARNING | \LIBXML_NOERROR)) {
             $err = libxml_get_last_error();
-            throw new \Exception($err->code.": \"".trim($err->message)."\" on line ".$err->line.", column ".$err->column);
+            $message = trim(htmlspecialchars($err->message, \ENT_NOQUOTES | \ENT_SUBSTITUTE | \ENT_XML1, "UTF-8"));
+            $string = <<<XMLDOC
+<parsererror 
+    xmlns="http://www.mozilla.org/newlayout/xml/parsererror.xml" 
+    code="{$err->code}"
+    message="$message"
+    line="{$err->line}"
+    column="{$err->column}"
+>{$err->code}: "$message" on line {$err->line}, column {$err->column}</parsererror>
+XMLDOC;
+            return $this->createDocumentXml($string);
         }
         return $document;
+    }
+
+    protected function fixXmlEncoding(string $string, string $encoding) {
+        // for XML we have to jump through a few hoops to deal with
+        //   encoding; if we have a known encoding we want to make sure
+        //   the XML parser doesn't try to do its own detection. We can
+        //   treat byte order marks as authoritative. In their absence we
+        //   can add BOMs to UTF-16 documents, but for other encodings we
+        //   must parse XML declarations and validate that any encoding
+        //   declaration is correct and change it if it is incorrect
+
+        // this process is further complicated by libxml not understanding
+        //   all labels from the Encoding specification (which we try to
+        //   honour since it can be assumed to be a best practice), so we
+        //   must also rewrite some encoding declarations
+        
+        // first check for a byte order mark; if one exists we can skip all this
+        if (!Encoding::sniffBOM($string)) {
+            // otherwise determine the embedded encoding of the document
+            if (preg_match(self::XML_DECLARATION_PATTERN, $string, $match)) {
+                $match[2] = ($match[2] ?? "") ?: '"utf-8"'; // declaration without encoding is UTF-8
+                $xmlDeclaration = $match[0];
+                $xmlVersion = $match[1];
+                $xmlEncoding = substr($match[2], 1, strlen($match[2]) - 2);
+                $xmlStandalone = $match[3] ?? "";
+                $docEnc = Encoding::matchLabel($xmlEncoding);
+            } else {
+                $xmlDeclaration = "";
+                $xmlVersion = " version=\"1.0\"";
+                $xmlEncoding = "";
+                $xmlStandalone = "";
+                $docEnc = Encoding::matchLabel("utf-8");
+            }
+            // next check the type for a charset parameter if there is one
+            $typeEnc = Encoding::matchLabel($encoding);
+            // if the document encoding differs from the type encoding
+            //   or the document encoding is not recognized by libxml,
+            //   we need to mangle the document before parsing
+            if (($typeEnc && $docEnc && $docEnc['name'] !== $typeEnc['name']) || ($docEnc && in_array($docEnc['label'], self::ENCODING_NAUGHTY_LIST)) || (!$docEnc && !$typeEnc)) {
+                $charset = ($typeEnc ?? $docEnc)['name'] ?? "UTF-8";
+                // some canonical names are not recognized by libxml, so we must use other labels
+                $charset = self::ENCODING_ALIAS_MAP[$charset] ?? $charset;
+                if ($charset === "UTF-8") {
+                    // if the string is UTF-8, adding a BOM is sufficient
+                    return self::BOM_UTF8.$string;
+                } elseif ($charset === "UTF-16BE") {
+                    // if the string is UTF-16BE, adding a BOM is sufficient
+                    return self::BOM_UTF16BE.$string;
+                } elseif ($charset === "UTF-16LE") {
+                    // if the string is UTF-16LE, adding a BOM is sufficient
+                    return self::BOM_UTF16LE.$string;
+                } elseif ($charset) {
+                    // otherwise substitute the encoding declaration if any
+                    return "<?xml".$xmlVersion." encoding=\"$charset\"".$xmlStandalone."?>".substr($string, strlen($xmlDeclaration));
+                }
+            }
+        }
+        return $string;
     }
 }
