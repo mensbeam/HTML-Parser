@@ -206,7 +206,7 @@ class Data {
         }
     }
 
-    public function consumeWhile(string $match, int $limit = null): string {
+    public function consumeWhile(string $match, ?int $limit = null): string {
         $start = $this->data->posChar();
         $out =  $this->data->asciiSpan($match, $limit);
         if ($this->track) {
@@ -215,7 +215,7 @@ class Data {
         return $out;
     }
 
-    public function consumeUntil(string $match, int $limit = null): string {
+    public function consumeUntil(string $match, ?int $limit = null): string {
         $start = $this->data->posChar();
         if ($this->track) {
             // control characters produce parse errors

@@ -3846,7 +3846,7 @@ class TreeConstructor {
         goto OuterLoop;
     }
 
-    protected function appropriatePlaceForInsertingNode(\DOMNode $overrideTarget = null): array {
+    protected function appropriatePlaceForInsertingNode(?\DOMNode $overrideTarget = null): array {
         $insertBefore = false;
         # 13.2.6.1. Creating and inserting nodes
         #
@@ -3972,7 +3972,7 @@ class TreeConstructor {
         }
     }
 
-    public function insertCommentToken(CommentToken $token, \DOMNode $position = null): void {
+    public function insertCommentToken(CommentToken $token, ?\DOMNode $position = null): void {
         # When the steps below require the user agent to insert a comment while
         # processing a comment token, optionally with an explicitly insertion position
         # position, the user agent must run the following steps:
@@ -4007,7 +4007,7 @@ class TreeConstructor {
         $position->appendChild($node);
     }
 
-    public function insertStartTagToken(StartTagToken $token, \DOMNode $intendedParent = null, string $namespace = null): \DOMElement {
+    public function insertStartTagToken(StartTagToken $token, ?\DOMNode $intendedParent = null, ?string $namespace = null): \DOMElement {
         # When the steps below require the user agent to insert a foreign
         #   element for a token in a given namespace, the user agent must
         #   run these steps:

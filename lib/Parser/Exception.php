@@ -22,7 +22,7 @@ class Exception extends \Exception {
         201 => 'Unable to serialize unsupported node type %s',
     ];
 
-    public function __construct(int $code, array $args = [], \Throwable $previous = null) {
+    public function __construct(int $code, array $args = [], ?\Throwable $previous = null) {
         assert(isset(self::$messages[$code]), new \Exception("Exception code $code not defined"));
 
         $message = self::$messages[$code];
