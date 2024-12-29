@@ -6,6 +6,7 @@
 declare(strict_types=1);
 namespace MensBeam\HTML;
 
+use MensBeam\HTML\Parser\Config;
 use MensBeam\Mime\MimeType;
 use MensBeam\Intl\Encoding;
 
@@ -46,7 +47,7 @@ XMLDECL;
 		"csbig5", "x-x-big5", "x-euc-jp", "ms932", "windows-31j", "x-sjis",
 		"cseuckr", "euc-kr", "replacement",
 	];
-	/** @var array A List of canonical encoding names DOMDocument does not understand, with liases to labels it does understand */
+	/** @var array A List of canonical encoding names DOMDocument does not understand, with aliases to labels it does understand */
 	const ENCODING_ALIAS_MAP = [
 		'windows-1258' => "x-cp1258",
 		'GBK' => "x-gbk",
@@ -65,34 +66,62 @@ XMLDECL;
      * detection
      * 
      * For the XML parser, if `$string` cannot be parsed, then the returned
-     * `DOMDocument` will contain elements describing the resulting error
+     * document will contain elements describing the resulting error
      * 
      * If no encoding is specified and none can be detected from the document,
-     * the default encoding is Windows-1252 for HTML and UTF-8 for XML
+     * the default encoding is UTF-8 for both HTML and XML
+     * 
+     * @return \DOMDocument|\Dom\HTMLDocument|\Dom\XMLDocument
      */
-    public function parseFromString(string $string, string $type): \DOMDocument {
-        // start by parsing the type
+    public function parseFromString(string $string, string $type) {
+        // parse the Content-Type
         $t = MimeType::parseBytes($type);
+        // determine authoritative encoding from BOM or Content-Type
+        $encoding = Encoding::sniffBOM($string) ?? $t->params['charset'] ?? "";
+        $label = Encoding::matchLabel($encoding);
+        if ($label) {
+            $encoding = $label['name'];
+        } else {
+            $encoding = null;
+        }
         // parse the string as either HTML or XML
         if ($t->isHtml) {
-            // for HTML we invoke our parser which has its own handling for everything
-            return $this->createDocumentHtml($string, $type);
+            // if we're using PHP 8.4, we can use the modern built-in parser
+            if ($this->useNewParsers()) {
+                return \Dom\HTMLDocument::createFromString($string, \LIBXML_NOERROR | \LIBXML_COMPACT, $encoding);
+            }
+            // otherwise we invoke our parser which has its own handling for everything
+            $c = new Config;
+            $c->encodingFallback = "UTF-8";
+            return Parser::parse($string, $encoding, $c)->document;
         } elseif ($t->isXml) {
-            // for XML we have to jump through a few hoops to deal with
-            //   encoding
-            return $this->createDocumentXml($this->fixXmlEncoding($string, $t->params['charset'] ?? ""));
+            // for XML we have to jump through a few hoops to deal with errors,
+            //   as well as with encoding, so we put this in
+            //   another function.
+            return $this->createDocumentXml($string, $encoding);
         } else {
             throw new \InvalidArgumentException("\$type must be \"text/html\" or an XML type");
         }
     }
 
-    protected function createDocumentHtml(string $string, string $type): \DOMDocument {
-        return Parser::parse($string, $type)->document;
+    protected function useNewParsers(): bool {
+        return class_exists(\Dom\Document::class);
     }
 
-    protected function createDocumentXml(string $string): \DOMDocument {
-        $document = new \DOMDocument;
-        if (!$document->loadXML($string, \LIBXML_NONET | \LIBXML_BIGLINES | \LIBXML_COMPACT |\LIBXML_NOWARNING | \LIBXML_NOERROR)) {
+    protected function createDocumentXml(string $string, ?string $encoding) {
+        $string = $this->fixXmlEncoding($string, $encoding ?? "");
+        try {
+            if ($this->useNewParsers()) {
+                return \Dom\XMLDocument::createFromString($string, \LIBXML_NOERROR | \LIBXML_COMPACT);
+            } else {
+                $document = new \DOMDocument;
+                if ($document->loadXML($string, \LIBXML_NONET | \LIBXML_BIGLINES | \LIBXML_COMPACT |\LIBXML_NOWARNING | \LIBXML_NOERROR)) {
+                    return $document;
+                } else {
+                    throw new \Exception;
+                }
+            }
+        } catch (\Exception $e) {
             $err = libxml_get_last_error();
             $message = trim(htmlspecialchars($err->message, \ENT_NOQUOTES | \ENT_SUBSTITUTE | \ENT_XML1, "UTF-8"));
             $string = <<<XMLDOC
@@ -104,9 +133,8 @@ XMLDECL;
     column="{$err->column}"
 >{$err->code}: "$message" on line {$err->line}, column {$err->column}</parsererror>
 XMLDOC;
-            return $this->createDocumentXml($string);
+            return $this->createDocumentXml($string, "UTF-8");
         }
-        return $document;
     }
 
     protected function fixXmlEncoding(string $string, string $encoding) {
@@ -162,6 +190,8 @@ XMLDOC;
                 } elseif ($charset === "UTF-16LE") {
                     // if the string is UTF-16LE, adding a BOM is sufficient
                     return self::BOM_UTF16LE.$string;
+                } elseif ($charset === "replacement") {
+                    return "\u{FFFD}";
                 } elseif ($charset) {
                     // otherwise substitute the encoding declaration if any
                     return "<?xml".$xmlVersion." encoding=\"$charset\"".$xmlStandalone."?>".substr($string, strlen($xmlDeclaration));

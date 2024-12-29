@@ -12,12 +12,18 @@ use MensBeam\HTML\DOMParser;
  * @covers \MensBeam\HTML\DOMParser
  */
 class TestDOMParser extends \PHPUnit\Framework\TestCase {
+    protected $p;
+
+    public function setUp(): void {
+        $this->p = \Phake::partialMock(DOMParser::class);
+        \Phake::when($this->p)->useNewParsers->thenReturn(false); 
+    }
+
     /** @dataProvider provideDocuments */
     public function testParseADocument(string $input, string $type, string $exp): void {
-        $p = new DOMParser;
-        $document = $p->parseFromString($input, $type);
+        $document = $this->p->parseFromString($input, $type);
         $this->assertSame($exp, $document->documentElement->textContent);
-        $this->assertSame("html", $document->documentElement->tagName);
+        $this->assertSame("html", $document->documentElement->localName);
     }
 
     public function provideDocuments(): iterable {
@@ -27,7 +33,7 @@ class TestDOMParser extends \PHPUnit\Framework\TestCase {
         };
         return [
             ["Test",                                                                                   "text/html",                     "Test"],
-            ["Ol\xE9",                                                                                 "text/html",                     "Ol\u{E9}"],
+            ["Ol\u{E9}",                                                                               "text/html",                     "Ol\u{E9}"],
             ["Ol\u{E9}",                                                                               "text/html;charset=utf8",        "Ol\u{E9}"],
             ["<meta charset=utf8>Ol\u{E9}",                                                            "text/html",                     "Ol\u{E9}"],
             ["<html>Test</html>",                                                                      "text/xml",                      "Test"],
@@ -37,10 +43,6 @@ class TestDOMParser extends \PHPUnit\Framework\TestCase {
             ["<?xml version='1.0' encoding='windows-1252'?><html>Ol\xE9</html>",                       "text/xml",                      "Ol\u{E9}"],
             ["<html>Ol\xE9</html>",                                                                    "text/xml;charset=windows-1252", "Ol\u{E9}"],
             ["<html>Ol\u{E9}</html>",                                                                  "text/xml;charset=UTF-8",        "Ol\u{E9}"],
-            ["<?xml version='1.1' encoding='windows-1252'?><html>Ol\u{E9}</html>",                     "text/xml;charset=UTF-8",        "Ol\u{E9}"],
-            ["<?xml version='1.1' encoding='utf8'?><html>Ol\u{E9}</html>",                             "text/xml;charset=UTF-8",        "Ol\u{E9}"],
-            ["<?xml version='1.1'?><html>Ol\u{E9}</html>",                                             "text/xml;charset=UTF-8",        "Ol\u{E9}"],
-            ["<?xml version='1.1' ?><html>Ol\u{E9}</html>",                                            "text/xml;charset=UTF-8",        "Ol\u{E9}"],
             ["<?xml version='1.0' standalone='yes'?><html>Ol\u{E9}</html>",                            "text/xml;charset=UTF-8",        "Ol\u{E9}"],
             ["<?xml version='1.0' standalone='yes'?><html>Ol\xE9</html>",                              "text/xml;charset=windows-1252", "Ol\u{E9}"],
             ["<?xml version='1.0'?><html>Ol\u{E9}</html>",                                             "text/xml;charset=bogus",        "Ol\u{E9}"],
@@ -59,33 +61,29 @@ class TestDOMParser extends \PHPUnit\Framework\TestCase {
 
     public function testFailToParseADocument(): void {
         $in = "<html>Test</html><!--Test-->Test";
-        $p = new DOMParser;
-        $d = $p->parseFromString($in, "text/xml");
-        $this->assertSame("parsererror", $d->documentElement->tagName);
+        $d = $this->p->parseFromString($in, "text/xml");
+        $this->assertSame("parsererror", $d->documentElement->localName);
         $this->assertSame("http://www.mozilla.org/newlayout/xml/parsererror.xml", $d->documentElement->namespaceURI);
         $this->assertNotSame("", trim($d->documentElement->textContent));
     }
 
     public function testParseWithIncorrectType(): void {
         $in = "<html>Ol\u{E9}</html>";
-        $p = new DOMParser;
         $this->expectException(\InvalidArgumentException::class);
-        $p->parseFromString($in, "text/plain");
+        $this->p->parseFromString($in, "text/plain");
     }
 
     public function testParseWithInvalidEncodingInHeader(): void {
         $in = "<html>Test</html>";
-        $p = new DOMParser;
-        $d = $p->parseFromString($in, "text/xml;charset=csiso2022kr");
-        $this->assertSame("parsererror", $d->documentElement->tagName);
+        $d = $this->p->parseFromString($in, "text/xml;charset=csiso2022kr");
+        $this->assertSame("parsererror", $d->documentElement->localName);
         $this->assertSame("http://www.mozilla.org/newlayout/xml/parsererror.xml", $d->documentElement->namespaceURI);
         $this->assertNotSame("", trim($d->documentElement->textContent));
     }
     public function testParseWithInvalidEncodingInDocument(): void {
         $in = "<?xml version='1.0' encoding='bogus'?><html>Test</html>";
-        $p = new DOMParser;
-        $d = $p->parseFromString($in, "text/xml");
-        $this->assertSame("parsererror", $d->documentElement->tagName);
+        $d = $this->p->parseFromString($in, "text/xml");
+        $this->assertSame("parsererror", $d->documentElement->localName);
         $this->assertSame("http://www.mozilla.org/newlayout/xml/parsererror.xml", $d->documentElement->namespaceURI);
         $this->assertNotSame("", trim($d->documentElement->textContent));
     }

@@ -1,5 +1,6 @@
 {
     "require": {
-        "phpunit/phpunit": "^8.5 | ^9.0"
+        "phpunit/phpunit": "^8.5 | ^9.0",
+        "phake/phake": "^4.4"
     }
 }

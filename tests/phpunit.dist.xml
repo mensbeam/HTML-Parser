@@ -30,6 +30,7 @@
     </testsuite>
     <testsuite name="DOMParser">
         <file>cases/TestDOMParser.php</file>
+        <file>cases/TestDOMParserNew.php</file>
     </testsuite>
     <testsuite name="Serializer">
         <file>cases/TestSerializer.php</file>

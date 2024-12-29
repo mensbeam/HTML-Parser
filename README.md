@@ -40,7 +40,7 @@ Like the standard interface, it will parse either HTML or XML documents. This im
 
 - Any XML MIME content-type (e.g. `application/rss+xml`) is acceptable, not just the restricted list mandated by the interface
 - MIME content-types may include a `charset` parameter to specify an authoritative encoding of the document
-- If no `charset` is provided encoding will be detected from document hints; the default encoding for HTML is `windows-1252` and for XML `UTF-8`
+- If no `charset` is provided encoding will be detected from document hints; the default encoding is `UTF-8`
 - `InvalidArgumentException` is thrown in place of JavaScript's `TypeError`
 
 ### Parsing into existing documents
