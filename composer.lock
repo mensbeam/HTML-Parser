@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3168ccd2284dcbe27162c60fe17a07c1",
+    "content-hash": "86387f074512681df8b5692e6a01d34e",
     "packages": [
         {
             "name": "mensbeam/intl",
-            "version": "0.9.3",
+            "version": "0.9.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/mensbeam/Intl.git",
-                "reference": "986c709fce69580bd9680194bed21f5bf663fafd"
+                "reference": "4cddddc30fe147b9249b1ffe751ebffd68ff3745"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/mensbeam/Intl/zipball/986c709fce69580bd9680194bed21f5bf663fafd",
-                "reference": "986c709fce69580bd9680194bed21f5bf663fafd",
+                "url": "https://api.github.com/repos/mensbeam/Intl/zipball/4cddddc30fe147b9249b1ffe751ebffd68ff3745",
+                "reference": "4cddddc30fe147b9249b1ffe751ebffd68ff3745",
                 "shasum": ""
             },
             "require": {
@@ -28,6 +28,12 @@
                 "ext-intl": "*"
             },
             "type": "library",
+            "extra": {
+                "bamarni-bin": {
+                    "bin-links": false,
+                    "forward-command": true
+                }
+            },
             "autoload": {
                 "psr-4": {
                     "MensBeam\\Intl\\": "lib/"
@@ -56,22 +62,22 @@
                 "utf8"
             ],
             "support": {
-                "source": "https://github.com/mensbeam/Intl/tree/0.9.3"
+                "source": "https://github.com/mensbeam/Intl/tree/0.9.4"
             },
-            "time": "2024-12-27T12:23:00+00:00"
+            "time": "2026-01-19T19:58:03+00:00"
         },
         {
             "name": "mensbeam/mimesniff",
-            "version": "0.2.1",
+            "version": "0.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/mensbeam/mime.git",
-                "reference": "c19be2496ab1e27fbf9c3483c2a9faa2781796cd"
+                "reference": "13f4eddf1ed7db6438ab4f945021a0c90b2d8052"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/mensbeam/mime/zipball/c19be2496ab1e27fbf9c3483c2a9faa2781796cd",
-                "reference": "c19be2496ab1e27fbf9c3483c2a9faa2781796cd",
+                "url": "https://api.github.com/repos/mensbeam/mime/zipball/13f4eddf1ed7db6438ab4f945021a0c90b2d8052",
+                "reference": "13f4eddf1ed7db6438ab4f945021a0c90b2d8052",
                 "shasum": ""
             },
             "require": {
@@ -107,9 +113,9 @@
             ],
             "support": {
                 "issues": "https://github.com/mensbeam/mime/issues",
-                "source": "https://github.com/mensbeam/mime/tree/0.2.1"
+                "source": "https://github.com/mensbeam/mime/tree/0.3.0"
             },
-            "time": "2021-03-07T03:58:00+00:00"
+            "time": "2025-03-07T15:14:03+00:00"
         },
         {
             "name": "psr/http-message",
@@ -168,16 +174,16 @@
     "packages-dev": [
         {
             "name": "bamarni/composer-bin-plugin",
-            "version": "1.8.2",
+            "version": "1.8.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/bamarni/composer-bin-plugin.git",
-                "reference": "92fd7b1e6e9cdae19b0d57369d8ad31a37b6a880"
+                "reference": "e7ef9e012667327516c24e5fad9903a3bc91389d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bamarni/composer-bin-plugin/zipball/92fd7b1e6e9cdae19b0d57369d8ad31a37b6a880",
-                "reference": "92fd7b1e6e9cdae19b0d57369d8ad31a37b6a880",
+                "url": "https://api.github.com/repos/bamarni/composer-bin-plugin/zipball/e7ef9e012667327516c24e5fad9903a3bc91389d",
+                "reference": "e7ef9e012667327516c24e5fad9903a3bc91389d",
                 "shasum": ""
             },
             "require": {
@@ -190,7 +196,7 @@
                 "phpstan/extension-installer": "^1.1",
                 "phpstan/phpstan": "^1.8",
                 "phpstan/phpstan-phpunit": "^1.1",
-                "phpunit/phpunit": "^8.5 || ^9.5",
+                "phpunit/phpunit": "^8.5 || ^9.6 || ^10.0",
                 "symfony/console": "^2.8.52 || ^3.4.35 || ^4.4 || ^5.0 || ^6.0",
                 "symfony/finder": "^2.8.52 || ^3.4.35 || ^4.4 || ^5.0 || ^6.0",
                 "symfony/process": "^2.8.52 || ^3.4.35 || ^4.4 || ^5.0 || ^6.0"
@@ -219,9 +225,9 @@
             ],
             "support": {
                 "issues": "https://github.com/bamarni/composer-bin-plugin/issues",
-                "source": "https://github.com/bamarni/composer-bin-plugin/tree/1.8.2"
+                "source": "https://github.com/bamarni/composer-bin-plugin/tree/1.8.3"
             },
-            "time": "2022-10-31T08:38:03+00:00"
+            "time": "2025-11-24T19:20:55+00:00"
         }
     ],
     "aliases": [],
@@ -234,5 +240,5 @@
         "ext-dom": "*"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }

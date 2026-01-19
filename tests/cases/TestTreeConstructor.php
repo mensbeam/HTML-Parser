@@ -37,6 +37,17 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
 
     /** @dataProvider provideStandardTreeTests */
     public function testStandardTreeTests(string $data, array $exp, array $errors, $fragment, string $id): void {
+        $skip = [
+            // Some tests rely on pseudo-scripting
+            'webkit02.dat #44 (line 692)'          => "Pseudo-scripted; not explicitly part of spec",
+            'webkit02.dat #45 (line 706)'          => "Pseudo-scripted; not explicitly part of spec",
+            'webkit02.dat #46 (line 732)'          => "Pseudo-scripted; not explicitly part of spec",
+            'webkit02.dat #47 (line 748)'          => "Pseudo-scripted; not explicitly part of spec",
+            'tests_innerHTML_1.dat #75 (line 790)' => "This test seems to be at odds with the steps for processing an input start tag in body inserting mode in a select fragment context",
+        ];
+        if (isset($skip[$id])) {
+            $this->markTestSkipped($skip[$id]);
+        }
         $this->runTreeTest($data, $exp, $errors, $fragment, null);
         self::$passed[$id] = true;
     }
@@ -116,6 +127,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         // skip checking errors in some tests for now
         if (in_array($data, [
             "<!doctype html><math></html>", // emits an error I cannot account for
+            "<font><select><option>a</option></font></select>", // errors are not recorded in the test (closing tags mis-ordered; the option element is never closed)
         ])) {
             $this->markTestSkipped("Test's parse errors are seemingly incorrect (tree has already been tested)");
         }

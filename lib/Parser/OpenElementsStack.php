@@ -51,6 +51,7 @@ class OpenElementsStack extends Stack {
             'th',
             'marquee',
             'object',
+            "select",
             'template'
         ],
         Parser::MATHML_NAMESPACE => [
@@ -81,13 +82,6 @@ class OpenElementsStack extends Stack {
             'html',
             'table',
             'template',
-        ],
-    ];
-    protected const SELECT_SCOPE = [
-        // all elements EXCEPT these
-        Parser::HTML_NAMESPACE => [
-            'optgroup',
-            'option',
         ],
     ];
 
@@ -293,16 +287,6 @@ class OpenElementsStack extends Stack {
 
     public function hasElementInTableScope(...$target): bool {
         return $this->hasElementInScopeHandler($target, self::TABLE_SCOPE);
-    }
-
-    public function hasElementInSelectScope(...$target): bool {
-        # The stack of open elements is said to have a particular element
-        #   in select scope when it has that element in the specific scope
-        #   consisting of all element types EXCEPT the following:
-        #
-        # optgroup in the HTML namespace
-        # option in the HTML namespace
-        return $this->hasElementInScopeHandler($target, self::SELECT_SCOPE, false);
     }
 
     protected function hasElementInScopeHandler(array $targets, array $list, $matchType = true): bool {
