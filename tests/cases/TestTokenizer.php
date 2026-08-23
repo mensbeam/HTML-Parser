@@ -22,17 +22,18 @@ use MensBeam\HTML\Parser\StartTagToken;
 use MensBeam\HTML\Parser\TokenAttr;
 use MensBeam\HTML\Parser\WhitespaceToken;
 use MensBeam\Intl\Encoding\UTF8;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Depends;
 
-/** 
- * @covers \MensBeam\HTML\Parser\Data
- * @covers \MensBeam\HTML\Parser\Tokenizer
- * @covers \MensBeam\HTML\Parser\CharacterToken
- * @covers \MensBeam\HTML\Parser\CommentToken
- * @covers \MensBeam\HTML\Parser\DataToken
- * @covers \MensBeam\HTML\Parser\TagToken
- * @covers \MensBeam\HTML\Parser\DOCTYPEToken
- * @covers \MensBeam\HTML\Parser\TokenAttr
- */
+#[CoversClass(Data::class)]
+#[CoversClass(Tokenizer::class)]
+#[CoversClass(CharacterToken::class)]
+#[CoversClass(CommentToken::class)]
+#[CoversClass(\MensBeam\HTML\Parser\DataToken::class)]
+#[CoversClass(\MensBeam\HTML\Parser\TagToken::class)]
+#[CoversClass(DOCTYPEToken::class)]
+#[CoversClass(TokenAttr::class)]
 class TestTokenizer extends \PHPUnit\Framework\TestCase {
     const STATE_MAP = [
         'Data state'          => Tokenizer::DATA_STATE,
@@ -43,7 +44,7 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
         'CDATA section state' => Tokenizer::CDATA_SECTION_STATE,
     ];
 
-    /** @dataProvider provideStandardTokenizerTests */
+    #[DataProvider('provideStandardTokenizerTests')]
     public function testStandardTokenizerTests(string $input, array $expected, int $state, ?string $open, ?array $expErrors) {
         $config = new Config;
         $config->encodingFallback = "UTF-8";
@@ -72,31 +73,29 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
         } finally {
             $actual = $this->normalizeTokens($actual);
             $this->assertEquals($expected, $actual, $tokenizer->debugLog);
-            $errors = ($expErrors !== null) ? $this->formatErrors($errorHandler->errors) : null;
+            $errors = ($expErrors !== null) ? static::formatErrors($errorHandler->errors) : null;
             $this->assertEquals($expErrors, $errors, $tokenizer->debugLog);
         }
     }
 
-    /** 
-     * @dataProvider provideStandardTokenizerTests 
-     * @depends testStandardTokenizerTests 
-     */
+    #[DataProvider('provideStandardTokenizerTests')]
+    #[Depends('testStandardTokenizerTests')]
     public function testStandardTokenizerTestsWithoutErrorReporting(string $input, array $expected, int $state, ?string $open, array $expErrors) {
         $this->testStandardTokenizerTests($input, $expected, $state, $open, null);
     }
 
-    /** @dataProvider provideNonstandardTokenizerTests */
+    #[DataProvider('provideNonstandardTokenizerTests')]
     public function testNonstandardTokenizerTests(string $input, array $expected, int $state, ?string $open, array $expErrors) {
         $this->testStandardTokenizerTests($input, $expected, $state, $open, $expErrors);
     }
 
-    public function provideNonstandardTokenizerTests(): iterable {
+    public static function provideNonstandardTokenizerTests(): iterable {
         return [
             ["\xFF", [new CharacterToken("\u{FFFD}"), new EOFToken], Tokenizer::DATA_STATE, "", [['code' => "noncharacter-in-input-stream", 'line' => 1, 'col' => 1]]],
         ];
     }
 
-    public function provideStandardTokenizerTests() {
+    public static function provideStandardTokenizerTests() {
         $tests = [];
         $blacklist = ["xmlViolation.test"];
         $files = new \AppendIterator();
@@ -107,12 +106,12 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
                 $tests[] = $file;
             }
         }
-        return $this->makeTokenTests(...$tests);
+        return static::makeTokenTests(...$tests);
     }
 
-    protected function reverseDoubleEscape(string $str): string {
+    protected static function reverseDoubleEscape(string $str): string {
         if (preg_match_all("/\\\\u([0-9a-f]{4})/i", $str, $matches)) {
-            for ($a = 0; $a < sizeof($matches[0]); $a++) {
+            for ($a = 0; $a < count($matches[0]); $a++) {
                 $esc = $matches[0][$a];
                 $chr = UTF8::encode(hexdec($matches[1][$a]));
                 $str = str_replace($esc, $chr, $str);
@@ -153,26 +152,26 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
         return $out;
     }
 
-    protected function makeTokenTests(string ...$file): iterable {
+    protected static function makeTokenTests(string ...$file): iterable {
         foreach ($file as $path) {
             $f = basename($path);
             $testSet = json_decode(file_get_contents($path), true);
             foreach ($testSet['tests'] ?? $testSet['xmlViolationTests'] as $index => $test) {
                 $testId = "$f #$index";
                 if ($test['doubleEscaped'] ?? false) {
-                    $test['input'] = $this->reverseDoubleEscape($test['input']);
-                    for ($a = 0; $a < sizeof($test['output']); $a++) {
-                        for ($b = 0; $b < sizeof($test['output'][$a]); $b++) {
+                    $test['input'] = static::reverseDoubleEscape($test['input']);
+                    for ($a = 0; $a < count($test['output']); $a++) {
+                        for ($b = 0; $b < count($test['output'][$a]); $b++) {
                             if (is_string($test['output'][$a][$b])) {
-                                $test['output'][$a][$b] = $this->reverseDoubleEscape($test['output'][$a][$b]);
+                                $test['output'][$a][$b] = static::reverseDoubleEscape($test['output'][$a][$b]);
                             }
                         }
                     }
                 }
                 $test['initialStates'] = $test['initialStates'] ?? ["Data state"];
                 // check if a test needs a patch due to trivial differences in implementation
-                $this->patchTest($test);
-                for ($a = 0; $a < sizeof($test['initialStates']); $a++) {
+                static::patchTest($test);
+                for ($a = 0; $a < count($test['initialStates']); $a++) {
                     $tokens = [];
                     foreach ($test['output'] as $token) {
                         switch ($token[0]) {
@@ -215,23 +214,23 @@ class TestTokenizer extends \PHPUnit\Framework\TestCase {
         }
     }
 
-    protected function formatErrors(array $errors): array {
+    protected static function formatErrors(array $errors): array {
         $errorMap = array_map(function($str) {
             return strtolower(str_replace("_", "-", $str));
         }, array_flip(array_filter((new \ReflectionClass(ParseError::class))->getConstants(), function($v) {
             return is_int($v);
         })));
         $out = [];
-        foreach ($errors as list($line, $col, $code)) {
+        foreach ($errors as [$line, $col, $code]) {
             $out[] = ['code' => $errorMap[$code], 'line' => $line, 'col' => $col];
         }
         return $out;
     }
 
-    protected function patchTest(&$test): void {
+    protected static function patchTest(array &$test): void {
         $id = [$test['input'], $test['initialStates']];
         switch ($id) {
-            // test emits input stream error first despite peeking 
+            // test emits input stream error first despite peeking
             case ["<!\u{B}", ["Data state"]]:
                 $test['errors'] = array_reverse($test['errors']);
                 break;

@@ -1,0 +1,94 @@
+#!/usr/bin/env php
+<?php
+/**
+ * @license MIT
+ * Copyright 2022 Dustin Wilson, et al.
+ * See LICENSE and AUTHORS files for details
+ */
+
+$dir = ini_get('extension_dir');
+$php = escapeshellarg(\PHP_BINARY);
+$code = escapeshellarg(__DIR__ . '/lib');
+
+const BASE = __DIR__ . DIRECTORY_SEPARATOR;
+const BASE_TEST = BASE . "tests" . DIRECTORY_SEPARATOR;
+
+$repos = [
+    'html5lib-tests' => [
+        'url' => 'https://github.com/html5lib/html5lib-tests',
+        'sparse' => null
+    ],
+    'platform-tests' => [
+        'url' => 'https://github.com/web-platform-tests/wpt',
+        'sparse' => 'html/syntax/xmldecl'
+    ],
+];
+
+if (!is_dir(BASE_TEST."html5lib-tests")) {
+    foreach ($repos as $dir => $config) {
+        $path = BASE_TEST . $dir;
+        if (is_dir($path)) {
+            echo "Updating $dir...\n";
+            passthru("git -C " . escapeshellarg($path) . " pull");
+        } else {
+            echo "Cloning $dir...\n";
+            if ($config['sparse']) {
+                $url = escapeshellarg($config['url']);
+                $spath = escapeshellarg($path);
+                $sparse = escapeshellarg($config['sparse']);
+                passthru("git clone --filter=blob:none --no-checkout --depth=1 $url $spath");
+                passthru("git -C $spath sparse-checkout set $sparse");
+                passthru("git -C $spath checkout");
+            } else {
+                passthru("git clone " . escapeshellarg($config['url']) . " " . escapeshellarg($path));
+            }
+        }
+    }
+}
+
+array_shift($argv);
+foreach ($argv as $k => $v) {
+    if (in_array($v, ['--coverage', '--coverage-html'])) {
+        $argv[$k] = '--coverage-html tests/coverage';
+    }
+}
+
+$cmd = [
+    $php,
+    '-d zend.assertions=1',
+    '-d assert.exception=true',
+    '-d opcache.enable_cli=0',
+];
+
+$pcovLoaded = extension_loaded('pcov');
+$xdebugLoaded = extension_loaded('xdebug');
+
+if (!$pcovLoaded && !$xdebugLoaded) {
+    $extDir = ini_get('extension_dir');
+    if (!extension_loaded('pcov') && file_exists("$extDir/pcov.so")) {
+        $cmd[] = '-d extension=pcov.so';
+        $pcovLoaded = true;
+    } elseif (!extension_loaded('xdebug') && file_exists("$extDir/xdebug.so")) {
+        $cmd[] = '-d zend_extension=xdebug.so';
+        $xdebugLoaded = true;
+    }
+}
+
+if ($pcovLoaded) {
+    $cmd[] = '-d pcov.enabled=1';
+    $cmd[] = "-d pcov.directory=$code";
+} elseif ($xdebugLoaded) {
+    $cmd[] = '-d xdebug.mode=coverage,develop,trace';
+} else {
+    fwrite(\STDERR, "Either the pcov or xdebug extension is required to run tests.\n");
+    exit(1);
+}
+
+$cmd = implode(' ', [
+    ...$cmd,
+    escapeshellarg(__DIR__ . '/vendor/bin/phpunit'),
+    '--configuration tests/phpunit.xml',
+    ...$argv,
+    '--display-deprecations'
+]);
+passthru($cmd);

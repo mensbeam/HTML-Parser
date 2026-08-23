@@ -7,26 +7,26 @@ declare(strict_types=1);
 namespace MensBeam\HTML\TestCase;
 
 use MensBeam\HTML\DOMParser;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 
-/**
- * @covers \MensBeam\HTML\DOMParser
- */
+#[CoversClass(DOMParser::class)]
 class TestDOMParser extends \PHPUnit\Framework\TestCase {
     protected $p;
 
     public function setUp(): void {
         $this->p = \Phake::partialMock(DOMParser::class);
-        \Phake::when($this->p)->useNewParsers->thenReturn(false); 
+        \Phake::when($this->p)->useNewParsers(\Phake::anyParameters())->thenReturn(false);
     }
 
-    /** @dataProvider provideDocuments */
+    #[DataProvider('provideDocuments')]
     public function testParseADocument(string $input, string $type, string $exp): void {
         $document = $this->p->parseFromString($input, $type);
         $this->assertSame($exp, $document->documentElement->textContent);
         $this->assertSame("html", $document->documentElement->localName);
     }
 
-    public function provideDocuments(): iterable {
+    public static function provideDocuments(): iterable {
         $mkUtf16 = function(string $s, bool $le) {
             $replacement = $le ? "$0\x00" : "\x00$0";
             return preg_replace("/[\x{01}-\x{7F}]/s", $replacement, $s);
@@ -80,6 +80,7 @@ class TestDOMParser extends \PHPUnit\Framework\TestCase {
         $this->assertSame("http://www.mozilla.org/newlayout/xml/parsererror.xml", $d->documentElement->namespaceURI);
         $this->assertNotSame("", trim($d->documentElement->textContent));
     }
+
     public function testParseWithInvalidEncodingInDocument(): void {
         $in = "<?xml version='1.0' encoding='bogus'?><html>Test</html>";
         $d = $this->p->parseFromString($in, "text/xml");

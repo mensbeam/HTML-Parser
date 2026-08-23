@@ -9,17 +9,20 @@ namespace MensBeam\HTML\TestCase;
 use MensBeam\HTML\Parser;
 use MensBeam\HTML\Parser\Charset;
 use MensBeam\HTML\Parser\Config;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\CoversMethod;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\IgnoreEmptyDataSet;
 
-/** 
- * @covers \MensBeam\HTML\Parser\Charset
- */
+#[CoversClass(Charset::class)]
+#[CoversMethod(\MensBeam\HTML\Parser\Data::class, '__construct')]
 class TestCharset extends \PHPUnit\Framework\TestCase {
-    /** @dataProvider provideCharsets */
+    #[DataProvider('provideCharsets')]
     public function testDetermineEncodingFromEncodingLabel(string $in, ?string $exp) {
         $this->assertSame($exp, Charset::fromCharset($in));
     }
 
-    public function provideCharsets() {
+    public static function provideCharsets() {
         return [
             ["UTF-8",                   "UTF-8"],
             ["  utf8  ",                "UTF-8"],
@@ -28,12 +31,12 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
         ];
     }
 
-    /** @dataProvider provideContentTypes */
+    #[DataProvider('provideContentTypes')]
     public function testDetermineEncodingFromContentType(string $input, ?string $exp) {
         $this->assertSame($exp, Charset::fromTransport($input));
     }
 
-    public function provideContentTypes() {
+    public static function provideContentTypes() {
         return [
             ["UTF-8",                                             null],
             ["charset=utf8",                                      null],
@@ -51,12 +54,12 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
         ];
     }
 
-    /** @dataProvider provideBOMs */
+    #[DataProvider('provideBOMs')]
     public function testDetermineEncodingFromByteOrderMark(string $input, ?string $exp) {
         $this->assertSame($exp, Charset::fromBOM($input));
     }
-    
-    public function provideBOMs() {
+
+    public static function provideBOMs() {
         return [
             'UTF-8'                  => ["\u{FEFF}Hello world!", "UTF-8"],
             'UTF-16 (big-endian)'    => ["\xFE\xFF\0H\0e\0l\0l\0o\0 \0w\0o\0r\0l\0d\0!", "UTF-16BE"],
@@ -65,13 +68,13 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
         ];
     }
 
-    /** @dataProvider provideStandardEncodingTests */
+    #[DataProvider('provideStandardEncodingTests')]
     public function testStandardEncoderTests(string $input, string $exp) {
         $exp = strtolower($exp);
         $this->assertSame(strtolower($exp), strtolower(Charset::fromBOM($input)?? Charset::fromPrescan($input, \PHP_INT_MAX) ?? "Windows-1252"));
     }
 
-    public function provideStandardEncodingTests() {
+    public static function provideStandardEncodingTests() {
         $tests = [];
         $blacklist = [];
         $files = new \AppendIterator();
@@ -82,14 +85,14 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
                 $tests[] = $file;
             }
         }
-        return $this->makeEncodingTests(...$tests);
+        return static::makeEncodingTests(...$tests);
     }
 
-    protected function makeEncodingTests(string ...$file): iterable {
+    protected static function makeEncodingTests(string ...$file): iterable {
         foreach ($file as $path) {
             $f = basename($path);
             $test = file($path);
-            $end = sizeof($test);
+            $end = count($test);
             $l = 0;
             $index = 0;
             while ($l < $end) {
@@ -107,7 +110,7 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
         }
     }
 
-    /** @dataProvider provideStandardDeclarationTests */
+    #[DataProvider('provideStandardDeclarationTests')]
     public function testStandardDeclarationTests(string $file, ?string $charset, string $exp): void {
         $config = new Config;
         $config->encodingPrescanBytes = 2048;
@@ -117,9 +120,7 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
         $this->assertSame($exp, $act->encoding);
     }
 
-    /** 
-     * @dataProvider provideNonstandardDeclarationTests
-     * @covers \MensBeam\HTML\Parser\Data::__construct */
+    #[DataProvider('provideNonstandardDeclarationTests')]
     public function testNonstandardDeclarationTests(string $data, ?string $charset, ?string $fallback, int $bytesToScan, string $exp): void {
         $config = new Config;
         $config->encodingPrescanBytes = $bytesToScan;
@@ -128,7 +129,7 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
         $this->assertSame($exp, $act->encoding);
     }
 
-    public function provideNonstandardDeclarationTests(): iterable {
+    public static function provideNonstandardDeclarationTests(): iterable {
         return [
             ["<?xml".str_repeat(" ", 1024).">", null,                      null,    1024, "windows-1252"],
             ["<?xml ",                          null,                      null,    1024, "windows-1252"],
@@ -139,7 +140,7 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
         ];
     }
 
-    public function provideStandardDeclarationTests() {
+    public static function provideStandardDeclarationTests() {
         $tests = [];
         $blacklist = ["xmldecl-3.html"];
         $files = new \AppendIterator();
@@ -149,10 +150,10 @@ class TestCharset extends \PHPUnit\Framework\TestCase {
                 $tests[] = $file;
             }
         }
-        return $this->makeDeclarationTests(...$tests);
+        return static::makeDeclarationTests(...$tests);
     }
 
-    protected function makeDeclarationTests(string ...$file): iterable {
+    protected static function makeDeclarationTests(string ...$file): iterable {
         foreach ($file as $f) {
             $d = new \DOMDocument;
             @$d->loadHTMLFile($f);

@@ -8,8 +8,10 @@ node_modules
 /vendor-bin/*/vendor
 /tests/html5lib-tests
 /tests/platform-tests
+/tests/.phpunit.cache
 /tests/.phpunit.result.cache
 /tests/coverage
+/tests/cases.zip
 cachegrind.out.*
 
 

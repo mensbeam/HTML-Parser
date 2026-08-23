@@ -1,19 +1,24 @@
 <?xml version="1.0"?>
-<phpunit
-    colors="true"
-    bootstrap="bootstrap.php"
-    convertErrorsToExceptions="false"
-    convertNoticesToExceptions="false"
-    convertWarningsToExceptions="false"
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/13.0/phpunit.xsd"
+    beStrictAboutOutputDuringTests="true"
     beStrictAboutTestsThatDoNotTestAnything="true"
-    forceCoversAnnotation="true"
+    bootstrap="bootstrap.php"
+    cacheDirectory=".phpunit.cache"
+    colors="true"
+    executionOrder="default"
+    requireCoverageMetadata="true"
+    displayDetailsOnTestsThatTriggerDeprecations="true"
+    displayDetailsOnTestsThatTriggerErrors="true"
+    displayDetailsOnTestsThatTriggerNotices="true"
+    displayDetailsOnTestsThatTriggerWarnings="true"
+    displayDetailsOnPhpunitDeprecations="true"
 >
 
-<filter>
-    <whitelist processUncoveredFilesFromWhitelist="true">
+<source>
+    <include>
         <directory suffix=".php">../lib</directory>
-    </whitelist>
-</filter>
+    </include>
+</source>
 
 <testsuites>
     <testsuite name="Charset">

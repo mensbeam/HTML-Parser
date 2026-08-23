@@ -8,35 +8,51 @@
 declare(strict_types=1);
 namespace MensBeam\HTML\DOM\TestCase;
 
-use MensBeam\HTML\Parser\Exception;
 use MensBeam\HTML\Parser;
-use MensBeam\HTML\Parser\AttributeSetter;
 use MensBeam\HTML\Parser\Config;
 use MensBeam\HTML\Parser\NameCoercion;
 use MensBeam\HTML\Parser\Serializer;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\RequiresPhp;
 
-/** @covers \MensBeam\HTML\Parser\Serializer */
+#[CoversClass(Serializer::class)]
 class TestSerializer extends \PHPUnit\Framework\TestCase {
-    use NameCoercion, AttributeSetter;
+    use NameCoercion;
 
-    /** @dataProvider provideStandardTreeTests */
-    public function testStandardTreeTests(array $data, bool $fragment, string $exp): void {
-        $node = $this->buildTree($data, $fragment);
-        $this->assertSame($exp, Serializer::serialize($node));
+    protected $mangledAttributes = false;
+    protected static $supportsNewDOM = null;
+
+    protected const NEW_DOM_SKIP = [
+        'mensbeam02.dat #4 (line 24)',
+    ];
+
+    public function setUp(): void {
+        self::$supportsNewDOM = self::$supportsNewDOM ?? class_exists('\Dom\Document');
     }
 
-    public function provideStandardTreeTests(): iterable {
-        $blacklist = [];
+    #[DataProvider('provideStandardTreeTests')]
+    public function testStandardTreeTests(array $data, bool $fragment, string $exp, bool $skipNewDOM): void {
+        $node = $this->buildTree($data, $fragment);
+        $this->assertSame($exp, Serializer::serialize($node));
+
+        if (self::$supportsNewDOM && !$skipNewDOM) {
+            $node = $this->buildTree($data, $fragment, true);
+            $this->assertSame($exp, Serializer::serialize($node));
+        }
+    }
+
+    public static function provideStandardTreeTests(): iterable {
         $files = new \AppendIterator();
         $files->append(new \GlobIterator(\MensBeam\HTML\Parser\BASE."tests/cases/serializer/*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
         foreach ($files as $file) {
-            if (!in_array(basename($file), $blacklist)) {
-                yield from $this->parseTreeTestFile($file);
+            foreach (static::parseTreeTestFile($file) as $key => [$data, $fragment, $exp]) {
+                yield $key => [$data, $fragment, $exp, in_array($key, static::NEW_DOM_SKIP)];
             }
         }
     }
 
-    /** @dataProvider provideTemplateTests */
+    #[DataProvider('provideTemplateTests')]
     public function testSerializeADecoratedTemplate(?string $ns, string $exp): void {
         $d = new \DOMDocument;
         $t = $d->createElementNS($ns, "template");
@@ -47,14 +63,14 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
         $this->assertSame($exp2, Serializer::serialize($t));
     }
 
-    public function provideTemplateTests(): iterable {
+    public static function provideTemplateTests(): iterable {
         return [
             [null,                   "EEK"],
             [Parser::HTML_NAMESPACE, "EEK"],
         ];
     }
 
-    /** @dataProvider provideEmptyElementTests */
+    #[DataProvider('provideEmptyElementTests')]
     public function testInnerSerializeEmptyElement(string $tagName, ?string $ns, string $exp): void {
         $d = new \DOMDocument;
         $e = $d->createElementNS($ns, $tagName);
@@ -62,7 +78,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
         $this->assertSame($exp, Serializer::serializeInner($e));
     }
 
-    public function provideEmptyElementTests(): iterable {
+    public static function provideEmptyElementTests(): iterable {
         return [
             ["basefont", null,                   ""],
             ["bgsound",  null,                   ""],
@@ -121,7 +137,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
         ];
     }
 
-    /** @dataProvider provideCustomSerializations */
+    #[DataProvider('provideCustomSerializations')]
     public function testSerializeWithOptions(bool $fragment, ?string $fragmentContext, int $indentStep, bool $indentWithSpaces, bool $processingInstructions, bool $reformatWhitespace, bool $boolAttr, bool $foreignVoid, string $in, string $exp): void {
         $parserConfig = new Config();
         $parserConfig->processingInstructions = $processingInstructions;
@@ -145,7 +161,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
         $this->assertSame($exp, $act);
     }
 
-    public function provideCustomSerializations(): iterable {
+    public static function provideCustomSerializations(): iterable {
         return [
             // Boolean attribute values serialized
             [false, null, 0, false, false, false, true, true,
@@ -458,7 +474,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
         ];
     }
 
-    /** @dataProvider provideCustomSerializationsForNodes */
+    #[DataProvider('provideCustomSerializationsForNodes')]
     public function testSerializeNodesWithOptions(int $indentStep, bool $indentWithSpaces, bool $processingInstructions, bool $reformatWhitespace, bool $boolAttr, bool $foreignVoid, \Closure $in, string $exp): void {
         $parserConfig = new Config();
         $parserConfig->processingInstructions = $processingInstructions;
@@ -475,7 +491,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
         $this->assertSame($exp, $act);
     }
 
-    public function provideCustomSerializationsForNodes(): iterable {
+    public static function provideCustomSerializationsForNodes(): iterable {
         return [
             // Solo html element with context
             [1, true, false, true, false, false,
@@ -629,10 +645,8 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
         ];
     }
 
-    /** @dataProvider provideSerializerConfigWarnings */
+    #[DataProvider('provideSerializerConfigWarnings')]
     public function testSerializerConfigWarnings(array $config): void {
-        // PHPUnit is supposed to support expecting of warnings, but it doesn't. So
-        // let's write a bunch of bullshit so we can catch and assert warnings instead.
         set_error_handler(function($errno) {
             if ($errno === \E_USER_WARNING) {
                 $this->assertEquals(\E_USER_WARNING, $errno);
@@ -645,7 +659,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
         restore_error_handler();
     }
 
-    public function provideSerializerConfigWarnings(): iterable {
+    public static function provideSerializerConfigWarnings(): iterable {
         return [
             [[ 'booleanAttributeValues' => new \DateTime() ]],
             [[ 'foreignVoidEndTags' => 'fail' ]],
@@ -658,20 +672,39 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
     public function testOuterSerializeAnInvalidNode(): void {
         $d = new \DOMDocument;
         $a = $d->createAttribute("oops");
-        $this->expectExceptionObject(new Exception(Exception::UNSUPPORTED_NODE_TYPE, [\DOMAttr::class]));
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageIsOrContains('\Dom\Document|\DOMDocument|\Dom\Element|\DOMElement|\Dom\Text|\DOMText|\Dom\Comment|\DOMComment|\Dom\ProcessingInstruction|\DOMProcessingInstruction|\Dom\DocumentFragment|\DOMDocumentFragment|\Dom\DocumentType|\DOMDocumentType');
+        Serializer::serialize($a);
+    }
+
+    #[RequiresPhp('>= 8.4.0')]
+    public function testOuterSerializeAnInvalidNodeNewDOM(): void {
+        $d = \Dom\HTMLDocument::createEmpty();
+        $a = $d->createAttribute("oops");
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageIsOrContains('\Dom\Document|\DOMDocument|\Dom\Element|\DOMElement|\Dom\Text|\DOMText|\Dom\Comment|\DOMComment|\Dom\ProcessingInstruction|\DOMProcessingInstruction|\Dom\DocumentFragment|\DOMDocumentFragment|\Dom\DocumentType|\DOMDocumentType');
         Serializer::serialize($a);
     }
 
     public function testInnerSerializeAnInvalidNode(): void {
         $d = new \DOMDocument;
         $t = $d->createTextNode("OOPS");
-        $this->expectExceptionObject(new Exception(Exception::UNSUPPORTED_NODE_TYPE, [\DOMText::class]));
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageIsOrContains('\Dom\Document|\DOMDocument|\Dom\Element|\DOMElement|\Dom\DocumentFragment|\DOMDocumentFragment');
         Serializer::serializeInner($t);
     }
 
-    protected function buildTree(array $data, bool $fragment, bool $formatOutput = false): \DOMNode {
-        $document = new \DOMDocument;
-        $document->formatOutput = $formatOutput;
+    #[RequiresPhp('>= 8.4.0')]
+    public function testInnerSerializeAnInvalidNodeNewDOM(): void {
+        $d = \Dom\HTMLDocument::createEmpty();
+        $t = $d->createTextNode("OOPS");
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageIsOrContains('\Dom\Document|\DOMDocument|\Dom\Element|\DOMElement|\Dom\DocumentFragment|\DOMDocumentFragment');
+        Serializer::serializeInner($t);
+    }
+
+    protected function buildTree(array $data, bool $fragment, bool $newDOM = false) {
+        $document = ($newDOM) ? \Dom\XMLDocument::createEmpty() : new \DOMDocument();
         if ($fragment) {
             $document->appendChild($document->createElement("html"));
             $out = $document->createDocumentFragment();
@@ -681,7 +714,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
         $cur = $out;
         $pad = 2;
         // process each line in turn
-        for ($l = 0; $l < sizeof($data); $l++) {
+        for ($l = 0; $l < count($data); $l++) {
             preg_match('/^(\|\s+)(.+)/', $data[$l], $m);
             // pop any parents as long as the padding of the line is less than the expected padding
             $p = strlen((string) $m[1]);
@@ -700,7 +733,19 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
                 $name = strlen((string) ($m[1] ?? "")) ? $m[1] : " ";
                 $public = strlen((string) ($m[2] ?? "")) ? $m[2] : "";
                 $system = strlen((string) ($m[3] ?? "")) ? $m[3] : "";
-                $cur->appendChild($document->implementation->createDocumentType($name, $public, $system));
+
+                if ($newDOM) {
+                    $document = $document->implementation->createDocument(null, '', $document->implementation->createDocumentType($name, $public, $system));
+                    if ($fragment) {
+                        $document->appendChild($document->createElement("html"));
+                        $out = $document->createDocumentFragment();
+                    } else {
+                        $out = $document;
+                    }
+                    $cur = $out;
+                } else {
+                    $cur->appendChild($document->implementation->createDocumentType($name, $public, $system));
+                }
             } elseif (preg_match('/^<\?([^ ]+) ([^>]*)>$/', $d, $m)) {
                 // processing instruction
                 $cur->appendChild($document->createProcessingInstruction($m[1], $m[2]));
@@ -728,19 +773,19 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
         return $out;
     }
 
-    protected function parseTreeTestFile(string $file): \Generator {
+    protected static function parseTreeTestFile(string $file): \Generator {
         $index = 0;
         $l = 0;
         $lines = array_map(function($v) {
             return rtrim($v, "\n");
         }, file($file));
-        while ($l < sizeof($lines)) {
+        while ($l < count($lines)) {
             $pos = $l + 1;
             assert(in_array($lines[$l], ["#document", "#fragment"]), new \Exception("Test $file #$index does not start with #document or #fragment tag at line ".($l + 1)));
             $fragment = $lines[$l] === "#fragment";
             // collect the test input
             $data = [];
-            for (++$l; $l < sizeof($lines); $l++) {
+            for (++$l; $l < count($lines); $l++) {
                 if (preg_match('/^#(script-(on|off)|output)$/', $lines[$l])) {
                     break;
                 }
@@ -759,7 +804,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
             // collect the output string
             $exp = [];
             assert($lines[$l] === "#output", new \Exception("Test $file #$index follows input with something other than output at line ".($l + 1)));
-            for (++$l; $l < sizeof($lines); $l++) {
+            for (++$l; $l < count($lines); $l++) {
                 if ($lines[$l] === "" && in_array(($lines[$l + 1] ?? ""), ["#document", "#fragment"])) {
                     break;
                 }
@@ -772,6 +817,67 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
             }
             $l++;
             $index++;
+        }
+    }
+
+    /** @param \DOMElement|\Dom\Element $element */
+    protected function elementSetAttribute($element, ?string $namespaceURI, string $qualifiedName, string $value): void {
+        $newDOM = is_a($element, '\Dom\Element');
+
+        if ($namespaceURI === Parser::XMLNS_NAMESPACE) {
+            // NOTE: We create attribute nodes so that xmlns attributes
+            //   don't get lost; otherwise they cannot be serialized.
+            //   Furthermore we create the attribute node in a temporary
+            //   document to avoid some related PHP bugs
+            $d = (!$newDOM) ? new \DOMDocument() : \Dom\HTMLDocument::createEmpty();
+            $d->appendChild($d->createElement("html"));
+            try {
+                $a = $d->createAttributeNS($namespaceURI, $qualifiedName);
+            // @codeCoverageIgnoreStart
+            } catch (\DOMException $e) {
+                // The attribute name is invalid for XML 1.0 Second Edition
+                // Replace any offending characters with "UHHHHHH" where H are the
+                //   uppercase hexadecimal digits of the character's code point
+                // NOTE: This case is never encountered by the parser
+                $qualifiedName = self::coerceName($qualifiedName, true);
+                $a = $d->createAttributeNS($namespaceURI, $qualifiedName);
+            }
+            // @codeCoverageIgnoreEnd
+            $a->value = self::escapeString($value, true);
+            $element->setAttributeNodeNS($element->ownerDocument->importNode($a));
+        } elseif ($namespaceURI !== null || strpos($qualifiedName, "xml:") === 0) {
+            try {
+                $element->setAttributeNS($namespaceURI, $qualifiedName, $value);
+            } catch (\DOMException $e) {
+                // The attribute name is invalid for XML 1.0 Second Edition
+                // Replace any offending characters with "UHHHHHH" where H are the
+                //   uppercase hexadecimal digits of the character's code point
+                $qualifiedName = self::coerceName($qualifiedName, ($namespaceURI !== null));
+                $element->setAttributeNS($namespaceURI, $qualifiedName, $value);
+                $this->mangledAttributes = true;
+            }
+        } elseif ($namespaceURI === null && $qualifiedName === 'xmlns') {
+            // There are even more bugs with xmlns attributes. Xmlns attributes on html
+            // elements are parsed in the null namespace per the specification. PHP still
+            // goes a bit screwy when trying to access them afterwards. Attempt to work
+            // around that.
+            $a = $element->ownerDocument->createAttribute('xmlns');
+            $a->value = $value;
+            $element->setAttributeNode($a);
+        } else {
+            try {
+                $element->setAttribute($qualifiedName, $value);
+            } catch (\DOMException $e) {
+                // The attribute name is invalid for XML 1.0 Second Edition
+                // Replace any offending characters with "UHHHHHH" where H are the
+                //   uppercase hexadecimal digits of the character's code point
+                $qualifiedName = self::coerceName($qualifiedName, false);
+                $element->setAttribute($qualifiedName, $value);
+                $this->mangledAttributes = true;
+            }
+            if ($qualifiedName === "id") {
+                $element->setIdAttribute($qualifiedName, true);
+            }
         }
     }
 }

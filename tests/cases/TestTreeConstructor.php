@@ -14,18 +14,18 @@ use MensBeam\HTML\Parser\ParseError;
 use MensBeam\HTML\Parser\TemplateInsertionModesStack;
 use MensBeam\HTML\Parser\Tokenizer;
 use MensBeam\HTML\Parser\TreeConstructor;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 
-/**
- * @covers \MensBeam\HTML\Parser\Data
- * @covers \MensBeam\HTML\Parser\Tokenizer
- * @covers \MensBeam\HTML\Parser\TreeConstructor
- * @covers \MensBeam\HTML\Parser\ActiveFormattingElementsList
- * @covers \MensBeam\HTML\Parser\TemplateInsertionModesStack
- * @covers \MensBeam\HTML\Parser\OpenElementsStack
- * @covers \MensBeam\HTML\Parser\Stack
- * @covers \MensBeam\HTML\Parser\TagToken
- * @covers \MensBeam\HTML\Parser\ProcessingInstructionToken
- */
+#[CoversClass(Data::class)]
+#[CoversClass(Tokenizer::class)]
+#[CoversClass(TreeConstructor::class)]
+#[CoversClass(\MensBeam\HTML\Parser\ActiveFormattingElementsList::class)]
+#[CoversClass(TemplateInsertionModesStack::class)]
+#[CoversClass(OpenElementsStack::class)]
+#[CoversClass(\MensBeam\HTML\Parser\Stack::class)]
+#[CoversClass(\MensBeam\HTML\Parser\TagToken::class)]
+#[CoversClass(\MensBeam\HTML\Parser\ProcessingInstructionToken::class)]
 class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
     use \MensBeam\HTML\Parser\NameCoercion;
 
@@ -33,9 +33,9 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
     protected $depth;
     protected $ns;
 
-    protected static $passed = [];
+    protected static array $passed = [];
 
-    /** @dataProvider provideStandardTreeTests */
+    #[DataProvider('provideStandardTreeTests')]
     public function testStandardTreeTests(string $data, array $exp, array $errors, $fragment, string $id): void {
         $skip = [
             // Some tests rely on pseudo-scripting
@@ -52,7 +52,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         self::$passed[$id] = true;
     }
 
-    /** @dataProvider provideStandardTreeTests */
+    #[DataProvider('provideStandardTreeTests')]
     public function testStandardTreeTestsWithHtmlNamespace(string $data, array $exp, array $errors, $fragment, string $id): void {
         if (!isset(self::$passed[$id])) {
             $this->markTestSkipped("Null-namespaced test failed or skipped.");
@@ -62,7 +62,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         $this->runTreeTest($data, $exp, $errors, $fragment, $config);
     }
 
-    public function provideStandardTreeTests(): iterable {
+    public static function provideStandardTreeTests(): iterable {
         $files = new \AppendIterator();
         $files->append(new \GlobIterator(\MensBeam\HTML\Parser\BASE."tests/html5lib-tests/tree-construction/*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
         $files->append(new \GlobIterator(\MensBeam\HTML\Parser\BASE."tests/cases/tree-construction/mensbeam*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
@@ -74,19 +74,19 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                 //return !preg_match('/\bsearch-element.dat$/', parent::current());
             }
         };
-        return $this->parseTreeTest($filtered);
+        return static::parseTreeTest($filtered);
     }
 
-    /** @dataProvider provideProcessingInstructionTreeTests */
-    public function testProcessingInstructionTreeTests(string $data, array $exp, array $errors, $fragment): void {
+    #[DataProvider('provideProcessingInstructionTreeTests')]
+    public function testProcessingInstructionTreeTests(string $data, array $exp, array $errors, $fragment, string $id): void {
         $config = new Config;
         $config->processingInstructions = true;
         $this->runTreeTest($data, $exp, $errors, $fragment, $config);
     }
 
-    public function provideProcessingInstructionTreeTests(): iterable {
+    public static function provideProcessingInstructionTreeTests(): iterable {
         $files = new \GlobIterator(\MensBeam\HTML\Parser\BASE."tests/cases/tree-construction/pi*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME);
-        return $this->parseTreeTest($files);
+        return static::parseTreeTest($files);
     }
 
     protected function runTreeTest(string $data, array $exp, array $errors, ?string $fragment, ?Config $config): void {
@@ -95,14 +95,16 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         $this->ns = ($config && $config->htmlNamespace);
         $htmlNamespace = ($this->ns) ? Parser::HTML_NAMESPACE : null;
         // certain tests need to be patched to ignore unavoidable limitations of PHP's DOM
-        [$exp, $errors] = $this->patchTest($data, $fragment, $errors, $exp);
+        if (\PHP_VERSION_ID < 80300) {
+            [$exp, $errors] = $this->patchTest($data, $fragment, $errors, $exp);
+        }
         // initialize the output document
         $doc = new \DOMDocument;
         // prepare the fragment context, if any
         if ($fragment) {
             $fragment = explode(" ", $fragment);
-            assert(sizeof($fragment) < 3);
-            if (sizeof($fragment) === 1) {
+            assert(count($fragment) < 3);
+            if (count($fragment) === 1) {
                 // an HTML element
                 $fragmentContext = $doc->createElementNS($htmlNamespace, $fragment[0]);
             } else {
@@ -132,7 +134,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             $this->markTestSkipped("Test's parse errors are seemingly incorrect (tree has already been tested)");
         }
         $actualErrors = $this->formatErrors($errorHandler->errors);
-        $this->assertCount(sizeof($errors['old']), $actualErrors, $treeConstructor->debugLog."\n".var_export($errors['old'], true).var_export($actualErrors, true));
+        $this->assertCount(count($errors['old']), $actualErrors, $treeConstructor->debugLog."\n".var_export($errors['old'], true).var_export($actualErrors, true));
     }
 
     protected function formatErrors(array $errors): array {
@@ -142,7 +144,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             return is_int($v);
         })));
         $out = [];
-        foreach ($errors as list($line, $col, $code)) {
+        foreach ($errors as [$line, $col, $code]) {
             $out[] = "($line:$col): ".$errorMap[$code];
         }
         return $out;
@@ -151,9 +153,9 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
     protected function patchTest(string $data, $fragment, array $errors, array $exp): array {
         // When using the HTML namespace, xmlns attributes in the xmlns namespace lose their namespace URI due to a PHP limitation
         if ($this->ns) {
-            for ($a = 0; $a < sizeof($exp); $a++) {
+            for ($a = 0; $a < count($exp); $a++) {
                 if (preg_match('/^\|\s+xmlns xmlns=/', $exp[$a])) {
-                    $exp[$a] = preg_replace('/^\|(\s+)xmlns xmlns=/', "|$1xmlns=", $exp[$a]);
+                    $exp[$a] = preg_replace('/^(\|\s+)xmlns xmlns=/', "|$1xmlns=", $exp[$a]);
                 }
             }
         }
@@ -164,7 +166,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         // makes sure that the actual tree contain the same number of lines as the expected tree
         // lines are inserted where the two trees diverge, until the end of the actual tree is reached
         // this usually results in cleaner PHPUnit comparison failure output
-        for ($a = 0; $a < sizeof($act) && sizeof($act) < sizeof($exp); $a++) {
+        for ($a = 0; $a < count($act) && count($act) < count($exp); $a++) {
             if (!isset($act[$a]) || $exp[$a] !== $act[$a]) {
                 array_splice($act, $a, 0, [""]);
             }
@@ -262,7 +264,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
         }
     }
 
-    protected function parseTreeTest(iterable $files, array $blacklist = []): iterable {
+    protected static function parseTreeTest(iterable $files, array $blacklist = []): iterable {
         foreach ($files as $file) {
             $index = 0;
             $l = 0;
@@ -270,12 +272,12 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                 $lines = array_map(function($v) {
                     return rtrim($v, "\n");
                 }, file($file));
-                while ($l < sizeof($lines)) {
+                while ($l < count($lines)) {
                     $pos = $l + 1;
                     assert($lines[$l] === "#data", new \Exception("Test $file #$index does not start with #data tag at line ".($l + 1)));
                     // collect the test input
                     $data = [];
-                    for (++$l; $l < sizeof($lines); $l++) {
+                    for (++$l; $l < count($lines); $l++) {
                         if ($lines[$l] === "#errors") {
                             break;
                         }
@@ -285,7 +287,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                     // collect the test errors
                     $errors = [];
                     assert(($lines[$l] ?? "") === "#errors", new \Exception("Test $file #$index does not list errors at line ".($l + 1)));
-                    for (++$l; $l < sizeof($lines); $l++) {
+                    for (++$l; $l < count($lines); $l++) {
                         if (preg_match('/^#(document(-fragment)?|script-(on|off)|new-errors|)$/', $lines[$l])) {
                             break;
                         }
@@ -295,7 +297,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                     assert(preg_match('/^#(new-errors|script-(on|off)|document(-fragment)?)$/', $lines[$l]) === 1, new \Exception("Test $file #$index follows errors with something other than new errors, script flag, document fragment, or document at line ".($l + 1)));
                     $newErrors = [];
                     if ($lines[$l] === "#new-errors") {
-                        for (++$l; $l < sizeof($lines); $l++) {
+                        for (++$l; $l < count($lines); $l++) {
                             if (preg_match('/^#(document(-fragment)?|script-(on|off)|)$/', $lines[$l])) {
                                 break;
                             }
@@ -322,12 +324,12 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                     // collect the output tree
                     $exp = [];
                     assert($lines[$l] === "#document", new \Exception("Test $file #$index follows document fragment with something other than document at line ".($l + 1)));
-                    for (++$l; $l < sizeof($lines); $l++) {
+                    for (++$l; $l < count($lines); $l++) {
                         if ($lines[$l] === "" && ($lines[$l + 1] ?? "") === "#data") {
                             break;
                         } elseif (($lines[$l][0] ?? "") !== "|") {
-                            // apend the data to the previous token
-                            $exp[sizeof($exp) - 1] .= "\n".$lines[$l];
+                            // append the data to the previous token
+                            $exp[count($exp) - 1] .= "\n".$lines[$l];
                             continue;
                         }
                         assert(preg_match('/^[^#]/', $lines[$l]) === 1, new \Exception("Test $file #$index contains unrecognized data after document at line ".($l + 1)));

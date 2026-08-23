@@ -7,16 +7,16 @@ declare(strict_types=1);
 namespace MensBeam\HTML\TestCase;
 
 use MensBeam\HTML\DOMParser;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\RequiresPhp;
 
-/**
- * @covers \MensBeam\HTML\DOMParser
- * @requires PHP >= 8.4
- */
+#[CoversClass(DOMParser::class)]
+#[RequiresPhp('>= 8.4.0')]
 class TestDOMParserNew extends TestDOMParser {
     protected $p;
 
     public function setUp(): void {
         $this->p = \Phake::partialMock(DOMParser::class);
-        \Phake::when($this->p)->useNewParsers->thenReturn(true); 
+        \Phake::when($this->p)->useNewParsers(\Phake::anyParameters())->thenReturn(true);
     }
 }

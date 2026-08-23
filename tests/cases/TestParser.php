@@ -10,11 +10,12 @@ use MensBeam\HTML\Parser;
 use MensBeam\HTML\Parser\Output;
 use MensBeam\HTML\Parser\Config;
 use MensBeam\HTML\Parser\Exception;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\CoversMethod;
 
-/**
- * @covers \MensBeam\HTML\Parser
- * @covers \MensBeam\HTML\Parser\Exception
- */
+#[CoversClass(Parser::class)]
+#[CoversClass(Exception::class)]
+#[CoversMethod(\MensBeam\HTML\Parser\TreeConstructor::class, '__construct')]
 class TestParser extends \PHPUnit\Framework\TestCase {
     public function testParseADocument(): void {
         $in = "hello world!";
@@ -46,7 +47,6 @@ class TestParser extends \PHPUnit\Framework\TestCase {
         $this->assertInstanceOf(\DOMDocumentFragment::class, $out);
     }
 
-    /** @covers \MensBeam\HTML\Parser\TreeConstructor::__construct */
     public function testParseAFragmentWithBogusQuirksMode(): void {
         $doc = new \DOMDocument();
         $context = $doc->createElement("div");

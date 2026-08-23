@@ -9,15 +9,15 @@ namespace MensBeam\HTML\TestCase;
 use MensBeam\HTML\Parser;
 use MensBeam\HTML\Parser\Output;
 use MensBeam\HTML\Parser\Config;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 
-/**
- * @covers \MensBeam\HTML\Parser
- * @covers \MensBeam\HTML\Parser\TreeConstructor
- * @covers \MensBeam\HTML\Parser\TagToken
- * @covers \MensBeam\HTML\Parser\Data::changeEncoding
- */
+#[CoversClass(Parser::class)]
+#[CoversClass(\MensBeam\HTML\Parser\TreeConstructor::class)]
+#[CoversClass(\MensBeam\HTML\Parser\TagToken::class)]
+#[CoversClass(\MensBeam\HTML\Parser\Data::class)]
 class TestEncodingChange extends \PHPUnit\Framework\TestCase {
-    /** @dataProvider provideEncodingChanges */
+    #[DataProvider('provideEncodingChanges')]
     public function testChangeEncodingWithCharset(string $assumedEncoding, string $statedEncoding, string $actualEncoding, string $titleBytes, string $titleUTF8): void {
         $in = "<!DOCTYPE html><html><head>".str_repeat(" ", 1024)."<title>$titleBytes</title><meta charset=$statedEncoding></head><body></body></html>";
         // if the input is some form of UTF-16, add the null bytes in the correct places
@@ -36,7 +36,7 @@ class TestEncodingChange extends \PHPUnit\Framework\TestCase {
         $this->assertSame($titleUTF8, $out->document->getElementsByTagName("title")[0]->textContent);
     }
 
-    /** @dataProvider provideEncodingChanges */
+    #[DataProvider('provideEncodingChanges')]
     public function testChangeEncodingWithHttpEquiv(string $assumedEncoding, string $statedEncoding, string $actualEncoding, string $titleBytes, string $titleUTF8): void {
         $in = "<!DOCTYPE html><html><head>".str_repeat(" ", 1024)."<title>$titleBytes</title><meta http-equiv=CoNtenT-TYpe content='text/html;charset=$statedEncoding'></head><body></body></html>";
         // if the input is some form of UTF-16, add the null bytes in the correct places
@@ -55,7 +55,7 @@ class TestEncodingChange extends \PHPUnit\Framework\TestCase {
         $this->assertSame($titleUTF8, $out->document->getElementsByTagName("title")[0]->textContent);
     }
 
-    public function provideEncodingChanges(): iterable {
+    public static function provideEncodingChanges(): iterable {
         return [
             ["windows-1252", "",               "windows-1252", "ASCII title",                  "ASCII title"],
             ["windows-1252", "UTF-8",          "UTF-8",        "ASCII title",                  "ASCII title"],
