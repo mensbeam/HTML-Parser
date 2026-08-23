@@ -590,6 +590,21 @@ abstract class Serializer {
             return $node->content;
         }
         // @codeCoverageIgnoreEnd
+
+        // The new DOM has a bug where template contents are ALMOST inaccessible by the DOM.
+        // @see https://github.com/php/php-src/issues/23334
+        if (is_a($node, 'Dom\Element')) {
+            $innerHTML = $node->innerHTML;
+            $ownerDocument = $node->ownerDocument;
+            $wrapper = $ownerDocument->createElement('div');
+            $wrapper->innerHTML = $innerHTML;
+            $frag = $ownerDocument->createDocumentFragment();
+            while ($wrapper->hasChildNodes()) {
+                $frag->appendChild($wrapper->firstChild);
+            }
+            return $frag;
+        }
+
         // Old DOM: PHP's DOM does not support the content property on template elements
         // natively. Subclasses may override this to return template contents.
         return $node;
