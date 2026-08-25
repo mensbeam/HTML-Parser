@@ -332,45 +332,7 @@ abstract class Serializer {
                                 ' '
                             ], $data);
 
-                            $xpath = static::createXPath($node);
-                            $textNodes = $xpath->query('./ancestor::*[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"][name()="address" or name()="article" or name()="aside" or name()="blockquote" or name="body" or name()="canvas" or name()="dd" or name()="div" or name()="dl" or name()="dt" or name()="fieldset" or name()="figcaption" or name()="figure" or name()="footer" or name()="form" or name()="h1" or name()="h2" or name()="h3" or name()="h4" or name()="h5" or name()="h6" or name()="head" or name()="header" or name()="hr" or name()="html" or name()="li" or name()="main" or name()="nav" or name()="ol" or name()="p" or name()="section" or name()="table" or name()="tfoot" or name()="ul" or name()="video"][1]/descendant::text()[not(ancestor::template[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"])]', $node);
-
-                            if ($textNodes->length > 0) {
-                                $firstOfLine = ($node === $textNodes->item(0));
-                                $lastOfLine = ($node === $textNodes->item($textNodes->length - 1));
-                            } else {
-                                if ($node->parentNode === null) {
-                                    $firstOfLine = $lastOfLine = true;
-                                } else {
-                                    $n = $node;
-                                    while ($n = $n->parentNode) {
-                                        $root = $n;
-                                    }
-
-                                    $textNodes = $xpath->query('.//text()[not(ancestor::template[namespace-uri()="" or namespace-uri()="http://www.w3.org/1999/xhtml"])]', $root);
-                                    $firstOfLine = ($node === $textNodes->item(0));
-                                    $lastOfLine = ($node === $textNodes->item($textNodes->length - 1));
-                                }
-                            }
-
                             $data = preg_replace('/ +/', ' ', $data);
-                            if (!$firstOfLine) {
-                                foreach ($textNodes as $key => $t) {
-                                    // To get Intelephense to fuck off...
-                                    /** @var (\DOMNodeList<\DOMText>|\Dom\NodeList<\DomText>)&\ArrayAccess $textNodes */
-                                    if ($t === $node && preg_match('/[\t\n\x0c\x0D ]+$/', $textNodes[$key - 1]->data)) {
-                                        $data = ltrim($data);
-                                        break;
-                                    }
-                                }
-                            }
-
-                            if ($firstOfLine) {
-                                $data = ltrim($data);
-                            }
-                            if ($lastOfLine) {
-                                $data = rtrim($data);
-                            }
                         }
                     }
                 }
