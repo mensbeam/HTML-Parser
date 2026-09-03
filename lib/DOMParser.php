@@ -55,7 +55,7 @@ XMLDECL;
 		'EUC-KR' => "korean",
 	];
 
-    /** Parses `$string` using either the HTML or XML parser, according to `$type`, and returns the resulting `DOMDocument`
+    /** Parses `$string` using either the HTML or XML parser, according to `$type`, and returns the resulting document
      * 
      * `$type` can be `"text/html"` (which will invoke the HTML parser), or
      * any XML type (which will invoke the XML parser). A `charset` parameter
@@ -70,6 +70,11 @@ XMLDECL;
      * 
      * If no encoding is specified and none can be detected from the document,
      * the default encoding is UTF-8 for both HTML and XML
+     * 
+     * With PHP 8.4 or later an instance of `Dom\HTMLDocument` (for HTML) or
+     * `Dom\XMLDocument` (for XML) is returned. If instances of `DOMDocument`
+     * are desired instead this class can be extended to have `false` always
+     * returned by the `useNewParsers()` method.
      * 
      * @return \DOMDocument|\Dom\HTMLDocument|\Dom\XMLDocument
      */
@@ -110,12 +115,13 @@ XMLDECL;
 
     protected function createDocumentXml(string $string, ?string $encoding) {
         $string = $this->fixXmlEncoding($string, $encoding ?? "");
+        $options = \LIBXML_NONET | \LIBXML_BIGLINES | \LIBXML_COMPACT |\LIBXML_NOWARNING | \LIBXML_NOERROR;
         try {
             if ($this->useNewParsers()) {
-                return \Dom\XMLDocument::createFromString($string, \LIBXML_NOERROR | \LIBXML_COMPACT);
+                return \Dom\XMLDocument::createFromString($string, $options);
             } else {
                 $document = new \DOMDocument;
-                if ($document->loadXML($string, \LIBXML_NONET | \LIBXML_BIGLINES | \LIBXML_COMPACT |\LIBXML_NOWARNING | \LIBXML_NOERROR)) {
+                if ($document->loadXML($string, $options)) {
                     return $document;
                 } else {
                     throw new \Exception;
@@ -123,7 +129,7 @@ XMLDECL;
             }
         } catch (\Exception $e) {
             $err = libxml_get_last_error();
-            $message = trim(htmlspecialchars($err->message, \ENT_NOQUOTES | \ENT_SUBSTITUTE | \ENT_XML1, "UTF-8"));
+            $message = trim(htmlspecialchars($err->message, \ENT_QUOTES | \ENT_SUBSTITUTE | \ENT_XML1, "UTF-8"));
             $string = <<<XMLDOC
 <parsererror 
     xmlns="http://www.mozilla.org/newlayout/xml/parsererror.xml" 
