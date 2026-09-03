@@ -25,7 +25,7 @@ Extra configuration parameters may be given to the parser by passing a `MensBeam
 
 ### Parsing with `DOMParser`
 
-Since version 1.3.0, the library also provides an implemention of [the `DOMParser` interface](https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-parsing-and-serialization). 
+Since version 1.3.0, the library also provides an implemention of [the `DOMParser` interface](https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#the-domparser-interface). 
 
 ```php
 class MensBeam\HTML\DOMParser {
