@@ -32,21 +32,21 @@ class MensBeam\HTML\DOMParser {
   public function parseFromString(
     string $string,
     string $type
-  ): \DOMDocument|\Dom\HTMLDocument|\Dom\XMLDocument
+  ): DOMDocument|Dom\HTMLDocument|Dom\XMLDocument
 }
 ```
 
 Like the standard interface, it will parse either HTML or XML documents. This implementation does, however, differ in the following ways:
 
 - Any XML MIME content-type (e.g. `application/rss+xml`) is acceptable, not just the restricted list mandated by the interface
-- MIME content-types may include a `charset` parameter to specify an authoritative encoding of the document
+- MIME content-types may include a `charset` parameter to specify an authoritative encoding of the document; other parameters are also allowed, though ignored
 - If no `charset` is provided encoding will be detected from document hints; the default encoding is `UTF-8` for both XML and HTML
 - `InvalidArgumentException` is thrown in place of JavaScript's `TypeError`
 
-When using PHP 8.4 `DOMParser` will return instances of `\Dom\HTMLDocument` (for HTML) or `\Dom\XMLDocument` (for XML). If instances of `DOMDocument` are desired instead the `DOMParser::useNewParsers()` method can be overridden to always return `false`:
+When using PHP 8.4 or later `DOMParser` will return instances of `Dom\HTMLDocument` (for HTML) or `Dom\XMLDocument` (for XML). If instances of `DOMDocument` are desired instead the `DOMParser::useNewParsers()` method can be overridden to always return `false`:
 
 ```php
-class DOMParser extends \MensBeam\HTML\DOMParser {
+class DOMParser extends MensBeam\HTML\DOMParser {
     public function useNewParsers(): bool {
         return false;
     }
@@ -58,7 +58,7 @@ class DOMParser extends \MensBeam\HTML\DOMParser {
 ```php
 public static MensBeam\HTML\Parser::parseInto(
     string $data,
-    \DOMDocument $document,
+    DOMDocument $document,
     ?string $encodingOrContentType = null,
     ?MensBeam\HTML\Parser\Config $config = null
 ): MensBeam\HTML\Parser\Output
