@@ -25,14 +25,14 @@ Extra configuration parameters may be given to the parser by passing a `MensBeam
 
 ### Parsing with `DOMParser`
 
-Since version 1.3.0, the library also provides an implemention of [the `DOMParser` interface](https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#the-domparser-interface). 
+Since version 1.3.0, the library also provides an implemention of [the `DOMParser` interface](https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#the-domparser-interface).
 
 ```php
 class MensBeam\HTML\DOMParser {
   public function parseFromString(
     string $string,
     string $type
-  ): \DOMDocument
+  ): \DOMDocument|\Dom\HTMLDocument|\Dom\XMLDocument
 }
 ```
 
@@ -40,8 +40,18 @@ Like the standard interface, it will parse either HTML or XML documents. This im
 
 - Any XML MIME content-type (e.g. `application/rss+xml`) is acceptable, not just the restricted list mandated by the interface
 - MIME content-types may include a `charset` parameter to specify an authoritative encoding of the document
-- If no `charset` is provided encoding will be detected from document hints; the default encoding is `UTF-8`
+- If no `charset` is provided encoding will be detected from document hints; the default encoding is `UTF-8` for both XML and HTML
 - `InvalidArgumentException` is thrown in place of JavaScript's `TypeError`
+
+When using PHP 8.4 `DOMParser` will return instances of `\Dom\HTMLDocument` (for HTML) or `\Dom\XMLDocument` (for XML). If instances of `DOMDocument` are desired instead the `DOMParser::useNewParsers()` method can be overridden to always return `false`:
+
+```php
+class DOMParser extends \MensBeam\HTML\DOMParser {
+    public function useNewParsers(): bool {
+        return false;
+    }
+}
+```
 
 ### Parsing into existing documents
 
