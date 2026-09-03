@@ -10,7 +10,7 @@ use MensBeam\HTML\Parser\Config;
 use MensBeam\Mime\MimeType;
 use MensBeam\Intl\Encoding;
 
-/** The DOMParser interface allows authors to create new DOMDocument objects by parsing strings, as either HTML or XML */
+/** The DOMParser interface allows authors to create new DOM document objects by parsing strings, as either HTML or XML */
 class DOMParser {
     /** @var string A UTF-8 byte order mark */
     protected const BOM_UTF8 = "\xEF\xBB\xBF";
@@ -28,32 +28,32 @@ class DOMParser {
     \s*\?>
     /sx
 XMLDECL;
-	/** @var array A list of standard encoding labels which DOMDocument either does not know or does not map to the correct encoding; this is a worst-case list taken from PHP 5.6 on Windows with some exclusions for encodings which are completely unsupported */
-	const ENCODING_NAUGHTY_LIST = [
-		"unicode-1-1-utf-8", "unicode11utf8", "unicode20utf8", "x-unicode20utf8",
-		"iso88592", "iso88593", "iso88594", "iso88595", "csiso88596e",
-		"csiso88596i", "iso-8859-6-e", "iso-8859-6-i", "iso88596", "iso88597",
-		"sun_eu_greek", "csiso88598e", "iso-8859-8-e", "iso88598", "visual",
-		"csiso88598i", "iso-8859-8-i", "logical", "iso885910", "iso885913",
-		"iso885914", "csisolatin9", "iso885915", "l9", "koi", "koi8", "koi8_r",
-		"x-mac-roman", "dos-874", "iso-8859-11", "iso8859-11", "iso885911",
-		"tis-620", "x-cp1250", "x-cp1251", "ansi_x3.4-1968", "ascii", "cp819",
-		"csisolatin1", "ibm819", "iso-8859-1", "iso-ir-100", "iso8859-1",
-		"iso88591", "iso_8859-1", "iso_8859-1:1987", "l1", "latin1",
-		"us-ascii", "x-cp1252", "x-cp1253", "iso88599", "x-cp1254",
-		"x-cp1255", "x-cp1256", "x-cp1257", "cp1258", "windows-1258",
-		"x-mac-ukrainian", "chinese", "csgb2312", "csiso58gb231280", "gb2312",
-		"gb_2312", "gb_2312-80", "gbk", "iso-ir-58", "big5", "cn-big5",
-		"csbig5", "x-x-big5", "x-euc-jp", "ms932", "windows-31j", "x-sjis",
-		"cseuckr", "euc-kr", "replacement",
-	];
-	/** @var array A List of canonical encoding names DOMDocument does not understand, with aliases to labels it does understand */
-	const ENCODING_ALIAS_MAP = [
-		'windows-1258' => "x-cp1258",
-		'GBK' => "x-gbk",
-		'Big5' => "big5-hkscs",
-		'EUC-KR' => "korean",
-	];
+    /** @var array A list of standard encoding labels which libxml either does not know or does not map to the correct encoding; this is a worst-case list taken from PHP 5.6 on Windows with some exclusions for encodings which are completely unsupported */
+    const ENCODING_NAUGHTY_LIST = [
+        "unicode-1-1-utf-8", "unicode11utf8", "unicode20utf8", "x-unicode20utf8",
+        "iso88592", "iso88593", "iso88594", "iso88595", "csiso88596e",
+        "csiso88596i", "iso-8859-6-e", "iso-8859-6-i", "iso88596", "iso88597",
+        "sun_eu_greek", "csiso88598e", "iso-8859-8-e", "iso88598", "visual",
+        "csiso88598i", "iso-8859-8-i", "logical", "iso885910", "iso885913",
+        "iso885914", "csisolatin9", "iso885915", "l9", "koi", "koi8", "koi8_r",
+        "x-mac-roman", "dos-874", "iso-8859-11", "iso8859-11", "iso885911",
+        "tis-620", "x-cp1250", "x-cp1251", "ansi_x3.4-1968", "ascii", "cp819",
+        "csisolatin1", "ibm819", "iso-8859-1", "iso-ir-100", "iso8859-1",
+        "iso88591", "iso_8859-1", "iso_8859-1:1987", "l1", "latin1",
+        "us-ascii", "x-cp1252", "x-cp1253", "iso88599", "x-cp1254",
+        "x-cp1255", "x-cp1256", "x-cp1257", "cp1258", "windows-1258",
+        "x-mac-ukrainian", "chinese", "csgb2312", "csiso58gb231280", "gb2312",
+        "gb_2312", "gb_2312-80", "gbk", "iso-ir-58", "big5", "cn-big5",
+        "csbig5", "x-x-big5", "x-euc-jp", "ms932", "windows-31j", "x-sjis",
+        "cseuckr", "euc-kr", "replacement",
+    ];
+    /** @var array A List of canonical encoding names libxml does not understand, with aliases to labels it does understand */
+    const ENCODING_ALIAS_MAP = [
+        'windows-1258' => "x-cp1258",
+        'GBK' => "x-gbk",
+        'Big5' => "big5-hkscs",
+        'EUC-KR' => "korean",
+    ];
 
     /** Parses `$string` using either the HTML or XML parser, according to `$type`, and returns the resulting document
      * 
