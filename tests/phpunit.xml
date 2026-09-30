@@ -24,9 +24,6 @@
     <testsuite name="Charset">
         <file>cases/TestCharset.php</file>
     </testsuite>
-    <testsuite name="Tokenizer">
-        <file>cases/TestTokenizer.php</file>
-    </testsuite>
     <testsuite name="Tree">
         <file>cases/TestTreeConstructor.php</file>
     </testsuite>

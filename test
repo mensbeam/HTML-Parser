@@ -20,7 +20,7 @@ $repos = [
     ],
     'platform-tests' => [
         'url' => 'https://github.com/web-platform-tests/wpt',
-        'sparse' => 'html/syntax/xmldecl'
+        'sparse' => ['html/syntax']
     ],
 ];
 
@@ -35,7 +35,7 @@ if (!is_dir(BASE_TEST."html5lib-tests")) {
             if ($config['sparse']) {
                 $url = escapeshellarg($config['url']);
                 $spath = escapeshellarg($path);
-                $sparse = escapeshellarg($config['sparse']);
+                $sparse = implode(" ", array_map("escapeshellarg", $config['sparse']));
                 passthru("git clone --filter=blob:none --no-checkout --depth=1 $url $spath");
                 passthru("git -C $spath sparse-checkout set $sparse");
                 passthru("git -C $spath checkout");

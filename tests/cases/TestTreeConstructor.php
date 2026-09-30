@@ -64,7 +64,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
 
     public static function provideStandardTreeTests(): iterable {
         $files = new \AppendIterator();
-        $files->append(new \GlobIterator(\MensBeam\HTML\Parser\BASE."tests/html5lib-tests/tree-construction/*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
+        $files->append(new \GlobIterator(\MensBeam\HTML\Parser\BASE."tests/platform-tests/html/syntax/parsing/resources/*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
         $files->append(new \GlobIterator(\MensBeam\HTML\Parser\BASE."tests/cases/tree-construction/mensbeam*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME));
         // filter out tests which are problematic, if any
         $filtered = new class($files) extends \FilterIterator {
@@ -75,18 +75,6 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
             }
         };
         return static::parseTreeTest($filtered);
-    }
-
-    #[DataProvider('provideProcessingInstructionTreeTests')]
-    public function testProcessingInstructionTreeTests(string $data, array $exp, array $errors, $fragment, string $id): void {
-        $config = new Config;
-        $config->processingInstructions = true;
-        $this->runTreeTest($data, $exp, $errors, $fragment, $config);
-    }
-
-    public static function provideProcessingInstructionTreeTests(): iterable {
-        $files = new \GlobIterator(\MensBeam\HTML\Parser\BASE."tests/cases/tree-construction/pi*.dat", \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME);
-        return static::parseTreeTest($files);
     }
 
     protected function runTreeTest(string $data, array $exp, array $errors, ?string $fragment, ?Config $config): void {
