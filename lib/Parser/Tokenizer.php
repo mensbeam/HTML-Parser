@@ -100,6 +100,11 @@ class Tokenizer {
     const HEXADECIMAL_CHARACTER_REFERENCE_STATE = 78;
     const DECIMAL_CHARACTER_REFERENCE_STATE = 79;
     const NUMERIC_CHARACTER_REFERENCE_END_STATE = 80;
+    const PROCESSING_INSTRUCTION_OPEN_STATE = 81;
+    const PROCESSING_INSTRUCTION_TARGET_STATE = 82;
+    const AFTER_PROCESSING_INSTRUCTION_TARGET_STATE = 83;
+    const PROCESSING_INSTRUCTION_DATA_STATE = 84;
+    const PROCESSING_INSTRUCTION_QUESTIONABLE_STATE = 85;
 
     const STATE_NAMES = [
         self::DATA_STATE                                          => "Data",
@@ -182,6 +187,11 @@ class Tokenizer {
         self::HEXADECIMAL_CHARACTER_REFERENCE_STATE               => "Hexadecimal character reference",
         self::DECIMAL_CHARACTER_REFERENCE_STATE                   => "Decimal character reference",
         self::NUMERIC_CHARACTER_REFERENCE_END_STATE               => "Numeric character reference",
+        self::PROCESSING_INSTRUCTION_OPEN_STATE                   => "Processing instruction open",
+        self::PROCESSING_INSTRUCTION_TARGET_STATE                 => "Processing instruction target",
+        self::AFTER_PROCESSING_INSTRUCTION_TARGET_STATE           => "After processing instruction target",
+        self::PROCESSING_INSTRUCTION_DATA_STATE                   => 'Processing instruction data',
+        self::PROCESSING_INSTRUCTION_QUESTIONABLE_STATE           => 'Processing instruction questional',
     ];
 
     const ATTRIBUTE_VALUE_STATE_SET = [
@@ -243,6 +253,11 @@ class Tokenizer {
     }
 
     public function tokenize(): \Generator {
+        $char = null;
+        $token = null;
+        $attribute = null;
+        $buffer = "";
+
         Consume:
         assert((function() {
             $this->debugLog .= "TOKEN ".++$this->debugCount."\n";
@@ -502,13 +517,10 @@ class Tokenizer {
                 }
                 # U+003F QUESTION MARK (?)
                 elseif ($char === '?') {
-                    # This is an unexpected-question-mark-instead-of-tag-name parse error.
-                    # Create a comment token whose data is the empty string.
-                    # Reconsume in the bogus comment state.
-                    $this->error(ParseError::UNEXPECTED_QUESTION_MARK_INSTEAD_OF_TAG_NAME);
-                    $token = new ProcessingInstructionToken("");
-                    $this->state = self::BOGUS_COMMENT_STATE;
-                    goto Reconsume;
+                    # Set the temporary buffer to the empty string. Switch to
+                    #   the processing instruction open state.
+                    $buffer = "";
+                    $this->state = self::PROCESSING_INSTRUCTION_OPEN_STATE;
                 }
                 # EOF
                 elseif ($char === '') {
@@ -3342,6 +3354,179 @@ class Tokenizer {
                     # Reconsume in the CDATA section state.
                     $this->state = self::CDATA_SECTION_STATE;
                     yield new CharacterToken(']]');
+                    goto Reconsume;
+                }
+            }
+
+            # 13.2.5.72 Processing instruction open state
+            elseif ($this->state === self::PROCESSING_INSTRUCTION_OPEN_STATE) {
+                # Consume the next input character:
+
+                # ASCII alpha
+                # U+005F LOW LINE (_)
+                if (ctype_alpha($char) || $char === "_") {
+                    # Reconsume in the processing instruction target state.
+                    $this->state = self::PROCESSING_INSTRUCTION_TARGET_STATE;
+                    goto Reconsume;
+                }
+                # EOF
+                elseif ($char === "") {
+                    # This is an eof-in-processing-instruction parse error. 
+                    $this->error(ParseError::EOF_IN_PROCESSING_INSTRUCTION);
+                    # Emit an end-of-file token.
+                    yield new EOFToken;
+                    return;
+                }
+                # Anything else
+                else {
+                    # This is an invalid-first-character-of-processing-instruction-target
+                    #   parse error. Convert the temporary buffer to a comment.
+                    $this->error(ParseError::INVALID_FIRST_CHARACTER_OF_PROCESSING_INSTRUCTION_TARGET);
+                    $token = new CommentToken("?$buffer");
+                    # Reconsume in the bogus comment state.
+                    $this->state = self::BOGUS_COMMENT_STATE;
+                    goto Reconsume;
+                }
+            }
+
+            # 13.2.5.73 Processing instruction target state
+            elseif ($this->state === self::PROCESSING_INSTRUCTION_TARGET_STATE) {
+                # Consume the next input character:
+
+                # U+0009 CHARACTER TABULATION (tab)
+                # U+000A LINE FEED (LF)
+                # U+000C FORM FEED (FF)
+                # U+0020 SPACE
+                # U+003F QUESTION MARK (?)
+                # U+003E GREATER-THAN SIGN (>)
+                if (strspn($char, "\t\n\f ?>")) {
+                    # Let target be the concatenation of the code points in
+                    #   the temporary buffer, in the order they were added
+                    #   to the buffer.
+                    $target = $buffer;
+                    # If target is an ASCII case-insensitive match for
+                    #   "xml" or "xml-stylesheet":
+                    if (in_array(strtolower($target), ["xml", "xml-stylesheet"])) {
+                        # This is a disallowed-processing-instruction-target parse error.
+                        $this->error(ParseError::DISALLOWED_PROCESSING_INSTRUCTION_TARGET);
+                        # Convert the temporary buffer to a comment.
+                        $token = new CommentToken("?$buffer");
+                        # Reconsume in the bogus comment state.
+                        $this->state = self::BOGUS_COMMENT_STATE;
+                        goto Reconsume;
+                    }
+                    # Otherwise:
+                    else {
+                        # Create a processing instruction token whose target is target and data is the empty string.
+                        $token = new ProcessingInstructionToken($target, "");
+                        # Reconsume in the after processing instruction target state.
+                        $this->state = self::AFTER_PROCESSING_INSTRUCTION_TARGET_STATE;
+                        goto Reconsume;
+                    }
+                }
+                # ASCII alphanumeric
+                # U+002D HYPHEN-MINUS (-)
+                # U+005F LOW LINE (_)
+                elseif (ctype_alnum($char) || $char === "-" || $char === "_") {
+                    # Append the current input character to the temporary buffer.
+                    $buffer .= $char;
+                }
+                # EOF
+                elseif ($char === "") {
+                    # This is an eof-in-processing-instruction parse error.
+                    $this->error(ParseError::EOF_IN_PROCESSING_INSTRUCTION);
+                    # Emit an end-of-file token.
+                    yield new EOFToken;
+                    return;
+                }
+                # Anything else
+                else {
+                    # This is an invalid-processing-instruction-target parse
+                    #   error. Convert the temporary buffer to a comment.
+                    $this->error(ParseError::INVALID_PROCESSING_INSTRUCTION_TARGET); 
+                    $token = new CommentToken("?$buffer");
+                    # Reconsume in the bogus comment state.
+                    $this->state = self::BOGUS_COMMENT_STATE;
+                    goto Reconsume;
+                }
+            }
+
+            # 13.2.5.74 After processing instruction target state
+            elseif ($this->state === self::AFTER_PROCESSING_INSTRUCTION_TARGET_STATE) {
+                # Consume the next input character:
+
+                # U+0009 CHARACTER TABULATION (tab)
+                # U+000A LINE FEED (LF)
+                # U+000C FORM FEED (FF)
+                # U+0020 SPACE
+                if (strspn($char, "\t\n\f ")) {
+                    # Ignore the character.
+                }
+                # Anything else
+                else {
+                    # Reconsume in the processing instruction data state.
+                    $this->state = self::PROCESSING_INSTRUCTION_DATA_STATE;
+                    goto Reconsume;
+                }
+            }
+
+            # 13.2.5.75 Processing instruction data state
+            elseif ($this->state === self::PROCESSING_INSTRUCTION_DATA_STATE) {
+                # Consume the next input character:
+
+                # U+003F QUESTION MARK (?)
+                if ($char === "?") {
+                    # Switch to the processing instruction questionable state.
+                    $this->state = self::PROCESSING_INSTRUCTION_QUESTIONABLE_STATE;
+                }
+                # U+003E GREATER-THAN SIGN (>)
+                elseif ($char === ">") {
+                    # Switch to the data state.
+                    $this->state = self::DATA_STATE;
+                    # Emit the current processing instruction token.
+                    yield $token;
+                }
+                # EOF
+                elseif ($char === "") {
+                    # This is an eof-in-processing-instruction parse error.
+                    $this->error(ParseError::EOF_IN_PROCESSING_INSTRUCTION);
+                    # Emit an end-of-file token.
+                    yield new EOFToken;
+                    return;
+                }
+                # Anything else
+                else {
+                    # Append the current input character to the current processing instruction token's data.
+                    $token->data .= $char;
+                }
+            }
+
+            # 13.2.5.76 Processing instruction questionable state
+            elseif ($this->state === self::PROCESSING_INSTRUCTION_QUESTIONABLE_STATE) {
+                # Consume the next input character:
+
+                # U+003E GREATER-THAN SIGN (>)
+                if ($char === ">") {
+                    # Switch to the data state.
+                    $this->state = self::DATA_STATE;
+                    # Emit the current processing instruction token.
+                    yield $token;
+                }
+                # EOF
+                elseif ($char === "") {
+                    # This is an eof-in-processing-instruction parse error.
+                    $this->error(ParseError::EOF_IN_PROCESSING_INSTRUCTION);
+                    # Emit an end-of-file token.
+                    yield new EOFToken;
+                    return;
+                }
+                # Anything else
+                else {
+                    # Append U+003F (?) to the current processing instruction
+                    #   token's data. Reconsume in the processing instruction
+                    #   data state.
+                    $token->data .= "?";
+                    $this->state = self::PROCESSING_INSTRUCTION_DATA_STATE;
                     goto Reconsume;
                 }
             }

@@ -51,7 +51,15 @@ class CommentToken extends DataToken {
     public const NAME = "Comment token";
 }
 
-class ProcessingInstructionToken extends CommentToken {
+class ProcessingInstructionToken extends DataToken {
+    public const NAME = "Processing instruction token";
+
+    public $target;
+
+    public function __construct(string $target, string $data = "") {
+        $this->target = $target;
+        $this->data = $data;
+    }
 }
 
 abstract class TagToken extends Token {

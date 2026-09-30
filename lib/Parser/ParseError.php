@@ -57,6 +57,10 @@ class ParseError {
     public const SURROGATE_IN_INPUT_STREAM                                         = 146;
     public const NONCHARACTER_IN_INPUT_STREAM                                      = 147;
     public const CONTROL_CHARACTER_IN_INPUT_STREAM                                 = 148;
+    public const EOF_IN_PROCESSING_INSTRUCTION                                     = 149;
+    public const DISALLOWED_PROCESSING_INSTRUCTION_TARGET                          = 150;
+    public const INVALID_PROCESSING_INSTRUCTION_TARGET                             = 151;
+    public const INVALID_FIRST_CHARACTER_OF_PROCESSING_INSTRUCTION_TARGET          = 152;
     // tree construction parse errors; these have not been standardized, but html5lib's error names are likely to become standard in future
     public const EXPECTED_DOCTYPE_BUT_GOT_START_TAG                                = 200;
     public const EXPECTED_DOCTYPE_BUT_GOT_END_TAG                                  = 201;
@@ -150,6 +154,10 @@ class ParseError {
         self::SURROGATE_IN_INPUT_STREAM                                         => 'Surrogate character in input stream',
         self::NONCHARACTER_IN_INPUT_STREAM                                      => 'Non-character character in input stream',
         self::CONTROL_CHARACTER_IN_INPUT_STREAM                                 => 'Control character in input stream',
+        self::EOF_IN_PROCESSING_INSTRUCTION                                     => 'End-of-file in processing instruction',
+        self::DISALLOWED_PROCESSING_INSTRUCTION_TARGET                          => 'Disallowed processing instruction target',
+        self::INVALID_PROCESSING_INSTRUCTION_TARGET                             => 'Disallowed processing instruction target',
+        self::INVALID_FIRST_CHARACTER_OF_PROCESSING_INSTRUCTION_TARGET          => 'Invalid first character of processing instruction target',
     ];
 
     public const REPORT_OFFSETS = [
