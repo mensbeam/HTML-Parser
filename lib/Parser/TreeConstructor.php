@@ -3582,8 +3582,14 @@ class TreeConstructor {
             // NOTE: The "entry above" refers to the "in body" insertion mode
             //   Changes here should be mirrored there
             foreach ($this->stack as $node) {
-                // NOTE: Only the "is special" case is possible here
-                if ($this->isElementSpecial($node)) {
+                if ($node->nodeName === $token->name && $node->namespaceURI === $this->htmlNamespace) {
+                    $this->stack->generateImpliedEndTags($token->name);
+                    if (!$node->isSameNode($this->stack->currentNode)) {
+                        $this->error($errorCode, $token->name);
+                    }
+                    $this->stack->popUntilSame($node);
+                    return;
+                } elseif ($this->isElementSpecial($node)) {
                     $this->error($errorCode, $token->name);
                     return;
                 }
