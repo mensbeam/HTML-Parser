@@ -379,7 +379,7 @@ abstract class Serializer {
                     }
                 }
 
-                $s .= '<?' . self::uncoerceName($node->target) . " {$node->data}>";
+                $s .= '<?' . self::uncoerceName($node->target) . " {$node->data}?>";
             }
         } elseif (static::isDocumentType($node)) {
             /** @var \DOMDocumentType|\Dom\DocumentType $node */

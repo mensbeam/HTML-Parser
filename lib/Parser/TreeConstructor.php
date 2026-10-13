@@ -221,13 +221,13 @@ class TreeConstructor {
     # dt, embed, fieldset, figcaption, figure, footer, form, frame, frameset, h1,
     # h2, h3, h4, h5, h6, head, header, hgroup, hr, html, iframe, img, input,
     # keygen, li, link, listing, main, marquee, menu, meta, nav, noembed, noframes,
-    # noscript, object, ol, p, param, plaintext, pre, script, section, select,
+    # noscript, object, ol, p, param, plaintext, pre, script, search, section, select,
     # source, style, summary, table, tbody, td, template, textarea, tfoot, th,
     # thead, title, tr, track, ul, wbr, xmp; MathML mi, MathML mo, MathML mn,
     # MathML ms, MathML mtext, and MathML annotation-xml; and SVG foreignObject,
     # SVG desc, and SVG title.
     protected const SPECIAL_ELEMENTS = [
-        Parser::HTML_NAMESPACE   => ['address', 'applet', 'area', 'article', 'aside', 'base', 'basefont', 'bgsound', 'blockquote', 'body', 'br', 'button', 'caption', 'center', 'col', 'colgroup', 'dd', 'details', 'dir', 'div', 'dl', 'dt', 'embed', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html', 'iframe', 'img', 'input', 'keygen', 'li', 'link', 'listing', 'main', 'marquee', 'menu', 'meta', 'nav', 'noembed', 'noframes', 'noscript', 'object', 'ol', 'p', 'param', 'plaintext', 'pre', 'script', 'section', 'select', 'source', 'style', 'summary', 'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'title', 'tr', 'track', 'ul', 'wbr', 'xmp'],
+        Parser::HTML_NAMESPACE   => ['address', 'applet', 'area', 'article', 'aside', 'base', 'basefont', 'bgsound', 'blockquote', 'body', 'br', 'button', 'caption', 'center', 'col', 'colgroup', 'dd', 'details', 'dir', 'div', 'dl', 'dt', 'embed', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html', 'iframe', 'img', 'input', 'keygen', 'li', 'link', 'listing', 'main', 'marquee', 'menu', 'meta', 'nav', 'noembed', 'noframes', 'noscript', 'object', 'ol', 'p', 'param', 'plaintext', 'pre', 'script', 'search', 'section', 'select', 'source', 'style', 'summary', 'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'title', 'tr', 'track', 'ul', 'wbr', 'xmp'],
         Parser::MATHML_NAMESPACE => ['mi', 'mo', 'mn', 'ms', 'mtext', 'annotation-xml'],
         Parser::SVG_NAMESPACE    => ['foreignObject', 'desc', 'title'],
     ];
@@ -329,7 +329,7 @@ class TreeConstructor {
                 $this->debugLog .= "EMITTED: ".constant(get_class($token)."::NAME")."\n";
                 return true;
             })());
-            assert($token instanceof CharacterToken || $token instanceof CommentToken || $token instanceof TagToken || $token instanceof DOCTYPEToken || $token instanceof EOFToken, new \Exception("Invalid token class: ".get_class($token)));
+            assert($token instanceof CharacterToken || $token instanceof CommentToken || $token instanceof ProcessingInstructionToken || $token instanceof TagToken || $token instanceof DOCTYPEToken || $token instanceof EOFToken, new \Exception("Invalid token class: ".get_class($token)));
             $iterations = 0;
             $insertionMode = $this->insertionMode;
 
@@ -1335,6 +1335,11 @@ class TreeConstructor {
                         # Insert a comment.
                         $this->insertCommentToken($token);
                     }
+                    # A processing instruction token
+                    elseif ($token instanceof ProcessingInstructionToken) {
+                        # Insert a processing instruction.
+                        $this->insertProcessingInstructionToken($token);
+                    }
                     # A DOCTYPE token
                     elseif ($token instanceof DOCTYPEToken) {
                         # Parse error. Ignore the token.
@@ -1377,6 +1382,11 @@ class TreeConstructor {
                         // DEVIATION: PHP's DOM does not allow comments as children of the document
                         //   and silently drops them, so this is actually a no-op
                         $this->insertCommentToken($token, $this->DOM);
+                    }
+                    # A processing instruction token
+                    elseif ($token instanceof ProcessingInstructionToken) {
+                        # Insert a processing instruction as the last child of the Document object.
+                        $this->insertProcessingInstructionToken($token, $this->DOM);
                     }
                     # A DOCTYPE token
                     elseif ($token instanceof DOCTYPEToken) {
@@ -1532,6 +1542,11 @@ class TreeConstructor {
                         # Insert a comment as the last child of the Document object.
                         $this->insertCommentToken($token, $this->DOM);
                     }
+                    # A processing instruction token
+                    elseif ($token instanceof ProcessingInstructionToken) {
+                        # Insert a processing instruction as the last child of the Document object.
+                        $this->insertProcessingInstructionToken($token, $this->DOM);
+                    }
                     # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED
                     # (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
                     // OPTIMIZATION: Will check for multiple space characters at once as character
@@ -1589,6 +1604,11 @@ class TreeConstructor {
                         # insert a comment.
                         $this->insertCommentToken($token);
                     }
+                    # A processing instruction token
+                    elseif ($token instanceof ProcessingInstructionToken) {
+                        # Insert a processing instruction.
+                        $this->insertProcessingInstructionToken($token);
+                    }
                     # A DOCTYPE token
                     elseif ($token instanceof DOCTYPEToken) {
                         # Parse error. Ignore the token.
@@ -1642,6 +1662,11 @@ class TreeConstructor {
                     elseif ($token instanceof CommentToken) {
                         # Insert a comment.
                         $this->insertCommentToken($token);
+                    }
+                    # A processing instruction token
+                    elseif ($token instanceof ProcessingInstructionToken) {
+                        # Insert a processing instruction.
+                        $this->insertProcessingInstructionToken($token);
                     }
                     # A DOCTYPE token
                     elseif ($token instanceof DOCTYPEToken) {
@@ -1901,7 +1926,8 @@ class TreeConstructor {
                     # A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED
                     #   (LF), U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
                     # A comment token
-                    elseif ($token instanceof CommentToken || $token instanceof WhitespaceToken) {
+                    # A processing instruction token
+                    elseif ($token instanceof ProcessingInstructionToken || $token instanceof CommentToken || $token instanceof WhitespaceToken) {
                         # Process the token using the rules for the "in head" insertion mode.
                         $insertionMode = self::IN_HEAD_MODE;
                         goto ProcessToken;
@@ -1939,6 +1965,11 @@ class TreeConstructor {
                     elseif ($token instanceof CommentToken) {
                         # Insert a comment.
                         $this->insertCommentToken($token);
+                    }
+                    # A processing instruction token
+                    elseif ($token instanceof ProcessingInstructionToken) {
+                        # Insert a processing instruction.
+                        $this->insertProcessingInstructionToken($token);
                     }
                     # A DOCTYPE token
                     elseif ($token instanceof DOCTYPEToken) {
@@ -2112,6 +2143,11 @@ class TreeConstructor {
                     elseif ($token instanceof CommentToken) {
                         # Insert a comment.
                         $this->insertCommentToken($token);
+                    }
+                    # A processing instruction token
+                    elseif ($token instanceof ProcessingInstructionToken) {
+                        # Insert a processing instruction.
+                        $this->insertProcessingInstructionToken($token);
                     }
                     # A DOCTYPE token
                     elseif ($token instanceof DOCTYPEToken) {
@@ -2427,7 +2463,7 @@ class TreeConstructor {
                             }
                             # Pop elements from this stack until a caption element
                             #   has been popped from the stack.
-                            $this->stack->pop("caption");
+                            $this->stack->popUntil("caption");
                             # Clear the list of active formatting elements up to
                             #   the last marker.
                             $this->activeFormattingElementsList->clearToTheLastMarker();
@@ -2463,6 +2499,11 @@ class TreeConstructor {
                     elseif ($token instanceof CommentToken) {
                         # Insert a comment.
                         $this->insertCommentToken($token);
+                    }
+                    # A processing instruction token
+                    elseif ($token instanceof ProcessingInstructionToken) {
+                        # Insert a processing instruction.
+                        $this->insertProcessingInstructionToken($token);
                     }
                     # A DOCTYPE token
                     elseif ($token instanceof DOCTYPEToken) {
@@ -2810,8 +2851,9 @@ class TreeConstructor {
                 elseif ($insertionMode === self::IN_TEMPLATE_MODE) {
                     # A character token
                     # A comment token
+                    # A processing instruction
                     # A DOCTYPE token
-                    if ($token instanceof CharacterToken || $token instanceof CommentToken || $token instanceof DOCTYPEToken) {
+                    if ($token instanceof CharacterToken || $token instanceof CommentToken || $token instanceof ProcessingInstructionToken || $token instanceof DOCTYPEToken) {
                         # Process the token using the rules for the
                         #   "in body" insertion mode.
                         $insertionMode = self::IN_BODY_MODE;
@@ -2955,6 +2997,12 @@ class TreeConstructor {
                         #   in the stack of open elements (the html element).
                         $this->insertCommentToken($token, $this->stack[0]);
                     }
+                    # A processing instruction token
+                    elseif ($token instanceof ProcessingInstructionToken) {
+                        # Insert a processing instruction as the last child of the first element
+                        #   in the stack of open elements (the html element).
+                        $this->insertProcessingInstructionToken($token, $this->stack[0]);
+                    }
                     # A DOCTYPE token
                     elseif ($token instanceof DOCTYPEToken) {
                         # Parse error. Ignore the token.
@@ -3015,6 +3063,11 @@ class TreeConstructor {
                     elseif ($token instanceof CommentToken) {
                         # Insert a comment.
                         $this->insertCommentToken($token);
+                    }
+                    # A processing instruction token
+                    elseif ($token instanceof ProcessingInstructionToken) {
+                        # Insert a processing instruction.
+                        $this->insertProcessingInstructionToken($token);
                     }
                     # A DOCTYPE token
                     elseif ($token instanceof DOCTYPEToken) {
@@ -3117,6 +3170,11 @@ class TreeConstructor {
                         # Insert a comment.
                         $this->insertCommentToken($token);
                     }
+                    # A processing instruction token
+                    elseif ($token instanceof ProcessingInstructionToken) {
+                        # Insert a processing instruction.
+                        $this->insertProcessingInstructionToken($token);
+                    }
                     # A DOCTYPE token
                     elseif ($token instanceof DOCTYPEToken) {
                         # Parse error. Ignore the token.
@@ -3171,6 +3229,11 @@ class TreeConstructor {
                         # Insert a comment as the last child of the Document object.
                         $this->insertCommentToken($token, $this->DOM);
                     }
+                    # A processing instruction token
+                    elseif ($token instanceof ProcessingInstructionToken) {
+                        # Insert a processing instruction as the last child of the Document object.
+                        $this->insertProcessingInstructionToken($token, $this->DOM);
+                    }
                     # A DOCTYPE token
                     # A character token that is one of U+0009 CHARACTER TABULATION,
                     #   U+000A LINE FEED (LF), U+000C FORM FEED (FF),
@@ -3209,6 +3272,11 @@ class TreeConstructor {
                     if ($token instanceof CommentToken) {
                         # Insert a comment as the last child of the Document object.
                         $this->insertCommentToken($token, $this->DOM);
+                    }
+                    # A processing instruction token
+                    elseif ($token instanceof ProcessingInstructionToken) {
+                        # Insert a processing instruction as the last child of the Document object.
+                        $this->insertProcessingInstructionToken($token, $this->DOM);
                     }
                     # A DOCTYPE token
                     # A character token that is one of U+0009 CHARACTER TABULATION,
@@ -3299,6 +3367,11 @@ class TreeConstructor {
                     # Insert a comment.
                     $this->insertCommentToken($token);
                 }
+                # A processing instruction token
+                elseif ($token instanceof ProcessingInstructionToken) {
+                    # Insert a processing instruction.
+                    $this->insertProcessingInstructionToken($token);
+                }
                 # A DOCTYPE token
                 elseif ($token instanceof DOCTYPEToken) {
                     # Parse error. Ignore the token.
@@ -3315,7 +3388,7 @@ class TreeConstructor {
                     # "color", "face", or "size"
                     if (
                         in_array($token->name, ['b', 'big', 'blockquote', 'body', 'br', 'center', 'code', 'dd', 'div', 'dl', 'dt', 'em', 'embed', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'hr', 'i', 'img', 'li', 'listing', 'menu', 'meta', 'nobr', 'ol', 'p', 'pre', 'ruby', 's', 'small', 'span', 'strong', 'strike', 'sub', 'sup', 'table', 'tt', 'u', 'ul', 'var'])
-                        || ($token->name === 'font' && ($token->hasAttribute('color') || $token->hasAttribute('face') || $token->hasAttribute('size'))                        )
+                        || ($token->name === 'font' && ($token->hasAttribute('color') || $token->hasAttribute('face') || $token->hasAttribute('size')))
                     ) {
                         # Parse error.
                         $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
@@ -3804,23 +3877,19 @@ class TreeConstructor {
         # 3. Create a Comment node whose data attribute is set to data and whose node
         # document is the same as that of the node in which the adjusted insertion
         # location finds itself.
-        // DEVIATION: This can optionally be a processing instruction
-        if (
-            $token instanceof ProcessingInstructionToken 
-            && $this->processingInstructions
-            // see https://www.w3.org/TR/xml/#d0e1188
-            && preg_match('/^\?(?![Xx][Mm][Ll](?:[ \x{9}\x{D}\x{A}]|$))([:A-Z_a-z\x{C0}-\x{D6}\x{D8}-\x{F6}\x{F8}-\x{2FF}\x{370}-\x{37D}\x{37F}-\x{1FFF}\x{200C}-\x{200D}\x{2070}-\x{218F}\x{2C00}-\x{2FEF}\x{3001}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFFD}\x{10000}-\x{EFFFF}][:A-Z_a-z\x{C0}-\x{D6}\x{D8}-\x{F6}\x{F8}-\x{2FF}\x{370}-\x{37D}\x{37F}-\x{1FFF}\x{200C}-\x{200D}\x{2070}-\x{218F}\x{2C00}-\x{2FEF}\x{3001}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFFD}\x{10000}-\x{EFFFF}-\.0-9\x{B7}\x{0300}-\x{036F}\x{203F}-\x{2040}]*)(?:[ \x{9}\x{D}\x{A}](.*))?/suD', $token->data, $m)
-        ) {
-            try {
-                $node = $this->DOM->createProcessingInstruction($m[1], $m[2]);
-            } catch (\DOMException $e) {
-                // PHP's DOM does not implement the laxer Name production of the fifth edition of XML; if an otherwise valid PI target cannot be used, create a comment instead
-                $node = $this->DOM->createComment($token->data);
-            }
-        } else {
+        $node = $this->DOM->createComment($token->data);
+        # 4. Insert the newly created node at the adjusted insertion location.
+        $position->appendChild($node);
+    }
+
+    public function insertProcessingInstructionToken(ProcessingInstructionToken $token, ?\DOMNode $position = null): void {
+        $position = $position ?? $this->appropriatePlaceForInsertingNode()['node'];
+        try {
+            $node = $this->DOM->createProcessingInstruction($token->target, $token->data);
+        } catch (\DOMException $e) {
+            // PHP's DOM does not implement the laxer Name production of the fifth edition of XML; if an otherwise valid PI target cannot be used, create a comment instead
             $node = $this->DOM->createComment($token->data);
         }
-        # 4. Insert the newly created node at the adjusted insertion location.
         $position->appendChild($node);
     }
 
