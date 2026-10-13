@@ -532,7 +532,7 @@ class TreeConstructor {
                             # If the form element pointer is not null, and the
                             #   parser is not parsing template contents, then
                             #   this is a parse error; ignore the token.
-                            $templateInStack = ($this->stack->find('template') > -1 || ($this->fragmentContext && $this->fragmentContext->namespaceURI === $this->htmlNamespace && $this->fragmentContext->nodeName === "template"));
+                            $templateInStack = $this->parsingTemplateContents();
                             if ($this->formElement && !$templateInStack) {
                                 $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                             }
@@ -2273,10 +2273,8 @@ class TreeConstructor {
                         elseif ($token->name === "form") {
                             # Parse error.
                             $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
-                            # If there is a template element on the stack of open
-                            #   elements, or if the form element pointer is not null,
-                            #   ignore the token.
-                            if ($this->formElement || $this->stack->find("template") > -1) {
+                            # If the form element pointer is not null, and the parser is not parsing template contents, then ignore the token.
+                            if ($this->formElement && !$this->parsingTemplateContents()) {
                                 // Ignore the token
                             }
                             # Otherwise:
@@ -4205,5 +4203,9 @@ class TreeConstructor {
             # not the last entry in the list, return to the step labeled Advance.
             $pos++;
         }
+    }
+
+    protected function parsingTemplateContents(): bool {
+        return $this->stack->find('template') > -1 || ($this->fragmentContext && $this->fragmentContext->namespaceURI === $this->htmlNamespace && $this->fragmentContext->nodeName === "template");
     }
 }
