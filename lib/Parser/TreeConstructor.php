@@ -49,8 +49,6 @@ class TreeConstructor {
     protected $mangledElements = false;
     /** @var bool Flag used to track whether name mangling has been performed for attributes; this is a minor optimization */
     protected $mangledAttributes = false;
-    /** @var bool Whether processing instructions should be retained rather than transformed into comments as the specification requires */
-    protected $processingInstructions = false;
     /** @var ?string The namespace URI to use for HTML elements */
     protected $htmlNamespace = null;
 
@@ -272,7 +270,6 @@ class TreeConstructor {
         $this->errorHandler = $errorHandler;
         $this->activeFormattingElementsList = new ActiveFormattingElementsList;
         $this->tokenList = $tokenList;
-        $this->processingInstructions = $config->processingInstructions ?? false;
         $this->htmlNamespace = $config->htmlNamespace ? Parser::HTML_NAMESPACE : null;
 
         # Parsing HTML fragments

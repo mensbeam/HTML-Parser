@@ -216,7 +216,6 @@ The `MensBeam\HTML\Parser\Config` class is used as a container for configuration
 - `encodingPrescanBytes`: The number of bytes (by default `1024`) to examine prior to parsing to determine the document character encoding when none is provided. Normally this should not need to be changed. Using `0` will disable the encoding pre-scan
 - `errorCollection`: A boolean value indicating whether parse errors should be collected into the `Output` object's `errors` array. This should usually be left at the default `false` for performance reasons. The content of the `errors` array is currently considered an implemenmtation detail subject to change without notice
 - `htmlNamespace`: A boolean value indicating whether to create HTML elements within the HTML namespace i.e. `http://www.w3.org/1999/xhtml` rather than the `null` namespace. Though using the HTML namespace is the correct behaviour, the `null` namespace is used by default for performance and compatibility reasons
-- `processingInstructions`: A boolean value indicating whether to preserve processing instructions in the parsed document. By default processing instructions are parsed as comments, per the specification. Note that if set to `true` the parser will insert _HTML processing sinstructions_ which are terminated by the first `>` character, not XML processing instructions terminated by `?>`
 
 ## Limitations
 
@@ -246,7 +245,6 @@ This library and [masterminds/html5](https://packagist.org/packages/masterminds/
 | Handling of misnested tags                          | Parent end tags always close children | Parent end tags always close children                    | [Per specification](https://html.spec.whatwg.org/multipage/parsing.html#an-introduction-to-error-handling-and-strange-cases-in-the-parser) |
 | Handling of data between table cells                | Left as-is                            | Left as-is                                               | [Per specification](https://html.spec.whatwg.org/multipage/parsing.html#an-introduction-to-error-handling-and-strange-cases-in-the-parser) |
 | Handling of omitted start tags                      | Elements are not inserted             | Elements are not inserted                                | Per specification                      |
-| Handling of processing instructions                 | Retained                              | Retained                                                 | Per specification, configurable        |
 | Handling of bogus XLink namespace\*                 | Foreign content not supported         | XLink attributes are lost if preceded by bogus namespace | Bogus namespace is ignored             |
 | Namespace for HTML elements                         | Null                                  | Per specification, configurable                          | Null, configurable                     |
 | Time needed to parse single-page HTML specification | 0.5 seconds                           | 2.7 seconds†                                             | 6.0 seconds                            |

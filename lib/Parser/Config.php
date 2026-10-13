@@ -17,6 +17,6 @@ class Config {
     public $errorCollection = null;
     /** @var bool|null Whether to use the HTML namespace rather than the null namespace for HTML elements. Using the HTML namespace is the correct behaviour, but this has performance and compatibility implications for PHP */
     public $htmlNamespace = null;
-    /** @var bool|null Whether to retain processing instructions rather than parsing them into comments as the HTML specification requires. Setting this true will yield non-standard documents */
+    /** @var bool|null This option is obsolete. Historically it would control whether processing instructions were retained rather than transformed into comments, but the specification was changed to always retain processing instructions in 2026 */
     public $processingInstructions = null;
 }
