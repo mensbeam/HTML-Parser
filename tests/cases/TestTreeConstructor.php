@@ -272,6 +272,10 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                 // process the file
                 while ($l < count($lines)) {
                     $pos = $l + 1;
+                    // skip any test description
+                    if ($lines[$l] === "#description") {
+                        while ($lines[++$l] !== "#data");
+                    }
                     assert($lines[$l] === "#data", new \Exception("Test $file #$index does not start with #data tag at line ".($l + 1)));
                     // collect the test input
                     $data = [];
@@ -323,7 +327,7 @@ class TestTreeConstructor extends \PHPUnit\Framework\TestCase {
                     $exp = [];
                     assert($lines[$l] === "#document", new \Exception("Test $file #$index follows document fragment with something other than document at line ".($l + 1)));
                     for (++$l; $l < count($lines); $l++) {
-                        if ($lines[$l] === "" && ($lines[$l + 1] ?? "") === "#data") {
+                        if ($lines[$l] === "" && in_array($lines[$l + 1] ?? "", ["#data", "#description"])) {
                             break;
                         } elseif (($lines[$l][0] ?? "") !== "|") {
                             // append the data to the previous token
