@@ -444,8 +444,8 @@ class TreeConstructor {
                             $this->error(ParseError::UNEXPECTED_START_TAG, 'frameset');
 
                             # If the stack of open elements has only one node on it, or if the second
-                            # element on the stack of open elements is not a body element, then ignore the
-                            # token. (fragment case)
+                            #   element on the stack of open elements is not a body element, then ignore
+                            #   the token. (fragment case or there is a template element on the stack)
                             # If the frameset-ok flag is set to "not ok", ignore the token.
                             if (!(count($this->stack) === 1 || $this->stack[1]->tagName !== 'body' || $this->framesetOk === false)) {
                                 # Otherwise, run the following steps:
@@ -458,7 +458,7 @@ class TreeConstructor {
                                 }
                                 # 2. Pop all the nodes from the bottom of the stack of open elements, from the
                                 # current node up to, but not including, the root html element.
-                                for ($i = count($this->stack) - 1; $i > 0; $i--) {
+                                for ($i = count($this->stack); $i > 1; $i--) {
                                     $this->stack->pop();
                                 }
                                 # 3. Insert an HTML element for the token.
@@ -1774,8 +1774,6 @@ class TreeConstructor {
                         }
                         # A start tag whose tag name is "template"
                         elseif ($token->name === 'template') {
-                            # Insert an HTML element for the token.
-                            $this->insertStartTagToken($token);
                             # Insert a marker at the end of the list of active formatting elements.
                             $this->activeFormattingElementsList->insertMarker();
                             # Set the frameset-ok flag to "not ok".
@@ -1785,6 +1783,9 @@ class TreeConstructor {
                             # Push "in template" onto the stack of template insertion modes so that it is
                             # the new current template insertion mode.
                             $this->templateInsertionModes[] = self::IN_TEMPLATE_MODE;
+                            // DEVIATION: We do not support shadow roots or template contents, so we unconditionally insert the element
+                            # Insert an HTML element for the token.
+                            $this->insertStartTagToken($token);
                         }
                         # A start tag whose tag name is "head"
                         elseif ($token->name === 'head') {
@@ -1835,19 +1836,23 @@ class TreeConstructor {
                             }
                             # Otherwise, run these steps:
                             else {
-                                # 1. Generate all implied end tags thoroughly.
+                                # Generate all implied end tags thoroughly.
                                 $this->stack->generateImpliedEndTagsThoroughly();
-                                # 2. If the current node is not a template element, then this is a parse error.
+                                # If the current node is not a template element, then this is a parse error.
                                 if ($this->stack->currentNodeName !== 'template') {
                                     $this->error(ParseError::UNEXPECTED_END_TAG, $token->name);
                                 }
-                                # 3. Pop elements from the stack of open elements until a template element has been popped from the stack.
+                                # Let template be the last template element in the stack of open elements.
+                                # If template's insertion target is not null: ...
+                                // DEVIATION: the insertion target is only not-null in the presence of shadow
+                                //   roots, as far as I can tell, so we ignore this whole section
+                                # Pop elements from the stack of open elements until a template element has been popped from the stack.
                                 $this->stack->popUntil('template');
-                                # 4. Clear the list of active formatting elements up to the last marker.
+                                # Clear the list of active formatting elements up to the last marker.
                                 $this->activeFormattingElementsList->clearToTheLastMarker();
-                                # 5. Pop the current template insertion mode off the stack of template insertion modes.
+                                # Pop the current template insertion mode off the stack of template insertion modes.
                                 $this->templateInsertionModes->pop();
-                                # 6. Reset the insertion mode appropriately.
+                                # Reset the insertion mode appropriately.
                                 $this->resetInsertionMode();
                             }
                         }
@@ -2024,11 +2029,11 @@ class TreeConstructor {
                                 $this->insertionMode = self::TEXT_MODE;
                             }
                             elseif ($token->name === 'template') {
-                                $this->insertStartTagToken($token);
                                 $this->activeFormattingElementsList->insertMarker();
                                 $this->framesetOk = false;
                                 $this->insertionMode = self::IN_TEMPLATE_MODE;
                                 $this->templateInsertionModes[] = self::IN_TEMPLATE_MODE;
+                                $this->insertStartTagToken($token);
                             } else {
                                 $this->insertStartTagToken($token);
                                 $this->stack->pop();
@@ -2049,6 +2054,8 @@ class TreeConstructor {
 
                             # Insert an HTML element for a "body" start tag token with no attributes.
                             $this->insertStartTagToken(new StartTagToken('body'));
+                            # Set the frameset-ok flag to "ok".
+                            $this->framesetOk = true;
                             # Switch the insertion mode to "in body".
                             $insertionMode = $this->insertionMode = self::IN_BODY_MODE;
                             # Reprocess the current token.
@@ -2083,6 +2090,8 @@ class TreeConstructor {
                     else {
                         # Insert an HTML element for a "body" start tag token with no attributes.
                         $this->insertStartTagToken(new StartTagToken('body'));
+                        # Set the frameset-ok flag to "ok".
+                        $this->framesetOk = true;
                         # Switch the insertion mode to "in body".
                         $insertionMode = $this->insertionMode = self::IN_BODY_MODE;
                         # Reprocess the current token.
