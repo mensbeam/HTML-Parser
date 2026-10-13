@@ -529,9 +529,10 @@ class TreeConstructor {
                         }
                         # A start tag whose tag name is "form"
                         elseif ($token->name === 'form') {
-                            # If the form element pointer is not null, and there is no template element on
-                            #   the stack of open elements, then this is a parse error; ignore the token.
-                            $templateInStack = ($this->stack->find('template') > -1);
+                            # If the form element pointer is not null, and the
+                            #   parser is not parsing template contents, then
+                            #   this is a parse error; ignore the token.
+                            $templateInStack = ($this->stack->find('template') > -1 || ($this->fragmentContext && $this->fragmentContext->namespaceURI === $this->htmlNamespace && $this->fragmentContext->nodeName === "template"));
                             if ($this->formElement && !$templateInStack) {
                                 $this->error(ParseError::UNEXPECTED_START_TAG, $token->name);
                             }
@@ -542,9 +543,10 @@ class TreeConstructor {
                                 if ($this->stack->hasElementInButtonScope('p')) {
                                     $this->closePElement($token);
                                 }
-                                # Insert an HTML element for the token, and, if there is no template element on
-                                # the stack of open elements, set the form element pointer to point to the
-                                # element created.
+                                # Insert an HTML element for the token, and, if
+                                #   the parser is not parsing template contents,
+                                #   set the form element pointer to point to the
+                                #   element created.
                                 $form = $this->insertStartTagToken($token);
                                 if (!$templateInStack) {
                                     $this->formElement = $form;
