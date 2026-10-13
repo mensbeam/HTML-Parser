@@ -746,7 +746,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
                 } else {
                     $cur->appendChild($document->implementation->createDocumentType($name, $public, $system));
                 }
-            } elseif (preg_match('/^<\?([^ ]+) ([^>]*)>$/', $d, $m)) {
+            } elseif (preg_match('/^<\?([^ ]+) ((?:[^?>]|\?(?!>))*)\??>$/', $d, $m)) {
                 // processing instruction
                 $cur->appendChild($document->createProcessingInstruction($m[1], $m[2]));
             } elseif (preg_match('/^<(?:([^ ]+) )?([^>]+)>$/', $d, $m)) {
