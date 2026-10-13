@@ -43,3 +43,14 @@
 |     <article>
 |       xmlns:xlink="http://www.w3.org/1999/xlink"
 |       "No coercion should occur here"
+
+#data
+<!DOCTYPE html><html><?💩 This PI target should be valid, but PHP does not accept it>
+#errors
+(1,23): unexpected-question-mark-instead-of-tag-name
+#document
+| <!DOCTYPE html>
+| <html>
+|   <!-- ?💩 This PI target should be valid, but PHP does not accept it -->
+|   <head>
+|   <body>
