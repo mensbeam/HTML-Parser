@@ -1105,9 +1105,8 @@ class TreeConstructor {
                         }
                         # An end tag whose tag name is "form"
                         elseif ($token->name === 'form') {
-                            # If there is no template element on the stack of open elements, then run these
-                            # substeps:
-                            if ($this->stack->find('template') === -1) {
+                            # If the parser is not parsing template contents:
+                            if (!$this->parsingTemplateContents()) {
                                 # 1. Let node be the element that the form element pointer is set to,
                                 #  or null if it is not set to an element.
                                 $node = $this->formElement;
