@@ -307,7 +307,7 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
                 <html>
                  <head></head>
 
-                 <body><!--ook--><!--?ook eeeeek ?--></body>
+                 <body><!--ook--><?ook eeeeek ?></body>
                 </html>
                 HTML
             ],
