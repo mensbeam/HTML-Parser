@@ -291,7 +291,8 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
                 HTML
             ],
 
-            // Inline serialized comments and processing instructions, parsing of processing instructions off
+            // Inline serialized comments and processing instructions (the processingInstructions
+            // option is inert: processing instructions are always parsed)
             [false, null, 1, true, false, true, false, false,
                 <<<HTML
                 <html>
@@ -701,6 +702,72 @@ class TestSerializer extends \PHPUnit\Framework\TestCase {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessageIsOrContains('\Dom\Document|\DOMDocument|\Dom\Element|\DOMElement|\Dom\DocumentFragment|\DOMDocumentFragment');
         Serializer::serializeInner($t);
+    }
+
+    #[DataProvider('provideXMLDeclarationCases')]
+    public function testSerializeXMLDocumentDeclaration(bool $newDOM, array $config, bool $standalone, ?string $expDeclaration): void {
+        $d = $this->buildXMLDocument($newDOM, $standalone);
+
+        // What the document serializes to without any declaration
+        $body = Serializer::serialize($d);
+        $this->assertStringNotContainsString('<?xml', $body);
+
+        $act = Serializer::serialize($d, $config);
+        $this->assertSame(($expDeclaration ?? '') . $body, $act);
+    }
+
+    public static function provideXMLDeclarationCases(): iterable {
+        $cases = [
+            'not set: no declaration, so a document can still host HTML-shaped trees' => [[], false, null],
+            'set to false' => [['printXMLDeclaration' => false], false, null],
+            'set to true' => [['printXMLDeclaration' => true], false, '<?xml version="1.0" encoding="UTF-8"?>'],
+            'set to true, standalone' => [['printXMLDeclaration' => true], true, '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'],
+        ];
+        foreach ([false, true] as $newDOM) {
+            foreach ($cases as $name => [$config, $standalone, $exp]) {
+                yield ($newDOM ? 'new DOM, ' : 'old DOM, ') . $name => [$newDOM, $config, $standalone, $exp];
+            }
+        }
+    }
+
+    #[DataProvider('provideDOMTypes')]
+    public function testSerializeXMLDocumentDeclarationWithReformattedWhitespace(bool $newDOM): void {
+        $d = $this->buildXMLDocument($newDOM);
+
+        // The root element starts on its own line after the declaration
+        $act = Serializer::serialize($d, ['printXMLDeclaration' => true, 'reformatWhitespace' => true]);
+        $this->assertStringStartsWith('<?xml version="1.0" encoding="UTF-8"?>' . "\n<feed", $act);
+    }
+
+    public static function provideDOMTypes(): iterable {
+        yield 'old DOM' => [false];
+        yield 'new DOM' => [true];
+    }
+
+    protected function buildXMLDocument(bool $newDOM, bool $standalone = false) {
+        if ($newDOM) {
+            if (!class_exists('\Dom\XMLDocument')) {
+                $this->markTestSkipped('The new DOM requires PHP 8.4');
+            }
+            $d = \Dom\XMLDocument::createEmpty('1.0', 'UTF-8');
+        } else {
+            $d = new \DOMDocument('1.0', 'UTF-8');
+        }
+        $d->xmlStandalone = $standalone;
+        $d->appendChild($d->createElementNS('http://www.w3.org/2005/Atom', 'feed'));
+        return $d;
+    }
+
+    public function testSerializeOldDOMHTMLDocumentNeverGetsAnXMLDeclaration(): void {
+        $d = new \DOMDocument();
+        $d->appendChild($d->createElement('html'));
+        $this->assertStringNotContainsString('<?xml', Serializer::serialize($d, ['printXMLDeclaration' => true]));
+    }
+
+    #[RequiresPhp('>= 8.4.0')]
+    public function testSerializeHTMLDocumentNeverGetsAnXMLDeclaration(): void {
+        $d = \Dom\HTMLDocument::createFromString('<!DOCTYPE html><p>Ook', LIBXML_NOERROR);
+        $this->assertStringNotContainsString('<?xml', Serializer::serialize($d, ['printXMLDeclaration' => true]));
     }
 
     protected function buildTree(array $data, bool $fragment, bool $newDOM = false) {

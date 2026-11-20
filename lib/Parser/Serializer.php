@@ -58,7 +58,7 @@ abstract class Serializer {
      *          groupElements bool|null - Group like "block" elements and insert extra newlines between groups
      *          indentStep int|null - The number of spaces or tabs (depending on setting of indentStep) to indent at each step. This is 1 by default and has no effect unless reformatWhitespace is true
      *          indentWithSpaces bool|null - Whether to use spaces or tabs to indent. This is true by default and has no effect unless reformatWhitespace is true
-     *          printXMLDeclaration bool|null - Whether to print XML declarations or not. This is true by default and is irrelevant for HTML documents
+     *          printXMLDeclaration bool|null - Whether to print XML declarations or not. This is true by default and is irrelevant for HTML documents. An explicit xml processing instruction node is printed unless this is false. Additionally, when this is explicitly set to true, an XML document (a \Dom\XMLDocument, or a \DOMDocument whose root isn't an html element) without such a node gets a declaration built from its version, encoding, and standalone properties; this isn't done by default because an XMLDocument is also used to host HTML-shaped trees
      *          reformatWhitespace bool|null - Whether to reformat whitespace (pretty-print) or not. This is false by default
     */
     public static function serialize($node, array $config = []): string {
@@ -427,7 +427,19 @@ abstract class Serializer {
 
             $s .= '<!DOCTYPE ' . trim($node->name) . '>';
         } elseif (static::isDocument($node) || static::isDocumentFragment($node)) {
-            return self::serializeInnerNodes($node, $config);
+            // An XML declaration isn't a node in libxml's tree: its parts live on
+            // the document itself. So, when printXMLDeclaration was explicitly
+            // set to true, print one built from them for XML documents which
+            // don't carry an explicit xml processing instruction.
+            if (static::isXMLDocument($node) && $config['declareXMLDocuments'] && !static::hasXMLDeclarationNode($node)) {
+                $s .= static::buildXMLDeclaration($node);
+                if ($config['reformatWhitespace']) {
+                    // the root element then starts on its own line
+                    $config['first'] = false;
+                }
+            }
+
+            return $s . self::serializeInnerNodes($node, $config);
         } else {
             throw new Exception(Exception::UNSUPPORTED_NODE_TYPE, [get_class($node)]);
         }
@@ -437,6 +449,8 @@ abstract class Serializer {
 
 
     protected static function verifyConfiguration(array $config): array {
+        // Only an explicit true makes the serializer declare XML documents
+        $declareXMLDocuments = ($config['printXMLDeclaration'] ?? null) === true;
         $config['booleanAttributeValues'] = $config['booleanAttributeValues'] ?? true;
         $config['foreignVoidEndTags'] = $config['foreignVoidEndTags'] ?? true;
         $config['groupElements'] = $config['groupElements'] ?? true;
@@ -484,6 +498,8 @@ abstract class Serializer {
             $config[$key] = $value;
         }
 
+        $config['declareXMLDocuments'] = $declareXMLDocuments;
+
         if ($config['reformatWhitespace']) {
             $config['first'] = true;
             $config['indentChar'] = ($config['indentWithSpaces']) ? ' ' : "\t";
@@ -507,6 +523,44 @@ abstract class Serializer {
     /** @param mixed $node */
     protected static function isDocument($node): bool {
         return $node instanceof \DOMDocument || is_a($node, 'Dom\Document');
+    }
+
+    /**
+     * Whether the node is an XML document. \Dom\XMLDocument is always one. A
+     * legacy \DOMDocument doesn't record whether it's HTML or XML, so it's
+     * treated as HTML (not XML) only when its root is an html element in the
+     * HTML namespace or no namespace; anything else counts as XML.
+     *
+     * @param mixed $node
+     */
+    protected static function isXMLDocument($node): bool {
+        if (is_a($node, 'Dom\XMLDocument')) {
+            return true;
+        }
+        if ($node instanceof \DOMDocument) {
+            $root = $node->documentElement;
+            return !($root !== null && $root->localName === 'html' && ($root->namespaceURI ?? Parser::HTML_NAMESPACE) === Parser::HTML_NAMESPACE);
+        }
+        return false;
+    }
+
+    /** Whether the document has an explicit xml processing instruction among its children */
+    protected static function hasXMLDeclarationNode($document): bool {
+        foreach ($document->childNodes as $n) {
+            if (static::isProcessingInstruction($n) && $n->target === 'xml') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Builds an XML declaration from the document's own version, encoding, and standalone properties */
+    protected static function buildXMLDeclaration($document): string {
+        $version = $document->xmlVersion ?: '1.0';
+        // The new DOM calls it characterSet; the old DOM, encoding
+        $encoding = (is_a($document, 'Dom\Document') ? $document->characterSet : ($document->encoding ?? $document->xmlEncoding)) ?: 'UTF-8';
+        $standalone = $document->xmlStandalone ? ' standalone="yes"' : '';
+        return "<?xml version=\"$version\" encoding=\"$encoding\"$standalone?>";
     }
 
     /** @param mixed $node */
